@@ -1,0 +1,7 @@
+# Core dependencies
+requests>=2.25.0
+urllib3>=1.26.0
+
+# Development dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0

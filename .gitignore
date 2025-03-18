@@ -1,0 +1,6 @@
+USPTO.code-workspace
+.vscode/
+downloads/
+.venv/
+*.egg-info/
+__pycache__
