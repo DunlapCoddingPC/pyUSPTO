@@ -1,0 +1,108 @@
+[build-system]
+requires = ["setuptools>=80", "wheel", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyUSPTO"
+description = "Python client for accessing USPTO OPD APIs"
+authors = [
+    {name = "Andrew Piechocki", email = "apiechocki@dunlapcodding.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE*"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+keywords = ["uspto", "patent", "odp", "client", "bulk data", "patent data"]
+dependencies = [
+    "requests>=2.25.0",
+]
+dynamic = ["version"]
+
+[project.urls]
+GitHub = "https://github.com/DunlapCoddingPC/pyUSPTO"
+issues = "https://github.com/DunlapCoddingPC/pyUSPTO/issues"
+
+[tool.setuptools_scm]
+
+[tool.setuptools.packages.find] 
+where = ["src"]
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+line_length = 88
+profile = "black"
+src_paths = ["src"]
+known_first_party = ["pyUSPTO"]
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["src/pyUSPTO"]
+omit = ["src/pyUSPTO/_version.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    # Skip protocol definitions
+    "class FromDictProtocol\\(Protocol\\):",
+    "def from_dict\\(cls, data: Dict\\[str, Any\\]\\) -> Any:",
+    "\\.\\.\\.",
+    # Skip abstract methods 
+    "@abstractmethod",
+    # Skip defensive assertion code
+    "raise NotImplementedError",
+    # Skip type checking blocks
+    "if TYPE_CHECKING:",
+    "pass",
+]
+
+[tool.mypy]
+mypy_path = "src"
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+# Per-module configs for production code
+[[tool.mypy.overrides]]
+module= "pyUSPTO.*"
+disallow_untyped_defs = true
+
+# Less strict for tests - allow untyped test functions
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+check_untyped_defs = false
+warn_unused_ignores = false
+warn_unreachable = false
+
+# Ignore missing stubs for third-party packages
+[[tool.mypy.overrides]]
+module = ["pytest.*","pytest", "requests.*", "urllib3.*"]
+ignore_missing_imports = true

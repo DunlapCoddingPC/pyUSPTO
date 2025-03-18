@@ -1,0 +1,16 @@
+USPTO.code-workspace
+.vscode/
+downloads/
+.venv/
+*.egg-info/
+__pycache__
+mypy-guide.md
+docs-setup-guide.md
+PubPlan.md
+notes/*
+info/ODP-API-Query-Spec.pdf
+*.coverage
+.mypy_cache/
+.pytest_cache/
+src/pyUSPTO/_version.py
+download-example/*

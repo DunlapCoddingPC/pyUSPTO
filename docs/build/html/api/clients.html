@@ -1,0 +1,694 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clients &mdash; pyUSPTO 0.1.4.dev0+ga92fa00.d20250320 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=109a12d6"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Models" href="models.html" />
+    <link rel="prev" title="API Reference" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            pyUSPTO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Clients</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyUSPTO.clients.bulk_data.BulkDataClient"><code class="docutils literal notranslate"><span class="pre">BulkDataClient</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.bulk_data.BulkDataClient.ENDPOINTS"><code class="docutils literal notranslate"><span class="pre">BulkDataClient.ENDPOINTS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.bulk_data.BulkDataClient.__init__"><code class="docutils literal notranslate"><span class="pre">BulkDataClient.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.bulk_data.BulkDataClient.download_file"><code class="docutils literal notranslate"><span class="pre">BulkDataClient.download_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.bulk_data.BulkDataClient.get_product_by_id"><code class="docutils literal notranslate"><span class="pre">BulkDataClient.get_product_by_id()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.bulk_data.BulkDataClient.get_products"><code class="docutils literal notranslate"><span class="pre">BulkDataClient.get_products()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.bulk_data.BulkDataClient.paginate_products"><code class="docutils literal notranslate"><span class="pre">BulkDataClient.paginate_products()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.bulk_data.BulkDataClient.search_products"><code class="docutils literal notranslate"><span class="pre">BulkDataClient.search_products()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient"><code class="docutils literal notranslate"><span class="pre">PatentDataClient</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.ENDPOINTS"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.ENDPOINTS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.__init__"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.download_application_document"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.download_application_document()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.download_patent_applications"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.download_patent_applications()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.download_patent_applications_post"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.download_patent_applications_post()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_adjustment"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.get_application_adjustment()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_assignment"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.get_application_assignment()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_associated_documents"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.get_application_associated_documents()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_attorney"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.get_application_attorney()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_continuity"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.get_application_continuity()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_documents"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.get_application_documents()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_foreign_priority"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.get_application_foreign_priority()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_metadata"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.get_application_metadata()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_transactions"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.get_application_transactions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_patent_applications"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.get_patent_applications()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_patent_by_application_number"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.get_patent_by_application_number()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_patent_status_codes"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.get_patent_status_codes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.paginate_patents"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.paginate_patents()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.search_patent_applications_post"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.search_patent_applications_post()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.search_patent_status_codes_post"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.search_patent_status_codes_post()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyUSPTO.clients.patent_data.PatentDataClient.search_patents"><code class="docutils literal notranslate"><span class="pre">PatentDataClient.search_patents()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="models.html">Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="config.html">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="exceptions.html">Exceptions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Development</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pyUSPTO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">API Reference</a></li>
+      <li class="breadcrumb-item active">Clients</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/clients.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-pyUSPTO.clients.bulk_data">
+<span id="clients"></span><h1>Clients<a class="headerlink" href="#module-pyUSPTO.clients.bulk_data" title="Link to this heading"></a></h1>
+<p>clients.bulk_data - Client for USPTO bulk data API</p>
+<p>This module provides a client for interacting with the USPTO Open Data Portal (ODP)
+Bulk Data API. It allows you to search for and download bulk data products.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyUSPTO.clients.bulk_data.BulkDataClient">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyUSPTO.clients.bulk_data.</span></span><span class="sig-name descname"><span class="pre">BulkDataClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/bulk_data.html#BulkDataClient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.bulk_data.BulkDataClient" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseUSPTOClient</span></code>[<a class="reference internal" href="models.html#pyUSPTO.models.bulk_data.BulkDataResponse" title="pyUSPTO.models.bulk_data.BulkDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">BulkDataResponse</span></code></a>]</p>
+<p>Client for interacting with the USPTO bulk data API.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyUSPTO.clients.bulk_data.BulkDataClient.ENDPOINTS">
+<span class="sig-name descname"><span class="pre">ENDPOINTS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'download_file':</span> <span class="pre">'{file_download_uri}',</span> <span class="pre">'product_by_id':</span> <span class="pre">'products/{product_id}',</span> <span class="pre">'products_search':</span> <span class="pre">'products/search'}</span></em><a class="headerlink" href="#pyUSPTO.clients.bulk_data.BulkDataClient.ENDPOINTS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.bulk_data.BulkDataClient.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/bulk_data.html#BulkDataClient.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.bulk_data.BulkDataClient.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize the BulkDataClient.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>api_key</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Optional API key for authentication</p></li>
+<li><p><strong>base_url</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – The base URL of the API, defaults to config.bulk_data_base_url or “<a class="reference external" href="https://api.uspto.gov/api/v1/datasets">https://api.uspto.gov/api/v1/datasets</a>”</p></li>
+<li><p><strong>config</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference internal" href="config.html#pyUSPTO.config.USPTOConfig" title="pyUSPTO.config.USPTOConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">USPTOConfig</span></code></a>]</span>) – Optional USPTOConfig instance</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.bulk_data.BulkDataClient.download_file">
+<span class="sig-name descname"><span class="pre">download_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">destination</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/bulk_data.html#BulkDataClient.download_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.bulk_data.BulkDataClient.download_file" title="Link to this definition"></a></dt>
+<dd><p>Download a file from the API.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_data</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.bulk_data.FileData" title="pyUSPTO.models.bulk_data.FileData"><code class="xref py py-class docutils literal notranslate"><span class="pre">FileData</span></code></a></span>) – FileData object containing file information</p></li>
+<li><p><strong>destination</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Directory where the file should be saved</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Path to the downloaded file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.bulk_data.BulkDataClient.get_product_by_id">
+<span class="sig-name descname"><span class="pre">get_product_by_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">product_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_data_from_date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_data_to_date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latest</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/bulk_data.html#BulkDataClient.get_product_by_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.bulk_data.BulkDataClient.get_product_by_id" title="Link to this definition"></a></dt>
+<dd><p>Get a specific bulk data product by ID.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>product_id</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The product identifier</p></li>
+<li><p><strong>file_data_from_date</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter files by data from date (YYYY-MM-DD)</p></li>
+<li><p><strong>file_data_to_date</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter files by data to date (YYYY-MM-DD)</p></li>
+<li><p><strong>offset</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>]</span>) – Number of product file records to skip</p></li>
+<li><p><strong>limit</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>]</span>) – Number of product file records to collect</p></li>
+<li><p><strong>include_files</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>]</span>) – Whether to include product files in the response</p></li>
+<li><p><strong>latest</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>]</span>) – Whether to return only the latest product file</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.bulk_data.BulkDataProduct" title="pyUSPTO.models.bulk_data.BulkDataProduct"><code class="xref py py-class docutils literal notranslate"><span class="pre">BulkDataProduct</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>BulkDataProduct object containing the product data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.bulk_data.BulkDataClient.get_products">
+<span class="sig-name descname"><span class="pre">get_products</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/bulk_data.html#BulkDataClient.get_products"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.bulk_data.BulkDataClient.get_products" title="Link to this definition"></a></dt>
+<dd><p>Get a list of bulk data products.</p>
+<p>This method is deprecated. Use search_products instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span>) – Optional query parameters</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.bulk_data.BulkDataResponse" title="pyUSPTO.models.bulk_data.BulkDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">BulkDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>BulkDataResponse object containing the API response</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.bulk_data.BulkDataClient.paginate_products">
+<span class="sig-name descname"><span class="pre">paginate_products</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/bulk_data.html#BulkDataClient.paginate_products"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.bulk_data.BulkDataClient.paginate_products" title="Link to this definition"></a></dt>
+<dd><p>Paginate through all products matching the search criteria.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>**kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></span>) – Keyword arguments to pass to search_products</p>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p>BulkDataProduct objects</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterator" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="models.html#pyUSPTO.models.bulk_data.BulkDataProduct" title="pyUSPTO.models.bulk_data.BulkDataProduct"><code class="xref py py-class docutils literal notranslate"><span class="pre">BulkDataProduct</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.bulk_data.BulkDataClient.search_products">
+<span class="sig-name descname"><span class="pre">search_products</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">product_title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">product_description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">product_short_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">categories</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datasets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_types</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latest</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">facets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/bulk_data.html#BulkDataClient.search_products"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.bulk_data.BulkDataClient.search_products" title="Link to this definition"></a></dt>
+<dd><p>Search for products with various filters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>query</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Search text</p></li>
+<li><p><strong>product_title</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by product title</p></li>
+<li><p><strong>product_description</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by product description</p></li>
+<li><p><strong>product_short_name</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by product identifier (short name)</p></li>
+<li><p><strong>from_date</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter products with data from this date (YYYY-MM-DD)</p></li>
+<li><p><strong>to_date</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter products with data until this date (YYYY-MM-DD)</p></li>
+<li><p><strong>categories</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – Filter by dataset categories</p></li>
+<li><p><strong>labels</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – Filter by product labels</p></li>
+<li><p><strong>datasets</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – Filter by datasets</p></li>
+<li><p><strong>file_types</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – Filter by file types</p></li>
+<li><p><strong>offset</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>]</span>) – Number of product records to skip</p></li>
+<li><p><strong>limit</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>]</span>) – Number of product records to collect</p></li>
+<li><p><strong>include_files</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>]</span>) – Whether to include product files in the response</p></li>
+<li><p><strong>latest</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>]</span>) – Whether to return only the latest product file for each product</p></li>
+<li><p><strong>facets</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>]</span>) – Whether to enable facets in the response</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.bulk_data.BulkDataResponse" title="pyUSPTO.models.bulk_data.BulkDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">BulkDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>BulkDataResponse object containing matching products</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p id="module-pyUSPTO.clients.patent_data">clients.patent_data - Client for USPTO patent data API</p>
+<p>This module provides a client for interacting with the USPTO Patent Data API.
+It allows you to search for and retrieve patent application data.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyUSPTO.clients.patent_data.</span></span><span class="sig-name descname"><span class="pre">PatentDataClient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseUSPTOClient</span></code>[<a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a>]</p>
+<p>Client for interacting with the USPTO Patent Data API.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.ENDPOINTS">
+<span class="sig-name descname"><span class="pre">ENDPOINTS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'application_adjustment':</span> <span class="pre">'applications/{application_number}/adjustment',</span> <span class="pre">'application_assignment':</span> <span class="pre">'applications/{application_number}/assignment',</span> <span class="pre">'application_associated_documents':</span> <span class="pre">'applications/{application_number}/associated-documents',</span> <span class="pre">'application_attorney':</span> <span class="pre">'applications/{application_number}/attorney',</span> <span class="pre">'application_by_number':</span> <span class="pre">'applications/{application_number}',</span> <span class="pre">'application_continuity':</span> <span class="pre">'applications/{application_number}/continuity',</span> <span class="pre">'application_documents':</span> <span class="pre">'applications/{application_number}/documents',</span> <span class="pre">'application_foreign_priority':</span> <span class="pre">'applications/{application_number}/foreign-priority',</span> <span class="pre">'application_metadata':</span> <span class="pre">'applications/{application_number}/meta-data',</span> <span class="pre">'application_transactions':</span> <span class="pre">'applications/{application_number}/transactions',</span> <span class="pre">'applications_search':</span> <span class="pre">'applications/search',</span> <span class="pre">'applications_search_download':</span> <span class="pre">'applications/search/download',</span> <span class="pre">'download_document':</span> <span class="pre">'download/applications/{application_number}/{document_id}',</span> <span class="pre">'status_codes':</span> <span class="pre">'status-codes'}</span></em><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.ENDPOINTS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize the PatentDataClient.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>api_key</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Optional API key for authentication</p></li>
+<li><p><strong>base_url</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – The base URL of the API, defaults to config.patent_data_base_url or “<a class="reference external" href="https://api.uspto.gov/api/v1/patent">https://api.uspto.gov/api/v1/patent</a>”</p></li>
+<li><p><strong>config</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference internal" href="config.html#pyUSPTO.config.USPTOConfig" title="pyUSPTO.config.USPTOConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">USPTOConfig</span></code></a>]</span>) – Optional USPTOConfig instance</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.download_application_document">
+<span class="sig-name descname"><span class="pre">download_application_document</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">application_number</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">document_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">destination</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.download_application_document"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.download_application_document" title="Link to this definition"></a></dt>
+<dd><p>Download a document for a patent application.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>application_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The application number</p></li>
+<li><p><strong>document_id</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The document identifier</p></li>
+<li><p><strong>destination</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Directory where the file should be saved</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Path to the downloaded file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.download_patent_applications">
+<span class="sig-name descname"><span class="pre">download_patent_applications</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'json'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.download_patent_applications"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.download_patent_applications" title="Link to this definition"></a></dt>
+<dd><p>Download patent data with specified format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span>) – Optional query parameters</p></li>
+<li><p><strong>format</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Download format (json or csv)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing the API response</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.download_patent_applications_post">
+<span class="sig-name descname"><span class="pre">download_patent_applications_post</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">download_request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.download_patent_applications_post"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.download_patent_applications_post" title="Link to this definition"></a></dt>
+<dd><p>Download patent data using POST method with JSON payload.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>download_request</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span>) – JSON payload with download parameters including format</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing the API response</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.get_application_adjustment">
+<span class="sig-name descname"><span class="pre">get_application_adjustment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">application_number</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.get_application_adjustment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_adjustment" title="Link to this definition"></a></dt>
+<dd><p>Get patent term adjustment data for an application.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>application_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The application number</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing the adjustment data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.get_application_assignment">
+<span class="sig-name descname"><span class="pre">get_application_assignment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">application_number</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.get_application_assignment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_assignment" title="Link to this definition"></a></dt>
+<dd><p>Get assignment data for an application.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>application_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The application number</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing the assignment data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.get_application_associated_documents">
+<span class="sig-name descname"><span class="pre">get_application_associated_documents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">application_number</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.get_application_associated_documents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_associated_documents" title="Link to this definition"></a></dt>
+<dd><p>Get associated documents metadata for an application.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>application_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The application number</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing the associated documents metadata</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.get_application_attorney">
+<span class="sig-name descname"><span class="pre">get_application_attorney</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">application_number</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.get_application_attorney"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_attorney" title="Link to this definition"></a></dt>
+<dd><p>Get attorney/agent data for an application.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>application_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The application number</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing the attorney data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.get_application_continuity">
+<span class="sig-name descname"><span class="pre">get_application_continuity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">application_number</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.get_application_continuity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_continuity" title="Link to this definition"></a></dt>
+<dd><p>Get continuity data for an application.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>application_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The application number</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing the continuity data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.get_application_documents">
+<span class="sig-name descname"><span class="pre">get_application_documents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">application_number</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.get_application_documents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_documents" title="Link to this definition"></a></dt>
+<dd><p>Get document details for an application.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>application_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The application number</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing document details</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.get_application_foreign_priority">
+<span class="sig-name descname"><span class="pre">get_application_foreign_priority</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">application_number</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.get_application_foreign_priority"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_foreign_priority" title="Link to this definition"></a></dt>
+<dd><p>Get foreign priority data for an application.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>application_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The application number</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing the foreign priority data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.get_application_metadata">
+<span class="sig-name descname"><span class="pre">get_application_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">application_number</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.get_application_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_metadata" title="Link to this definition"></a></dt>
+<dd><p>Get metadata for a specific patent application.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>application_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The application number</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing the application metadata</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.get_application_transactions">
+<span class="sig-name descname"><span class="pre">get_application_transactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">application_number</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.get_application_transactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_application_transactions" title="Link to this definition"></a></dt>
+<dd><p>Get transaction data for an application.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>application_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The application number</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing the transaction data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.get_patent_applications">
+<span class="sig-name descname"><span class="pre">get_patent_applications</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.get_patent_applications"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_patent_applications" title="Link to this definition"></a></dt>
+<dd><p>Get a list of patent applications using the search endpoint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span>) – Optional query parameters including:
+- q: Search query string
+- sort: Field to sort by followed by sort order
+- offset: Position in dataset to start from
+- limit: Number of results to return
+- facets: List of fields to facet upon
+- fields: Fields to include in response
+- filters: Field filters
+- rangeFilters: Range filters</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing the API response</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.get_patent_by_application_number">
+<span class="sig-name descname"><span class="pre">get_patent_by_application_number</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">application_number</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.get_patent_by_application_number"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_patent_by_application_number" title="Link to this definition"></a></dt>
+<dd><p>Get a specific patent by application number.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>application_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – The application number</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentFileWrapper" title="pyUSPTO.models.patent_data.PatentFileWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentFileWrapper</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentFileWrapper object containing the patent data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.get_patent_status_codes">
+<span class="sig-name descname"><span class="pre">get_patent_status_codes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.get_patent_status_codes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.get_patent_status_codes" title="Link to this definition"></a></dt>
+<dd><p>Get patent application status codes and descriptions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span>) – Optional query parameters including:
+- q: Search query string
+- offset: Position in dataset to start from
+- limit: Number of results to return</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary containing status codes and descriptions</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.paginate_patents">
+<span class="sig-name descname"><span class="pre">paginate_patents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.paginate_patents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.paginate_patents" title="Link to this definition"></a></dt>
+<dd><p>Paginate through all patents matching the search criteria.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>**kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></span>) – Keyword arguments to pass to search_patents</p>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p>PatentFileWrapper objects</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterator" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentFileWrapper" title="pyUSPTO.models.patent_data.PatentFileWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentFileWrapper</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.search_patent_applications_post">
+<span class="sig-name descname"><span class="pre">search_patent_applications_post</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">search_request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.search_patent_applications_post"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.search_patent_applications_post" title="Link to this definition"></a></dt>
+<dd><p>Search patent applications using POST method with JSON payload.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>search_request</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span>) – JSON payload with search parameters including:
+- q: Search query string
+- filters: Array of filter objects
+- rangeFilters: Array of range filter objects
+- sort: Array of sort objects
+- fields: Array of field names to include
+- pagination: Pagination object
+- facets: Array of facet field names</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing the API response</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.search_patent_status_codes_post">
+<span class="sig-name descname"><span class="pre">search_patent_status_codes_post</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">search_request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.search_patent_status_codes_post"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.search_patent_status_codes_post" title="Link to this definition"></a></dt>
+<dd><p>Search patent status codes using POST method with JSON payload.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>search_request</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span>) – JSON payload with search parameters</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary containing status codes and descriptions</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyUSPTO.clients.patent_data.PatentDataClient.search_patents">
+<span class="sig-name descname"><span class="pre">search_patents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">application_number</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patent_number</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inventor_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">applicant_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assignee_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filing_date_from</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filing_date_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grant_date_from</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grant_date_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">classification</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyUSPTO/clients/patent_data.html#PatentDataClient.search_patents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyUSPTO.clients.patent_data.PatentDataClient.search_patents" title="Link to this definition"></a></dt>
+<dd><p>Search for patents with various filters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>query</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Search text in all fields</p></li>
+<li><p><strong>application_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by application number</p></li>
+<li><p><strong>patent_number</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by patent number</p></li>
+<li><p><strong>inventor_name</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by inventor name</p></li>
+<li><p><strong>applicant_name</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by applicant name</p></li>
+<li><p><strong>assignee_name</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by assignee name</p></li>
+<li><p><strong>filing_date_from</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by filing date from (YYYY-MM-DD)</p></li>
+<li><p><strong>filing_date_to</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by filing date to (YYYY-MM-DD)</p></li>
+<li><p><strong>grant_date_from</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by grant date from (YYYY-MM-DD)</p></li>
+<li><p><strong>grant_date_to</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by grant date to (YYYY-MM-DD)</p></li>
+<li><p><strong>classification</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Filter by CPC classification</p></li>
+<li><p><strong>limit</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>]</span>) – Number of results to return (default 25)</p></li>
+<li><p><strong>offset</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>]</span>) – Position in dataset to start from (default 0)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentDataResponse" title="pyUSPTO.models.patent_data.PatentDataResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PatentDataResponse</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PatentDataResponse object containing matching patents</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="API Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="models.html" class="btn btn-neutral float-right" title="Models" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Andrew Piechocki.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

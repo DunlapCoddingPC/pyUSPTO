@@ -1,0 +1,14 @@
+Installation
+============
+
+.. code-block:: bash
+
+   pip install pyUSPTO
+
+For development installation:
+
+.. code-block:: bash
+
+   git clone https://github.com/DunlapCoddingPC/pyUSPTO.git
+   cd pyUSPTO
+   pip install -e .

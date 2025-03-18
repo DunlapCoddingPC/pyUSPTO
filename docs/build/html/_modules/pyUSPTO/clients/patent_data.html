@@ -1,0 +1,814 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pyUSPTO.clients.patent_data &mdash; pyUSPTO 0.1.4.dev0+ga92fa00.d20250320 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=109a12d6"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            pyUSPTO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development.html">Development</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyUSPTO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pyUSPTO.clients.patent_data</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pyUSPTO.clients.patent_data</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">clients.patent_data - Client for USPTO patent data API</span>
+
+<span class="sd">This module provides a client for interacting with the USPTO Patent Data API.</span>
+<span class="sd">It allows you to search for and retrieve patent application data.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlparse</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyUSPTO.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseUSPTOClient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyUSPTO.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">USPTOConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyUSPTO.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">USPTOApiError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyUSPTO.models.patent_data</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PatentDataResponse</span><span class="p">,</span>
+    <span class="n">PatentFileWrapper</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="PatentDataClient">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PatentDataClient</span><span class="p">(</span><span class="n">BaseUSPTOClient</span><span class="p">[</span><span class="n">PatentDataResponse</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Client for interacting with the USPTO Patent Data API.&quot;&quot;&quot;</span>
+
+    <span class="c1"># Centralized endpoint configuration</span>
+    <span class="n">ENDPOINTS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># Application endpoints</span>
+        <span class="s2">&quot;applications_search&quot;</span><span class="p">:</span> <span class="s2">&quot;applications/search&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;applications_search_download&quot;</span><span class="p">:</span> <span class="s2">&quot;applications/search/download&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;application_by_number&quot;</span><span class="p">:</span> <span class="s2">&quot;applications/</span><span class="si">{application_number}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;application_metadata&quot;</span><span class="p">:</span> <span class="s2">&quot;applications/</span><span class="si">{application_number}</span><span class="s2">/meta-data&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;application_adjustment&quot;</span><span class="p">:</span> <span class="s2">&quot;applications/</span><span class="si">{application_number}</span><span class="s2">/adjustment&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;application_assignment&quot;</span><span class="p">:</span> <span class="s2">&quot;applications/</span><span class="si">{application_number}</span><span class="s2">/assignment&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;application_attorney&quot;</span><span class="p">:</span> <span class="s2">&quot;applications/</span><span class="si">{application_number}</span><span class="s2">/attorney&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;application_continuity&quot;</span><span class="p">:</span> <span class="s2">&quot;applications/</span><span class="si">{application_number}</span><span class="s2">/continuity&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;application_foreign_priority&quot;</span><span class="p">:</span> <span class="s2">&quot;applications/</span><span class="si">{application_number}</span><span class="s2">/foreign-priority&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;application_transactions&quot;</span><span class="p">:</span> <span class="s2">&quot;applications/</span><span class="si">{application_number}</span><span class="s2">/transactions&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;application_documents&quot;</span><span class="p">:</span> <span class="s2">&quot;applications/</span><span class="si">{application_number}</span><span class="s2">/documents&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;application_associated_documents&quot;</span><span class="p">:</span> <span class="s2">&quot;applications/</span><span class="si">{application_number}</span><span class="s2">/associated-documents&quot;</span><span class="p">,</span>
+        <span class="c1"># Document download endpoint (different base URL)</span>
+        <span class="s2">&quot;download_document&quot;</span><span class="p">:</span> <span class="s2">&quot;download/applications/</span><span class="si">{application_number}</span><span class="s2">/</span><span class="si">{document_id}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="c1"># Status code endpoints</span>
+        <span class="s2">&quot;status_codes&quot;</span><span class="p">:</span> <span class="s2">&quot;status-codes&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+<div class="viewcode-block" id="PatentDataClient.__init__">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">api_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">base_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">USPTOConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the PatentDataClient.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            api_key: Optional API key for authentication</span>
+<span class="sd">            base_url: The base URL of the API, defaults to config.patent_data_base_url or &quot;https://api.uspto.gov/api/v1/patent&quot;</span>
+<span class="sd">            config: Optional USPTOConfig instance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Use config if provided, otherwise create default config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">USPTOConfig</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">)</span>
+
+        <span class="c1"># Use provided API key or get from config</span>
+        <span class="n">api_key</span> <span class="o">=</span> <span class="n">api_key</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">api_key</span>
+
+        <span class="c1"># Use provided base_url or get from config</span>
+        <span class="n">base_url</span> <span class="o">=</span> <span class="n">base_url</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">patent_data_base_url</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">,</span> <span class="n">base_url</span><span class="o">=</span><span class="n">base_url</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.get_patent_applications">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.get_patent_applications">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_patent_applications</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a list of patent applications using the search endpoint.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            params: Optional query parameters including:</span>
+<span class="sd">                - q: Search query string</span>
+<span class="sd">                - sort: Field to sort by followed by sort order</span>
+<span class="sd">                - offset: Position in dataset to start from</span>
+<span class="sd">                - limit: Number of results to return</span>
+<span class="sd">                - facets: List of fields to facet upon</span>
+<span class="sd">                - fields: Fields to include in response</span>
+<span class="sd">                - filters: Field filters</span>
+<span class="sd">                - rangeFilters: Range filters</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing the API response</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;applications_search&quot;</span><span class="p">],</span>
+            <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.search_patent_applications_post">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.search_patent_applications_post">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">search_patent_applications_post</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">search_request</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Search patent applications using POST method with JSON payload.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            search_request: JSON payload with search parameters including:</span>
+<span class="sd">                - q: Search query string</span>
+<span class="sd">                - filters: Array of filter objects</span>
+<span class="sd">                - rangeFilters: Array of range filter objects</span>
+<span class="sd">                - sort: Array of sort objects</span>
+<span class="sd">                - fields: Array of field names to include</span>
+<span class="sd">                - pagination: Pagination object</span>
+<span class="sd">                - facets: Array of facet field names</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing the API response</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;applications_search&quot;</span><span class="p">],</span>
+            <span class="n">json_data</span><span class="o">=</span><span class="n">search_request</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.download_patent_applications">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.download_patent_applications">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">download_patent_applications</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;json&quot;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download patent data with specified format.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            params: Optional query parameters</span>
+<span class="sd">            format: Download format (json or csv)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing the API response</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Add format parameter if not already in params</span>
+        <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="s2">&quot;format&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;format&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">format</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;applications_search_download&quot;</span><span class="p">],</span>
+            <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.download_patent_applications_post">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.download_patent_applications_post">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">download_patent_applications_post</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">download_request</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download patent data using POST method with JSON payload.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            download_request: JSON payload with download parameters including format</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing the API response</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;applications_search_download&quot;</span><span class="p">],</span>
+            <span class="n">json_data</span><span class="o">=</span><span class="n">download_request</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.get_patent_by_application_number">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.get_patent_by_application_number">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_patent_by_application_number</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">application_number</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentFileWrapper</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a specific patent by application number.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            application_number: The application number</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentFileWrapper object containing the patent data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;application_by_number&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">application_number</span><span class="o">=</span><span class="n">application_number</span>
+        <span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="n">endpoint</span><span class="p">)</span>
+
+        <span class="c1"># Handling different response formats</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s2">&quot;patentFileWrapperDataBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">wrapper</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;patentFileWrapperDataBag&quot;</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="n">wrapper</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicationNumberText&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">application_number</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="n">PatentFileWrapper</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">wrapper</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Patent with application number </span><span class="si">{</span><span class="n">application_number</span><span class="si">}</span><span class="s2"> not found in response&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># If response doesn&#39;t contain patentFileWrapperDataBag, assume it&#39;s a direct PatentFileWrapper</span>
+                <span class="k">return</span> <span class="n">PatentFileWrapper</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">PatentFileWrapper</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unexpected response type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.get_application_metadata">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.get_application_metadata">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_application_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">application_number</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get metadata for a specific patent application.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            application_number: The application number</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing the application metadata</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;application_metadata&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">application_number</span><span class="o">=</span><span class="n">application_number</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="n">endpoint</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.get_application_adjustment">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.get_application_adjustment">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_application_adjustment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">application_number</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get patent term adjustment data for an application.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            application_number: The application number</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing the adjustment data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;application_adjustment&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">application_number</span><span class="o">=</span><span class="n">application_number</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="n">endpoint</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.get_application_assignment">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.get_application_assignment">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_application_assignment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">application_number</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get assignment data for an application.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            application_number: The application number</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing the assignment data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;application_assignment&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">application_number</span><span class="o">=</span><span class="n">application_number</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="n">endpoint</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.get_application_attorney">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.get_application_attorney">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_application_attorney</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">application_number</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get attorney/agent data for an application.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            application_number: The application number</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing the attorney data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;application_attorney&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">application_number</span><span class="o">=</span><span class="n">application_number</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="n">endpoint</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.get_application_continuity">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.get_application_continuity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_application_continuity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">application_number</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get continuity data for an application.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            application_number: The application number</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing the continuity data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;application_continuity&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">application_number</span><span class="o">=</span><span class="n">application_number</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="n">endpoint</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.get_application_foreign_priority">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.get_application_foreign_priority">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_application_foreign_priority</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">application_number</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get foreign priority data for an application.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            application_number: The application number</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing the foreign priority data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;application_foreign_priority&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">application_number</span><span class="o">=</span><span class="n">application_number</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="n">endpoint</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.get_application_transactions">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.get_application_transactions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_application_transactions</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">application_number</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get transaction data for an application.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            application_number: The application number</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing the transaction data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;application_transactions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">application_number</span><span class="o">=</span><span class="n">application_number</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="n">endpoint</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.get_application_documents">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.get_application_documents">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_application_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">application_number</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get document details for an application.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            application_number: The application number</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing document details</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;application_documents&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">application_number</span><span class="o">=</span><span class="n">application_number</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="n">endpoint</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.get_application_associated_documents">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.get_application_associated_documents">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_application_associated_documents</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">application_number</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get associated documents metadata for an application.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            application_number: The application number</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing the associated documents metadata</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;application_associated_documents&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">application_number</span><span class="o">=</span><span class="n">application_number</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="n">endpoint</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.download_application_document">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.download_application_document">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">download_application_document</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">application_number</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">destination</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download a document for a patent application.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            application_number: The application number</span>
+<span class="sd">            document_id: The document identifier</span>
+<span class="sd">            destination: Directory where the file should be saved</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Path to the downloaded file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This endpoint is at a different base URL level</span>
+        <span class="n">base_url_parts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/patent&quot;</span><span class="p">)</span>
+        <span class="n">base_url_root</span> <span class="o">=</span> <span class="n">base_url_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">endpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;download_document&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">application_number</span><span class="o">=</span><span class="n">application_number</span><span class="p">,</span> <span class="n">document_id</span><span class="o">=</span><span class="n">document_id</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Get the response with streaming enabled</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">custom_base_url</span><span class="o">=</span><span class="n">base_url_root</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Ensure we have a Response object with iter_content</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">requests</span><span class="o">.</span><span class="n">Response</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected a Response object for streaming download&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">destination</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">destination</span><span class="p">)</span>
+
+        <span class="c1"># Get filename from Content-Disposition header if available</span>
+        <span class="n">content_disposition</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Content-Disposition&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">content_disposition</span> <span class="ow">and</span> <span class="s2">&quot;filename=&quot;</span> <span class="ow">in</span> <span class="n">content_disposition</span><span class="p">:</span>
+            <span class="n">filename_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;filename=&quot;(.+?)&quot;&#39;</span><span class="p">,</span> <span class="n">content_disposition</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">filename_match</span><span class="p">:</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="n">filename_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="n">document_id</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">document_id</span>
+
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">destination</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">8192</span><span class="p">):</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">file_path</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.paginate_patents">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.paginate_patents">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">paginate_patents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">PatentFileWrapper</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Paginate through all patents matching the search criteria.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            **kwargs: Keyword arguments to pass to search_patents</span>
+
+<span class="sd">        Yields:</span>
+<span class="sd">            PatentFileWrapper objects</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">paginate_results</span><span class="p">(</span>
+            <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;get_patent_applications&quot;</span><span class="p">,</span>
+            <span class="n">response_container_attr</span><span class="o">=</span><span class="s2">&quot;patent_file_wrapper_data_bag&quot;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.get_patent_status_codes">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.get_patent_status_codes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_patent_status_codes</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get patent application status codes and descriptions.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            params: Optional query parameters including:</span>
+<span class="sd">                - q: Search query string</span>
+<span class="sd">                - offset: Position in dataset to start from</span>
+<span class="sd">                - limit: Number of results to return</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary containing status codes and descriptions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;status_codes&quot;</span><span class="p">],</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.search_patent_status_codes_post">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.search_patent_status_codes_post">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">search_patent_status_codes_post</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">search_request</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Search patent status codes using POST method with JSON payload.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            search_request: JSON payload with search parameters</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary containing status codes and descriptions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;status_codes&quot;</span><span class="p">],</span>
+            <span class="n">json_data</span><span class="o">=</span><span class="n">search_request</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="PatentDataClient.search_patents">
+<a class="viewcode-back" href="../../../api/clients.html#pyUSPTO.clients.patent_data.PatentDataClient.search_patents">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">search_patents</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">application_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">patent_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">inventor_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">applicant_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">assignee_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">filing_date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">filing_date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">grant_date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">grant_date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">classification</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">limit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span>
+        <span class="n">offset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PatentDataResponse</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Search for patents with various filters.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            query: Search text in all fields</span>
+<span class="sd">            application_number: Filter by application number</span>
+<span class="sd">            patent_number: Filter by patent number</span>
+<span class="sd">            inventor_name: Filter by inventor name</span>
+<span class="sd">            applicant_name: Filter by applicant name</span>
+<span class="sd">            assignee_name: Filter by assignee name</span>
+<span class="sd">            filing_date_from: Filter by filing date from (YYYY-MM-DD)</span>
+<span class="sd">            filing_date_to: Filter by filing date to (YYYY-MM-DD)</span>
+<span class="sd">            grant_date_from: Filter by grant date from (YYYY-MM-DD)</span>
+<span class="sd">            grant_date_to: Filter by grant date to (YYYY-MM-DD)</span>
+<span class="sd">            classification: Filter by CPC classification</span>
+<span class="sd">            limit: Number of results to return (default 25)</span>
+<span class="sd">            offset: Position in dataset to start from (default 0)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PatentDataResponse object containing matching patents</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Build the query string</span>
+        <span class="n">q_parts</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">application_number</span><span class="p">:</span>
+            <span class="n">q_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;applicationNumberText:</span><span class="si">{</span><span class="n">application_number</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">patent_number</span><span class="p">:</span>
+            <span class="n">q_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;applicationMetaData.patentNumber:</span><span class="si">{</span><span class="n">patent_number</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">inventor_name</span><span class="p">:</span>
+            <span class="n">q_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;applicationMetaData.inventorBag.inventorNameText:</span><span class="si">{</span><span class="n">inventor_name</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">applicant_name</span><span class="p">:</span>
+            <span class="n">q_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;applicationMetaData.firstApplicantName:</span><span class="si">{</span><span class="n">applicant_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">assignee_name</span><span class="p">:</span>
+            <span class="n">q_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;assignmentBag.assigneeBag.assigneeNameText:</span><span class="si">{</span><span class="n">assignee_name</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">classification</span><span class="p">:</span>
+            <span class="n">q_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;applicationMetaData.cpcClassificationBag:</span><span class="si">{</span><span class="n">classification</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Add date range filters</span>
+        <span class="n">range_filters</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">filing_date_from</span> <span class="ow">and</span> <span class="n">filing_date_to</span><span class="p">:</span>
+            <span class="n">range_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;applicationMetaData.filingDate:[</span><span class="si">{</span><span class="n">filing_date_from</span><span class="si">}</span><span class="s2"> TO </span><span class="si">{</span><span class="n">filing_date_to</span><span class="si">}</span><span class="s2">]&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">filing_date_from</span><span class="p">:</span>
+            <span class="n">range_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;applicationMetaData.filingDate:&gt;=</span><span class="si">{</span><span class="n">filing_date_from</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">filing_date_to</span><span class="p">:</span>
+            <span class="n">range_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;applicationMetaData.filingDate:&lt;=</span><span class="si">{</span><span class="n">filing_date_to</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">grant_date_from</span> <span class="ow">and</span> <span class="n">grant_date_to</span><span class="p">:</span>
+            <span class="n">range_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;applicationMetaData.grantDate:[</span><span class="si">{</span><span class="n">grant_date_from</span><span class="si">}</span><span class="s2"> TO </span><span class="si">{</span><span class="n">grant_date_to</span><span class="si">}</span><span class="s2">]&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">grant_date_from</span><span class="p">:</span>
+            <span class="n">range_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;applicationMetaData.grantDate:&gt;=</span><span class="si">{</span><span class="n">grant_date_from</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">grant_date_to</span><span class="p">:</span>
+            <span class="n">range_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;applicationMetaData.grantDate:&lt;=</span><span class="si">{</span><span class="n">grant_date_to</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Combine all query parts</span>
+        <span class="k">if</span> <span class="n">query</span><span class="p">:</span>
+            <span class="n">q_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+
+        <span class="n">q_parts</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">range_filters</span><span class="p">)</span>
+
+        <span class="c1"># Build the final query string</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="s2">&quot; AND &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">q_parts</span><span class="p">)</span> <span class="k">if</span> <span class="n">q_parts</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="c1"># Set up parameters</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">offset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;limit&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">q</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;q&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span>
+
+        <span class="c1"># Use the applications_search endpoint from ENDPOINTS</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_request</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+            <span class="n">endpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ENDPOINTS</span><span class="p">[</span><span class="s2">&quot;applications_search&quot;</span><span class="p">],</span>
+            <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
+            <span class="n">response_class</span><span class="o">=</span><span class="n">PatentDataResponse</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">PatentDataResponse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Andrew Piechocki.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

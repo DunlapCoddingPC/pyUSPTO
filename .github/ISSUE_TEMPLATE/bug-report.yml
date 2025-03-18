@@ -1,0 +1,59 @@
+name: 🐞 Bug Report
+description: File a bug report.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! Please fill out as much information as you can to help make sure the issue is resolved.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What version of pyUSPTO are you running?
+      placeholder: 0.x.y
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What Happened?
+      description: A clear and concise description of what the bug is. Also tell us, what step can reproduce the bug?
+      placeholder: Tell us what you see!
+      value: "A bug happened!"
+    validations:
+      required: true
+  - type: textarea
+    id: what-expected
+    attributes:
+      label: What did you expect to happen?
+      description: Also tell us, do you have an idea why?
+      placeholder: Tell us what you see!
+    validations:
+      required: false
+  - type: textarea
+    id: mre
+    attributes:
+      label: Minimal Reproducible Code
+      description: | 
+        Please provide a minimal reproducible example of code causing the error. 
+        NOTE: This input will be automatically formatted into code, so no need for backticks.
+      render: python
+      placeholder: "from pyUSPTO import PatentDataClient"
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output, if any.
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: shell
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://example.com). 
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
