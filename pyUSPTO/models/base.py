@@ -4,7 +4,7 @@ models.base - Base model classes and protocols for USPTO API models
 This module provides base model classes and protocols for USPTO API models.
 """
 
-from typing import Dict, Any, Protocol, runtime_checkable
+from typing import Any, Dict, Protocol, runtime_checkable
 
 
 @runtime_checkable

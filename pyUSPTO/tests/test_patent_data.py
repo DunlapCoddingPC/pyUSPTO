@@ -6,36 +6,37 @@ This module contains tests for the PatentDataClient class and related functional
 
 import os
 import re
-import pytest
-from unittest.mock import MagicMock, patch, mock_open
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+from unittest.mock import MagicMock, mock_open, patch
 
+import pytest
+
+from pyUSPTO.base import USPTOApiError
 from pyUSPTO.clients import PatentDataClient
+from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.patent_data import (
-    PatentDataResponse,
-    PatentFileWrapper,
-    ApplicationMetaData,
     Address,
-    Person,
     Applicant,
-    Inventor,
-    Attorney,
-    EntityStatus,
-    CustomerNumberCorrespondence,
-    RecordAttorney,
-    Assignor,
+    ApplicationMetaData,
     Assignee,
     Assignment,
-    ForeignPriority,
-    ParentContinuity,
+    Assignor,
+    Attorney,
     ChildContinuity,
-    PatentTermAdjustmentHistoryData,
-    PatentTermAdjustmentData,
-    Event,
+    CustomerNumberCorrespondence,
     DocumentMetaData,
+    EntityStatus,
+    Event,
+    ForeignPriority,
+    Inventor,
+    ParentContinuity,
+    PatentDataResponse,
+    PatentFileWrapper,
+    PatentTermAdjustmentData,
+    PatentTermAdjustmentHistoryData,
+    Person,
+    RecordAttorney,
 )
-from pyUSPTO.config import USPTOConfig
-from pyUSPTO.base import USPTOApiError
 
 
 class TestPatentDataModels:

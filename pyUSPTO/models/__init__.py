@@ -6,10 +6,10 @@ This package provides data models for USPTO APIs.
 
 from pyUSPTO.models.base import FromDictProtocol
 from pyUSPTO.models.bulk_data import (
-    FileData,
-    ProductFileBag,
     BulkDataProduct,
     BulkDataResponse,
+    FileData,
+    ProductFileBag,
 )
 
 __all__ = [

@@ -4,8 +4,8 @@ models.patent_data - Data models for USPTO patent data API
 This module provides data models for the USPTO Patent Data API.
 """
 
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
 
 @dataclass

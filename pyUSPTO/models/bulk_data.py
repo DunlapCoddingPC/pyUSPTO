@@ -4,8 +4,8 @@ models.bulk_data - Data models for USPTO bulk data API
 This module provides data models for the USPTO Open Data Portal (ODP) Bulk Data API.
 """
 
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 
 @dataclass

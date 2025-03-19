@@ -4,18 +4,19 @@ Tests for the base client module.
 This module contains tests for the BaseUSPTOClient class and related functionality.
 """
 
-import pytest
+from typing import Any, Dict, Type
 from unittest.mock import MagicMock, patch
+
+import pytest
 import requests
-from typing import Dict, Any, Type
 
 from pyUSPTO.base import (
     BaseUSPTOClient,
-    USPTOApiError,
-    USPTOApiAuthError,
-    USPTOApiRateLimitError,
-    USPTOApiNotFoundError,
     FromDictProtocol,
+    USPTOApiAuthError,
+    USPTOApiError,
+    USPTOApiNotFoundError,
+    USPTOApiRateLimitError,
 )
 
 

@@ -4,19 +4,20 @@ Tests for the to_dict methods in model classes.
 This module contains tests for the to_dict methods in the model classes.
 """
 
+from typing import Any, Dict
+
 import pytest
-from typing import Dict, Any
 
 from pyUSPTO.models.bulk_data import (
-    BulkDataResponse,
     BulkDataProduct,
-    ProductFileBag,
+    BulkDataResponse,
     FileData,
+    ProductFileBag,
 )
 from pyUSPTO.models.patent_data import (
+    ApplicationMetaData,
     PatentDataResponse,
     PatentFileWrapper,
-    ApplicationMetaData,
 )
 
 

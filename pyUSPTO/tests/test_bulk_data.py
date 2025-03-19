@@ -5,19 +5,20 @@ This module contains tests for the BulkDataClient class and related functionalit
 """
 
 import os
-import pytest
-from unittest.mock import MagicMock, patch, mock_open
-from typing import Dict, Any
+from typing import Any, Dict
+from unittest.mock import MagicMock, mock_open, patch
 
-from pyUSPTO.models.bulk_data import (
-    BulkDataResponse,
-    BulkDataProduct,
-    ProductFileBag,
-    FileData,
-)
+import pytest
+
+from pyUSPTO.base import USPTOApiError
 from pyUSPTO.clients import BulkDataClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.base import USPTOApiError
+from pyUSPTO.models.bulk_data import (
+    BulkDataProduct,
+    BulkDataResponse,
+    FileData,
+    ProductFileBag,
+)
 
 
 class TestBulkDataModels:

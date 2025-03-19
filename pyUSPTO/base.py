@@ -4,29 +4,28 @@ base - Base client class for USPTO API clients
 This module provides a base client class with common functionality for all USPTO API clients.
 """
 
-import requests
-from urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
 from typing import (
-    List,
-    Dict,
     Any,
-    Optional,
+    Dict,
     Generator,
+    Generic,
+    Optional,
+    Protocol,
     Type,
     TypeVar,
-    Generic,
-    Protocol,
-    ClassVar,
-    Union,
     runtime_checkable,
 )
 from urllib.parse import urlparse
+
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 from pyUSPTO.exceptions import (
-    USPTOApiError,
     USPTOApiAuthError,
-    USPTOApiRateLimitError,
+    USPTOApiError,
     USPTOApiNotFoundError,
+    USPTOApiRateLimitError,
 )
 
 

@@ -4,10 +4,11 @@ utils.http - HTTP utilities for USPTO API clients
 This module provides HTTP utilities for USPTO API clients.
 """
 
+from typing import Any, Dict, Optional
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from typing import Dict, Any, Optional
 
 
 def create_session(headers: Optional[Dict[str, str]] = None) -> requests.Session:

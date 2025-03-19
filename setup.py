@@ -7,11 +7,10 @@ It defines package metadata, dependencies, and other installation requirements.
 
 from setuptools import setup, find_packages
 from typing import List, Dict, Any
-from pyUSPTO import __version__
 
 setup(
     name="pyUSPTO",
-    version=__version__,
+    use_scm_version=True,
     packages=find_packages(),
     install_requires=[
         "requests>=2.25.0",

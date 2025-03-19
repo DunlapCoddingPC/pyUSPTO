@@ -7,7 +7,6 @@ detailed patent information including inventors, applicants, assignments, and mo
 """
 
 import os
-from typing import Dict, Any, List, Optional
 from pyUSPTO.clients.patent_data import PatentDataClient
 from pyUSPTO.config import USPTOConfig
 

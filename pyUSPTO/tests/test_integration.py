@@ -7,17 +7,17 @@ environment variable is set to 'true'.
 """
 
 import os
-import pytest
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
-from pyUSPTO.config import USPTOConfig
-from pyUSPTO.models.bulk_data import BulkDataResponse, BulkDataProduct
+import pytest
+
 from pyUSPTO.clients import BulkDataClient, PatentDataClient
+from pyUSPTO.config import USPTOConfig
+from pyUSPTO.models.bulk_data import BulkDataProduct, BulkDataResponse
 from pyUSPTO.models.patent_data import (
     PatentDataResponse,
     PatentFileWrapper,
 )
-
 
 # Skip all tests in this module unless ENABLE_INTEGRATION_TESTS is set to 'true'
 pytestmark = pytest.mark.skipif(
