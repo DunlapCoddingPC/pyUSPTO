@@ -27,6 +27,9 @@ from pyUSPTO.exceptions import (
     USPTOApiError,
     USPTOApiNotFoundError,
     USPTOApiRateLimitError,
+    USPTOApiBadRequestError,
+    USPTOApiPayloadTooLargeError,
+    USPTOApiServerError,
 )
 
 
@@ -138,30 +141,54 @@ class BaseUSPTOClient(Generic[T]):
             # Map HTTP errors to custom exceptions
             status_code = e.response.status_code
 
-            if status_code == 401:
-                raise USPTOApiAuthError(
-                    "Authentication failed. Check your API key."
-                ) from e
-            elif status_code == 403:
-                raise USPTOApiAuthError(
-                    "Access forbidden. Check your permissions."
-                ) from e
-            elif status_code == 404:
-                raise USPTOApiNotFoundError(f"Resource not found: {url}") from e
-            elif status_code == 429:
-                raise USPTOApiRateLimitError("Rate limit exceeded.") from e
+            # Attempt to parse the error response for additional details
+            error_details = None
+            request_identifier = None
 
-            # Enhance error messages with API-specific information
             try:
                 error_data = e.response.json()
-                error_message = error_data.get("errorDetails", str(e))
-                raise USPTOApiError(
-                    f"API Error {status_code}: {error_message}", status_code
-                ) from e
+                error_details = error_data.get("errorDetails") or error_data.get(
+                    "detailedError"
+                )
+                request_identifier = error_data.get("requestIdentifier")
             except (ValueError, KeyError):
-                # If we can't parse the error response, raise a generic API error
+                # If we can't parse the error response, proceed with basic info
+                pass
+
+            # Create the appropriate error message
+            error_message = f"API Error {status_code}"
+            if error_details:
+                error_message = f"{error_message}: {error_details}"
+
+            # Map specific status codes to appropriate exception classes
+            if status_code == 400:
+                raise USPTOApiBadRequestError(
+                    error_message, status_code, error_details, request_identifier
+                ) from e
+            elif status_code in (401, 403):
+                raise USPTOApiAuthError(
+                    error_message, status_code, error_details, request_identifier
+                ) from e
+            elif status_code == 404:
+                raise USPTOApiNotFoundError(
+                    error_message, status_code, error_details, request_identifier
+                ) from e
+            elif status_code == 413:
+                raise USPTOApiPayloadTooLargeError(
+                    error_message, status_code, error_details, request_identifier
+                ) from e
+            elif status_code == 429:
+                raise USPTOApiRateLimitError(
+                    error_message, status_code, error_details, request_identifier
+                ) from e
+            elif status_code >= 500:
+                raise USPTOApiServerError(
+                    error_message, status_code, error_details, request_identifier
+                ) from e
+            else:
+                # For any other status codes, use the base USPTOApiError
                 raise USPTOApiError(
-                    f"API Error {status_code}: {str(e)}", status_code
+                    error_message, status_code, error_details, request_identifier
                 ) from e
         except requests.exceptions.RequestException as e:
             # Re-raise other request exceptions as USPTOApiError
