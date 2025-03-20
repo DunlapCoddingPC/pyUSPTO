@@ -4,15 +4,15 @@ Tests for the base client module.
 This module contains tests for the BaseUSPTOClient class and related functionality.
 """
 
-from typing import Any, Dict, Type
+from typing import Any, Dict, cast
 from unittest.mock import MagicMock, patch
+from requests.adapters import HTTPAdapter
 
 import pytest
 import requests
 
 from pyUSPTO.base import (
     BaseUSPTOClient,
-    FromDictProtocol,
     USPTOApiAuthError,
     USPTOApiError,
     USPTOApiNotFoundError,
@@ -71,14 +71,14 @@ class TestBaseUSPTOClient:
         https_adapter = client.session.adapters["https://"]
 
         # Verify both adapters have retry configuration
-        assert http_adapter.max_retries is not None  # type: ignore
-        assert https_adapter.max_retries is not None  # type: ignore
+        assert cast(HTTPAdapter, http_adapter).max_retries is not None
+        assert cast(HTTPAdapter, https_adapter).max_retries is not None
 
         # Verify retry settings
         # Note: We can't directly check the status_forcelist because it's not exposed
         # in a consistent way across different versions of urllib3/requests
-        assert http_adapter.max_retries.total == 3  # type: ignore
-        assert http_adapter.max_retries.backoff_factor == 1  # type: ignore
+        assert cast(HTTPAdapter, http_adapter).max_retries.total == 3
+        assert cast(HTTPAdapter, http_adapter).max_retries.backoff_factor == 1
 
     def test_make_request_get(self, mock_session: MagicMock) -> None:
         """Test _make_request method with GET."""
