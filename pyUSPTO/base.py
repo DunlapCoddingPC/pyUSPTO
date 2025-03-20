@@ -24,11 +24,11 @@ from urllib3.util.retry import Retry
 
 from pyUSPTO.exceptions import (
     USPTOApiAuthError,
+    USPTOApiBadRequestError,
     USPTOApiError,
     USPTOApiNotFoundError,
-    USPTOApiRateLimitError,
-    USPTOApiBadRequestError,
     USPTOApiPayloadTooLargeError,
+    USPTOApiRateLimitError,
     USPTOApiServerError,
 )
 
