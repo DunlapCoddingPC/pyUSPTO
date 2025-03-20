@@ -453,8 +453,6 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             filename_match = re.search(r'filename="(.+?)"', content_disposition)
             if filename_match:
                 filename = filename_match.group(1)
-            else:
-                filename = document_id
         else:
             filename = document_id
 

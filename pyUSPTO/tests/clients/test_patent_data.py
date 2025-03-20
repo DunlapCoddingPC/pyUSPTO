@@ -332,3 +332,149 @@ class TestPatentDataClient:
             mock_file.write.assert_called_with(b"test content")
             # Use os.path.join for cross-platform paths
             assert result == os.path.join("/tmp", "test_document.pdf")
+
+    # New Test Cases for download_patent_applications
+
+    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
+    def test_download_patent_applications_default_params(
+        self, mock_make_request: MagicMock
+    ) -> None:
+        """Test download_patent_applications with default parameters."""
+        # Setup mock response
+        mock_response_obj = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+        mock_make_request.return_value = mock_response_obj
+
+        # Create client and call method without params
+        client = PatentDataClient(api_key="test_key")
+        result = client.download_patent_applications()
+
+        # Verify request was made correctly with default format
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint="applications/search/download",
+            params={"format": "json"},
+            response_class=PatentDataResponse,
+        )
+
+        # Verify the result type
+        assert isinstance(result, PatentDataResponse)
+
+    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
+    def test_download_patent_applications_missing_format(
+        self, mock_make_request: MagicMock
+    ) -> None:
+        """Test download_patent_applications when format is missing in params."""
+        # Setup mock response
+        mock_response_obj = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+        mock_make_request.return_value = mock_response_obj
+
+        # Create client and call method with params missing 'format'
+        client = PatentDataClient(api_key="test_key")
+        result = client.download_patent_applications(params={"q": "test"})
+
+        # Verify request was made correctly with default format added
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint="applications/search/download",
+            params={"q": "test", "format": "json"},
+            response_class=PatentDataResponse,
+        )
+
+        # Verify the result type
+        assert isinstance(result, PatentDataResponse)
+
+    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
+    def test_download_patent_applications_custom_format(
+        self, mock_make_request: MagicMock
+    ) -> None:
+        """Test download_patent_applications with custom format."""
+        # Setup mock response
+        mock_response_obj = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+        mock_make_request.return_value = mock_response_obj
+
+        # Create client and call method with custom format
+        client = PatentDataClient(api_key="test_key")
+        result = client.download_patent_applications(format="csv")
+
+        # Verify request was made correctly with custom format
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint="applications/search/download",
+            params={"format": "csv"},
+            response_class=PatentDataResponse,
+        )
+
+        # Verify the result type
+        assert isinstance(result, PatentDataResponse)
+
+    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
+    def test_download_patent_applications_invalid_params(
+        self, mock_make_request: MagicMock
+    ) -> None:
+        """Test download_patent_applications with invalid parameters."""
+        # Setup mock to raise an exception for invalid params
+        mock_make_request.side_effect = ValueError("Invalid parameters")
+
+        # Create client and call method with invalid params
+        client = PatentDataClient(api_key="test_key")
+        with pytest.raises(ValueError) as exc_info:
+            client.download_patent_applications(params={"invalid_param": "value"})
+
+        # Verify the exception message
+        assert str(exc_info.value) == "Invalid parameters"
+
+        # Verify request was made correctly
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint=client.ENDPOINTS["applications_search_download"],
+            params={"invalid_param": "value", "format": "json"},
+            response_class=PatentDataResponse,
+        )
+
+    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
+    def test_download_patent_applications_format_argument(
+        self, mock_make_request: MagicMock
+    ) -> None:
+        """Test download_patent_applications with format passed as a separate argument."""
+        # Setup mock response
+        mock_response_obj = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+        mock_make_request.return_value = mock_response_obj
+
+        # Create client and call method with format passed as a separate argument
+        client = PatentDataClient(api_key="test_key")
+        result = client.download_patent_applications(params={"q": "test"}, format="csv")
+
+        # Verify request was made correctly with format added to params
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint=client.ENDPOINTS["applications_search_download"],
+            params={"q": "test", "format": "csv"},
+            response_class=PatentDataResponse,
+        )
+
+        # Verify the result type
+        assert isinstance(result, PatentDataResponse)
+
+    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
+    def test_download_patent_applications_correct_assignment_endpoint(
+        self, mock_make_request: MagicMock
+    ) -> None:
+        """Test download_patent_applications with correct assignment endpoint."""
+        # Setup mock response
+        mock_response_obj = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+        mock_make_request.return_value = mock_response_obj
+
+        # Create client and call method with format passed as a separate argument
+        client = PatentDataClient(api_key="test_key")
+        result = client.download_patent_applications(params={"q": "test"}, format="csv")
+
+        # Verify request was made correctly with format added to params
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint=client.ENDPOINTS["applications_search_download"],
+            params={"q": "test", "format": "csv"},
+            response_class=PatentDataResponse,
+        )
+
+        # Verify the result type
+        assert isinstance(result, PatentDataResponse)

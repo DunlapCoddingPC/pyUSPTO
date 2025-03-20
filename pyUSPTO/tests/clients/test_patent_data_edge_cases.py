@@ -7,10 +7,9 @@ This module focuses on testing specific edge cases and lines that were previousl
 from unittest.mock import MagicMock, patch
 
 import pytest
-import requests
 
 from pyUSPTO.clients.patent_data import PatentDataClient
-from pyUSPTO.models.patent_data import PatentDataResponse, PatentFileWrapper
+from pyUSPTO.models.patent_data import PatentDataResponse
 
 
 class TestPatentDataEdgeCases:
@@ -120,3 +119,134 @@ class TestPatentDataEdgeCases:
 
         result = client.search_patent_status_codes_post({"q": "test"})
         assert result == {"statusCodeBag": []}
+
+    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
+    def test_search_patents_only_filing_date_from(
+        self, mock_make_request: MagicMock
+    ) -> None:
+        """Test search_patents with only filing_date_from to hit line 567."""
+        # Setup mock response
+        mock_response = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+        mock_make_request.return_value = mock_response
+
+        # Create client
+        client = PatentDataClient(api_key="test_key")
+
+        # Call with ONLY filing_date_from to hit line 567
+        client.search_patents(filing_date_from="2022-01-01")
+
+        # Verify the right query was built and sent
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint="applications/search",
+            params={
+                "q": "applicationMetaData.filingDate:>=2022-01-01",
+                "offset": "0",
+                "limit": "25",
+            },
+            response_class=PatentDataResponse,
+        )
+
+    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
+    def test_search_patents_only_filing_date_to(
+        self, mock_make_request: MagicMock
+    ) -> None:
+        """Test search_patents with only filing_date_to to hit line 578."""
+        # Setup mock response
+        mock_response = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+        mock_make_request.return_value = mock_response
+
+        # Create client
+        client = PatentDataClient(api_key="test_key")
+
+        # Call with ONLY filing_date_to to hit line 578
+        client.search_patents(filing_date_to="2023-12-31")
+
+        # Verify the right query was built and sent
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint="applications/search",
+            params={
+                "q": "applicationMetaData.filingDate:<=2023-12-31",
+                "offset": "0",
+                "limit": "25",
+            },
+            response_class=PatentDataResponse,
+        )
+
+    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
+    def test_search_patents_only_grant_date_from(
+        self, mock_make_request: MagicMock
+    ) -> None:
+        """Test search_patents with only grant_date_from to hit line 581."""
+        # Setup mock response
+        mock_response = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+        mock_make_request.return_value = mock_response
+
+        # Create client
+        client = PatentDataClient(api_key="test_key")
+
+        # Call with ONLY grant_date_from to hit line 581
+        client.search_patents(grant_date_from="2022-01-01")
+
+        # Verify the right query was built and sent
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint="applications/search",
+            params={
+                "q": "applicationMetaData.grantDate:>=2022-01-01",
+                "offset": "0",
+                "limit": "25",
+            },
+            response_class=PatentDataResponse,
+        )
+
+    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
+    def test_search_patents_only_grant_date_to(
+        self, mock_make_request: MagicMock
+    ) -> None:
+        """Test search_patents with only grant_date_to to hit line 586."""
+        # Setup mock response
+        mock_response = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+        mock_make_request.return_value = mock_response
+
+        # Create client
+        client = PatentDataClient(api_key="test_key")
+
+        # Call with ONLY grant_date_to to hit line 586
+        client.search_patents(grant_date_to="2023-12-31")
+
+        # Verify the right query was built and sent
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint="applications/search",
+            params={
+                "q": "applicationMetaData.grantDate:<=2023-12-31",
+                "offset": "0",
+                "limit": "25",
+            },
+            response_class=PatentDataResponse,
+        )
+
+    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
+    def test_search_patents_explicitly_null_limit_offset(
+        self, mock_make_request: MagicMock
+    ) -> None:
+        """Test search_patents with explicitly null limit and offset to hit line 601."""
+        # Setup mock response
+        mock_response = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+        mock_make_request.return_value = mock_response
+
+        # Create client
+        client = PatentDataClient(api_key="test_key")
+
+        # Call with explicitly None limit and offset to hit line 601
+        client.search_patents(query="test query", limit=None, offset=None)
+
+        # Verify the right query was built and sent WITHOUT limit and offset params
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint="applications/search",
+            params={"q": "test query"},
+            response_class=PatentDataResponse,
+        )

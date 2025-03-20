@@ -7,7 +7,6 @@ This module contains tests for document download and specific data processing me
 import os
 from unittest.mock import MagicMock, mock_open, patch
 
-import pytest
 import requests
 
 from pyUSPTO.clients.patent_data import PatentDataClient
