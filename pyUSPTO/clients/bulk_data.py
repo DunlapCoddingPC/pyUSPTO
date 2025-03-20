@@ -6,17 +6,12 @@ Bulk Data API. It allows you to search for and download bulk data products.
 """
 
 import os
-from typing import Any, Dict, Generator, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 from urllib.parse import urlparse
 
 from pyUSPTO.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.exceptions import USPTOApiError
-from pyUSPTO.models.bulk_data import (
-    BulkDataProduct,
-    BulkDataResponse,
-    FileData,
-)
+from pyUSPTO.models.bulk_data import BulkDataProduct, BulkDataResponse, FileData
 
 
 class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):

@@ -4,16 +4,6 @@ Tests for the patent_data module.
 This module contains tests for the PatentDataClient class and related functionality.
 """
 
-import os
-import re
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, mock_open, patch
-
-import pytest
-
-from pyUSPTO.base import USPTOApiError
-from pyUSPTO.clients import PatentDataClient
-from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.patent_data import (
     Address,
     Applicant,

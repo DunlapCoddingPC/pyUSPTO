@@ -7,16 +7,12 @@ It allows you to search for and retrieve patent application data.
 
 import os
 import re
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, Optional
 from urllib.parse import urlparse
 
 from pyUSPTO.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.exceptions import USPTOApiError
-from pyUSPTO.models.patent_data import (
-    PatentDataResponse,
-    PatentFileWrapper,
-)
+from pyUSPTO.models.patent_data import PatentDataResponse, PatentFileWrapper
 
 
 class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):

@@ -4,31 +4,17 @@ Tests for edge cases and error handling.
 This module contains tests for edge cases and error handling in the USPTO API clients.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
 
-from pyUSPTO.base import (
-    BaseUSPTOClient,
-    USPTOApiAuthError,
-    USPTOApiError,
-    USPTOApiNotFoundError,
-    USPTOApiRateLimitError,
-)
+from pyUSPTO.base import BaseUSPTOClient
 from pyUSPTO.clients import BulkDataClient, PatentDataClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.models.bulk_data import (
-    BulkDataProduct,
-    BulkDataResponse,
-    FileData,
-    ProductFileBag,
-)
-from pyUSPTO.models.patent_data import (
-    PatentDataResponse,
-    PatentFileWrapper,
-)
+from pyUSPTO.models.bulk_data import BulkDataProduct, BulkDataResponse, FileData
+from pyUSPTO.models.patent_data import PatentDataResponse, PatentFileWrapper
 
 
 class TestConfigEdgeCases:

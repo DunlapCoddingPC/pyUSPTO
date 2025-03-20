@@ -10,7 +10,6 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
-from pyUSPTO.base import USPTOApiError
 from pyUSPTO.clients import BulkDataClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.bulk_data import (
