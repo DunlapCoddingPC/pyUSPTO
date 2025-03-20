@@ -1,0 +1,6 @@
+Bulk Data Examples
+==================
+
+.. literalinclude:: ../../examples/bulk_data_example.py
+   :language: python
+   :linenos:

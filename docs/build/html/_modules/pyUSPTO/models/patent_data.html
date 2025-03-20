@@ -1,0 +1,1118 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pyUSPTO.models.patent_data &mdash; pyUSPTO 0.1.4.dev0+ga92fa00.d20250320 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=109a12d6"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            pyUSPTO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development.html">Development</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyUSPTO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pyUSPTO.models.patent_data</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pyUSPTO.models.patent_data</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">models.patent_data - Data models for USPTO patent data API</span>
+
+<span class="sd">This module provides data models for the USPTO Patent Data API.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+
+<div class="viewcode-block" id="PatentDataResponse">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.PatentDataResponse">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PatentDataResponse</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Top-level response from the patent data API.&quot;&quot;&quot;</span>
+
+    <span class="n">count</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">patent_file_wrapper_data_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s2">&quot;PatentFileWrapper&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="PatentDataResponse.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.PatentDataResponse.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;PatentDataResponse&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a PatentDataResponse object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">count</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;count&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">patent_file_wrapper_data_bag</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">PatentFileWrapper</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">wrapper</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">wrapper</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;patentFileWrapperDataBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">],</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PatentDataResponse.to_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.PatentDataResponse.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert the PatentDataResponse object to a dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;count&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="p">,</span>
+            <span class="s2">&quot;patentFileWrapperDataBag&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="c1"># If PatentFileWrapper had a to_dict method, we would use it here</span>
+                <span class="c1"># For now, we&#39;ll just return a basic representation</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;applicationNumberText&quot;</span><span class="p">:</span> <span class="n">wrapper</span><span class="o">.</span><span class="n">application_number_text</span><span class="p">,</span>
+                    <span class="c1"># Add other fields as needed</span>
+                <span class="p">}</span>
+                <span class="k">for</span> <span class="n">wrapper</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">patent_file_wrapper_data_bag</span>
+            <span class="p">],</span>
+            <span class="c1"># Add other fields that might be in the API response but not in our model</span>
+            <span class="s2">&quot;documentBag&quot;</span><span class="p">:</span> <span class="p">[],</span>  <span class="c1"># Empty placeholder for document bag</span>
+        <span class="p">}</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Address">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Address">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Address</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents an address in the patent data API.&quot;&quot;&quot;</span>
+
+    <span class="n">name_line_one_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">name_line_two_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">address_line_one_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">address_line_two_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">address_line_three_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">address_line_four_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">geographic_region_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">geographic_region_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">postal_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">city_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">country_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">country_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">postal_address_category</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">correspondent_name_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Address.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Address.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;Address&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an Address object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">name_line_one_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nameLineOneText&quot;</span><span class="p">),</span>
+            <span class="n">name_line_two_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nameLineTwoText&quot;</span><span class="p">),</span>
+            <span class="n">address_line_one_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;addressLineOneText&quot;</span><span class="p">),</span>
+            <span class="n">address_line_two_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;addressLineTwoText&quot;</span><span class="p">),</span>
+            <span class="n">address_line_three_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;addressLineThreeText&quot;</span><span class="p">),</span>
+            <span class="n">address_line_four_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;addressLineFourText&quot;</span><span class="p">),</span>
+            <span class="n">geographic_region_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;geographicRegionName&quot;</span><span class="p">),</span>
+            <span class="n">geographic_region_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;geographicRegionCode&quot;</span><span class="p">),</span>
+            <span class="n">postal_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;postalCode&quot;</span><span class="p">),</span>
+            <span class="n">city_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cityName&quot;</span><span class="p">),</span>
+            <span class="n">country_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;countryCode&quot;</span><span class="p">),</span>
+            <span class="n">country_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;countryName&quot;</span><span class="p">),</span>
+            <span class="n">postal_address_category</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;postalAddressCategory&quot;</span><span class="p">),</span>
+            <span class="n">correspondent_name_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;correspondentNameText&quot;</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Telecommunication">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Telecommunication">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Telecommunication</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents telecommunication information.&quot;&quot;&quot;</span>
+
+    <span class="n">telecommunication_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">extension_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">telecom_type_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Telecommunication.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Telecommunication.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;Telecommunication&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a Telecommunication object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">telecommunication_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;telecommunicationNumber&quot;</span><span class="p">),</span>
+            <span class="n">extension_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;extensionNumber&quot;</span><span class="p">),</span>
+            <span class="n">telecom_type_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;telecomTypeCode&quot;</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Person">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Person">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Person</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for person-related data.&quot;&quot;&quot;</span>
+
+    <span class="n">first_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">middle_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">last_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">name_prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">name_suffix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">preferred_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">country_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Person.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Person.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;Person&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a Person object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">first_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;firstName&quot;</span><span class="p">),</span>
+            <span class="n">middle_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;middleName&quot;</span><span class="p">),</span>
+            <span class="n">last_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;lastName&quot;</span><span class="p">),</span>
+            <span class="n">name_prefix</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;namePrefix&quot;</span><span class="p">),</span>
+            <span class="n">name_suffix</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nameSuffix&quot;</span><span class="p">),</span>
+            <span class="n">preferred_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;preferredName&quot;</span><span class="p">),</span>
+            <span class="n">country_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;countryCode&quot;</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Applicant">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Applicant">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Applicant</span><span class="p">(</span><span class="n">Person</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents an applicant in the patent data.&quot;&quot;&quot;</span>
+
+    <span class="n">applicant_name_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">correspondence_address_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Address</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Applicant.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Applicant.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;Applicant&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an Applicant object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="n">person</span> <span class="o">=</span> <span class="n">Person</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">addresses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;correspondenceAddressBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">addresses</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Address</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">addr</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">addr</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;correspondenceAddressBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">first_name</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">first_name</span><span class="p">,</span>
+            <span class="n">middle_name</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">middle_name</span><span class="p">,</span>
+            <span class="n">last_name</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">last_name</span><span class="p">,</span>
+            <span class="n">name_prefix</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">name_prefix</span><span class="p">,</span>
+            <span class="n">name_suffix</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">name_suffix</span><span class="p">,</span>
+            <span class="n">preferred_name</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">preferred_name</span><span class="p">,</span>
+            <span class="n">country_code</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">country_code</span><span class="p">,</span>
+            <span class="n">applicant_name_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicantNameText&quot;</span><span class="p">),</span>
+            <span class="n">correspondence_address_bag</span><span class="o">=</span><span class="n">addresses</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Inventor">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Inventor">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Inventor</span><span class="p">(</span><span class="n">Person</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents an inventor in the patent data.&quot;&quot;&quot;</span>
+
+    <span class="n">inventor_name_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">correspondence_address_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Address</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Inventor.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Inventor.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;Inventor&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an Inventor object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="n">person</span> <span class="o">=</span> <span class="n">Person</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">addresses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;correspondenceAddressBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">addresses</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Address</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">addr</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">addr</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;correspondenceAddressBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">first_name</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">first_name</span><span class="p">,</span>
+            <span class="n">middle_name</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">middle_name</span><span class="p">,</span>
+            <span class="n">last_name</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">last_name</span><span class="p">,</span>
+            <span class="n">name_prefix</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">name_prefix</span><span class="p">,</span>
+            <span class="n">name_suffix</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">name_suffix</span><span class="p">,</span>
+            <span class="n">preferred_name</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">preferred_name</span><span class="p">,</span>
+            <span class="n">country_code</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">country_code</span><span class="p">,</span>
+            <span class="n">inventor_name_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;inventorNameText&quot;</span><span class="p">),</span>
+            <span class="n">correspondence_address_bag</span><span class="o">=</span><span class="n">addresses</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Attorney">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Attorney">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Attorney</span><span class="p">(</span><span class="n">Person</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents an attorney in the patent data.&quot;&quot;&quot;</span>
+
+    <span class="n">registration_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">active_indicator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">registered_practitioner_category</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">attorney_address_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Address</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">telecommunication_address_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Telecommunication</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Attorney.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Attorney.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;Attorney&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an Attorney object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="n">person</span> <span class="o">=</span> <span class="n">Person</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">addresses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;attorneyAddressBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">addresses</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Address</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">addr</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">addr</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;attorneyAddressBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="n">telecom_addresses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;telecommunicationAddressBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">telecom_addresses</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Telecommunication</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">telecom</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">telecom</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;telecommunicationAddressBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">first_name</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">first_name</span><span class="p">,</span>
+            <span class="n">middle_name</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">middle_name</span><span class="p">,</span>
+            <span class="n">last_name</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">last_name</span><span class="p">,</span>
+            <span class="n">name_prefix</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">name_prefix</span><span class="p">,</span>
+            <span class="n">name_suffix</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">name_suffix</span><span class="p">,</span>
+            <span class="n">preferred_name</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">preferred_name</span><span class="p">,</span>
+            <span class="n">country_code</span><span class="o">=</span><span class="n">person</span><span class="o">.</span><span class="n">country_code</span><span class="p">,</span>
+            <span class="n">registration_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;registrationNumber&quot;</span><span class="p">),</span>
+            <span class="n">active_indicator</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;activeIndicator&quot;</span><span class="p">),</span>
+            <span class="n">registered_practitioner_category</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;registeredPractitionerCategory&quot;</span><span class="p">),</span>
+            <span class="n">attorney_address_bag</span><span class="o">=</span><span class="n">addresses</span><span class="p">,</span>
+            <span class="n">telecommunication_address_bag</span><span class="o">=</span><span class="n">telecom_addresses</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="EntityStatus">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.EntityStatus">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">EntityStatus</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents entity status data.&quot;&quot;&quot;</span>
+
+    <span class="n">small_entity_status_indicator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">business_entity_status_category</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="EntityStatus.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.EntityStatus.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;EntityStatus&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an EntityStatus object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">small_entity_status_indicator</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;smallEntityStatusIndicator&quot;</span><span class="p">),</span>
+            <span class="n">business_entity_status_category</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;businessEntityStatusCategory&quot;</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="CustomerNumberCorrespondence">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.CustomerNumberCorrespondence">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomerNumberCorrespondence</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents customer number correspondence data.&quot;&quot;&quot;</span>
+
+    <span class="n">patron_identifier</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">organization_standard_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">power_of_attorney_address_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Address</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">telecommunication_address_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Telecommunication</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CustomerNumberCorrespondence.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.CustomerNumberCorrespondence.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;CustomerNumberCorrespondence&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a CustomerNumberCorrespondence object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="n">addresses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;powerOfAttorneyAddressBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">power_of_attorney_bag</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;powerOfAttorneyAddressBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="c1"># Ensure we only process dictionary objects</span>
+            <span class="n">addresses</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Address</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">addr</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">addr</span> <span class="ow">in</span> <span class="n">power_of_attorney_bag</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+            <span class="p">]</span>
+
+        <span class="n">telecom_addresses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;telecommunicationAddressBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">telecom_bag</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;telecommunicationAddressBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="c1"># Ensure we only process dictionary objects</span>
+            <span class="n">telecom_addresses</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Telecommunication</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">telecom</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">telecom</span> <span class="ow">in</span> <span class="n">telecom_bag</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">telecom</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+            <span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">patron_identifier</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;patronIdentifier&quot;</span><span class="p">),</span>
+            <span class="n">organization_standard_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;organizationStandardName&quot;</span><span class="p">),</span>
+            <span class="n">power_of_attorney_address_bag</span><span class="o">=</span><span class="n">addresses</span><span class="p">,</span>
+            <span class="n">telecommunication_address_bag</span><span class="o">=</span><span class="n">telecom_addresses</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="RecordAttorney">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.RecordAttorney">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RecordAttorney</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents record attorney data.&quot;&quot;&quot;</span>
+
+    <span class="n">customer_number_correspondence_data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">CustomerNumberCorrespondence</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span>
+    <span class="p">)</span>
+    <span class="n">power_of_attorney_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Attorney</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">attorney_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Attorney</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RecordAttorney.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.RecordAttorney.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;RecordAttorney&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a RecordAttorney object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="n">customer_correspondence</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;customerNumberCorrespondenceData&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">correspondence_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;customerNumberCorrespondenceData&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="c1"># Ensure we only process dictionary objects</span>
+            <span class="n">customer_correspondence</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">CustomerNumberCorrespondence</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">corr</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">corr</span> <span class="ow">in</span> <span class="n">correspondence_data</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+            <span class="p">]</span>
+
+        <span class="n">power_attorneys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;powerOfAttorneyBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">power_attorneys</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Attorney</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">attorney</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">attorney</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;powerOfAttorneyBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="n">attorneys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;attorneyBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">attorneys</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Attorney</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">attorney</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">attorney</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;attorneyBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">customer_number_correspondence_data</span><span class="o">=</span><span class="n">customer_correspondence</span><span class="p">,</span>
+            <span class="n">power_of_attorney_bag</span><span class="o">=</span><span class="n">power_attorneys</span><span class="p">,</span>
+            <span class="n">attorney_bag</span><span class="o">=</span><span class="n">attorneys</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Assignor">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Assignor">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Assignor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents an assignor in an assignment.&quot;&quot;&quot;</span>
+
+    <span class="n">assignor_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">execution_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Assignor.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Assignor.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;Assignor&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an Assignor object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">assignor_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;assignorName&quot;</span><span class="p">),</span>
+            <span class="n">execution_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;executionDate&quot;</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Assignee">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Assignee">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Assignee</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents an assignee in an assignment.&quot;&quot;&quot;</span>
+
+    <span class="n">assignee_name_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">assignee_address</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Address</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Assignee.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Assignee.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;Assignee&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an Assignee object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="n">address</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;assigneeAddress&quot;</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;assigneeAddress&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">address</span> <span class="o">=</span> <span class="n">Address</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;assigneeAddress&quot;</span><span class="p">,</span> <span class="p">{}))</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">assignee_name_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;assigneeNameText&quot;</span><span class="p">),</span> <span class="n">assignee_address</span><span class="o">=</span><span class="n">address</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Assignment">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Assignment">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Assignment</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents an assignment in the patent data.&quot;&quot;&quot;</span>
+
+    <span class="n">reel_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">frame_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">reel_and_frame_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">assignment_document_location_uri</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">assignment_received_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">assignment_recorded_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">assignment_mailed_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">conveyance_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">assignor_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Assignor</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">assignee_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Assignee</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">correspondence_address_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Address</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Assignment.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Assignment.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;Assignment&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an Assignment object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="n">assignors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;assignorBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">assignors</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Assignor</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">assignor</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">assignor</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;assignorBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="n">assignees</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;assigneeBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">assignees</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Assignee</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">assignee</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">assignee</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;assigneeBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="n">addresses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;correspondenceAddressBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">addresses</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Address</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">addr</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">addr</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;correspondenceAddressBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">reel_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reelNumber&quot;</span><span class="p">),</span>
+            <span class="n">frame_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;frameNumber&quot;</span><span class="p">),</span>
+            <span class="n">reel_and_frame_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reelAndFrameNumber&quot;</span><span class="p">),</span>
+            <span class="n">assignment_document_location_uri</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;assignmentDocumentLocationURI&quot;</span><span class="p">),</span>
+            <span class="n">assignment_received_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;assignmentReceivedDate&quot;</span><span class="p">),</span>
+            <span class="n">assignment_recorded_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;assignmentRecordedDate&quot;</span><span class="p">),</span>
+            <span class="n">assignment_mailed_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;assignmentMailedDate&quot;</span><span class="p">),</span>
+            <span class="n">conveyance_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conveyanceText&quot;</span><span class="p">),</span>
+            <span class="n">assignor_bag</span><span class="o">=</span><span class="n">assignors</span><span class="p">,</span>
+            <span class="n">assignee_bag</span><span class="o">=</span><span class="n">assignees</span><span class="p">,</span>
+            <span class="n">correspondence_address_bag</span><span class="o">=</span><span class="n">addresses</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ForeignPriority">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.ForeignPriority">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ForeignPriority</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents foreign priority information.&quot;&quot;&quot;</span>
+
+    <span class="n">ip_office_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">filing_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">application_number_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ForeignPriority.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.ForeignPriority.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;ForeignPriority&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a ForeignPriority object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">ip_office_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ipOfficeName&quot;</span><span class="p">),</span>
+            <span class="n">filing_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;filingDate&quot;</span><span class="p">),</span>
+            <span class="n">application_number_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicationNumberText&quot;</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Continuity">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Continuity">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Continuity</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for continuity information.&quot;&quot;&quot;</span>
+
+    <span class="n">first_inventor_to_file_indicator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">application_number_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">filing_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">status_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">status_description_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">patent_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">claim_parentage_type_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">claim_parentage_type_code_description_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="ParentContinuity">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.ParentContinuity">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ParentContinuity</span><span class="p">(</span><span class="n">Continuity</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents parent continuity information.&quot;&quot;&quot;</span>
+
+    <span class="n">parent_application_status_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">parent_patent_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">parent_application_status_description_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">parent_application_filing_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">parent_application_number_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">child_application_number_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ParentContinuity.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.ParentContinuity.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;ParentContinuity&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a ParentContinuity object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">first_inventor_to_file_indicator</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;firstInventorToFileIndicator&quot;</span><span class="p">),</span>
+            <span class="n">parent_application_status_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentApplicationStatusCode&quot;</span><span class="p">),</span>
+            <span class="n">parent_patent_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentPatentNumber&quot;</span><span class="p">),</span>
+            <span class="n">parent_application_status_description_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">&quot;parentApplicationStatusDescriptionText&quot;</span>
+            <span class="p">),</span>
+            <span class="n">parent_application_filing_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentApplicationFilingDate&quot;</span><span class="p">),</span>
+            <span class="n">parent_application_number_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentApplicationNumberText&quot;</span><span class="p">),</span>
+            <span class="n">child_application_number_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;childApplicationNumberText&quot;</span><span class="p">),</span>
+            <span class="n">claim_parentage_type_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;claimParentageTypeCode&quot;</span><span class="p">),</span>
+            <span class="n">claim_parentage_type_code_description_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">&quot;claimParentageTypeCodeDescriptionText&quot;</span>
+            <span class="p">),</span>
+            <span class="c1"># Map parent-specific fields to base class fields</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentApplicationStatusCode&quot;</span><span class="p">),</span>
+            <span class="n">status_description_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentApplicationStatusDescriptionText&quot;</span><span class="p">),</span>
+            <span class="n">filing_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentApplicationFilingDate&quot;</span><span class="p">),</span>
+            <span class="n">application_number_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentApplicationNumberText&quot;</span><span class="p">),</span>
+            <span class="n">patent_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentPatentNumber&quot;</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ChildContinuity">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.ChildContinuity">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ChildContinuity</span><span class="p">(</span><span class="n">Continuity</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents child continuity information.&quot;&quot;&quot;</span>
+
+    <span class="n">child_application_status_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">parent_application_number_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">child_application_number_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">child_application_status_description_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">child_application_filing_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">child_patent_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ChildContinuity.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.ChildContinuity.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;ChildContinuity&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a ChildContinuity object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">first_inventor_to_file_indicator</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;firstInventorToFileIndicator&quot;</span><span class="p">),</span>
+            <span class="n">child_application_status_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;childApplicationStatusCode&quot;</span><span class="p">),</span>
+            <span class="n">parent_application_number_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentApplicationNumberText&quot;</span><span class="p">),</span>
+            <span class="n">child_application_number_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;childApplicationNumberText&quot;</span><span class="p">),</span>
+            <span class="n">child_application_status_description_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">&quot;childApplicationStatusDescriptionText&quot;</span>
+            <span class="p">),</span>
+            <span class="n">child_application_filing_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;childApplicationFilingDate&quot;</span><span class="p">),</span>
+            <span class="n">child_patent_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;childPatentNumber&quot;</span><span class="p">),</span>
+            <span class="n">claim_parentage_type_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;claimParentageTypeCode&quot;</span><span class="p">),</span>
+            <span class="n">claim_parentage_type_code_description_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">&quot;claimParentageTypeCodeDescriptionText&quot;</span>
+            <span class="p">),</span>
+            <span class="c1"># Map child-specific fields to base class fields</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;childApplicationStatusCode&quot;</span><span class="p">),</span>
+            <span class="n">status_description_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;childApplicationStatusDescriptionText&quot;</span><span class="p">),</span>
+            <span class="n">filing_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;childApplicationFilingDate&quot;</span><span class="p">),</span>
+            <span class="n">application_number_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;childApplicationNumberText&quot;</span><span class="p">),</span>
+            <span class="n">patent_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;childPatentNumber&quot;</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PatentTermAdjustmentHistoryData">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.PatentTermAdjustmentHistoryData">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PatentTermAdjustmentHistoryData</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents patent term adjustment history data.&quot;&quot;&quot;</span>
+
+    <span class="n">event_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">applicant_day_delay_quantity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">event_description_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">event_sequence_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">ip_office_day_delay_quantity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">originating_event_sequence_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">pta_pte_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="PatentTermAdjustmentHistoryData.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.PatentTermAdjustmentHistoryData.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;PatentTermAdjustmentHistoryData&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a PatentTermAdjustmentHistoryData object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">event_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;eventDate&quot;</span><span class="p">),</span>
+            <span class="n">applicant_day_delay_quantity</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicantDayDelayQuantity&quot;</span><span class="p">),</span>
+            <span class="n">event_description_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;eventDescriptionText&quot;</span><span class="p">),</span>
+            <span class="n">event_sequence_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;eventSequenceNumber&quot;</span><span class="p">),</span>
+            <span class="n">ip_office_day_delay_quantity</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ipOfficeDayDelayQuantity&quot;</span><span class="p">),</span>
+            <span class="n">originating_event_sequence_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">&quot;originatingEventSequenceNumber&quot;</span>
+            <span class="p">),</span>
+            <span class="n">pta_pte_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ptaPTECode&quot;</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PatentTermAdjustmentData">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.PatentTermAdjustmentData">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PatentTermAdjustmentData</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents patent term adjustment data.&quot;&quot;&quot;</span>
+
+    <span class="n">a_delay_quantity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">adjustment_total_quantity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">applicant_day_delay_quantity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">b_delay_quantity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">c_delay_quantity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">filing_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">grant_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">non_overlapping_day_quantity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">overlapping_day_quantity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">ip_office_day_delay_quantity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">patent_term_adjustment_history_data_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PatentTermAdjustmentHistoryData</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="PatentTermAdjustmentData.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.PatentTermAdjustmentData.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;PatentTermAdjustmentData&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a PatentTermAdjustmentData object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="n">history_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;patentTermAdjustmentHistoryDataBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">history_data</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">PatentTermAdjustmentHistoryData</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">history</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">history</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;patentTermAdjustmentHistoryDataBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">a_delay_quantity</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;aDelayQuantity&quot;</span><span class="p">),</span>
+            <span class="n">adjustment_total_quantity</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;adjustmentTotalQuantity&quot;</span><span class="p">),</span>
+            <span class="n">applicant_day_delay_quantity</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicantDayDelayQuantity&quot;</span><span class="p">),</span>
+            <span class="n">b_delay_quantity</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;bDelayQuantity&quot;</span><span class="p">),</span>
+            <span class="n">c_delay_quantity</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cDelayQuantity&quot;</span><span class="p">),</span>
+            <span class="n">filing_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;filingDate&quot;</span><span class="p">),</span>
+            <span class="n">grant_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;grantDate&quot;</span><span class="p">),</span>
+            <span class="n">non_overlapping_day_quantity</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nonOverlappingDayQuantity&quot;</span><span class="p">),</span>
+            <span class="n">overlapping_day_quantity</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;overlappingDayQuantity&quot;</span><span class="p">),</span>
+            <span class="n">ip_office_day_delay_quantity</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ipOfficeDayDelayQuantity&quot;</span><span class="p">),</span>
+            <span class="n">patent_term_adjustment_history_data_bag</span><span class="o">=</span><span class="n">history_data</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Event">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Event">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Event</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents an event in the patent data.&quot;&quot;&quot;</span>
+
+    <span class="n">event_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">event_description_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">event_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Event.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.Event.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;Event&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an Event object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">event_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;eventCode&quot;</span><span class="p">),</span>
+            <span class="n">event_description_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;eventDescriptionText&quot;</span><span class="p">),</span>
+            <span class="n">event_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;eventDate&quot;</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DocumentMetaData">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.DocumentMetaData">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DocumentMetaData</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents document metadata.&quot;&quot;&quot;</span>
+
+    <span class="n">zip_file_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">product_identifier</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">file_location_uri</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">file_create_date_time</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">xml_file_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="DocumentMetaData.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.DocumentMetaData.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;DocumentMetaData&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a DocumentMetaData object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">zip_file_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;zipFileName&quot;</span><span class="p">),</span>
+            <span class="n">product_identifier</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;productIdentifier&quot;</span><span class="p">),</span>
+            <span class="n">file_location_uri</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fileLocationURI&quot;</span><span class="p">),</span>
+            <span class="n">file_create_date_time</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fileCreateDateTime&quot;</span><span class="p">),</span>
+            <span class="n">xml_file_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;xmlFileName&quot;</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ApplicationMetaData">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.ApplicationMetaData">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ApplicationMetaData</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents application metadata.&quot;&quot;&quot;</span>
+
+    <span class="n">national_stage_indicator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">entity_status_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">EntityStatus</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">publication_date_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">publication_sequence_number_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">publication_category_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">docket_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">first_inventor_to_file_indicator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">first_applicant_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">first_inventor_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">application_confirmation_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">application_status_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">application_status_description_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">filing_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">effective_filing_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">grant_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">group_art_unit_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">application_type_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">application_type_label_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">application_type_category</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">invention_title</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">patent_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">application_status_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">earliest_publication_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">earliest_publication_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">pct_publication_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">pct_publication_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">international_registration_publication_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">international_registration_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">examiner_name_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">class_field</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># &#39;class&#39; is a reserved keyword</span>
+    <span class="n">subclass</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">uspc_symbol_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">customer_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">cpc_classification_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">applicant_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Applicant</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">inventor_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Inventor</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ApplicationMetaData.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.ApplicationMetaData.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;ApplicationMetaData&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an ApplicationMetaData object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="n">entity_status</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;entityStatusData&quot;</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;entityStatusData&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">entity_status</span> <span class="o">=</span> <span class="n">EntityStatus</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;entityStatusData&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="p">)</span>
+
+        <span class="n">applicants</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;applicantBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">applicants</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Applicant</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">applicant</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">applicant</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicantBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="n">inventors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;inventorBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">inventors</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Inventor</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">inventor</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">inventor</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;inventorBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">national_stage_indicator</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nationalStageIndicator&quot;</span><span class="p">),</span>
+            <span class="n">entity_status_data</span><span class="o">=</span><span class="n">entity_status</span><span class="p">,</span>
+            <span class="n">publication_date_bag</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;publicationDateBag&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="n">publication_sequence_number_bag</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">&quot;publicationSequenceNumberBag&quot;</span><span class="p">,</span> <span class="p">[]</span>
+            <span class="p">),</span>
+            <span class="n">publication_category_bag</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;publicationCategoryBag&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="n">docket_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;docketNumber&quot;</span><span class="p">),</span>
+            <span class="n">first_inventor_to_file_indicator</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;firstInventorToFileIndicator&quot;</span><span class="p">),</span>
+            <span class="n">first_applicant_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;firstApplicantName&quot;</span><span class="p">),</span>
+            <span class="n">first_inventor_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;firstInventorName&quot;</span><span class="p">),</span>
+            <span class="n">application_confirmation_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicationConfirmationNumber&quot;</span><span class="p">),</span>
+            <span class="n">application_status_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicationStatusDate&quot;</span><span class="p">),</span>
+            <span class="n">application_status_description_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">&quot;applicationStatusDescriptionText&quot;</span>
+            <span class="p">),</span>
+            <span class="n">filing_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;filingDate&quot;</span><span class="p">),</span>
+            <span class="n">effective_filing_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;effectiveFilingDate&quot;</span><span class="p">),</span>
+            <span class="n">grant_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;grantDate&quot;</span><span class="p">),</span>
+            <span class="n">group_art_unit_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;groupArtUnitNumber&quot;</span><span class="p">),</span>
+            <span class="n">application_type_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicationTypeCode&quot;</span><span class="p">),</span>
+            <span class="n">application_type_label_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicationTypeLabelName&quot;</span><span class="p">),</span>
+            <span class="n">application_type_category</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicationTypeCategory&quot;</span><span class="p">),</span>
+            <span class="n">invention_title</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;inventionTitle&quot;</span><span class="p">),</span>
+            <span class="n">patent_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;patentNumber&quot;</span><span class="p">),</span>
+            <span class="n">application_status_code</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicationStatusCode&quot;</span><span class="p">),</span>
+            <span class="n">earliest_publication_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;earliestPublicationNumber&quot;</span><span class="p">),</span>
+            <span class="n">earliest_publication_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;earliestPublicationDate&quot;</span><span class="p">),</span>
+            <span class="n">pct_publication_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pctPublicationNumber&quot;</span><span class="p">),</span>
+            <span class="n">pct_publication_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pctPublicationDate&quot;</span><span class="p">),</span>
+            <span class="n">international_registration_publication_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">&quot;internationalRegistrationPublicationDate&quot;</span>
+            <span class="p">),</span>
+            <span class="n">international_registration_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">&quot;internationalRegistrationNumber&quot;</span>
+            <span class="p">),</span>
+            <span class="n">examiner_name_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;examinerNameText&quot;</span><span class="p">),</span>
+            <span class="n">class_field</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;class&quot;</span><span class="p">),</span>  <span class="c1"># Renamed due to reserved keyword</span>
+            <span class="n">subclass</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;subclass&quot;</span><span class="p">),</span>
+            <span class="n">uspc_symbol_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;uspcSymbolText&quot;</span><span class="p">),</span>
+            <span class="n">customer_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;customerNumber&quot;</span><span class="p">),</span>
+            <span class="n">cpc_classification_bag</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cpcClassificationBag&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="n">applicant_bag</span><span class="o">=</span><span class="n">applicants</span><span class="p">,</span>
+            <span class="n">inventor_bag</span><span class="o">=</span><span class="n">inventors</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PatentFileWrapper">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.PatentFileWrapper">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PatentFileWrapper</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a patent file wrapper.&quot;&quot;&quot;</span>
+
+    <span class="n">application_number_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">application_meta_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ApplicationMetaData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">correspondence_address_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Address</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">assignment_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Assignment</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">record_attorney</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RecordAttorney</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">foreign_priority_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ForeignPriority</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">parent_continuity_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ParentContinuity</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">child_continuity_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ChildContinuity</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">patent_term_adjustment_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PatentTermAdjustmentData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">event_data_bag</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Event</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">pgpub_document_meta_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">DocumentMetaData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">grant_document_meta_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">DocumentMetaData</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">last_ingestion_date_time</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="PatentFileWrapper.from_dict">
+<a class="viewcode-back" href="../../../api/models.html#pyUSPTO.models.patent_data.PatentFileWrapper.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;PatentFileWrapper&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a PatentFileWrapper object from a dictionary.&quot;&quot;&quot;</span>
+        <span class="n">application_meta</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="s2">&quot;applicationMetaData&quot;</span> <span class="ow">in</span> <span class="n">data</span>
+            <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicationMetaData&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="n">application_meta</span> <span class="o">=</span> <span class="n">ApplicationMetaData</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicationMetaData&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="p">)</span>
+
+        <span class="n">addresses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;correspondenceAddressBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">addresses</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Address</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">addr</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">addr</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;correspondenceAddressBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="n">assignments</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;assignmentBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">assignments</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Assignment</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">assignment</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">assignment</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;assignmentBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="n">record_atty</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">&quot;recordAttorney&quot;</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;recordAttorney&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">record_atty</span> <span class="o">=</span> <span class="n">RecordAttorney</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;recordAttorney&quot;</span><span class="p">,</span> <span class="p">{}))</span>
+
+        <span class="n">foreign_priorities</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;foreignPriorityBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">foreign_priorities</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">ForeignPriority</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">priority</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">priority</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;foreignPriorityBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="n">parent_continuities</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;parentContinuityBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">parent_continuities</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">ParentContinuity</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">continuity</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">continuity</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentContinuityBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="n">child_continuities</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;childContinuityBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">child_continuities</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">ChildContinuity</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">continuity</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">continuity</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;childContinuityBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="n">patent_term</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="s2">&quot;patentTermAdjustmentData&quot;</span> <span class="ow">in</span> <span class="n">data</span>
+            <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;patentTermAdjustmentData&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="n">patent_term</span> <span class="o">=</span> <span class="n">PatentTermAdjustmentData</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;patentTermAdjustmentData&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="p">)</span>
+
+        <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;eventDataBag&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">events</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">Event</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">event</span><span class="p">)</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;eventDataBag&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="p">]</span>
+
+        <span class="n">pgpub_meta</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="s2">&quot;pgpubDocumentMetaData&quot;</span> <span class="ow">in</span> <span class="n">data</span>
+            <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pgpubDocumentMetaData&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="n">pgpub_meta</span> <span class="o">=</span> <span class="n">DocumentMetaData</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pgpubDocumentMetaData&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="p">)</span>
+
+        <span class="n">grant_meta</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="s2">&quot;grantDocumentMetaData&quot;</span> <span class="ow">in</span> <span class="n">data</span>
+            <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;grantDocumentMetaData&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="n">grant_meta</span> <span class="o">=</span> <span class="n">DocumentMetaData</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;grantDocumentMetaData&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">application_number_text</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applicationNumberText&quot;</span><span class="p">),</span>
+            <span class="n">application_meta_data</span><span class="o">=</span><span class="n">application_meta</span><span class="p">,</span>
+            <span class="n">correspondence_address_bag</span><span class="o">=</span><span class="n">addresses</span><span class="p">,</span>
+            <span class="n">assignment_bag</span><span class="o">=</span><span class="n">assignments</span><span class="p">,</span>
+            <span class="n">record_attorney</span><span class="o">=</span><span class="n">record_atty</span><span class="p">,</span>
+            <span class="n">foreign_priority_bag</span><span class="o">=</span><span class="n">foreign_priorities</span><span class="p">,</span>
+            <span class="n">parent_continuity_bag</span><span class="o">=</span><span class="n">parent_continuities</span><span class="p">,</span>
+            <span class="n">child_continuity_bag</span><span class="o">=</span><span class="n">child_continuities</span><span class="p">,</span>
+            <span class="n">patent_term_adjustment_data</span><span class="o">=</span><span class="n">patent_term</span><span class="p">,</span>
+            <span class="n">event_data_bag</span><span class="o">=</span><span class="n">events</span><span class="p">,</span>
+            <span class="n">pgpub_document_meta_data</span><span class="o">=</span><span class="n">pgpub_meta</span><span class="p">,</span>
+            <span class="n">grant_document_meta_data</span><span class="o">=</span><span class="n">grant_meta</span><span class="p">,</span>
+            <span class="n">last_ingestion_date_time</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;lastIngestionDateTime&quot;</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Andrew Piechocki.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

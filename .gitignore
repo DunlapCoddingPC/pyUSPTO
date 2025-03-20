@@ -4,3 +4,6 @@ downloads/
 .venv/
 *.egg-info/
 __pycache__
+mypy-guide.md
+docs-setup-guide.md
+PubPlan.md
