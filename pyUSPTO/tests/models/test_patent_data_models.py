@@ -1,8 +1,10 @@
 """
 Tests for the patent_data models.
 
-This module contains tests for the classes in pyUSPTO.models.patent_data.
+This module contains consolidated tests for classes in pyUSPTO.models.patent_data.
 """
+
+from typing import Any, Dict
 
 from pyUSPTO.models.patent_data import (
     Address,
@@ -749,3 +751,152 @@ class TestPatentDataModels:
         assert patent_wrapper.pgpub_document_meta_data.zip_file_name == "pgpub.zip"
         assert patent_wrapper.grant_document_meta_data is None
         assert patent_wrapper.last_ingestion_date_time == "2023-01-01T12:00:00"
+
+
+# Tests from test_document_meta_data.py
+def test_document_meta_data_with_null_input() -> None:
+    """Test creation of DocumentMetaData with null input."""
+    # Test with empty dict
+    document_meta_data = DocumentMetaData.from_dict({})
+
+    # Verify attributes are initialized to None
+    assert document_meta_data.zip_file_name is None
+    assert document_meta_data.product_identifier is None
+    assert document_meta_data.file_location_uri is None
+    assert document_meta_data.file_create_date_time is None
+    assert document_meta_data.xml_file_name is None
+
+    # Test with None (should be handled by get())
+    document_meta_data = DocumentMetaData.from_dict({"zipFileName": None})
+    assert document_meta_data.zip_file_name is None
+
+
+# Tests from test_patent_file_wrapper.py
+def test_patent_file_wrapper_with_grant_document_meta_data() -> None:
+    """Test creation of PatentFileWrapper with grant document metadata."""
+    # Test data with grant document metadata
+    data = {
+        "applicationNumberText": "12345678",
+        "grantDocumentMetaData": {
+            "zipFileName": "test.zip",
+            "productIdentifier": "PROD123",
+            "fileLocationURI": "https://example.com/test.zip",
+            "fileCreateDateTime": "2023-01-01T12:00:00",
+            "xmlFileName": "test.xml",
+        },
+    }
+
+    # Create a PatentFileWrapper from the data
+    wrapper = PatentFileWrapper.from_dict(data)
+
+    # Verify grant_document_meta_data was correctly created
+    assert wrapper.grant_document_meta_data is not None
+    assert wrapper.grant_document_meta_data.zip_file_name == "test.zip"
+    assert wrapper.grant_document_meta_data.product_identifier == "PROD123"
+    assert (
+        wrapper.grant_document_meta_data.file_location_uri
+        == "https://example.com/test.zip"
+    )
+    assert (
+        wrapper.grant_document_meta_data.file_create_date_time == "2023-01-01T12:00:00"
+    )
+    assert wrapper.grant_document_meta_data.xml_file_name == "test.xml"
+
+
+# Tests from test_patent_data_to_dict.py
+def test_patent_data_response_to_dict() -> None:
+    """Test the to_dict method of PatentDataResponse."""
+    # Create a PatentDataResponse object with sample data
+    wrapper1 = PatentFileWrapper(application_number_text="12345678")
+    wrapper2 = PatentFileWrapper(application_number_text="87654321")
+
+    response = PatentDataResponse(
+        count=2, patent_file_wrapper_data_bag=[wrapper1, wrapper2]
+    )
+
+    # Convert to dictionary
+    result = response.to_dict()
+
+    # Verify the resulting dictionary
+    assert result["count"] == 2
+    assert len(result["patentFileWrapperDataBag"]) == 2
+    assert result["patentFileWrapperDataBag"][0]["applicationNumberText"] == "12345678"
+    assert result["patentFileWrapperDataBag"][1]["applicationNumberText"] == "87654321"
+    assert "documentBag" in result  # Tests the creation of empty placeholders
+    assert result["documentBag"] == []
+
+    # Test with empty patent_file_wrapper_data_bag
+    empty_response = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+    empty_result = empty_response.to_dict()
+    assert empty_result["count"] == 0
+    assert len(empty_result["patentFileWrapperDataBag"]) == 0
+    assert "documentBag" in empty_result
+
+
+# Tests from test_edge_cases.py
+def test_empty_patent_models_from_dict() -> None:
+    """Test from_dict methods with empty data for patent models."""
+    # Test PatentDataResponse
+    patent_response = PatentDataResponse.from_dict({})
+    assert patent_response.count == 0
+    assert patent_response.patent_file_wrapper_data_bag == []
+
+    # Test PatentFileWrapper
+    wrapper = PatentFileWrapper.from_dict({})
+    assert wrapper.application_number_text is None
+    assert wrapper.application_meta_data is None
+    assert wrapper.correspondence_address_bag == []
+    assert wrapper.assignment_bag == []
+    assert wrapper.record_attorney is None
+    assert wrapper.foreign_priority_bag == []
+    assert wrapper.parent_continuity_bag == []
+    assert wrapper.child_continuity_bag == []
+    assert wrapper.patent_term_adjustment_data is None
+    assert wrapper.event_data_bag == []
+    assert wrapper.pgpub_document_meta_data is None
+    assert wrapper.grant_document_meta_data is None
+    assert wrapper.last_ingestion_date_time is None
+
+
+def test_empty_patent_models_to_dict() -> None:
+    """Test to_dict methods with empty data for patent models."""
+    # Test PatentDataResponse
+    patent_response = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+    result = patent_response.to_dict()
+    assert result["count"] == 0
+    assert result["patentFileWrapperDataBag"] == []
+    assert result["documentBag"] == []
+
+
+# Tests from test_models_to_dict.py
+def test_patent_data_response_to_dict_with_sample(
+    patent_data_sample: Dict[str, Any],
+) -> None:
+    """Test PatentDataResponse.to_dict method."""
+    # Create a PatentDataResponse from the sample data
+    response = PatentDataResponse.from_dict(patent_data_sample)
+
+    # Convert it back to a dictionary
+    result = response.to_dict()
+
+    # Verify the structure of the result
+    assert isinstance(result, dict)
+    assert "count" in result
+    assert result["count"] == response.count
+    assert "patentFileWrapperDataBag" in result
+    assert isinstance(result["patentFileWrapperDataBag"], list)
+    assert len(result["patentFileWrapperDataBag"]) == len(
+        response.patent_file_wrapper_data_bag
+    )
+
+    # Check the first patent in the bag
+    patent_dict = result["patentFileWrapperDataBag"][0]
+    assert "applicationNumberText" in patent_dict
+    assert (
+        patent_dict["applicationNumberText"]
+        == response.patent_file_wrapper_data_bag[0].application_number_text
+    )
+
+    # Verify documentBag is present (even if empty)
+    assert "documentBag" in result
+    assert isinstance(result["documentBag"], list)
