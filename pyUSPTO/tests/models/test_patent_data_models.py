@@ -1,7 +1,7 @@
 """
-Tests for the patent_data module.
+Tests for the patent_data models.
 
-This module contains tests for the PatentDataClient class and related functionality.
+This module contains tests for the classes in pyUSPTO.models.patent_data.
 """
 
 from pyUSPTO.models.patent_data import (

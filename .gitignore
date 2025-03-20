@@ -7,3 +7,4 @@ __pycache__
 mypy-guide.md
 docs-setup-guide.md
 PubPlan.md
+notes/*

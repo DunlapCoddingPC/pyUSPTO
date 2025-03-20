@@ -1,7 +1,7 @@
 """
-Tests for the base client module.
+Tests for the pyUSPTO.base module.
 
-This module contains tests for the BaseUSPTOClient class and related functionality.
+This module contains tests for the BaseUSPTOClient class.
 """
 
 from typing import Any, Dict, cast
@@ -11,7 +11,7 @@ import pytest
 import requests
 from requests.adapters import HTTPAdapter
 
-from pyUSPTO.base import BaseUSPTOClient
+from pyUSPTO.base import BaseUSPTOClient, FromDictProtocol
 from pyUSPTO.exceptions import (
     USPTOApiAuthError,
     USPTOApiBadRequestError,
@@ -194,13 +194,32 @@ class TestBaseUSPTOClient:
         assert result == mock_response
         mock_response.json.assert_not_called()
 
-    def test_make_request_invalid_method(self) -> None:
+    def test_make_request_invalid_method(self, mock_session: MagicMock) -> None:
         """Test _make_request method with invalid HTTP method."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
 
         # Test with invalid method
         with pytest.raises(ValueError, match="Unsupported HTTP method: DELETE"):
             client._make_request(method="DELETE", endpoint="test")
+
+        # Test catch-all error case with unknown status code
+        mock_response = MagicMock()
+        mock_response.status_code = (
+            418  # I'm a teapot (unused status in the specific handlers)
+        )
+        mock_response.json.return_value = {
+            "errorDetails": "I'm a teapot",
+            "requestIdentifier": "req-418",
+        }
+        mock_session.get.side_effect = requests.exceptions.HTTPError(
+            response=mock_response
+        )
+
+        with pytest.raises(USPTOApiError) as excinfo:
+            client._make_request(method="GET", endpoint="test")
+        assert "I'm a teapot" in str(excinfo.value)
+        assert excinfo.value.error_details == "I'm a teapot"
+        assert excinfo.value.status_code == 418
 
     def test_make_request_http_errors(self, mock_session: MagicMock) -> None:
         """Test _make_request method with HTTP errors."""
@@ -385,89 +404,53 @@ class TestBaseUSPTOClient:
             spy_method.assert_any_call(param1="value1", offset=0, limit=2)
             spy_method.assert_any_call(param1="value1", offset=2, limit=2)
 
+            # Test early return with count < limit
+            # Create a response where count < limit to trigger the early return
+            partial_response = MagicMock()
+            partial_response.count = 1  # Less than limit=2
+            partial_response.items = ["partial-item"]
 
-class TestExceptions:
-    """Tests for the exception classes."""
+            class TestPartialClient(BaseUSPTOClient[Any]):
+                def test_method(self, **kwargs: Any) -> Any:
+                    return partial_response
 
-    def test_uspto_api_error(self) -> None:
-        """Test USPTOApiError."""
-        # Test with status_code only
-        error = USPTOApiError("Test error", 400)
-        assert str(error) == "Test error"
-        assert error.status_code == 400
-        assert error.error_details is None
-        assert error.request_identifier is None
+            # Use our test client for partial results
+            test_partial_client = TestPartialClient(base_url="https://api.test.com")
+            test_partial_client.session = mock_session
 
-        # Test with all parameters
-        error = USPTOApiError("Test error", 400, "Detailed error message", "req-123")
-        assert str(error) == "Test error"
-        assert error.status_code == 400
-        assert error.error_details == "Detailed error message"
-        assert error.request_identifier == "req-123"
+            # Test paginate_results with early return
+            results = list(
+                test_partial_client.paginate_results(
+                    method_name="test_method",
+                    response_container_attr="items",
+                    limit=2,
+                )
+            )
 
-        # Test without status_code
-        error = USPTOApiError("Test error")
-        assert str(error) == "Test error"
-        assert error.status_code is None
-        assert error.error_details is None
-        assert error.request_identifier is None
+            # Verify early return works
+            assert results == ["partial-item"]
 
-    def test_exception_inheritance(self) -> None:
-        """Test exception inheritance."""
-        # Test USPTOApiBadRequestError
-        bad_request_error = USPTOApiBadRequestError(
-            "Bad request", 400, "Invalid parameters", "req-400"
-        )
-        assert isinstance(bad_request_error, USPTOApiError)
-        assert str(bad_request_error) == "Bad request"
-        assert bad_request_error.status_code == 400
-        assert bad_request_error.error_details == "Invalid parameters"
-        assert bad_request_error.request_identifier == "req-400"
+            # Test zero count case (empty response)
+            empty_response = MagicMock()
+            empty_response.count = 0  # No results
+            empty_response.items = []
 
-        # Test USPTOApiAuthError
-        auth_error = USPTOApiAuthError("Auth error", 401, "Invalid API key", "req-401")
-        assert isinstance(auth_error, USPTOApiError)
-        assert str(auth_error) == "Auth error"
-        assert auth_error.status_code == 401
-        assert auth_error.error_details == "Invalid API key"
-        assert auth_error.request_identifier == "req-401"
+            class TestEmptyClient(BaseUSPTOClient[Any]):
+                def test_method(self, **kwargs: Any) -> Any:
+                    return empty_response
 
-        # Test USPTOApiRateLimitError
-        rate_limit_error = USPTOApiRateLimitError(
-            "Rate limit error", 429, "Too many requests", "req-429"
-        )
-        assert isinstance(rate_limit_error, USPTOApiError)
-        assert str(rate_limit_error) == "Rate limit error"
-        assert rate_limit_error.status_code == 429
-        assert rate_limit_error.error_details == "Too many requests"
-        assert rate_limit_error.request_identifier == "req-429"
+            # Use our test client for empty results
+            test_empty_client = TestEmptyClient(base_url="https://api.test.com")
+            test_empty_client.session = mock_session
 
-        # Test USPTOApiNotFoundError
-        not_found_error = USPTOApiNotFoundError(
-            "Not found error", 404, "Resource does not exist", "req-404"
-        )
-        assert isinstance(not_found_error, USPTOApiError)
-        assert str(not_found_error) == "Not found error"
-        assert not_found_error.status_code == 404
-        assert not_found_error.error_details == "Resource does not exist"
-        assert not_found_error.request_identifier == "req-404"
+            # Test paginate_results with empty response
+            results = list(
+                test_empty_client.paginate_results(
+                    method_name="test_method",
+                    response_container_attr="items",
+                    limit=2,
+                )
+            )
 
-        # Test USPTOApiPayloadTooLargeError
-        payload_too_large_error = USPTOApiPayloadTooLargeError(
-            "Payload too large", 413, "Exceeds 6MB limit", "req-413"
-        )
-        assert isinstance(payload_too_large_error, USPTOApiError)
-        assert str(payload_too_large_error) == "Payload too large"
-        assert payload_too_large_error.status_code == 413
-        assert payload_too_large_error.error_details == "Exceeds 6MB limit"
-        assert payload_too_large_error.request_identifier == "req-413"
-
-        # Test USPTOApiServerError
-        server_error = USPTOApiServerError(
-            "Server error", 500, "Internal error", "req-500"
-        )
-        assert isinstance(server_error, USPTOApiError)
-        assert str(server_error) == "Server error"
-        assert server_error.status_code == 500
-        assert server_error.error_details == "Internal error"
-        assert server_error.request_identifier == "req-500"
+            # Verify empty results works
+            assert results == []
