@@ -387,7 +387,7 @@ class TestSearchFilters:
         )
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
-    def test_search_patents_name_filters(self, mock_make_request):
+    def test_search_patents_name_filters(self, mock_make_request: MagicMock) -> None:
         """Test search_patents with name-related filters."""
         mock_response = MagicMock(spec=PatentDataResponse)
         mock_make_request.return_value = mock_response
@@ -430,7 +430,9 @@ class TestSearchFilters:
         )
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
-    def test_search_patents_classification_filter(self, mock_make_request):
+    def test_search_patents_classification_filter(
+        self, mock_make_request: MagicMock
+    ) -> None:
         """Test search_patents with classification filter."""
         mock_response = MagicMock(spec=PatentDataResponse)
         mock_make_request.return_value = mock_response
@@ -450,7 +452,9 @@ class TestSearchFilters:
         )
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
-    def test_search_patents_application_number_filter(self, mock_make_request):
+    def test_search_patents_application_number_filter(
+        self, mock_make_request: MagicMock
+    ) -> None:
         """Test search_patents with application number filter."""
         mock_response = MagicMock(spec=PatentDataResponse)
         mock_make_request.return_value = mock_response

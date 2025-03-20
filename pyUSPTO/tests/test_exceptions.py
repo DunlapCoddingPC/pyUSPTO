@@ -20,7 +20,7 @@ from pyUSPTO.exceptions import (
 class TestExceptions:
     """Tests for the exception classes."""
 
-    def test_uspto_api_error(self):
+    def test_uspto_api_error(self) -> None:
         """Test USPTOApiError."""
         # Test with status_code only
         error = USPTOApiError("Test error", 400)
@@ -43,7 +43,7 @@ class TestExceptions:
         assert error.error_details is None
         assert error.request_identifier is None
 
-    def test_exception_inheritance(self):
+    def test_exception_inheritance(self) -> None:
         """Test exception inheritance."""
         # Test USPTOApiBadRequestError
         bad_request_error = USPTOApiBadRequestError(

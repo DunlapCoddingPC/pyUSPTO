@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, mock_open, patch
 
 class TestSetupExecution(unittest.TestCase):
     @patch("setuptools.setup")
-    def test_setup_execution(self, mock_setup):
+    def test_setup_execution(self, mock_setup) -> None:
         """Test that setup.py executes and calls setup() with correct args."""
         # Mock open for README.md
         readme_content = "# pyUSPTO\nTest README content"

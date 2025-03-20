@@ -12,7 +12,7 @@ from pyUSPTO.utils.http import create_session
 class TestHttpUtils:
     """Tests for HTTP utility functions."""
 
-    def test_create_session(self):
+    def test_create_session(self) -> None:
         """Test that create_session configures session correctly."""
         with patch("pyUSPTO.utils.http.requests.Session") as mock_session:
             # Setup the mock
@@ -39,7 +39,7 @@ class TestHttpUtils:
             # Return the session
             assert session == mock_session_instance
 
-    def test_parse_response(self):
+    def test_parse_response(self) -> None:
         """Test parse_response function."""
         from pyUSPTO.utils.http import parse_response
 
@@ -54,7 +54,7 @@ class TestHttpUtils:
         mock_response.json.assert_called_once()
         assert result == {"key": "value"}
 
-    def test_create_session_default_params(self):
+    def test_create_session_default_params(self) -> None:
         """Test create_session with default parameters."""
         with patch("pyUSPTO.utils.http.requests.Session") as mock_session:
             # Setup the mock

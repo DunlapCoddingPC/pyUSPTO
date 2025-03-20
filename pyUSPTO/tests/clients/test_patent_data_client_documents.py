@@ -56,7 +56,7 @@ class TestDocumentHandling:
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
     def test_download_application_document_content_disposition_parsing(
-        self, mock_make_request
+        self, mock_make_request: MagicMock
     ) -> None:
         """Test download_application_document with Content-Disposition header parsing."""
         # Setup mock to simulate a Response object
@@ -88,7 +88,7 @@ class TestDocumentHandling:
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
     def test_download_application_document_no_filename_in_header(
-        self, mock_make_request
+        self, mock_make_request: MagicMock
     ) -> None:
         """Test download_application_document with Content-Disposition header but no filename."""
         # Setup mock to simulate a Response object
@@ -116,7 +116,7 @@ class TestDocumentHandling:
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
     def test_download_application_document_no_content_disposition(
-        self, mock_make_request
+        self, mock_make_request: MagicMock
     ) -> None:
         """Test download_application_document without Content-Disposition header."""
         # Setup mock to simulate a Response object

@@ -78,7 +78,7 @@ def test_direct_import_of_init_with_import_error() -> None:
 
         # Create mock module that raises ImportError when accessed
         class RaisingImportError:
-            def __getattr__(self, name):
+            def __getattr__(self, name) -> None:
                 raise ImportError(f"Mock ImportError for {name}")
 
         # Apply the mock directly to sys.modules
