@@ -244,13 +244,19 @@ class TestBulkDataClient:
         # Setup
         mock_response = MagicMock()
         mock_response.json.return_value = bulk_data_sample
-        mock_bulk_data_client.session.get.return_value = mock_response
+
+        # Create a dedicated mock session
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response
+
+        # Replace the client's session with our mock
+        mock_bulk_data_client.session = mock_session
 
         # Test get_products
         response = mock_bulk_data_client.get_products(params={"param": "value"})
 
         # Verify
-        mock_bulk_data_client.session.get.assert_called_once_with(
+        mock_session.get.assert_called_once_with(
             url=f"{mock_bulk_data_client.base_url}/products/search",
             params={"param": "value"},
             stream=False,
@@ -269,7 +275,13 @@ class TestBulkDataClient:
         # Test with direct product response
         product_data = bulk_data_sample["bulkDataProductBag"][0]
         mock_response.json.return_value = product_data
-        mock_bulk_data_client.session.get.return_value = mock_response
+
+        # Create a dedicated mock session
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response
+
+        # Replace the client's session with our mock
+        mock_bulk_data_client.session = mock_session
 
         # Test get_product_by_id
         product = mock_bulk_data_client.get_product_by_id(
@@ -283,7 +295,7 @@ class TestBulkDataClient:
         )
 
         # Verify
-        mock_bulk_data_client.session.get.assert_called_once_with(
+        mock_session.get.assert_called_once_with(
             url=f"{mock_bulk_data_client.base_url}/products/{product_id}",
             params={
                 "fileDataFromDate": "2023-01-01",
@@ -297,6 +309,9 @@ class TestBulkDataClient:
         )
         assert isinstance(product, BulkDataProduct)
         assert product.product_identifier == "PRODUCT1"
+
+        # Reset mock for next test
+        mock_session.reset_mock()
 
         # Test with bulkDataProductBag response
         mock_response.json.return_value = bulk_data_sample
@@ -331,9 +346,8 @@ class TestBulkDataClient:
         mock_response.iter_content.return_value = [b"chunk1", b"chunk2"]
 
         # Patch the _make_request method to return our mock response
-        with patch.object(
-            mock_bulk_data_client, "_make_request", return_value=mock_response
-        ):
+        mock_make_request = MagicMock(return_value=mock_response)
+        with patch.object(mock_bulk_data_client, "_make_request", mock_make_request):
             # Mock os.path.exists and os.makedirs
             with patch("os.path.exists", return_value=False), patch(
                 "os.makedirs"
@@ -345,7 +359,7 @@ class TestBulkDataClient:
 
                 # Verify
                 mock_makedirs.assert_called_once_with(destination)
-                mock_bulk_data_client._make_request.assert_called_once_with(
+                mock_bulk_data_client._make_request.assert_called_once_with(  # type: ignore
                     method="GET",
                     endpoint="test.zip",
                     stream=True,
@@ -362,9 +376,8 @@ class TestBulkDataClient:
         file_data.file_download_uri = "downloads/test.zip"
 
         # Patch the _make_request method again for the relative URL test
-        with patch.object(
-            mock_bulk_data_client, "_make_request", return_value=mock_response
-        ):
+        mock_make_request = MagicMock(return_value=mock_response)
+        with patch.object(mock_bulk_data_client, "_make_request", mock_make_request):
             with patch("os.path.exists", return_value=True), patch(
                 "builtins.open", mock_open()
             ) as mock_file:
@@ -373,7 +386,7 @@ class TestBulkDataClient:
                 )
 
                 # Verify
-                mock_bulk_data_client._make_request.assert_called_once_with(
+                mock_bulk_data_client._make_request.assert_called_once_with(  # type: ignore
                     method="GET",
                     endpoint="downloads/test.zip",
                     stream=True,
@@ -394,7 +407,13 @@ class TestBulkDataClient:
         # Setup
         mock_response = MagicMock()
         mock_response.json.return_value = bulk_data_sample
-        mock_bulk_data_client.session.get.return_value = mock_response
+
+        # Create a dedicated mock session
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response
+
+        # Replace the client's session with our mock
+        mock_bulk_data_client.session = mock_session
 
         # Test search_products with all parameters
         response = mock_bulk_data_client.search_products(
@@ -416,7 +435,7 @@ class TestBulkDataClient:
         )
 
         # Verify
-        mock_bulk_data_client.session.get.assert_called_once_with(
+        mock_session.get.assert_called_once_with(
             url=f"{mock_bulk_data_client.base_url}/products/search",
             params={
                 "q": "test",
@@ -444,10 +463,14 @@ class TestBulkDataClient:
         """Test paginate_products method."""
         # This is just a wrapper around paginate_results, so we'll test that it calls
         # paginate_results with the correct parameters
+
+        # Create a dedicated mock for paginate_results
+        mock_paginate_results = MagicMock()
+        mock_paginate_results.return_value = iter([])
+
         with patch.object(
-            mock_bulk_data_client, "paginate_results"
-        ) as mock_paginate_results:
-            mock_paginate_results.return_value = iter([])
+            mock_bulk_data_client, "paginate_results", mock_paginate_results
+        ):
             result = mock_bulk_data_client.paginate_products(param="value")
             list(result)  # Consume the iterator
 

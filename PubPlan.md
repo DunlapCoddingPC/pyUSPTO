@@ -1,6 +1,6 @@
 # PyPI Publication Plan for "pyUSPTO"
 
-This is a comprehensive plan to prepare the USPTO API client for PyPI publication under the name "pyUSPTO".
+This is a comprehensive plan to prepare the USPTO ODP API client for PyPI publication under the name "pyUSPTO".
 
 ## Current Status
 
@@ -10,49 +10,17 @@ This is a comprehensive plan to prepare the USPTO API client for PyPI publicatio
 - Basic project structure is in place
 - Duplicate exception definitions fixed
 - Version synchronization implemented
-- Security documentation added to README
-- API keys replaced with placeholders in example files
-- Added to_dict() methods to response classes
 
 ## Items for Immediate Action
 
 ### Items for Cline to Fix
 
-1. ~~**Fix Duplicate Exception Definitions**~~: ✅ Removed duplicate exception classes from `base.py` and added imports from `exceptions.py`.
-
-2. **Documentation Setup**:
+1. **Documentation Setup**:
 
    - Set up Sphinx documentation as mentioned in the README
    - Create a `docs/` directory with proper structure
 
-3. ~~**Security Documentation**~~: ✅ Added a comprehensive section in the README about securely handling API keys, emphasizing the environment variable approach.
-
-4. ~~**Testing Improvements**~~: ✅ Added comprehensive tests and CI workflow:
-
-   - Added tests for to_dict methods in model classes
-   - Added tests for edge cases and error handling
-   - Added GitHub Actions workflow for automated testing and linting
-
-5. ~~**API Key Replacement**~~: ✅ Replaced hardcoded API keys in example files with placeholder text like `"YOUR_API_KEY_HERE"`.
-
 ### Items for Manual Completion
-
-1. **License File**: Add LICENSE.txt file once the GitHub repository is created.
-
-2. **Repository URL**: Update the GitHub repository URL in `setup.py` once the account for publishing is decided.
-
-3. ~~**Version Synchronization**~~: ✅ Implemented a single source of truth for versioning:
-
-   ```python
-   # In setup.py
-   from pyUSPTO import __version__
-
-   setup(
-       name="pyUSPTO",
-       version=__version__,
-       # ...rest of setup...
-   )
-   ```
 
 4. **Git Tagging**: Create a process for tagging releases that aligns with the version in the code.
 
@@ -109,7 +77,7 @@ This is a comprehensive plan to prepare the USPTO API client for PyPI publicatio
 
 5. Tag the release in Git:
    ```bash
-   git tag -a v0.1.2 -m "Release version 0.1.2"
+   git tag -a v0.1.2 -m "Release version 0.1.3"
    git push origin v0.1.2
    ```
 
@@ -117,7 +85,4 @@ This is a comprehensive plan to prepare the USPTO API client for PyPI publicatio
 
 For future updates:
 
-1. Update version in `__init__.py`
-2. Make necessary code changes
-3. Update documentation
-4. Follow the publication steps above
+1. Update documentation

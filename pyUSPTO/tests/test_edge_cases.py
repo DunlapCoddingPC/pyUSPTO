@@ -88,7 +88,7 @@ class TestBaseClientEdgeCases:
     def test_make_request_with_empty_response(self, mock_session: MagicMock) -> None:
         """Test _make_request method with empty response."""
         # Setup
-        client = BaseUSPTOClient(base_url="https://api.test.com")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.session = mock_session
 
         # Empty JSON response
@@ -108,7 +108,7 @@ class TestBaseClientEdgeCases:
     def test_make_request_with_invalid_json(self, mock_session: MagicMock) -> None:
         """Test _make_request method with invalid JSON response."""
         # Setup
-        client = BaseUSPTOClient(base_url="https://api.test.com")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.session = mock_session
 
         # Mock response that raises ValueError on json()
@@ -124,8 +124,8 @@ class TestBaseClientEdgeCases:
         """Test paginate_results method with empty response."""
 
         # Create a test class with a method that returns empty responses
-        class TestClient(BaseUSPTOClient):
-            def test_method(self, **kwargs):
+        class TestClient(BaseUSPTOClient[Any]):
+            def test_method(self, **kwargs: Any) -> Any:
                 # Return an empty response
                 response = MagicMock()
                 response.count = 0
@@ -159,7 +159,13 @@ class TestBulkDataClientEdgeCases:
         # Setup
         mock_response = MagicMock()
         mock_response.json.return_value = {"count": 0, "bulkDataProductBag": []}
-        mock_bulk_data_client.session.get.return_value = mock_response
+        # mock_bulk_data_client.session.get.return_value = mock_response
+
+        # Properly type the session.get attribute as a MagicMock
+        # Do this (replace the entire session with a mock):
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response
+        mock_bulk_data_client.session = mock_session
 
         # Test with non-existent product ID
         with pytest.raises(
@@ -228,7 +234,10 @@ class TestPatentDataClientEdgeCases:
         # Setup
         mock_response = MagicMock()
         mock_response.json.return_value = {"count": 0, "patentFileWrapperDataBag": []}
-        mock_patent_data_client.session.get.return_value = mock_response
+
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response
+        mock_patent_data_client.session = mock_session
 
         # Test with non-existent application number
         with pytest.raises(
@@ -269,14 +278,14 @@ class TestModelEdgeCases:
     def test_from_dict_with_empty_data(self) -> None:
         """Test from_dict methods with empty data."""
         # Test BulkDataResponse
-        response = BulkDataResponse.from_dict({})
-        assert response.count == 0
-        assert response.bulk_data_product_bag == []
+        bulk_response = BulkDataResponse.from_dict({})
+        assert bulk_response.count == 0
+        assert bulk_response.bulk_data_product_bag == []
 
         # Test PatentDataResponse
-        response = PatentDataResponse.from_dict({})
-        assert response.count == 0
-        assert response.patent_file_wrapper_data_bag == []
+        patent_response = PatentDataResponse.from_dict({})
+        assert patent_response.count == 0
+        assert patent_response.patent_file_wrapper_data_bag == []
 
         # Test BulkDataProduct
         product = BulkDataProduct.from_dict({})
@@ -316,14 +325,14 @@ class TestModelEdgeCases:
     def test_to_dict_with_empty_data(self) -> None:
         """Test to_dict methods with empty data."""
         # Test BulkDataResponse
-        response = BulkDataResponse(count=0, bulk_data_product_bag=[])
-        result = response.to_dict()
+        bulk_response = BulkDataResponse(count=0, bulk_data_product_bag=[])
+        result = bulk_response.to_dict()
         assert result["count"] == 0
         assert result["bulkDataProductBag"] == []
 
         # Test PatentDataResponse
-        response = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
-        result = response.to_dict()
+        patent_response = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+        result = patent_response.to_dict()
         assert result["count"] == 0
         assert result["patentFileWrapperDataBag"] == []
         assert result["documentBag"] == []

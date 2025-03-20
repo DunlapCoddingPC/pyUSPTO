@@ -9,3 +9,7 @@ pytest-mock>=3.10.0
 # Documentation
 sphinx>=6.0.0
 sphinx-rtd-theme>=1.2.0
+
+# Type checking
+mypy>=1.7.0
+types-requests>=2.31.0

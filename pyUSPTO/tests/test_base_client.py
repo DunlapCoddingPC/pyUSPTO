@@ -39,7 +39,9 @@ class TestBaseUSPTOClient:
     def test_init(self) -> None:
         """Test initialization of the BaseUSPTOClient."""
         # Test with API key
-        client = BaseUSPTOClient(api_key="test_key", base_url="https://api.test.com")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test_key", base_url="https://api.test.com"
+        )
         assert client.api_key == "test_key"
         assert client.base_url == "https://api.test.com"
         assert "X-API-KEY" in client.session.headers
@@ -58,7 +60,7 @@ class TestBaseUSPTOClient:
     def test_retry_configuration(self) -> None:
         """Test that retry configuration is properly set up."""
         # Create a client
-        client = BaseUSPTOClient(base_url="https://api.test.com")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
 
         # Check that the session has adapters for both http and https
         assert "http://" in client.session.adapters
@@ -81,7 +83,7 @@ class TestBaseUSPTOClient:
     def test_make_request_get(self, mock_session: MagicMock) -> None:
         """Test _make_request method with GET."""
         # Setup
-        client = BaseUSPTOClient(base_url="https://api.test.com")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.session = mock_session
 
         mock_response = MagicMock()
@@ -102,7 +104,7 @@ class TestBaseUSPTOClient:
     def test_make_request_post(self, mock_session: MagicMock) -> None:
         """Test _make_request method with POST."""
         # Setup
-        client = BaseUSPTOClient(base_url="https://api.test.com")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.session = mock_session
 
         mock_response = MagicMock()
@@ -129,7 +131,7 @@ class TestBaseUSPTOClient:
     def test_make_request_with_response_class(self, mock_session: MagicMock) -> None:
         """Test _make_request method with response_class."""
         # Setup
-        client = BaseUSPTOClient(base_url="https://api.test.com")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.session = mock_session
 
         mock_response = MagicMock()
@@ -150,7 +152,7 @@ class TestBaseUSPTOClient:
     def test_make_request_with_custom_base_url(self, mock_session: MagicMock) -> None:
         """Test _make_request method with custom_base_url."""
         # Setup
-        client = BaseUSPTOClient(base_url="https://api.test.com")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.session = mock_session
 
         mock_response = MagicMock()
@@ -173,7 +175,7 @@ class TestBaseUSPTOClient:
     def test_make_request_with_stream(self, mock_session: MagicMock) -> None:
         """Test _make_request method with stream=True."""
         # Setup
-        client = BaseUSPTOClient(base_url="https://api.test.com")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.session = mock_session
 
         mock_response = MagicMock()
@@ -191,7 +193,7 @@ class TestBaseUSPTOClient:
 
     def test_make_request_invalid_method(self) -> None:
         """Test _make_request method with invalid HTTP method."""
-        client = BaseUSPTOClient(base_url="https://api.test.com")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
 
         # Test with invalid method
         with pytest.raises(ValueError, match="Unsupported HTTP method: DELETE"):
@@ -200,7 +202,7 @@ class TestBaseUSPTOClient:
     def test_make_request_http_errors(self, mock_session: MagicMock) -> None:
         """Test _make_request method with HTTP errors."""
         # Setup
-        client = BaseUSPTOClient(base_url="https://api.test.com")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.session = mock_session
 
         # Test 401 error
@@ -242,7 +244,7 @@ class TestBaseUSPTOClient:
     def test_make_request_request_exception(self, mock_session: MagicMock) -> None:
         """Test _make_request method with request exception."""
         # Setup
-        client = BaseUSPTOClient(base_url="https://api.test.com")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.session = mock_session
 
         # Test request exception
@@ -255,7 +257,7 @@ class TestBaseUSPTOClient:
     def test_paginate_results(self, mock_session: MagicMock) -> None:
         """Test paginate_results method."""
         # Setup
-        client = BaseUSPTOClient(base_url="https://api.test.com")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.session = mock_session
 
         # Create mock responses
@@ -272,8 +274,8 @@ class TestBaseUSPTOClient:
         third_response.items = []
 
         # Create a test class with the method we want to paginate
-        class TestClient(BaseUSPTOClient):
-            def test_method(self, **kwargs):
+        class TestClient(BaseUSPTOClient[Any]):
+            def test_method(self, **kwargs: Any) -> Any:
                 # Return different responses based on offset
                 offset = kwargs.get("offset", 0)
                 if offset == 0:
@@ -326,19 +328,19 @@ class TestExceptions:
     def test_exception_inheritance(self) -> None:
         """Test exception inheritance."""
         # Test USPTOApiAuthError
-        error = USPTOApiAuthError("Auth error", 401)
-        assert isinstance(error, USPTOApiError)
-        assert str(error) == "Auth error"
-        assert error.status_code == 401
+        auth_error = USPTOApiAuthError("Auth error", 401)
+        assert isinstance(auth_error, USPTOApiError)
+        assert str(auth_error) == "Auth error"
+        assert auth_error.status_code == 401
 
         # Test USPTOApiRateLimitError
-        error = USPTOApiRateLimitError("Rate limit error", 429)
-        assert isinstance(error, USPTOApiError)
-        assert str(error) == "Rate limit error"
-        assert error.status_code == 429
+        rate_limit_error = USPTOApiRateLimitError("Rate limit error", 429)
+        assert isinstance(rate_limit_error, USPTOApiError)
+        assert str(rate_limit_error) == "Rate limit error"
+        assert rate_limit_error.status_code == 429
 
         # Test USPTOApiNotFoundError
-        error = USPTOApiNotFoundError("Not found error", 404)
-        assert isinstance(error, USPTOApiError)
-        assert str(error) == "Not found error"
-        assert error.status_code == 404
+        not_found_error = USPTOApiNotFoundError("Not found error", 404)
+        assert isinstance(not_found_error, USPTOApiError)
+        assert str(not_found_error) == "Not found error"
+        assert not_found_error.status_code == 404

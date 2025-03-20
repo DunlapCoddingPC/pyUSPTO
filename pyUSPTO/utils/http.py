@@ -49,4 +49,5 @@ def parse_response(response: requests.Response) -> Dict[str, Any]:
     Returns:
         Parsed response data
     """
-    return response.json()
+    json_response: Dict[str, Any] = response.json()
+    return json_response

@@ -25,7 +25,10 @@ class USPTOConfig:
             bulk_data_base_url: Base URL for the Bulk Data API
             patent_data_base_url: Base URL for the Patent Data API
         """
-        self.api_key = api_key or os.environ.get("USPTO_API_KEY")
+        # Use environment variable only if api_key is None, not if it's an empty string
+        self.api_key = (
+            api_key if api_key is not None else os.environ.get("USPTO_API_KEY")
+        )
         self.bulk_data_base_url = bulk_data_base_url
         self.patent_data_base_url = patent_data_base_url
 

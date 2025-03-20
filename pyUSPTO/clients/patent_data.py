@@ -470,7 +470,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         return file_path
 
-    def paginate_patents(self, **kwargs) -> Iterator[PatentFileWrapper]:
+    def paginate_patents(self, **kwargs: Any) -> Iterator[PatentFileWrapper]:
         """
         Paginate through all patents matching the search criteria.
 
@@ -623,10 +623,10 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         params = {}
 
         if offset is not None:
-            params["offset"] = offset
+            params["offset"] = str(offset)
 
         if limit is not None:
-            params["limit"] = limit
+            params["limit"] = str(limit)
 
         if q:
             params["q"] = q

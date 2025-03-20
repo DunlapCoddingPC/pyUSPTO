@@ -13,6 +13,7 @@ from typing import (
     Protocol,
     Type,
     TypeVar,
+    Union,
     runtime_checkable,
 )
 from urllib.parse import urlparse
@@ -86,7 +87,7 @@ class BaseUSPTOClient(Generic[T]):
         stream: bool = False,
         response_class: Optional[Type[T]] = None,
         custom_base_url: Optional[str] = None,
-    ):
+    ) -> Union[Dict[str, Any], T, requests.Response]:
         """
         Make an HTTP request to the USPTO API.
 
@@ -104,21 +105,6 @@ class BaseUSPTOClient(Generic[T]):
             - If stream=True: requests.Response object
             - If response_class is provided: Instance of response_class
             - Otherwise: Dict[str, Any] containing the JSON response
-        """
-        """
-        Make an HTTP request to the USPTO API.
-
-        Args:
-            method: HTTP method (GET, POST, etc.)
-            endpoint: API endpoint path (without base URL)
-            params: Optional query parameters
-            json_data: Optional JSON body for POST requests
-            stream: Whether to stream the response
-            response_class: Class to use for parsing the response
-            custom_base_url: Optional custom base URL to use instead of self.base_url
-
-        Returns:
-            Response data in the appropriate format
         """
         base = custom_base_url if custom_base_url else self.base_url
         url = f"{base}/{endpoint.lstrip('/')}"
@@ -141,10 +127,12 @@ class BaseUSPTOClient(Generic[T]):
 
             # Parse the response based on the specified class
             if response_class:
-                return response_class.from_dict(response.json())
+                parsed_response: T = response_class.from_dict(response.json())
+                return parsed_response
 
             # Return the raw JSON for other requests
-            return response.json()
+            json_response: Dict[str, Any] = response.json()
+            return json_response
 
         except requests.exceptions.HTTPError as e:
             # Map HTTP errors to custom exceptions
@@ -180,7 +168,7 @@ class BaseUSPTOClient(Generic[T]):
             raise USPTOApiError(f"Request failed: {str(e)}") from e
 
     def paginate_results(
-        self, method_name: str, response_container_attr: str, **kwargs
+        self, method_name: str, response_container_attr: str, **kwargs: Any
     ) -> Generator[Any, None, None]:
         """
         Paginate through all results of a method.

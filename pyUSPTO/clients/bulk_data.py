@@ -111,9 +111,9 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         if file_data_to_date:
             params["fileDataToDate"] = file_data_to_date
         if offset is not None:
-            params["offset"] = offset
+            params["offset"] = str(offset)
         if limit is not None:
-            params["limit"] = limit
+            params["limit"] = str(limit)
         if include_files is not None:
             params["includeFiles"] = str(include_files).lower()
         if latest is not None:
@@ -121,33 +121,34 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
 
         result = self._make_request(method="GET", endpoint=endpoint, params=params)
 
-        # Convert result to Dict if it's not already
-        if not isinstance(result, dict):
-            # If it's a BulkDataResponse, we need to extract the product
-            if isinstance(result, BulkDataResponse):
-                for product in result.bulk_data_product_bag:
-                    if product.product_identifier == product_id:
-                        return product
-                raise ValueError(f"Product with ID {product_id} not found in response")
-            # If it's a Response, we need to convert it to a dict
-            import requests
+        # Process result based on its type
+        if isinstance(result, BulkDataResponse):
+            # If it's a BulkDataResponse, extract the matching product
+            for product in result.bulk_data_product_bag:
+                if product.product_identifier == product_id:
+                    return product
+            raise ValueError(f"Product with ID {product_id} not found in response")
 
-            if isinstance(result, requests.Response):
-                data = result.json()
-            else:
-                # Fallback - try to convert to dict
-                data = dict(result)
-        else:
+        # If we get here, result is not a BulkDataResponse
+        if isinstance(result, dict):
             data = result
+        else:
+            data = result.json()
 
         # Handling different response formats
-        if "bulkDataProductBag" in data:
-            for product in data["bulkDataProductBag"]:
-                if product.get("productIdentifier") == product_id:
-                    return BulkDataProduct.from_dict(product)
+        if isinstance(data, dict) and "bulkDataProductBag" in data:
+            for product_data in data["bulkDataProductBag"]:
+                if (
+                    isinstance(product_data, dict)
+                    and product_data.get("productIdentifier") == product_id
+                ):
+                    return BulkDataProduct.from_dict(product_data)
             raise ValueError(f"Product with ID {product_id} not found in response")
         else:
-            return BulkDataProduct.from_dict(data)
+            if isinstance(data, dict):
+                return BulkDataProduct.from_dict(data)
+            else:
+                raise TypeError(f"Expected dict, got {type(data)}")
 
     def download_file(self, file_data: FileData, destination: str) -> str:
         """
@@ -205,7 +206,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
 
         return file_path
 
-    def paginate_products(self, **kwargs) -> Iterator[BulkDataProduct]:
+    def paginate_products(self, **kwargs: Any) -> Iterator[BulkDataProduct]:
         """
         Paginate through all products matching the search criteria.
 
@@ -284,9 +285,9 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         if file_types:
             params["fileTypes"] = ",".join(file_types)
         if offset is not None:
-            params["offset"] = offset
+            params["offset"] = str(offset)
         if limit is not None:
-            params["limit"] = limit
+            params["limit"] = str(limit)
         if include_files is not None:
             params["includeFiles"] = str(include_files).lower()
         if latest is not None:
