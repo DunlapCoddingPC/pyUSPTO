@@ -289,7 +289,9 @@ class TestSearchFilters:
         client = PatentDataClient(api_key="test_key")
 
         # Test with filing_date_from and filing_date_to together
-        client.search_patents(filing_date_from="2020-01-01", filing_date_to="2022-01-01")
+        client.search_patents(
+            filing_date_from="2020-01-01", filing_date_to="2022-01-01"
+        )
         mock_make_request.assert_called_with(
             method="GET",
             endpoint="applications/search",
@@ -300,7 +302,7 @@ class TestSearchFilters:
             },
             response_class=PatentDataResponse,
         )
-        
+
         # Test with filing_date_from only
         mock_make_request.reset_mock()
         client.search_patents(filing_date_from="2020-01-01")
@@ -338,7 +340,7 @@ class TestSearchFilters:
         mock_make_request.return_value = mock_response
 
         client = PatentDataClient(api_key="test_key")
-        
+
         # Test with grant_date_from and grant_date_to together
         grant_date_from = "2020-01-01"
         grant_date_to = "2020-12-31"
@@ -391,15 +393,18 @@ class TestSearchFilters:
         mock_make_request.return_value = mock_response
 
         client = PatentDataClient(api_key="test_key")
-        
+
         # Test applicant_name
         applicant_name = "Test Applicant"
         client.search_patents(applicant_name=applicant_name)
         called_args = mock_make_request.call_args
         called_params = called_args[1]["params"]
         assert "q" in called_params
-        assert f"applicationMetaData.firstApplicantName:{applicant_name}" in called_params["q"]
-        
+        assert (
+            f"applicationMetaData.firstApplicantName:{applicant_name}"
+            in called_params["q"]
+        )
+
         # Test assignee_name
         mock_make_request.reset_mock()
         assignee_name = "Test Assignee"
@@ -407,8 +412,11 @@ class TestSearchFilters:
         called_args = mock_make_request.call_args
         called_params = called_args[1]["params"]
         assert "q" in called_params
-        assert f"assignmentBag.assigneeBag.assigneeNameText:{assignee_name}" in called_params["q"]
-        
+        assert (
+            f"assignmentBag.assigneeBag.assigneeNameText:{assignee_name}"
+            in called_params["q"]
+        )
+
         # Test inventor_name
         mock_make_request.reset_mock()
         inventor_name = "John Inventor"
@@ -416,7 +424,10 @@ class TestSearchFilters:
         called_args = mock_make_request.call_args
         called_params = called_args[1]["params"]
         assert "q" in called_params
-        assert f"applicationMetaData.inventorBag.inventorNameText:{inventor_name}" in called_params["q"]
+        assert (
+            f"applicationMetaData.inventorBag.inventorNameText:{inventor_name}"
+            in called_params["q"]
+        )
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
     def test_search_patents_classification_filter(self, mock_make_request):
@@ -433,8 +444,11 @@ class TestSearchFilters:
         called_params = called_args[1]["params"]
 
         assert "q" in called_params
-        assert f"applicationMetaData.cpcClassificationBag:{classification}" in called_params["q"]
-        
+        assert (
+            f"applicationMetaData.cpcClassificationBag:{classification}"
+            in called_params["q"]
+        )
+
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
     def test_search_patents_application_number_filter(self, mock_make_request):
         """Test search_patents with application number filter."""
