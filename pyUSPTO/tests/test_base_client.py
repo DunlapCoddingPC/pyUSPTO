@@ -6,10 +6,10 @@ This module contains tests for the BaseUSPTOClient class and related functionali
 
 from typing import Any, Dict, cast
 from unittest.mock import MagicMock, patch
-from requests.adapters import HTTPAdapter
 
 import pytest
 import requests
+from requests.adapters import HTTPAdapter
 
 from pyUSPTO.base import (
     BaseUSPTOClient,
