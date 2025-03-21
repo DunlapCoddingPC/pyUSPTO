@@ -95,36 +95,36 @@ try:
     # Retrieve and display document information
     try:
         print("\nRetrieving document information...")
-        documents_response = client.get_application_documents(application_number)
+        documents = client.get_application_documents(application_number)
 
         # Display document information
-        print(
-            f"Found {documents_response.get('count', len(documents_response.get('documentBag', [])))} documents"
-        )
+        print(f"Found {len(documents)} documents")
 
-        if documents_response["documentBag"]:
+        if len(documents.documents) > 0:
             # Get first document as an example
-            document = documents_response["documentBag"][0]
+            document = documents.documents[0]
             print(f"\nFirst document:")
-            print(f"  Document ID: {document.get('documentIdentifier')}")
+            print(f"  Document ID: {document.document_identifier}")
             print(
-                f"  Document Type: {document.get('documentCode')} - {document.get('documentCodeDescriptionText')}"
+                f"  Document Type: {document.document_code} - {document.document_code_description_text}"
             )
-            print(f"  Date: {document.get('officialDate')}")
-            print(f"  Direction: {document.get('directionCategory')}")
+            print(f"  Date: {document.official_date}")
+            print(f"  Direction: {document.direction_category}")
 
             # Download the document if download options are available
-            if "downloadOptionBag" in document and document["downloadOptionBag"]:
-                download_option = document["downloadOptionBag"][0]
-                if "downloadUrl" in download_option:
+            if document.download_formats:
+                download_format = document.download_formats[0]
+                if download_format.download_url and document.document_identifier:
                     print("\nDownloading document...")
-                    document_id = document.get("documentIdentifier")
+                    document_id = document.document_identifier
                     # Create downloads directory if it doesn't exist
                     if not os.path.exists("./downloads"):
                         os.makedirs("./downloads")
 
                     downloaded_path = client.download_application_document(
-                        application_number, document_id, "./downloads"
+                        application_number=application_number,
+                        document_id=document_id,
+                        destination="./downloads",
                     )
                     print(f"Downloaded document to: {downloaded_path}")
     except Exception as e:

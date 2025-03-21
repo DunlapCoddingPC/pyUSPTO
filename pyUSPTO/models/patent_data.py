@@ -9,6 +9,142 @@ from typing import Any, Dict, List, Optional
 
 
 @dataclass
+class DocumentDownloadFormat:
+    """Represents a downloadable format for a USPTO document.
+
+    This class encapsulates information about available download formats for a document,
+    including format type (e.g., PDF, XML) and download URL.
+
+    Attributes:
+        mime_type_identifier: Format type (e.g., "PDF", "XML")
+        download_url: URL to download the document in this format
+        page_total_quantity: Number of pages in the document
+    """
+
+    mime_type_identifier: Optional[str] = None
+    download_url: Optional[str] = None
+    page_total_quantity: Optional[int] = None
+
+    def __str__(self) -> str:
+        """Return a user-friendly string representation of this download format."""
+        pages = (
+            f" ({self.page_total_quantity} pages)" if self.page_total_quantity else ""
+        )
+        return f"{self.mime_type_identifier} format{pages}"
+
+    def __repr__(self) -> str:
+        """Return a detailed string representation for debugging."""
+        return f"DocumentDownloadFormat(mime_type={self.mime_type_identifier}, pages={self.page_total_quantity})"
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "DocumentDownloadFormat":
+        return cls(
+            mime_type_identifier=data.get("mimeTypeIdentifier"),
+            download_url=data.get("downloadUrl"),
+            page_total_quantity=data.get("pageTotalQuantity"),
+        )
+
+
+@dataclass
+class Document:
+    """Represents a USPTO document.
+
+    This class provides an object-oriented representation of document data from the USPTO API.
+    It includes metadata about the document as well as available download formats.
+
+    Attributes:
+        application_number_text: Application number associated with the document
+        official_date: Date of the document
+        document_identifier: Unique identifier for the document
+        document_code: Code indicating document type
+        document_code_description_text: Human-readable description of document type
+        direction_category: Direction of document (e.g., INCOMING, OUTGOING)
+        download_formats: List of available download formats for this document
+    """
+
+    application_number_text: Optional[str] = None
+    official_date: Optional[str] = None
+    document_identifier: Optional[str] = None
+    document_code: Optional[str] = None
+    document_code_description_text: Optional[str] = None
+    direction_category: Optional[str] = None
+    download_formats: List[DocumentDownloadFormat] = field(default_factory=list)
+
+    def __str__(self) -> str:
+        """Return a user-friendly string representation of this document."""
+        return f"{self.official_date} {self.document_identifier}:{self.document_code} - {self.document_code_description_text}"
+
+    def __repr__(self) -> str:
+        """Return a detailed string representation for debugging."""
+        return f"Document(id={self.document_identifier}, code={self.document_code}, date={self.official_date}, formats={len(self.download_formats)})"
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Document":
+        download_formats = []
+        if "downloadOptionBag" in data:
+            download_formats = [
+                DocumentDownloadFormat.from_dict(format_data)
+                for format_data in data.get("downloadOptionBag", [])
+            ]
+
+        return cls(
+            application_number_text=data.get("applicationNumberText"),
+            official_date=data.get("officialDate"),
+            document_identifier=data.get("documentIdentifier"),
+            document_code=data.get("documentCode"),
+            document_code_description_text=data.get("documentCodeDescriptionText"),
+            direction_category=data.get("directionCategory"),
+            download_formats=download_formats,
+        )
+
+
+class DocumentBag:
+    """Collection of USPTO documents that supports iteration.
+
+    This class provides an object-oriented wrapper around document data from the USPTO API.
+    It implements iteration allowing you to loop directly over documents:
+
+    Example:
+        docs = client.get_application_documents("12345678")
+        for doc in docs:
+            print(doc.document_identifier)
+    """
+
+    def __init__(self, documents: List[Document]):
+        self.documents = documents
+
+    def __str__(self) -> str:
+        """Return a user-friendly string representation of the document bag."""
+        return f"DocumentBag with {len(self)} documents"
+
+    def __repr__(self) -> str:
+        """Return a detailed string representation for debugging."""
+        if len(self) == 0:
+            return "DocumentBag(empty)"
+
+        # Only include a preview of document identifiers if there are documents
+        preview = ", ".join(str(doc.document_identifier) for doc in self.documents[:3])
+        if len(self) > 3:
+            preview += f", ... ({len(self) - 3} more)"
+        return f"DocumentBag({len(self)} documents: {preview})"
+
+    def __iter__(self):
+        return iter(self.documents)
+
+    def __len__(self):
+        return len(self.documents)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "DocumentBag":
+        documents = []
+        if "documentBag" in data:
+            documents = [
+                Document.from_dict(doc_data) for doc_data in data.get("documentBag", [])
+            ]
+        return cls(documents=documents)
+
+
+@dataclass
 class PatentDataResponse:
     """Top-level response from the patent data API."""
 

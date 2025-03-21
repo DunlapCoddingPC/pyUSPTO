@@ -12,7 +12,11 @@ from urllib.parse import urlparse
 
 from pyUSPTO.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.models.patent_data import PatentDataResponse, PatentFileWrapper
+from pyUSPTO.models.patent_data import (
+    DocumentBag,
+    PatentDataResponse,
+    PatentFileWrapper,
+)
 
 
 class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
@@ -366,15 +370,24 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         assert isinstance(result, PatentDataResponse)
         return result
 
-    def get_application_documents(self, application_number: str) -> Dict[str, Any]:
+    def get_application_documents(self, application_number: str) -> DocumentBag:
         """
         Get document details for an application.
+
+        This method retrieves all documents associated with a patent application
+        and returns them as an iterable DocumentBag object.
 
         Args:
             application_number: The application number
 
         Returns:
-            Dictionary containing document details with a 'documentBag' key
+            DocumentBag object containing the documents. This object is iterable,
+            allowing you to loop directly through the documents:
+
+            Example:
+                docs = client.get_application_documents("12345678")
+                for doc in docs:
+                    print(doc.document_identifier)
         """
         endpoint = self.ENDPOINTS["application_documents"].format(
             application_number=application_number
@@ -383,9 +396,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             method="GET",
             endpoint=endpoint,
         )
-        # The USPTO API returns a dictionary with a 'documentBag' key for this endpoint
         assert isinstance(result, dict)
-        return result
+        # Convert the raw dictionary to a DocumentBag object
+        return DocumentBag.from_dict(result)
 
     def get_application_associated_documents(
         self, application_number: str

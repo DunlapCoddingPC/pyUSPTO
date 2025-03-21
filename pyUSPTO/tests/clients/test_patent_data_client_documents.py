@@ -12,7 +12,134 @@ import pytest
 import requests
 
 from pyUSPTO.clients.patent_data import PatentDataClient
-from pyUSPTO.models.patent_data import PatentDataResponse, PatentFileWrapper
+from pyUSPTO.models.patent_data import (
+    Document,
+    DocumentBag,
+    DocumentDownloadFormat,
+    PatentDataResponse,
+    PatentFileWrapper,
+)
+
+
+class TestDocumentBag:
+    """Tests for the DocumentBag class."""
+
+    def test_document_bag_iteration(self) -> None:
+        """Test that DocumentBag properly implements iteration."""
+        # Create test documents
+        doc1 = Document(
+            document_identifier="DOC1",
+            official_date="2023-01-01",
+            document_code="TEST1",
+            document_code_description_text="Test Document 1",
+            application_number_text="12345678",
+            direction_category="INCOMING",
+        )
+
+        doc2 = Document(
+            document_identifier="DOC2",
+            official_date="2023-01-02",
+            document_code="TEST2",
+            document_code_description_text="Test Document 2",
+            application_number_text="12345678",
+            direction_category="OUTGOING",
+        )
+
+        # Create a DocumentBag with the test documents
+        document_bag = DocumentBag(documents=[doc1, doc2])
+
+        # Test __iter__ implementation
+        doc_list = list(document_bag)
+        assert len(doc_list) == 2
+        assert doc_list[0] == doc1
+        assert doc_list[1] == doc2
+
+        # Test iteration over the bag
+        for i, doc in enumerate(document_bag):
+            if i == 0:
+                assert doc.document_identifier == "DOC1"
+                assert doc.document_code == "TEST1"
+            elif i == 1:
+                assert doc.document_identifier == "DOC2"
+                assert doc.document_code == "TEST2"
+
+        # Test empty bag iteration
+        empty_bag = DocumentBag(documents=[])
+        assert list(empty_bag) == []
+
+        # Test __len__ implementation
+        assert len(document_bag) == 2
+        assert len(empty_bag) == 0
+
+    def test_string_representations(self) -> None:
+        """Test the string representation methods of DocumentBag and Document classes."""
+        # Create a test document
+        doc = Document(
+            document_identifier="DOC123",
+            official_date="2023-01-01",
+            document_code="IDS",
+            document_code_description_text="Information Disclosure Statement",
+            application_number_text="12345678",
+            direction_category="INCOMING",
+        )
+
+        # Test Document.__str__
+        doc_str = str(doc)
+        assert "2023-01-01" in doc_str
+        assert "DOC123" in doc_str
+        assert "IDS" in doc_str
+        assert "Information Disclosure Statement" in doc_str
+
+        # Test Document.__repr__
+        doc_repr = repr(doc)
+        assert "Document(id=DOC123" in doc_repr
+        assert "code=IDS" in doc_repr
+        assert "date=2023-01-01" in doc_repr
+
+        # Create a download format for testing
+        download_format = DocumentDownloadFormat(
+            mime_type_identifier="PDF",
+            download_url="https://example.com/doc.pdf",
+            page_total_quantity=10,
+        )
+
+        # Test DocumentDownloadFormat.__str__
+        format_str = str(download_format)
+        assert "PDF format" in format_str
+        assert "10 pages" in format_str
+
+        # Test DocumentDownloadFormat.__repr__
+        format_repr = repr(download_format)
+        assert "DocumentDownloadFormat" in format_repr
+        assert "mime_type=PDF" in format_repr
+        assert "pages=10" in format_repr
+
+        # Create DocumentBag for testing
+        docs = [doc]
+        doc_bag = DocumentBag(documents=docs)
+
+        # Test DocumentBag.__str__
+        bag_str = str(doc_bag)
+        assert "DocumentBag with 1 documents" in bag_str
+
+        # Test DocumentBag.__repr__
+        bag_repr = repr(doc_bag)
+        assert "DocumentBag(1 documents: DOC123)" in bag_repr
+
+        # Test with empty bag
+        empty_bag = DocumentBag(documents=[])
+        assert str(empty_bag) == "DocumentBag with 0 documents"
+        assert repr(empty_bag) == "DocumentBag(empty)"
+
+        # Test with multiple documents
+        docs = [
+            Document(document_identifier=f"DOC{i}", document_code=f"CODE{i}")
+            for i in range(1, 5)
+        ]
+        multi_doc_bag = DocumentBag(documents=docs)
+        multi_bag_repr = repr(multi_doc_bag)
+        assert "4 documents" in multi_bag_repr
+        assert "more" in multi_bag_repr  # Should indicate there are more docs
 
 
 class TestDocumentHandling:
@@ -152,9 +279,25 @@ class TestDocumentHandling:
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
     def test_get_application_documents(self, mock_make_request: MagicMock) -> None:
         """Test get_application_documents method."""
-        # Setup mock - return a dictionary instead of PatentDataResponse
+        # Setup mock - return a dictionary that will be converted to DocumentBag
         mock_response_dict = {
-            "documentBag": [{"documentId": "DOC123", "title": "Test Document"}]
+            "documentBag": [
+                {
+                    "documentIdentifier": "DOC123",
+                    "documentCode": "TEST",
+                    "documentCodeDescriptionText": "Test Document",
+                    "applicationNumberText": "12345678",
+                    "officialDate": "2023-01-01",
+                    "directionCategory": "INCOMING",
+                    "downloadOptionBag": [
+                        {
+                            "mimeTypeIdentifier": "PDF",
+                            "downloadUrl": "https://example.com/doc.pdf",
+                            "pageTotalQuantity": 5,
+                        }
+                    ],
+                }
+            ]
         }
         mock_make_request.return_value = mock_response_dict
 
@@ -169,9 +312,16 @@ class TestDocumentHandling:
         )
 
         # Verify result
-        assert isinstance(result, dict)
-        assert "documentBag" in result
-        assert result == mock_response_dict
+        assert isinstance(result, DocumentBag)
+        assert len(result) == 1
+        doc = result.documents[0]
+        assert isinstance(doc, Document)
+        assert doc.document_identifier == "DOC123"
+        assert doc.document_code == "TEST"
+        assert doc.document_code_description_text == "Test Document"
+        assert len(doc.download_formats) == 1
+        assert doc.download_formats[0].mime_type_identifier == "PDF"
+        assert doc.download_formats[0].download_url == "https://example.com/doc.pdf"
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
     def test_get_application_associated_documents(
