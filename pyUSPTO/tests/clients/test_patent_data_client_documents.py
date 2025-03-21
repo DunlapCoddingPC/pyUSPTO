@@ -32,8 +32,9 @@ class TestDocumentHandling:
         mock_file = MagicMock()
         mock_open_func.return_value.__enter__.return_value = mock_file
 
-        with patch("builtins.open", mock_open_func), patch(
-            "os.path.exists", return_value=True
+        with (
+            patch("builtins.open", mock_open_func),
+            patch("os.path.exists", return_value=True),
         ):
             # Create client and call method
             client = PatentDataClient(api_key="test_key")
@@ -44,7 +45,7 @@ class TestDocumentHandling:
             # Verify request was made correctly with correct base URL handling
             mock_make_request.assert_called_once_with(
                 method="GET",
-                endpoint="download/applications/12345678/DOC123",
+                endpoint="download/applications/12345678/DOC123.pdf",
                 stream=True,
                 custom_base_url=client.base_url.split("/patent")[0],
             )
@@ -68,9 +69,11 @@ class TestDocumentHandling:
         mock_make_request.return_value = mock_response
 
         # Setup os.path.exists to return False so os.makedirs is called
-        with patch("os.path.exists", return_value=False), patch(
-            "os.makedirs"
-        ) as mock_makedirs, patch("builtins.open", mock_open()) as mock_file:
+        with (
+            patch("os.path.exists", return_value=False),
+            patch("os.makedirs") as mock_makedirs,
+            patch("builtins.open", mock_open()) as mock_file,
+        ):
             # Create client
             client = PatentDataClient(api_key="test_key")
 
@@ -98,9 +101,11 @@ class TestDocumentHandling:
         mock_make_request.return_value = mock_response
 
         # Setup os.path.exists to return False so os.makedirs is called
-        with patch("os.path.exists", return_value=False), patch(
-            "os.makedirs"
-        ) as mock_makedirs, patch("builtins.open", mock_open()) as mock_file:
+        with (
+            patch("os.path.exists", return_value=False),
+            patch("os.makedirs") as mock_makedirs,
+            patch("builtins.open", mock_open()) as mock_file,
+        ):
             # Create client
             client = PatentDataClient(api_key="test_key")
 
@@ -126,9 +131,11 @@ class TestDocumentHandling:
         mock_make_request.return_value = mock_response
 
         # Setup os.path.exists to return False so os.makedirs is called
-        with patch("os.path.exists", return_value=False), patch(
-            "os.makedirs"
-        ) as mock_makedirs, patch("builtins.open", mock_open()) as mock_file:
+        with (
+            patch("os.path.exists", return_value=False),
+            patch("os.makedirs") as mock_makedirs,
+            patch("builtins.open", mock_open()) as mock_file,
+        ):
             # Create client
             client = PatentDataClient(api_key="test_key")
 
@@ -145,9 +152,11 @@ class TestDocumentHandling:
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
     def test_get_application_documents(self, mock_make_request: MagicMock) -> None:
         """Test get_application_documents method."""
-        # Setup mock
-        mock_response_obj = PatentDataResponse(count=1, patent_file_wrapper_data_bag=[])
-        mock_make_request.return_value = mock_response_obj
+        # Setup mock - return a dictionary instead of PatentDataResponse
+        mock_response_dict = {
+            "documentBag": [{"documentId": "DOC123", "title": "Test Document"}]
+        }
+        mock_make_request.return_value = mock_response_dict
 
         # Create client and call method
         client = PatentDataClient(api_key="test_key")
@@ -157,12 +166,12 @@ class TestDocumentHandling:
         mock_make_request.assert_called_once_with(
             method="GET",
             endpoint="applications/12345678/documents",
-            response_class=PatentDataResponse,
         )
 
         # Verify result
-        assert isinstance(result, PatentDataResponse)
-        assert result.count == 1
+        assert isinstance(result, dict)
+        assert "documentBag" in result
+        assert result == mock_response_dict
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
     def test_get_application_associated_documents(

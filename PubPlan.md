@@ -1,40 +1,45 @@
 # PyPI Publication Plan for "pyUSPTO"
 
-This is a comprehensive plan to prepare the USPTO ODP API client for PyPI publication under the name "pyUSPTO".
-
-## Current Status
-
-- Package name in `setup.py` is now "pyUSPTO"
-- Version management implemented using setuptools-scm:
-  - No hardcoded versions needed in `setup.py` or `__init__.py`
-  - Version automatically derived from git tags
-  - `pyproject.toml` configured with `setuptools_scm`
-- Old files have been cleaned out
-- Basic project structure is in place
-- Duplicate exception definitions fixed
+This is a comprehensive plan to prepare the USPTO Open Data Portal (ODP) API client for PyPI publication under the name "pyUSPTO".
 
 ## Items for Immediate Action
 
-### Items for Cline to Fix
+None! All immediate action items have been completed.
+
+## Completed Items
 
 1. **Documentation Setup**:
 
-   - Set up Sphinx documentation as detailed in the docs-setup-guide.md file
-   - Follow the step-by-step instructions to create the docs directory structure and necessary files
+   - ✅ Sphinx documentation has been set up in the docs directory
+   - ✅ Configured with extensions: autodoc, viewcode, napoleon, intersphinx, sphinx_autodoc_typehints, sphinx_copybutton, myst_parser
+   - ✅ ReadTheDocs theme is configured
 
-### Items for Manual Completion
-
-4. **Git Tagging**: Since setuptools-scm derives versions from git tags, implement a consistent tagging convention (e.g., "v1.2.3") and document the release workflow.
-
-5. **Packaging Configuration**: Enhance `pyproject.toml` with more project metadata:
-   - Add project metadata like `name`, `description`, `authors`, `readme`, `license`, etc.
-   - Consider moving more configuration from setup.py to pyproject.toml
-   - Ensure setuptools_scm configuration is complete (currently minimal)
-   - Add additional tool configurations (black, isort, pytest, etc.)
+2. **Packaging Configuration**:
+   - ✅ Enhanced `pyproject.toml` with project metadata:
+     - Added name, description, authors, readme, license information
+     - Moved configuration from setup.py to pyproject.toml using the newer [project] format
+     - setuptools_scm configuration is complete
+     - Tool configurations for mypy, isort, pytest, and coverage are in place
 
 ## Items for Future Consideration
 
 1. **Read the Docs Integration**: Set up documentation hosting on Read the Docs.
+
+2. **Comprehensive Integration Tests**: Add complete test coverage for USPTO API endpoints:
+   - Enhance test infrastructure with improved fixtures and utilities
+   - Add tests for missing Patent Data API detail endpoints:
+     - `/api/v1/patent/applications/{applicationNumberText}/meta-data`
+     - `/api/v1/patent/applications/{applicationNumberText}/adjustment`
+     - `/api/v1/patent/applications/{applicationNumberText}/assignment`
+     - `/api/v1/patent/applications/{applicationNumberText}/attorney`
+     - `/api/v1/patent/applications/{applicationNumberText}/continuity`
+     - `/api/v1/patent/applications/{applicationNumberText}/foreign-priority`
+     - `/api/v1/patent/applications/{applicationNumberText}/transactions`
+     - `/api/v1/patent/applications/{applicationNumberText}/documents`
+     - `/api/v1/patent/applications/{applicationNumberText}/associated-documents`
+     - `/api/v1/download/applications/{applicationNumber}/{documentId}`
+   - Add tests for POST versions of search endpoints
+   - Implement edge case testing for error responses and special characters
 
 ## Recently Completed
 
@@ -54,6 +59,34 @@ This is a comprehensive plan to prepare the USPTO ODP API client for PyPI public
 
 ## Publication Process
 
+### Prerequisites
+
+Before publishing, ensure you have the following:
+
+1. A PyPI account (create one at https://pypi.org/account/register/)
+2. The latest version of build and twine:
+   ```bash
+   pip install --upgrade build twine
+   ```
+
+### Preparing for Release
+
+1. **Update Version Number**:
+
+   - With setuptools-scm, this is handled through git tags
+   - Ensure all changes are committed to your repository
+
+2. **Check Package Structure**:
+
+   - Ensure all necessary files are included in MANIFEST.in
+   - Verify that pyproject.toml is properly configured
+
+3. **Run Tests**:
+   - Run the test suite to ensure everything is working:
+     ```bash
+     python -m pytest pyUSPTO/tests/
+     ```
+
 ### Pre-Publication Checklist
 
 1. Ensure all "Items for Immediate Action" are completed
@@ -61,36 +94,62 @@ This is a comprehensive plan to prepare the USPTO ODP API client for PyPI public
 3. Check package rendering with `twine check dist/*`
 4. Test installation from TestPyPI
 
-### Publication Steps
+### Building the Package
 
-1. **Tag the release in Git** (this must be done first since setuptools-scm uses git tags to determine the version):
+1. **Clean Previous Builds**:
+
+   ```bash
+   rm -rf build/ dist/ *.egg-info/
+   ```
+
+2. **Tag the release in Git** (this must be done first since setuptools-scm uses git tags to determine the version):
 
    ```bash
    git tag -a v0.1.3 -m "Release version 0.1.3"
    git push origin v0.1.3
    ```
 
-2. **Build the package** (this will automatically pick up the version from the git tag):
-
+3. **Build the Package** (this will automatically pick up the version from the git tag):
    ```bash
    python -m build
    ```
+   This will create both source distribution (.tar.gz) and wheel (.whl) files in the `dist/` directory.
 
-3. **Upload to TestPyPI first**:
+### Testing the Package
+
+Before uploading to PyPI, it's recommended to test your package using TestPyPI:
+
+1. **Upload to TestPyPI**:
 
    ```bash
    python -m twine upload --repository testpypi dist/*
    ```
 
-4. **Verify installation from TestPyPI**:
+2. **Install from TestPyPI**:
 
    ```bash
    pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pyUSPTO
    ```
 
-5. **Upload to PyPI** (only after successful verification on TestPyPI):
+3. **Verify Installation**:
+   ```python
+   from pyUSPTO import BulkDataClient
+   # Basic test to ensure the package is working
+   ```
+
+### Publishing to PyPI
+
+Once you've verified the package works correctly:
+
+1. **Upload to PyPI**:
+
    ```bash
    python -m twine upload dist/*
+   ```
+
+2. **Verify Installation from PyPI**:
+   ```bash
+   pip install pyUSPTO
    ```
 
 ### Future Updates
@@ -129,3 +188,37 @@ The project uses setuptools-scm for automatic version management based on git ta
    - Automatically handles pre-release and dev versions
    - No need to manually update version in multiple files
    - Consistent version across package metadata and runtime
+
+## Troubleshooting
+
+- **Description Rendering Issues**: If the long description doesn't render correctly on PyPI, check your Markdown syntax and consider using the `--strict` flag with twine to check for rendering issues:
+
+  ```bash
+  python -m twine check dist/*
+  ```
+
+- **Package Name Conflicts**: If the name is already taken on PyPI, you'll need to choose a different name.
+
+- **Authentication Issues**: If you encounter authentication problems, you can create a `.pypirc` file in your home directory:
+
+  ```
+  [distutils]
+  index-servers =
+      pypi
+      testpypi
+
+  [pypi]
+  username = your_username
+  password = your_password
+
+  [testpypi]
+  repository = https://test.pypi.org/legacy/
+  username = your_username
+  password = your_password
+  ```
+
+## Security Best Practices
+
+- Consider using API tokens instead of your password for authentication
+- Enable two-factor authentication on your PyPI account
+- Use a `.pypirc` file with restricted permissions (chmod 600)

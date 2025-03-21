@@ -34,7 +34,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         "application_documents": "applications/{application_number}/documents",
         "application_associated_documents": "applications/{application_number}/associated-documents",
         # Document download endpoint (different base URL)
-        "download_document": "download/applications/{application_number}/{document_id}",
+        "download_document": "download/applications/{application_number}/{document_id}.pdf",
         # Status code endpoints
         "status_codes": "status-codes",
     }
@@ -366,7 +366,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         assert isinstance(result, PatentDataResponse)
         return result
 
-    def get_application_documents(self, application_number: str) -> PatentDataResponse:
+    def get_application_documents(self, application_number: str) -> Dict[str, Any]:
         """
         Get document details for an application.
 
@@ -374,7 +374,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             application_number: The application number
 
         Returns:
-            PatentDataResponse object containing document details
+            Dictionary containing document details with a 'documentBag' key
         """
         endpoint = self.ENDPOINTS["application_documents"].format(
             application_number=application_number
@@ -382,10 +382,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         result = self._make_request(
             method="GET",
             endpoint=endpoint,
-            response_class=PatentDataResponse,
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, PatentDataResponse)
+        # The USPTO API returns a dictionary with a 'documentBag' key for this endpoint
+        assert isinstance(result, dict)
         return result
 
     def get_application_associated_documents(
@@ -432,7 +431,6 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         endpoint = self.ENDPOINTS["download_document"].format(
             application_number=application_number, document_id=document_id
         )
-
         # Get the response with streaming enabled
         response = self._make_request(
             method="GET", endpoint=endpoint, stream=True, custom_base_url=base_url_root

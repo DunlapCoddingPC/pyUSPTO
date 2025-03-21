@@ -2,6 +2,34 @@
 requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "pyUSPTO"
+description = "Python client for accessing USPTO APIs"
+authors = [
+    {name = "Andrew Piechocki", email = "apiechocki@dunlapcodding.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+keywords = ["uspto", "patent", "api", "client", "bulk data", "patent data"]
+dependencies = [
+    "requests>=2.25.0",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/DunlapCoddingPC/pyUSPTO"
+"Bug Tracker" = "https://github.com/DunlapCoddingPC/pyUSPTO/issues"
+
 [tool.setuptools_scm]
 write_to = "pyUSPTO/_version.py"
 

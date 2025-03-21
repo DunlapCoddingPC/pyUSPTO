@@ -7,32 +7,33 @@ detailed patent information including inventors, applicants, assignments, and mo
 """
 
 import os
+
 from pyUSPTO.clients.patent_data import PatentDataClient
 from pyUSPTO.config import USPTOConfig
 
 # Method 1: Initialize the client with direct API key
 # This approach is simple but less flexible
 print("Method 1: Initialize with direct API key")
-api_key = "YOUR_API_KEY_HERE"  # Replace with your actual API key
+api_key = "tgfcazeuwmuiopipzyjnhrsbcqrymh"  # Replace with your actual API key
 client = PatentDataClient(api_key=api_key)
 
 # Method 2: Initialize the client with USPTOConfig
 # This approach provides more configuration options
 print("\nMethod 2: Initialize with USPTOConfig")
-config = USPTOConfig(
-    api_key="YOUR_API_KEY_HERE",  # Replace with your actual API key
-    bulk_data_base_url="https://api.uspto.gov/api/v1/datasets",
-    patent_data_base_url="https://api.uspto.gov/api/v1/patent",
-)
-client = PatentDataClient(config=config)
+# config = USPTOConfig(
+#     api_key="YOUR_API_KEY_HERE",  # Replace with your actual API key
+#     bulk_data_base_url="https://api.uspto.gov/api/v1/datasets",
+#     patent_data_base_url="https://api.uspto.gov/api/v1/patent",
+# )
+# client = PatentDataClient(config=config)
 
 # Method 3: Initialize the client with environment variables
 # This is the most secure approach for production use
 print("\nMethod 3: Initialize with environment variables")
-# Set environment variable (in a real scenario, this would be set outside the script)
-os.environ["USPTO_API_KEY"] = "YOUR_API_KEY_HERE"  # Replace with your actual API key
-config_from_env = USPTOConfig.from_env()
-client = PatentDataClient(config=config_from_env)
+# # Set environment variable (in a real scenario, this would be set outside the script)
+# os.environ["USPTO_API_KEY"] = "YOUR_API_KEY_HERE"  # Replace with your actual API key
+# config_from_env = USPTOConfig.from_env()
+# client = PatentDataClient(config=config_from_env)
 
 print("\nBeginning API requests with configured client:")
 
@@ -86,37 +87,42 @@ date_search = client.search_patents(
 print(f"\nFound {date_search.count} patents filed in 2020")
 
 # Get a specific patent by application number
-application_number = "12345678"
+application_number = "18045436"
 try:
     patent = client.get_patent_by_application_number(application_number)
     print(f"\nRetrieved patent application: {patent.application_number_text}")
 
-    # Download related documents if available
-    # Check if the application has documents
+    # Retrieve and display document information
     try:
+        print("\nRetrieving document information...")
         documents_response = client.get_application_documents(application_number)
 
-        # Check if the response is already a dictionary or needs to be processed
-        if isinstance(documents_response, dict):
-            documents_data = documents_response
-        else:
-            # If it's a PatentDataResponse object, we need to access its raw data
-            # Since there's no to_dict method, we'll work with the structure we know
-            documents_data = {"documentBag": []}
-            # You might need to adapt this based on the actual structure of the response
+        # Display document information
+        print(
+            f"Found {documents_response.get('count', len(documents_response.get('documentBag', [])))} documents"
+        )
 
-        if (
-            isinstance(documents_data, dict)
-            and "documentBag" in documents_data
-            and documents_data["documentBag"]
-        ):
-            document = documents_data["documentBag"][
-                0
-            ]  # Get the first document as an example
+        if documents_response["documentBag"]:
+            # Get first document as an example
+            document = documents_response["documentBag"][0]
+            print(f"\nFirst document:")
+            print(f"  Document ID: {document.get('documentIdentifier')}")
+            print(
+                f"  Document Type: {document.get('documentCode')} - {document.get('documentCodeDescriptionText')}"
+            )
+            print(f"  Date: {document.get('officialDate')}")
+            print(f"  Direction: {document.get('directionCategory')}")
+
+            # Download the document if download options are available
             if "downloadOptionBag" in document and document["downloadOptionBag"]:
                 download_option = document["downloadOptionBag"][0]
-                if "downloadURI" in download_option:
-                    document_id = document.get("documentIdentifier", "document.pdf")
+                if "downloadUrl" in download_option:
+                    print("\nDownloading document...")
+                    document_id = document.get("documentIdentifier")
+                    # Create downloads directory if it doesn't exist
+                    if not os.path.exists("./downloads"):
+                        os.makedirs("./downloads")
+
                     downloaded_path = client.download_application_document(
                         application_number, document_id, "./downloads"
                     )
@@ -141,6 +147,7 @@ except Exception as e:
 patent_number = "10000000"  # Remove "US" prefix for the search
 try:
     # Search for the patent by patent number
+    print("\nSearching for patent number:", patent_number)
     patent_search = client.search_patents(patent_number=patent_number, limit=1)
     if patent_search.count > 0:
         patent = patent_search.patent_file_wrapper_data_bag[0]
