@@ -5,7 +5,7 @@ This module provides data models for the USPTO Patent Data API.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 
 @dataclass
@@ -128,10 +128,10 @@ class DocumentBag:
             preview += f", ... ({len(self) - 3} more)"
         return f"DocumentBag({len(self)} documents: {preview})"
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Document]:
         return iter(self.documents)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.documents)
 
     @classmethod
