@@ -14,6 +14,7 @@ from pyUSPTO.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.patent_data import (
     DocumentBag,
+    DocumentDownloadFormat,
     PatentDataResponse,
     PatentFileWrapper,
 )
@@ -38,7 +39,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         "application_documents": "applications/{application_number}/documents",
         "application_associated_documents": "applications/{application_number}/associated-documents",
         # Document download endpoint (different base URL)
-        "download_document": "download/applications/{application_number}/{document_id}.pdf",
+        "download_document": "download/applications/{application_number}/{document_id}",
         # Status code endpoints
         "status_codes": "status-codes",
     }
@@ -424,29 +425,40 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         assert isinstance(result, PatentDataResponse)
         return result
 
-    def download_application_document(
-        self, application_number: str, document_id: str, destination: str
+    def download_document(
+        self,
+        destination: str,
+        download_format: Optional[DocumentDownloadFormat] = None,
+        download_url: Optional[str] = None,
     ) -> str:
         """
-        Download a document for a patent application.
+        Download a document using either a DocumentDownloadFormat object or a direct URL.
 
         Args:
-            application_number: The application number
-            document_id: The document identifier
             destination: Directory where the file should be saved
+            download_format: DocumentDownloadFormat object containing download information
+            download_url: Direct URL to download the document (if download_format not provided)
 
         Returns:
             Path to the downloaded file
         """
-        # This endpoint is at a different base URL level
-        base_url_parts = self.base_url.split("/patent")
-        base_url_root = base_url_parts[0]
-        endpoint = self.ENDPOINTS["download_document"].format(
-            application_number=application_number, document_id=document_id
-        )
-        # Get the response with streaming enabled
+        # Extract URL from DocumentDownloadFormat if provided
+        if download_format and download_format.download_url:
+            download_url = download_format.download_url
+
+        if not download_url:
+            raise ValueError(
+                "Either download_format with URL or download_url must be provided"
+            )
+
+        # Parse the download URL to separate base and path
+        parsed_url = urlparse(download_url)
+        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        endpoint = parsed_url.path.lstrip("/")  # Remove leading slash
+
+        # Use _make_request with the parsed components
         response = self._make_request(
-            method="GET", endpoint=endpoint, stream=True, custom_base_url=base_url_root
+            method="GET", endpoint=endpoint, stream=True, custom_base_url=base_url
         )
 
         # Ensure we have a Response object with iter_content
@@ -465,7 +477,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             if filename_match:
                 filename = filename_match.group(1)
         else:
-            filename = document_id
+            # Generate a filename based on URL if not available in header
+            filename = os.path.basename(parsed_url.path) or "document.pdf"
 
         file_path = os.path.join(destination, filename)
 

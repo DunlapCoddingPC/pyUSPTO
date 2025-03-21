@@ -146,8 +146,8 @@ class TestDocumentHandling:
     """Tests for document handling methods of the PatentDataClient."""
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
-    def test_download_application_document(self, mock_make_request: MagicMock) -> None:
-        """Test download_application_document method."""
+    def test_download_document_with_url(self, mock_make_request: MagicMock) -> None:
+        """Test download_document method with a direct URL."""
         # Setup mock for the response
         mock_response = MagicMock(spec=requests.Response)
         mock_response.headers = {"Content-Disposition": 'filename="test_document.pdf"'}
@@ -165,16 +165,20 @@ class TestDocumentHandling:
         ):
             # Create client and call method
             client = PatentDataClient(api_key="test_key")
-            result = client.download_application_document(
-                application_number="12345678", document_id="DOC123", destination="/tmp"
+            download_url = (
+                "https://api.uspto.gov/download/applications/12345678/DOC123.pdf"
+            )
+            result = client.download_document(
+                destination="/tmp",
+                download_url=download_url,
             )
 
-            # Verify request was made correctly with correct base URL handling
+            # Verify request was made correctly with parsed URL
             mock_make_request.assert_called_once_with(
                 method="GET",
                 endpoint="download/applications/12345678/DOC123.pdf",
                 stream=True,
-                custom_base_url=client.base_url.split("/patent")[0],
+                custom_base_url="https://api.uspto.gov",
             )
 
             # Verify file was written correctly
@@ -183,10 +187,59 @@ class TestDocumentHandling:
             assert result == os.path.join("/tmp", "test_document.pdf")
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
-    def test_download_application_document_content_disposition_parsing(
+    def test_download_document_with_format_object(
         self, mock_make_request: MagicMock
     ) -> None:
-        """Test download_application_document with Content-Disposition header parsing."""
+        """Test download_document method with a DocumentDownloadFormat object."""
+        # Setup mock for the response
+        mock_response = MagicMock(spec=requests.Response)
+        mock_response.headers = {
+            "Content-Disposition": 'filename="format_object_test.pdf"'
+        }
+        mock_response.iter_content.return_value = [b"test content"]
+        mock_make_request.return_value = mock_response
+
+        # Create a download format for testing
+        download_format = DocumentDownloadFormat(
+            mime_type_identifier="PDF",
+            download_url="https://example.com/documents/test_doc.pdf",
+            page_total_quantity=10,
+        )
+
+        # Mock open function
+        mock_open_func = mock_open()
+        mock_file = MagicMock()
+        mock_open_func.return_value.__enter__.return_value = mock_file
+
+        with (
+            patch("builtins.open", mock_open_func),
+            patch("os.path.exists", return_value=True),
+        ):
+            # Create client and call method
+            client = PatentDataClient(api_key="test_key")
+            result = client.download_document(
+                destination="/tmp",
+                download_format=download_format,
+            )
+
+            # Verify request was made correctly with parsed URL
+            mock_make_request.assert_called_once_with(
+                method="GET",
+                endpoint="documents/test_doc.pdf",
+                stream=True,
+                custom_base_url="https://example.com",
+            )
+
+            # Verify file was written correctly
+            mock_file.write.assert_called_with(b"test content")
+            # Use os.path.join for cross-platform paths
+            assert result == os.path.join("/tmp", "format_object_test.pdf")
+
+    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
+    def test_download_document_content_disposition_parsing(
+        self, mock_make_request: MagicMock
+    ) -> None:
+        """Test download_document with Content-Disposition header parsing."""
         # Setup mock to simulate a Response object
         mock_response = MagicMock(spec=requests.Response)
         mock_response.headers = {
@@ -205,10 +258,9 @@ class TestDocumentHandling:
             client = PatentDataClient(api_key="test_key")
 
             # Call the method
-            result = client.download_application_document(
-                application_number="12345678",
-                document_id="document123",
+            result = client.download_document(
                 destination="./downloads",
+                download_url="https://example.com/document.pdf",
             )
 
             # Verify the path extraction from Content-Disposition header
@@ -217,40 +269,10 @@ class TestDocumentHandling:
             mock_file.assert_called_once_with(file=result, mode="wb")
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
-    def test_download_application_document_no_filename_in_header(
+    def test_download_document_no_content_disposition(
         self, mock_make_request: MagicMock
     ) -> None:
-        """Test download_application_document with Content-Disposition header but no filename."""
-        # Setup mock to simulate a Response object
-        mock_response = MagicMock(spec=requests.Response)
-        mock_response.headers = {"Content-Disposition": "attachment;"}  # No filename
-        mock_response.iter_content.return_value = [b"test content"]
-        mock_make_request.return_value = mock_response
-
-        # Setup os.path.exists to return False so os.makedirs is called
-        with (
-            patch("os.path.exists", return_value=False),
-            patch("os.makedirs") as mock_makedirs,
-            patch("builtins.open", mock_open()) as mock_file,
-        ):
-            # Create client
-            client = PatentDataClient(api_key="test_key")
-
-            # Call the method
-            result = client.download_application_document(
-                application_number="12345678",
-                document_id="document123",
-                destination="./downloads",
-            )
-
-            # Should use document_id as filename
-            assert result == os.path.join("./downloads", "document123")
-
-    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
-    def test_download_application_document_no_content_disposition(
-        self, mock_make_request: MagicMock
-    ) -> None:
-        """Test download_application_document without Content-Disposition header."""
+        """Test download_document without Content-Disposition header."""
         # Setup mock to simulate a Response object
         mock_response = MagicMock(spec=requests.Response)
         mock_response.headers = {}  # No Content-Disposition header
@@ -266,15 +288,34 @@ class TestDocumentHandling:
             # Create client
             client = PatentDataClient(api_key="test_key")
 
-            # Call the method
-            result = client.download_application_document(
-                application_number="12345678",
-                document_id="document123",
+            # Call the method with a URL that includes a filename
+            result = client.download_document(
                 destination="./downloads",
+                download_url="https://example.com/some_document.pdf",
             )
 
-            # Should use document_id as filename when no Content-Disposition header
-            assert result == os.path.join("./downloads", "document123")
+            # Should use the filename from the URL path
+            assert result == os.path.join("./downloads", "some_document.pdf")
+            mock_file.assert_called_once_with(file=result, mode="wb")
+
+    @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
+    def test_download_document_missing_required_params(
+        self, mock_make_request: MagicMock
+    ) -> None:
+        """Test download_document raises error when missing required parameters."""
+        # Create client
+        client = PatentDataClient(api_key="test_key")
+
+        # Call the method without any URL or format
+        with pytest.raises(ValueError) as excinfo:
+            client.download_document(destination="./downloads")
+
+        # Check error message
+        assert (
+            "Either download_format with URL or download_url must be provided"
+            in str(excinfo.value)
+        )
+        mock_make_request.assert_not_called()
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
     def test_get_application_documents(self, mock_make_request: MagicMock) -> None:

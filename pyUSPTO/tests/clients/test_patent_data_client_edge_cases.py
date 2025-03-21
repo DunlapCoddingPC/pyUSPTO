@@ -56,10 +56,10 @@ class TestPatentDataEdgeCases:
             client.get_patent_by_application_number(application_number="12345678")
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
-    def test_download_application_document_non_response_object(
+    def test_download_document_non_response_object(
         self, mock_make_request: MagicMock
     ) -> None:
-        """Test download_application_document with a non-Response object."""
+        """Test download_document with a non-Response object."""
         # Return an object that is definitely not a requests.Response
         mock_make_request.return_value = {"not": "a response object"}
 
@@ -70,8 +70,8 @@ class TestPatentDataEdgeCases:
         with pytest.raises(
             TypeError, match="Expected a Response object for streaming download"
         ):
-            client.download_application_document(
-                application_number="12345678", document_id="DOC123", destination="/tmp"
+            client.download_document(
+                destination="/tmp", download_url="https://example.com/test.pdf"
             )
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")

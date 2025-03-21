@@ -121,10 +121,10 @@ try:
                     if not os.path.exists("./downloads"):
                         os.makedirs("./downloads")
 
-                    downloaded_path = client.download_application_document(
-                        application_number=application_number,
-                        document_id=document_id,
+                    # Use the download_format object directly with the new method
+                    downloaded_path = client.download_document(
                         destination="./downloads",
+                        download_format=download_format,
                     )
                     print(f"Downloaded document to: {downloaded_path}")
     except Exception as e:
