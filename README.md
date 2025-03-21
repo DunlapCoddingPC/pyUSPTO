@@ -13,7 +13,7 @@ pip install pyUSPTO
 Or install from source:
 
 ```bash
-git clone https://github.com/yourusername/pyUSPTO.git
+git clone https://github.com/DunlapCoddingPC/pyUSPTO.git
 cd pyUSPTO
 pip install -e .
 ```
