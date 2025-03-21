@@ -352,9 +352,11 @@ class TestBulkDataClientCore:
         mock_make_request = MagicMock(return_value=mock_response)
         with patch.object(mock_bulk_data_client, "_make_request", mock_make_request):
             # Mock os.path.exists and os.makedirs
-            with patch("os.path.exists", return_value=False), patch(
-                "os.makedirs"
-            ) as mock_makedirs, patch("builtins.open", mock_open()) as mock_file:
+            with (
+                patch("os.path.exists", return_value=False),
+                patch("os.makedirs") as mock_makedirs,
+                patch("builtins.open", mock_open()) as mock_file,
+            ):
                 # Test download_file with absolute URL
                 file_path = mock_bulk_data_client.download_file(
                     file_data=file_data, destination=destination
@@ -398,9 +400,10 @@ class TestBulkDataClientCore:
         # Patch the _make_request method for the relative URL test
         mock_make_request = MagicMock(return_value=mock_response)
         with patch.object(mock_bulk_data_client, "_make_request", mock_make_request):
-            with patch("os.path.exists", return_value=True), patch(
-                "builtins.open", mock_open()
-            ) as mock_file:
+            with (
+                patch("os.path.exists", return_value=True),
+                patch("builtins.open", mock_open()) as mock_file,
+            ):
                 file_path = mock_bulk_data_client.download_file(
                     file_data=file_data, destination=destination
                 )
@@ -624,9 +627,12 @@ class TestBulkDataClientEdgeCases:
         mock_response.iter_content.return_value = [b"test content"]
 
         # Patch the necessary methods
-        with patch.object(client, "_make_request", return_value=mock_response), patch(
-            "os.path.exists", return_value=False
-        ), patch("os.makedirs") as mock_makedirs, patch("builtins.open", MagicMock()):
+        with (
+            patch.object(client, "_make_request", return_value=mock_response),
+            patch("os.path.exists", return_value=False),
+            patch("os.makedirs") as mock_makedirs,
+            patch("builtins.open", MagicMock()),
+        ):
 
             # Call download_file
             client.download_file(file_data=file_data, destination="/tmp")
