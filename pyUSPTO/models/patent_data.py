@@ -5,7 +5,7 @@ This module provides data models for the USPTO Patent Data API.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 
 @dataclass
@@ -1006,3 +1006,103 @@ class PatentFileWrapper:
             grant_document_meta_data=grant_meta,
             last_ingestion_date_time=data.get("lastIngestionDateTime"),
         )
+
+
+@dataclass
+class StatusCode:
+    """Represents a single USPTO patent application status code.
+
+    Attributes:
+        code: The numeric status code
+        description: Human-readable description of the status
+    """
+
+    code: Optional[int] = None
+    description: Optional[str] = None
+
+    def __str__(self) -> str:
+        """Return a user-friendly string representation of this status code."""
+        return f"{self.code}: {self.description}"
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "StatusCode":
+        """Create a StatusCode object from a dictionary."""
+        return cls(code=data.get("code"), description=data.get("description"))
+
+
+class StatusCodeCollection:
+    """Collection of USPTO patent application status codes that supports iteration.
+
+    This class provides an object-oriented wrapper around status code data from the USPTO API.
+    It implements iteration allowing you to loop directly over status codes:
+
+    Example:
+        status_codes = client.get_patent_status_codes()
+        for status in status_codes:
+            print(status.code, status.description)
+    """
+
+    def __init__(self, status_codes: List[StatusCode]):
+        self.status_codes = status_codes
+
+    def __str__(self) -> str:
+        """Return a user-friendly string representation of the status code collection."""
+        return f"StatusCodeCollection with {len(self)} status codes"
+
+    def __repr__(self) -> str:
+        """Return a detailed string representation for debugging."""
+        if len(self) == 0:
+            return "StatusCodeCollection(empty)"
+
+        preview = ", ".join(str(code.code) for code in self.status_codes[:3])
+        if len(self) > 3:
+            preview += f", ... ({len(self) - 3} more)"
+        return f"StatusCodeCollection({len(self)} status codes: {preview})"
+
+    def __iter__(self) -> Iterator[StatusCode]:
+        return iter(self.status_codes)
+
+    def __len__(self) -> int:
+        return len(self.status_codes)
+
+    @classmethod
+    def from_dict(
+        cls, data: Union[Dict[str, Any], List[Dict[str, Any]]]
+    ) -> "StatusCodeCollection":
+        """Create a StatusCodeCollection object from a dictionary or list."""
+        status_codes = []
+
+        # If data is a list, treat each item as a status code
+        if isinstance(data, list):
+            status_codes = [StatusCode.from_dict(code_data) for code_data in data]
+        # Otherwise, data is a dictionary
+        else:
+            # Handle different possible response structures
+            if "status-codes" in data:
+                status_codes = [
+                    StatusCode.from_dict(code_data)
+                    for code_data in data.get("status-codes", [])
+                ]
+            elif "statusCodes" in data:
+                status_codes = [
+                    StatusCode.from_dict(code_data)
+                    for code_data in data.get("statusCodes", [])
+                ]
+
+        return cls(status_codes=status_codes)
+
+    def find_by_code(self, code: int) -> Optional[StatusCode]:
+        """Find a status code by its numeric code."""
+        for status in self.status_codes:
+            if status.code == code:
+                return status
+        return None
+
+    def search_by_description(self, text: str) -> "StatusCodeCollection":
+        """Find status codes that contain the given text in their descriptions."""
+        matching_codes = [
+            status
+            for status in self.status_codes
+            if status.description and text.lower() in status.description.lower()
+        ]
+        return StatusCodeCollection(status_codes=matching_codes)

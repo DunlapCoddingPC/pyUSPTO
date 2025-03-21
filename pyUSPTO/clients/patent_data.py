@@ -17,6 +17,7 @@ from pyUSPTO.models.patent_data import (
     DocumentDownloadFormat,
     PatentDataResponse,
     PatentFileWrapper,
+    StatusCodeCollection,
 )
 
 
@@ -506,7 +507,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_patent_status_codes(
         self, params: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    ) -> StatusCodeCollection:
         """
         Get patent application status codes and descriptions.
 
@@ -517,17 +518,17 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 - limit: Number of results to return
 
         Returns:
-            Dictionary containing status codes and descriptions
+            StatusCodeCollection containing status codes and descriptions
         """
         result = self._make_request(
             method="GET", endpoint=self.ENDPOINTS["status_codes"], params=params
         )
         assert isinstance(result, dict)
-        return result
+        return StatusCodeCollection.from_dict(result)
 
     def search_patent_status_codes_post(
         self, search_request: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    ) -> StatusCodeCollection:
         """
         Search patent status codes using POST method with JSON payload.
 
@@ -535,7 +536,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             search_request: JSON payload with search parameters
 
         Returns:
-            Dictionary containing status codes and descriptions
+            StatusCodeCollection containing status codes and descriptions
         """
         result = self._make_request(
             method="POST",
@@ -543,7 +544,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             json_data=search_request,
         )
         assert isinstance(result, dict)
-        return result
+        return StatusCodeCollection.from_dict(result)
 
     def search_patents(
         self,

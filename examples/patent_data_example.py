@@ -15,7 +15,7 @@ from pyUSPTO.config import USPTOConfig
 # This approach is simple but less flexible
 print("Method 1: Initialize with direct API key")
 api_key = "tgfcazeuwmuiopipzyjnhrsbcqrymh"  # Replace with your actual API key
-client = PatentDataClient(api_key=api_key)
+USPTO = PatentDataClient(api_key=api_key)
 
 # Method 2: Initialize the client with USPTOConfig
 # This approach provides more configuration options
@@ -40,7 +40,7 @@ print("\nBeginning API requests with configured client:")
 # Get patent applications
 try:
     print("Attempting to get patent applications...")
-    response = client.get_patent_applications()
+    response = USPTO.get_patent_applications()
     print(f"Found {response.count} patent applications")
 
     # Display information about each patent application
@@ -77,58 +77,52 @@ except Exception as e:
     print(f"Error getting patent applications: {e}")
 
 # Search for patents by inventor name
-inventor_search = client.search_patents(inventor_name="Smith")
+inventor_search = USPTO.search_patents(inventor_name="Smith")
 print(f"\nFound {inventor_search.count} patents with 'Smith' as inventor")
 
 # Search for patents filed in a date range
-date_search = client.search_patents(
+date_search = USPTO.search_patents(
     filing_date_from="2020-01-01", filing_date_to="2020-12-31"
 )
 print(f"\nFound {date_search.count} patents filed in 2020")
 
 # Get a specific patent by application number
-application_number = "18045436"
 try:
-    patent = client.get_patent_by_application_number(application_number)
+    app_no = "18045436"
+    patent = USPTO.get_patent_by_application_number(application_number=app_no)
     print(f"\nRetrieved patent application: {patent.application_number_text}")
 
-    # Retrieve and display document information
-    try:
-        print("\nRetrieving document information...")
-        documents = client.get_application_documents(application_number)
+    print("\nRetrieving document information...")
+    documents = USPTO.get_application_documents(application_number=app_no)
 
-        # Display document information
-        print(f"Found {len(documents)} documents")
+    # Display document information
+    print(f"Found {len(documents)} documents")
 
-        if len(documents.documents) > 0:
-            # Get first document as an example
-            document = documents.documents[0]
-            print(f"\nFirst document:")
-            print(f"  Document ID: {document.document_identifier}")
-            print(
-                f"  Document Type: {document.document_code} - {document.document_code_description_text}"
-            )
-            print(f"  Date: {document.official_date}")
-            print(f"  Direction: {document.direction_category}")
+    # Get first document as an example
+    document = documents.documents[0]
+    print(f"\nFirst document:")
+    print(f"  Document ID: {document.document_identifier}")
+    print(
+        f"  Document Type: {document.document_code} - {document.document_code_description_text}"
+    )
+    print(f"  Date: {document.official_date}")
+    print(f"  Direction: {document.direction_category}")
 
-            # Download the document if download options are available
-            if document.download_formats:
-                download_format = document.download_formats[0]
-                if download_format.download_url and document.document_identifier:
-                    print("\nDownloading document...")
-                    document_id = document.document_identifier
-                    # Create downloads directory if it doesn't exist
-                    if not os.path.exists("./downloads"):
-                        os.makedirs("./downloads")
+    # Download the document if download options are available
+    if document.download_formats:
+        download_format = document.download_formats[0]
 
-                    # Use the download_format object directly with the new method
-                    downloaded_path = client.download_document(
-                        destination="./downloads",
-                        download_format=download_format,
-                    )
-                    print(f"Downloaded document to: {downloaded_path}")
-    except Exception as e:
-        print(f"Error retrieving documents: {e}")
+        print("\nDownloading document...")
+        # Create downloads directory if it doesn't exist
+        if not os.path.exists(path="./downloads"):
+            os.makedirs(name="./downloads")
+
+        # Use the download_format object directly with the method
+        downloaded_path = USPTO.download_document(
+            destination="./downloads",
+            download_format=download_format,
+        )
+        print(f"Downloaded document to: {downloaded_path}")
 
     # Check for assignments
     if patent.assignment_bag:
@@ -141,14 +135,14 @@ try:
                 print(f"    Conveyance: {assignment.conveyance_text}")
 
 except Exception as e:
-    print(f"Error retrieving patent application {application_number}: {e}")
+    print(f"Error retrieving patent application {app_no}: {e}")
 
 # Get a specific patent by patent number (using search)
 patent_number = "10000000"  # Remove "US" prefix for the search
 try:
     # Search for the patent by patent number
     print("\nSearching for patent number:", patent_number)
-    patent_search = client.search_patents(patent_number=patent_number, limit=1)
+    patent_search = USPTO.search_patents(patent_number=patent_number, limit=1)
     if patent_search.count > 0:
         patent = patent_search.patent_file_wrapper_data_bag[0]
         if patent.application_meta_data and patent.application_meta_data.patent_number:
