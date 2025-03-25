@@ -6,7 +6,7 @@ model handling, edge cases, and response handling.
 """
 
 import os
-from typing import Any, Dict
+from typing import Any, Dict, List
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
@@ -17,6 +17,9 @@ from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.bulk_data import (
     BulkDataProduct,
     BulkDataResponse,
+    DatasetField,
+    DatasetFieldCollection,
+    DatasetInfo,
     FileData,
     ProductFileBag,
 )
@@ -81,6 +84,58 @@ class TestBulkDataModels:
         assert len(product_file_bag.file_data_bag) == 2
         assert product_file_bag.file_data_bag[0].file_name == "test1.zip"
         assert product_file_bag.file_data_bag[1].file_name == "test2.zip"
+
+    def test_product_file_bag_collection_methods(self) -> None:
+        """Test collection methods of ProductFileBag."""
+        file1 = FileData(
+            file_name="test1.zip",
+            file_size=512,
+            file_data_from_date="2023-01-01",
+            file_data_to_date="2023-06-30",
+            file_type_text="ZIP",
+            file_release_date="2023-07-01",
+        )
+        file2 = FileData(
+            file_name="test2.zip",
+            file_size=1024,
+            file_data_from_date="2023-07-01",
+            file_data_to_date="2023-12-31",
+            file_type_text="ZIP",
+            file_release_date="2024-01-01",
+        )
+
+        bag = ProductFileBag(count=2, file_data_bag=[file1, file2])
+
+        # Test len
+        assert len(bag) == 2
+
+        # Test iter
+        files = list(bag)
+        assert len(files) == 2
+        assert files[0] == file1
+        assert files[1] == file2
+
+        # Test getitem
+        assert bag[0] == file1
+        assert bag[1] == file2
+
+        # Test find
+        found = bag.find(lambda f: f.file_name == "test2.zip")
+        assert found == file2
+        not_found = bag.find(lambda f: f.file_name == "nonexistent.zip")
+        assert not_found is None
+
+        # Test filter
+        filtered = bag.filter(lambda f: f.file_size > 500)
+        assert len(filtered) == 2
+        filtered = bag.filter(lambda f: f.file_size > 600)
+        assert len(filtered) == 1
+        assert filtered[0] == file2
+
+        # Test sort_by
+        sorted_files = bag.sort_by(lambda f: f.file_size, reverse=True)
+        assert sorted_files[0] == file2
+        assert sorted_files[1] == file1
 
     def test_bulk_data_product_from_dict(self) -> None:
         """Test BulkDataProduct.from_dict method."""
@@ -204,6 +259,234 @@ class TestBulkDataModels:
         assert response.bulk_data_product_bag[1].product_file_bag is not None
         assert response.bulk_data_product_bag[1].product_file_bag.count == 0
 
+    def test_bulk_data_response_pagination_methods(self) -> None:
+        """Test pagination methods of BulkDataResponse."""
+        # Create products for testing
+        product1 = BulkDataProduct(
+            product_identifier="PRODUCT1",
+            product_description_text="Test Product 1",
+            product_title_text="Test Product 1 Title",
+            product_frequency_text="Weekly",
+            product_label_array_text=["Patent", "Test"],
+            product_dataset_array_text=["Patents"],
+            product_dataset_category_array_text=["Patent"],
+            product_from_date="2023-01-01",
+            product_to_date="2023-12-31",
+            product_total_file_size=1024,
+            product_file_total_quantity=2,
+            last_modified_date_time="2023-12-31T23:59:59",
+            mime_type_identifier_array_text=["application/zip"],
+        )
+        product2 = BulkDataProduct(
+            product_identifier="PRODUCT2",
+            product_description_text="Test Product 2",
+            product_title_text="Test Product 2 Title",
+            product_frequency_text="Monthly",
+            product_label_array_text=["Trademark", "Test"],
+            product_dataset_array_text=["Trademarks"],
+            product_dataset_category_array_text=["Trademark"],
+            product_from_date="2023-01-01",
+            product_to_date="2023-12-31",
+            product_total_file_size=2048,
+            product_file_total_quantity=1,
+            last_modified_date_time="2023-12-31T23:59:59",
+            mime_type_identifier_array_text=["application/zip"],
+        )
+
+        # Create response with pagination context
+        response = BulkDataResponse(
+            count=2,
+            bulk_data_product_bag=[product1, product2],
+            _client=MagicMock(),
+            _method_name="search_products",
+            _params={"query": "test"},
+            _offset=0,
+            _limit=2,
+        )
+
+        # Mock client's search_products method for get_next_page
+        next_product = BulkDataProduct(
+            product_identifier="PRODUCT3",
+            product_description_text="Test Product 3",
+            product_title_text="Test Product 3 Title",
+            product_frequency_text="Weekly",
+            product_label_array_text=["Patent", "Test"],
+            product_dataset_array_text=["Patents"],
+            product_dataset_category_array_text=["Patent"],
+            product_from_date="2023-01-01",
+            product_to_date="2023-12-31",
+            product_total_file_size=1024,
+            product_file_total_quantity=2,
+            last_modified_date_time="2023-12-31T23:59:59",
+            mime_type_identifier_array_text=["application/zip"],
+        )
+        next_response = BulkDataResponse(
+            count=1,
+            bulk_data_product_bag=[next_product],
+            _client=response._client,
+            _method_name="search_products",
+            _params={"query": "test"},
+            _offset=2,
+            _limit=2,
+        )
+        response._client.search_products.return_value = next_response
+
+        # Test len
+        assert len(response) == 2
+
+        # Test iter
+        products = list(response)
+        assert len(products) == 2
+        assert products[0] == product1
+        assert products[1] == product2
+
+        # Test getitem
+        assert response[0] == product1
+        assert response[1] == product2
+
+        # Test has_next_page
+        assert response.has_next_page() is True
+
+        # Test get_next_page
+        next_page = response.get_next_page()
+        assert next_page is next_response
+        response._client.search_products.assert_called_once_with(query="test", offset=2)
+
+        # Test find
+        found = response.find(lambda p: p.product_identifier == "PRODUCT2")
+        assert found == product2
+        not_found = response.find(lambda p: p.product_identifier == "NONEXISTENT")
+        assert not_found is None
+
+        # Test filter
+        filtered = response.filter(lambda p: "Patent" in p.product_label_array_text)
+        assert len(filtered) == 1
+        assert filtered[0] == product1
+
+        # Test sort_by
+        sorted_products = response.sort_by(lambda p: p.product_total_file_size)
+        assert sorted_products[0] == product1
+        assert sorted_products[1] == product2
+
+    def test_dataset_field_from_dict(self) -> None:
+        """Test DatasetField.from_dict method."""
+        data = {
+            "name": "title",
+            "description": "The title of the document",
+            "dataType": "string",
+            "isSearchable": True,
+            "isSortable": True,
+            "isFacetable": False,
+        }
+
+        field = DatasetField.from_dict(data)
+
+        assert field.name == "title"
+        assert field.description == "The title of the document"
+        assert field.data_type == "string"
+        assert field.is_searchable is True
+        assert field.is_sortable is True
+        assert field.is_facetable is False
+
+    def test_dataset_field_collection_methods(self) -> None:
+        """Test methods of DatasetFieldCollection."""
+        # Create test fields
+        field1 = DatasetField(
+            name="title",
+            description="The title of the document",
+            data_type="string",
+            is_searchable=True,
+            is_sortable=True,
+            is_facetable=False,
+        )
+        field2 = DatasetField(
+            name="abstract",
+            description="The abstract of the document",
+            data_type="string",
+            is_searchable=True,
+            is_sortable=False,
+            is_facetable=False,
+        )
+        field3 = DatasetField(
+            name="filing_date",
+            description="The filing date of the document",
+            data_type="date",
+            is_searchable=False,
+            is_sortable=True,
+            is_facetable=True,
+        )
+
+        # Create collection
+        collection = DatasetFieldCollection(fields=[field1, field2, field3])
+
+        # Test len
+        assert len(collection) == 3
+
+        # Test iter
+        fields = list(collection)
+        assert len(fields) == 3
+        assert fields[0] == field1
+
+        # Test getitem
+        assert collection[0] == field1
+        assert collection[1] == field2
+
+        # Test find
+        found = collection.find(lambda f: f.data_type == "date")
+        assert found == field3
+
+        # Test get_by_name
+        by_name = collection.get_by_name("abstract")
+        assert by_name == field2
+
+        # Test filter
+        searchable = collection.get_searchable_fields()
+        assert len(searchable) == 2
+        assert searchable[0] == field1
+        assert searchable[1] == field2
+
+        sortable = collection.get_sortable_fields()
+        assert len(sortable) == 2
+        assert field1 in sortable
+        assert field3 in sortable
+
+        facetable = collection.get_facetable_fields()
+        assert len(facetable) == 1
+        assert facetable[0] == field3
+
+    def test_dataset_info_from_dict(self) -> None:
+        """Test DatasetInfo.from_dict method."""
+        data = {
+            "name": "patents",
+            "title": "Patent Dataset",
+            "description": "Patent data for the year 2023",
+            "lastUpdated": "2023-12-31",
+            "recordCount": 1000,
+            "fieldCount": 20,
+            "fields": [
+                {
+                    "name": "title",
+                    "description": "Patent title",
+                    "dataType": "string",
+                    "isSearchable": True,
+                    "isSortable": True,
+                    "isFacetable": False,
+                }
+            ],
+        }
+
+        info = DatasetInfo.from_dict(data)
+
+        assert info.name == "patents"
+        assert info.title == "Patent Dataset"
+        assert info.description == "Patent data for the year 2023"
+        assert info.last_updated == "2023-12-31"
+        assert info.record_count == 1000
+        assert info.field_count == 20
+        assert info.dataset_fields is not None
+        assert len(info.dataset_fields) == 1
+        assert info.dataset_fields[0].name == "title"
+
 
 class TestBulkDataClientInit:
     """Tests for the initialization of the BulkDataClient class."""
@@ -275,6 +558,13 @@ class TestBulkDataClientCore:
         assert isinstance(response, BulkDataResponse)
         assert response.count == 2
         assert len(response.bulk_data_product_bag) == 2
+
+        # Verify pagination context was set
+        assert response._client is mock_bulk_data_client
+        assert response._method_name == "get_products"
+        assert response._params is not None
+        assert "param" in response._params
+        assert response._params["param"] == "value"
 
     def test_get_product_by_id(
         self, mock_bulk_data_client: BulkDataClient, bulk_data_sample: Dict[str, Any]
@@ -474,6 +764,179 @@ class TestBulkDataClientCore:
         )
         assert isinstance(response, BulkDataResponse)
         assert response.count == 2
+
+        # Verify pagination context
+        assert response._client is mock_bulk_data_client
+        assert response._method_name == "search_products"
+        assert response._offset == 0
+        assert response._limit == 10
+
+    def test_get_dataset_info(self, mock_bulk_data_client: BulkDataClient) -> None:
+        """Test get_dataset_info method."""
+        # Setup
+        dataset_id = "patents"
+        dataset_info_data = {
+            "name": "patents",
+            "title": "Patent Dataset",
+            "description": "Patent data for the year 2023",
+            "lastUpdated": "2023-12-31",
+            "recordCount": 1000,
+            "fieldCount": 20,
+        }
+
+        # Create mock response
+        mock_response = MagicMock()
+        mock_response.json.return_value = dataset_info_data
+
+        # Create a dedicated mock session
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response
+
+        # Replace the client's session with our mock
+        mock_bulk_data_client.session = mock_session
+
+        # Test get_dataset_info
+        result = mock_bulk_data_client.get_dataset_info(dataset_id=dataset_id)
+
+        # Verify
+        mock_session.get.assert_called_once_with(
+            url=f"{mock_bulk_data_client.base_url}/datasets/{dataset_id}",
+            params=None,
+            stream=False,
+        )
+        assert isinstance(result, DatasetInfo)
+        assert result.name == "patents"
+        assert result.title == "Patent Dataset"
+        assert result.description == "Patent data for the year 2023"
+        assert result.last_updated == "2023-12-31"
+        assert result.record_count == 1000
+        assert result.field_count == 20
+        assert result._client is mock_bulk_data_client
+
+    def test_get_dataset_fields(self, mock_bulk_data_client: BulkDataClient) -> None:
+        """Test get_dataset_fields method."""
+        # Setup
+        dataset_id = "patents"
+        fields_data = {
+            "fields": [
+                {
+                    "name": "title",
+                    "description": "Patent title",
+                    "dataType": "string",
+                    "isSearchable": True,
+                    "isSortable": True,
+                    "isFacetable": False,
+                },
+                {
+                    "name": "abstract",
+                    "description": "Patent abstract",
+                    "dataType": "string",
+                    "isSearchable": True,
+                    "isSortable": False,
+                    "isFacetable": False,
+                },
+                {
+                    "name": "filing_date",
+                    "description": "The filing date",
+                    "dataType": "date",
+                    "isSearchable": False,
+                    "isSortable": True,
+                    "isFacetable": True,
+                },
+            ]
+        }
+
+        # Create mock response
+        mock_response = MagicMock()
+        mock_response.json.return_value = fields_data
+
+        # Create a dedicated mock session
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response
+
+        # Replace the client's session with our mock
+        mock_bulk_data_client.session = mock_session
+
+        # Test get_dataset_fields
+        result = mock_bulk_data_client.get_dataset_fields(dataset_id=dataset_id)
+
+        # Verify
+        mock_session.get.assert_called_once_with(
+            url=f"{mock_bulk_data_client.base_url}/datasets/{dataset_id}/fields",
+            params=None,
+            stream=False,
+        )
+        assert isinstance(result, DatasetFieldCollection)
+        assert len(result.fields) == 3
+        assert result.fields[0].name == "title"
+        assert result.fields[1].name == "abstract"
+        assert result.fields[2].name == "filing_date"
+        assert result._client is mock_bulk_data_client
+
+    def test_from_dict_with_pagination(self) -> None:
+        """Test BulkDataResponse.from_dict_with_pagination method."""
+        # Create test data
+        data = {
+            "count": 2,
+            "bulkDataProductBag": [
+                {
+                    "productIdentifier": "PRODUCT1",
+                    "productDescriptionText": "Test Product 1",
+                    "productTitleText": "Test Product 1 Title",
+                    "productFrequencyText": "Weekly",
+                    "productLabelArrayText": ["Patent", "Test"],
+                    "productDatasetArrayText": ["Patents"],
+                    "productDatasetCategoryArrayText": ["Patent"],
+                    "productFromDate": "2023-01-01",
+                    "productToDate": "2023-12-31",
+                    "productTotalFileSize": 1024,
+                    "productFileTotalQuantity": 2,
+                    "lastModifiedDateTime": "2023-12-31T23:59:59",
+                    "mimeTypeIdentifierArrayText": ["application/zip"],
+                },
+                {
+                    "productIdentifier": "PRODUCT2",
+                    "productDescriptionText": "Test Product 2",
+                    "productTitleText": "Test Product 2 Title",
+                    "productFrequencyText": "Monthly",
+                    "productLabelArrayText": ["Trademark", "Test"],
+                    "productDatasetArrayText": ["Trademarks"],
+                    "productDatasetCategoryArrayText": ["Trademark"],
+                    "productFromDate": "2023-01-01",
+                    "productToDate": "2023-12-31",
+                    "productTotalFileSize": 2048,
+                    "productFileTotalQuantity": 1,
+                    "lastModifiedDateTime": "2023-12-31T23:59:59",
+                    "mimeTypeIdentifierArrayText": ["application/zip"],
+                },
+            ],
+        }
+
+        # Mock client and params
+        mock_client = MagicMock()
+        method_name = "search_products"
+        params = {"query": "test", "offset": 0, "limit": 10}
+        offset = 0
+        limit = 10
+
+        # Create response with pagination context
+        response = BulkDataResponse.from_dict_with_pagination(
+            data=data,
+            client=mock_client,
+            method_name=method_name,
+            params=params,
+            offset=offset,
+            limit=limit,
+        )
+
+        # Verify
+        assert response.count == 2
+        assert len(response.bulk_data_product_bag) == 2
+        assert response._client is mock_client
+        assert response._method_name == method_name
+        assert response._params == params
+        assert response._offset == offset
+        assert response._limit == limit
 
     def test_paginate_products(self, mock_bulk_data_client: BulkDataClient) -> None:
         """Test paginate_products method."""

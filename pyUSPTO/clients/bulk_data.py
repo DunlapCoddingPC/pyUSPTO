@@ -6,12 +6,21 @@ Bulk Data API. It allows you to search for and download bulk data products.
 """
 
 import os
-from typing import Any, Dict, Iterator, List, Optional
+import re
+import time
+from typing import Any, Dict, Iterator, List, Optional, Union
 from urllib.parse import urlparse
 
 from pyUSPTO.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.models.bulk_data import BulkDataProduct, BulkDataResponse, FileData
+from pyUSPTO.models.bulk_data import (
+    BulkDataProduct,
+    BulkDataResponse,
+    DatasetField,
+    DatasetFieldCollection,
+    DatasetInfo,
+    FileData,
+)
 
 
 class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
@@ -22,8 +31,11 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         # Products endpoints
         "products_search": "products/search",
         "product_by_id": "products/{product_id}",
+        # Dataset endpoints
+        "dataset_info": "datasets/{dataset_id}",
+        "dataset_fields": "datasets/{dataset_id}/fields",
         # Download endpoint
-        "download_file": "{file_download_uri}",
+        "download_product_file": "products/files/{product_id}/{file_name}",
     }
 
     def __init__(
@@ -63,15 +75,32 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         Returns:
             BulkDataResponse object containing the API response
         """
+        # Extract pagination parameters if present
+        offset = int(params.get("offset", 0)) if params else 0
+        limit = int(params.get("limit", 25)) if params else 25
+
+        # Get the raw API response data
         result = self._make_request(
             method="GET",
             endpoint=self.ENDPOINTS["products_search"],
             params=params,
-            response_class=BulkDataResponse,
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, BulkDataResponse)
-        return result
+
+        if isinstance(result, dict):
+            # Create a response with pagination context
+            response = BulkDataResponse.from_dict_with_pagination(
+                data=result,
+                client=self,
+                method_name="get_products",
+                params=params.copy() if params else {},
+                offset=offset,
+                limit=limit,
+            )
+            return response
+        else:
+            # If we didn't get a dict, create a regular response without pagination context
+            assert isinstance(result, BulkDataResponse)
+            return result
 
     def get_product_by_id(
         self,
@@ -145,59 +174,64 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
             else:
                 raise TypeError(f"Expected dict, got {type(data)}")
 
-    def download_file(self, file_data: FileData, destination: str) -> str:
+    def download_product_file(
+        self, product_id: str, file_name: str, destination: str
+    ) -> str:
         """
-        Download a file from the API.
+        Download a file from a specific product.
 
         Args:
-            file_data: FileData object containing file information
+            product_id: The product identifier
+            file_name: The name of the file to download
             destination: Directory where the file should be saved
 
         Returns:
             Path to the downloaded file
         """
-        if not file_data.file_download_uri:
-            raise ValueError("No download URI available for this file")
+        import os
+        import re
+        from typing import cast
 
-        # For absolute URLs, split into base and path
-        if file_data.file_download_uri.startswith("http"):
-            # Parse the URL to extract components
-            parsed_url = urlparse(file_data.file_download_uri)
-
-            # Use the scheme and netloc as the base URL
-            custom_base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
-
-            # Use the path as the endpoint (remove leading slash)
-            endpoint = parsed_url.path.lstrip("/")
-
-            result = self._make_request(
-                method="GET",
-                endpoint=endpoint,
-                stream=True,
-                custom_base_url=custom_base_url,
-            )
-        else:
-            # For relative URLs, use the endpoint directly
-            result = self._make_request(
-                method="GET",
-                endpoint=file_data.file_download_uri,
-                stream=True,
-            )
-
-        # Ensure we have a Response object with iter_content
         import requests
 
-        if not isinstance(result, requests.Response):
-            raise TypeError("Expected a Response object for streaming download")
+        # Format the endpoint
+        endpoint = self.ENDPOINTS["download_product_file"].format(
+            product_id=product_id, file_name=file_name
+        )
 
+        # Make the request using the base client method with stream=True
+        # This ensures we get a requests.Response object
+        response = cast(
+            requests.Response,
+            self._make_request(method="GET", endpoint=endpoint, stream=True),
+        )
+
+        # Parse the redirect URL from the response text
+        redirect_match = re.search(
+            r'redirect URL to download:\s*(https?://[^\s"]+)', response.text
+        )
+
+        if not redirect_match:
+            raise ValueError(
+                f"Could not find redirect URL in response: {response.text[:100]}..."
+            )
+
+        # Extract the redirect URL
+        redirect_url = redirect_match.group(1)
+
+        # Follow the redirect to download the file
+        file_response = requests.get(redirect_url, stream=True)
+
+        # Create destination directory if it doesn't exist
         if not os.path.exists(destination):
             os.makedirs(destination)
 
-        file_path = os.path.join(destination, file_data.file_name)
-
+        # Save the file
+        file_path = os.path.join(destination, file_name)
         with open(file_path, "wb") as f:
-            for chunk in result.iter_content(chunk_size=8192):
-                f.write(chunk)
+            for chunk in file_response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
 
         return file_path
 
@@ -216,6 +250,56 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
             response_container_attr="bulk_data_product_bag",
             **kwargs,
         )
+
+    def get_dataset_info(self, dataset_id: str) -> DatasetInfo:
+        """
+        Get information about a specific dataset.
+
+        Args:
+            dataset_id: The dataset identifier
+
+        Returns:
+            DatasetInfo object containing dataset information
+        """
+        endpoint = self.ENDPOINTS["dataset_info"].format(dataset_id=dataset_id)
+
+        result = self._make_request(
+            method="GET",
+            endpoint=endpoint,
+        )
+
+        if isinstance(result, dict):
+            dataset_info = DatasetInfo.from_dict(result)
+            # Attach client for lazy loading
+            dataset_info._client = self
+            return dataset_info
+        else:
+            raise TypeError(f"Expected dict, got {type(result)}")
+
+    def get_dataset_fields(self, dataset_id: str) -> DatasetFieldCollection:
+        """
+        Get fields for a specific dataset.
+
+        Args:
+            dataset_id: The dataset identifier
+
+        Returns:
+            DatasetFieldCollection object containing field information
+        """
+        endpoint = self.ENDPOINTS["dataset_fields"].format(dataset_id=dataset_id)
+
+        result = self._make_request(
+            method="GET",
+            endpoint=endpoint,
+        )
+
+        if isinstance(result, dict):
+            fields = DatasetFieldCollection.from_dict(result)
+            # Attach client for future reference
+            fields._client = self
+            return fields
+        else:
+            raise TypeError(f"Expected dict, got {type(result)}")
 
     def search_products(
         self,
@@ -256,8 +340,12 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
             facets: Whether to enable facets in the response
 
         Returns:
-            BulkDataResponse object containing matching products
+            BulkDataResponse object containing matching products with pagination support
         """
+        # Set default pagination values
+        offset_value = 0 if offset is None else offset
+        limit_value = 25 if limit is None else limit
+
         params = {}
         if query:
             params["q"] = query
@@ -290,13 +378,72 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         if facets is not None:
             params["facets"] = str(facets).lower()
 
+        # Get the raw API response data
         result = self._make_request(
             method="GET",
             endpoint=self.ENDPOINTS["products_search"],
             params=params,
-            response_class=BulkDataResponse,
         )
 
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, BulkDataResponse)
-        return result
+        if isinstance(result, dict):
+            # Create method parameters for pagination
+            method_params = {
+                "query": query,
+                "product_title": product_title,
+                "product_description": product_description,
+                "product_short_name": product_short_name,
+                "from_date": from_date,
+                "to_date": to_date,
+                "categories": categories,
+                "labels": labels,
+                "datasets": datasets,
+                "file_types": file_types,
+                "include_files": include_files,
+                "latest": latest,
+                "facets": facets,
+            }
+
+            # Add pagination parameters if provided
+            if offset is not None:
+                method_params["offset"] = offset
+            if limit is not None:
+                method_params["limit"] = limit
+
+            # Create response with pagination context
+            response = BulkDataResponse.from_dict_with_pagination(
+                data=result,
+                client=self,
+                method_name="search_products",
+                params=method_params,
+                offset=offset_value,
+                limit=limit_value,
+            )
+            return response
+        elif isinstance(result, BulkDataResponse):
+            # If we already have a BulkDataResponse, add pagination context
+            result._client = self
+            result._method_name = "search_products"
+            result._params = {
+                "query": query,
+                "product_title": product_title,
+                "product_description": product_description,
+                "product_short_name": product_short_name,
+                "from_date": from_date,
+                "to_date": to_date,
+                "categories": categories,
+                "labels": labels,
+                "datasets": datasets,
+                "file_types": file_types,
+                "include_files": include_files,
+                "latest": latest,
+                "facets": facets,
+            }
+            if offset is not None:
+                result._params["offset"] = offset
+            if limit is not None:
+                result._params["limit"] = limit
+            result._offset = offset_value
+            result._limit = limit_value
+            return result
+        else:
+            raise TypeError(f"Expected dict or BulkDataResponse, got {type(result)}")
