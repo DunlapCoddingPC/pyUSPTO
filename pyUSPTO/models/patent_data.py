@@ -1,189 +1,269 @@
 """
 models.patent_data - Data models for USPTO patent data API
 
-This module provides data models for the USPTO Patent Data API.
+This module provides data models for the USPTO Patent Data API,
+enhanced with more Pythonic features like immutability, Enums,
+and native date/datetime objects using zoneinfo.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+from datetime import date, datetime, timezone, tzinfo
+from enum import Enum
 from typing import Any, Dict, Iterator, List, Optional, Union
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+# --- Timezone and Parsing Utilities ---
+ASSUMED_NAIVE_TIMEZONE_STR = "America/New_York"
+try:
+    ASSUMED_NAIVE_TIMEZONE: Optional[tzinfo] = ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR)
+except ZoneInfoNotFoundError:
+    print(
+        f"Warning: Timezone '{ASSUMED_NAIVE_TIMEZONE_STR}' not found. Naive datetimes will be treated as UTC or may cause errors."
+    )
+    ASSUMED_NAIVE_TIMEZONE = timezone.utc
 
 
-@dataclass
+def parse_to_date(date_str: Optional[str], fmt: str = "%Y-%m-%d") -> Optional[date]:
+    if not date_str:
+        return None
+    try:
+        return datetime.strptime(date_str, fmt).date()
+    except ValueError:
+        print(f"Warning: Could not parse date string '{date_str}' with format '{fmt}'")
+        return None
+
+
+def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
+    if not datetime_str:
+        return None
+    dt_obj: Optional[datetime] = None
+    parsed_successfully = False
+    if isinstance(datetime_str, str):
+        try:
+            if datetime_str.endswith("Z"):
+                dt_obj = datetime.fromisoformat(datetime_str.replace("Z", "+00:00"))
+            else:
+                dt_obj = datetime.fromisoformat(datetime_str)
+            parsed_successfully = True
+        except ValueError:
+            pass
+    if not parsed_successfully and isinstance(datetime_str, str):
+        formats_to_try = [
+            "%Y-%m-%dT%H:%M:%S.%f%z",
+            "%Y-%m-%dT%H:%M:%S%z",
+            "%Y-%m-%dT%H:%M:%S.%f",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%d:%H:%M:%S",
+            "%Y-%m-%d %H:%M:%S.%f%z",
+            "%Y-%m-%d %H:%M:%S%z",
+            "%Y-%m-%d %H:%M:%S",
+        ]
+        for fmt in formats_to_try:
+            try:
+                dt_obj = datetime.strptime(datetime_str, fmt)
+                parsed_successfully = True
+                break
+            except ValueError:
+                continue
+    if not parsed_successfully or dt_obj is None:
+        print(
+            f"Warning: Could not parse datetime string '{datetime_str}' with any known format."
+        )
+        return None
+    if dt_obj.tzinfo is None or dt_obj.tzinfo.utcoffset(dt_obj) is None:
+        if ASSUMED_NAIVE_TIMEZONE:
+            try:
+                aware_dt = dt_obj.replace(tzinfo=ASSUMED_NAIVE_TIMEZONE)
+                return aware_dt.astimezone(timezone.utc)
+            except Exception as e:
+                print(
+                    f"Warning: Error localizing naive datetime '{datetime_str}': {e}."
+                )
+                if ASSUMED_NAIVE_TIMEZONE == timezone.utc:
+                    return dt_obj.replace(tzinfo=timezone.utc)
+                return None
+    else:
+        return dt_obj.astimezone(timezone.utc)
+
+
+def serialize_date(d: Optional[date]) -> Optional[str]:
+    return d.isoformat() if d else None
+
+
+def serialize_datetime_as_iso(dt: Optional[datetime]) -> Optional[str]:
+    if not dt:
+        return None
+    dt_utc = (
+        dt.astimezone(timezone.utc) if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    )
+    return dt_utc.isoformat().replace("+00:00", "Z")
+
+
+def parse_yn_to_bool(value: Optional[str]) -> Optional[bool]:
+    """Converts 'Y'/'N' (case-insensitive) string to boolean. Returns None if input is None or not Y/N."""
+    if value is None:
+        return None
+    if value.upper() == "Y":
+        return True
+    if value.upper() == "N":
+        return False
+    print(
+        f"Warning: Unexpected value for Y/N boolean string: '{value}'. Treating as None."
+    )
+    return None
+
+
+def serialize_bool_to_yn(value: Optional[bool]) -> Optional[str]:
+    """Converts boolean to 'Y'/'N' string. Returns None if input is None."""
+    if value is None:
+        return None
+    return "Y" if value else "N"
+
+
+# --- Enums for Categorical Data ---
+class DirectionCategory(Enum):
+    INCOMING = "INCOMING"
+    OUTGOING = "OUTGOING"
+
+
+class ActiveIndicator(Enum):
+    YES = "Y"
+    NO = "N"
+    TRUE = "true"
+    FALSE = "false"
+    ACTIVE = "Active"
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            val_upper = value.upper()
+            if val_upper == "Y":
+                return cls.YES
+            if val_upper == "N":
+                return cls.NO
+            if val_upper == "TRUE":
+                return cls.TRUE
+            if val_upper == "FALSE":
+                return cls.FALSE
+            if value == "Active":
+                return cls.ACTIVE
+        return super()._missing_(value)
+
+
+# --- Data Models ---
+def to_camel_case(snake_str: str) -> str:
+    parts = snake_str.split("_")
+    return parts[0] + "".join(x.title() for x in parts[1:])
+
+
+@dataclass(frozen=True)
 class DocumentDownloadFormat:
-    """Represents a downloadable format for a USPTO document.
-
-    This class encapsulates information about available download formats for a document,
-    including format type (e.g., PDF, XML) and download URL.
-
-    Attributes:
-        mime_type_identifier: Format type (e.g., "PDF", "XML")
-        download_url: URL to download the document in this format
-        page_total_quantity: Number of pages in the document
-    """
-
     mime_type_identifier: Optional[str] = None
     download_url: Optional[str] = None
     page_total_quantity: Optional[int] = None
-
-    def __str__(self) -> str:
-        """Return a user-friendly string representation of this download format."""
-        pages = (
-            f" ({self.page_total_quantity} pages)" if self.page_total_quantity else ""
-        )
-        return f"{self.mime_type_identifier} format{pages}"
-
-    def __repr__(self) -> str:
-        """Return a detailed string representation for debugging."""
-        return f"DocumentDownloadFormat(mime_type={self.mime_type_identifier}, pages={self.page_total_quantity})"
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DocumentDownloadFormat":
         return cls(
             mime_type_identifier=data.get("mimeTypeIdentifier"),
-            download_url=data.get("downloadUrl"),
+            download_url=data.get("downloadURI"),
             page_total_quantity=data.get("pageTotalQuantity"),
         )
 
-
-@dataclass
-class Document:
-    """Represents a USPTO document.
-
-    This class provides an object-oriented representation of document data from the USPTO API.
-    It includes metadata about the document as well as available download formats.
-
-    Attributes:
-        application_number_text: Application number associated with the document
-        official_date: Date of the document
-        document_identifier: Unique identifier for the document
-        document_code: Code indicating document type
-        document_code_description_text: Human-readable description of document type
-        direction_category: Direction of document (e.g., INCOMING, OUTGOING)
-        download_formats: List of available download formats for this document
-    """
-
-    application_number_text: Optional[str] = None
-    official_date: Optional[str] = None
-    document_identifier: Optional[str] = None
-    document_code: Optional[str] = None
-    document_code_description_text: Optional[str] = None
-    direction_category: Optional[str] = None
-    download_formats: List[DocumentDownloadFormat] = field(default_factory=list)
-
-    def __str__(self) -> str:
-        """Return a user-friendly string representation of this document."""
-        return f"{self.official_date} {self.document_identifier}:{self.document_code} - {self.document_code_description_text}"
-
-    def __repr__(self) -> str:
-        """Return a detailed string representation for debugging."""
-        return f"Document(id={self.document_identifier}, code={self.document_code}, date={self.official_date}, formats={len(self.download_formats)})"
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Document":
-        download_formats = []
-        if "downloadOptionBag" in data:
-            download_formats = [
-                DocumentDownloadFormat.from_dict(format_data)
-                for format_data in data.get("downloadOptionBag", [])
-            ]
-
-        return cls(
-            application_number_text=data.get("applicationNumberText"),
-            official_date=data.get("officialDate"),
-            document_identifier=data.get("documentIdentifier"),
-            document_code=data.get("documentCode"),
-            document_code_description_text=data.get("documentCodeDescriptionText"),
-            direction_category=data.get("directionCategory"),
-            download_formats=download_formats,
-        )
-
-
-class DocumentBag:
-    """Collection of USPTO documents that supports iteration.
-
-    This class provides an object-oriented wrapper around document data from the USPTO API.
-    It implements iteration allowing you to loop directly over documents:
-
-    Example:
-        docs = client.get_application_documents("12345678")
-        for doc in docs:
-            print(doc.document_identifier)
-    """
-
-    def __init__(self, documents: List[Document]):
-        self.documents = documents
-
-    def __str__(self) -> str:
-        """Return a user-friendly string representation of the document bag."""
-        return f"DocumentBag with {len(self)} documents"
-
-    def __repr__(self) -> str:
-        """Return a detailed string representation for debugging."""
-        if len(self) == 0:
-            return "DocumentBag(empty)"
-
-        # Only include a preview of document identifiers if there are documents
-        preview = ", ".join(str(doc.document_identifier) for doc in self.documents[:3])
-        if len(self) > 3:
-            preview += f", ... ({len(self) - 3} more)"
-        return f"DocumentBag({len(self)} documents: {preview})"
-
-    def __iter__(self) -> Iterator[Document]:
-        return iter(self.documents)
-
-    def __len__(self) -> int:
-        return len(self.documents)
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DocumentBag":
-        documents = []
-        if "documentBag" in data:
-            documents = [
-                Document.from_dict(doc_data) for doc_data in data.get("documentBag", [])
-            ]
-        return cls(documents=documents)
-
-
-@dataclass
-class PatentDataResponse:
-    """Top-level response from the patent data API."""
-
-    count: int
-    patent_file_wrapper_data_bag: List["PatentFileWrapper"]
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PatentDataResponse":
-        """Create a PatentDataResponse object from a dictionary."""
-        return cls(
-            count=data.get("count", 0),
-            patent_file_wrapper_data_bag=[
-                PatentFileWrapper.from_dict(data=wrapper)
-                for wrapper in data.get("patentFileWrapperDataBag", [])
-            ],
-        )
-
     def to_dict(self) -> Dict[str, Any]:
-        """Convert the PatentDataResponse object to a dictionary."""
         return {
-            "count": self.count,
-            "patentFileWrapperDataBag": [
-                # If PatentFileWrapper had a to_dict method, we would use it here
-                # For now, we'll just return a basic representation
-                {
-                    "applicationNumberText": wrapper.application_number_text,
-                    # Add other fields as needed
-                }
-                for wrapper in self.patent_file_wrapper_data_bag
-            ],
-            # Add other fields that might be in the API response but not in our model
-            "documentBag": [],  # Empty placeholder for document bag
+            "mimeTypeIdentifier": self.mime_type_identifier,
+            "downloadURI": self.download_url,
+            "pageTotalQuantity": self.page_total_quantity,
         }
 
 
-@dataclass
-class Address:
-    """Represents an address in the patent data API."""
+@dataclass(frozen=True)
+class Document:
+    application_number_text: Optional[str] = None
+    official_date: Optional[datetime] = None
+    document_identifier: Optional[str] = None
+    document_code: Optional[str] = None
+    document_code_description_text: Optional[str] = None
+    direction_category: Optional[DirectionCategory] = None
+    download_formats: List[DocumentDownloadFormat] = field(default_factory=list)
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Document":
+        dl_formats = [
+            DocumentDownloadFormat.from_dict(f)
+            for f in data.get("downloadOptionBag", [])
+            if isinstance(f, dict)
+        ]
+        dir_val = data.get("documentDirectionCategory")
+        dir_cat = None
+        if dir_val:
+            try:
+                dir_cat = DirectionCategory(dir_val)
+            except ValueError:
+                print(f"Warning: Unknown document direction category '{dir_val}'.")
+        return cls(
+            application_number_text=data.get("applicationNumberText"),
+            official_date=parse_to_datetime_utc(data.get("officialDate")),
+            document_identifier=data.get("documentIdentifier"),
+            document_code=data.get("documentCode"),
+            document_code_description_text=data.get("documentCodeDescriptionText"),
+            direction_category=dir_cat,
+            download_formats=dl_formats,
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = {
+            "applicationNumberText": self.application_number_text,
+            "officialDate": serialize_datetime_as_iso(self.official_date),
+            "documentIdentifier": self.document_identifier,
+            "documentCode": self.document_code,
+            "documentCodeDescriptionText": self.document_code_description_text,
+            "documentDirectionCategory": (
+                self.direction_category.value if self.direction_category else None
+            ),
+            "downloadOptionBag": [df.to_dict() for df in self.download_formats],
+        }
+        return {
+            k: v
+            for k, v in d.items()
+            if v is not None and (not isinstance(v, list) or v)
+        }
+
+
+class DocumentBag:
+    def __init__(self, documents: List[Document]):
+        self._documents = tuple(documents)
+
+    @property
+    def documents(self) -> tuple[Document, ...]:
+        return self._documents
+
+    def __iter__(self) -> Iterator[Document]:
+        return iter(self._documents)
+
+    def __len__(self) -> int:
+        return len(self._documents)
+
+    def __getitem__(self, index: int) -> Document:
+        return self._documents[index]
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "DocumentBag":
+        docs_data = data.get("documentBag", [])
+        docs = (
+            [Document.from_dict(dd) for dd in docs_data if isinstance(dd, dict)]
+            if isinstance(docs_data, list)
+            else []
+        )
+        return cls(documents=docs)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"documentBag": [doc.to_dict() for doc in self._documents]}
+
+
+@dataclass(frozen=True)
+class Address:
     name_line_one_text: Optional[str] = None
     name_line_two_text: Optional[str] = None
     address_line_one_text: Optional[str] = None
@@ -201,7 +281,6 @@ class Address:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Address":
-        """Create an Address object from a dictionary."""
         return cls(
             name_line_one_text=data.get("nameLineOneText"),
             name_line_two_text=data.get("nameLineTwoText"),
@@ -219,29 +298,50 @@ class Address:
             correspondent_name_text=data.get("correspondentNameText"),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        # Preserving explicit camelCase keys for clarity with ODP schema
+        return {
+            "nameLineOneText": self.name_line_one_text,
+            "nameLineTwoText": self.name_line_two_text,
+            "addressLineOneText": self.address_line_one_text,
+            "addressLineTwoText": self.address_line_two_text,
+            "addressLineThreeText": self.address_line_three_text,
+            "addressLineFourText": self.address_line_four_text,
+            "geographicRegionName": self.geographic_region_name,
+            "geographicRegionCode": self.geographic_region_code,
+            "postalCode": self.postal_code,
+            "cityName": self.city_name,
+            "countryCode": self.country_code,
+            "countryName": self.country_name,
+            "postalAddressCategory": self.postal_address_category,
+            "correspondentNameText": self.correspondent_name_text,
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
 class Telecommunication:
-    """Represents telecommunication information."""
-
     telecommunication_number: Optional[str] = None
     extension_number: Optional[str] = None
     telecom_type_code: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Telecommunication":
-        """Create a Telecommunication object from a dictionary."""
         return cls(
             telecommunication_number=data.get("telecommunicationNumber"),
             extension_number=data.get("extensionNumber"),
             telecom_type_code=data.get("telecomTypeCode"),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "telecommunicationNumber": self.telecommunication_number,
+            "extensionNumber": self.extension_number,
+            "telecomTypeCode": self.telecom_type_code,
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
 class Person:
-    """Base class for person-related data."""
-
     first_name: Optional[str] = None
     middle_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -251,145 +351,164 @@ class Person:
     country_code: Optional[str] = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Person":
-        """Create a Person object from a dictionary."""
-        return cls(
-            first_name=data.get("firstName"),
-            middle_name=data.get("middleName"),
-            last_name=data.get("lastName"),
-            name_prefix=data.get("namePrefix"),
-            name_suffix=data.get("nameSuffix"),
-            preferred_name=data.get("preferredName"),
-            country_code=data.get("countryCode"),
-        )
+    def _extract_person_fields(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "first_name": data.get("firstName"),
+            "middle_name": data.get("middleName"),
+            "last_name": data.get("lastName"),
+            "name_prefix": data.get("namePrefix"),
+            "name_suffix": data.get("nameSuffix"),
+            "preferred_name": data.get("preferredName"),
+            "country_code": data.get("countryCode"),
+        }
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {to_camel_case(k): v for k, v in asdict(self).items() if v is not None}
 
 
-@dataclass
+@dataclass(frozen=True)
 class Applicant(Person):
-    """Represents an applicant in the patent data."""
-
     applicant_name_text: Optional[str] = None
     correspondence_address_bag: List[Address] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Applicant":
-        """Create an Applicant object from a dictionary."""
-        person = Person.from_dict(data=data)
-        addresses = []
-        if "correspondenceAddressBag" in data:
-            addresses = [
-                Address.from_dict(data=addr)
-                for addr in data.get("correspondenceAddressBag", [])
-            ]
-
+        pf = Person._extract_person_fields(data)
+        addrs = [
+            Address.from_dict(a)
+            for a in data.get("correspondenceAddressBag", [])
+            if isinstance(a, dict)
+        ]
         return cls(
-            first_name=person.first_name,
-            middle_name=person.middle_name,
-            last_name=person.last_name,
-            name_prefix=person.name_prefix,
-            name_suffix=person.name_suffix,
-            preferred_name=person.preferred_name,
-            country_code=person.country_code,
+            **pf,
             applicant_name_text=data.get("applicantNameText"),
-            correspondence_address_bag=addresses,
+            correspondence_address_bag=addrs,
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d.update(
+            {
+                "applicantNameText": self.applicant_name_text,
+                "correspondenceAddressBag": [
+                    a.to_dict() for a in self.correspondence_address_bag
+                ],
+            }
+        )
+        return {
+            k: v
+            for k, v in d.items()
+            if v is not None and (not isinstance(v, list) or v)
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
 class Inventor(Person):
-    """Represents an inventor in the patent data."""
-
     inventor_name_text: Optional[str] = None
     correspondence_address_bag: List[Address] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Inventor":
-        """Create an Inventor object from a dictionary."""
-        person = Person.from_dict(data=data)
-        addresses = []
-        if "correspondenceAddressBag" in data:
-            addresses = [
-                Address.from_dict(data=addr)
-                for addr in data.get("correspondenceAddressBag", [])
-            ]
-
+        pf = Person._extract_person_fields(data)
+        addrs = [
+            Address.from_dict(a)
+            for a in data.get("correspondenceAddressBag", [])
+            if isinstance(a, dict)
+        ]
         return cls(
-            first_name=person.first_name,
-            middle_name=person.middle_name,
-            last_name=person.last_name,
-            name_prefix=person.name_prefix,
-            name_suffix=person.name_suffix,
-            preferred_name=person.preferred_name,
-            country_code=person.country_code,
+            **pf,
             inventor_name_text=data.get("inventorNameText"),
-            correspondence_address_bag=addresses,
+            correspondence_address_bag=addrs,
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d.update(
+            {
+                "inventorNameText": self.inventor_name_text,
+                "correspondenceAddressBag": [
+                    a.to_dict() for a in self.correspondence_address_bag
+                ],
+            }
+        )
+        return {
+            k: v
+            for k, v in d.items()
+            if v is not None and (not isinstance(v, list) or v)
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
 class Attorney(Person):
-    """Represents an attorney in the patent data."""
-
     registration_number: Optional[str] = None
-    active_indicator: Optional[str] = None
+    active_indicator: Optional[str] = None  # TODO: Consider ActiveIndicator Enum
     registered_practitioner_category: Optional[str] = None
     attorney_address_bag: List[Address] = field(default_factory=list)
     telecommunication_address_bag: List[Telecommunication] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Attorney":
-        """Create an Attorney object from a dictionary."""
-        person = Person.from_dict(data=data)
-        addresses = []
-        if "attorneyAddressBag" in data:
-            addresses = [
-                Address.from_dict(data=addr)
-                for addr in data.get("attorneyAddressBag", [])
-            ]
-
-        telecom_addresses = []
-        if "telecommunicationAddressBag" in data:
-            telecom_addresses = [
-                Telecommunication.from_dict(data=telecom)
-                for telecom in data.get("telecommunicationAddressBag", [])
-            ]
-
+        pf = Person._extract_person_fields(data)
+        addrs = [
+            Address.from_dict(a)
+            for a in data.get("attorneyAddressBag", [])
+            if isinstance(a, dict)
+        ]
+        telecoms = [
+            Telecommunication.from_dict(t)
+            for t in data.get("telecommunicationAddressBag", [])
+            if isinstance(t, dict)
+        ]
         return cls(
-            first_name=person.first_name,
-            middle_name=person.middle_name,
-            last_name=person.last_name,
-            name_prefix=person.name_prefix,
-            name_suffix=person.name_suffix,
-            preferred_name=person.preferred_name,
-            country_code=person.country_code,
+            **pf,
             registration_number=data.get("registrationNumber"),
             active_indicator=data.get("activeIndicator"),
             registered_practitioner_category=data.get("registeredPractitionerCategory"),
-            attorney_address_bag=addresses,
-            telecommunication_address_bag=telecom_addresses,
+            attorney_address_bag=addrs,
+            telecommunication_address_bag=telecoms,
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d.update(
+            {
+                "registrationNumber": self.registration_number,
+                "activeIndicator": self.active_indicator,
+                "registeredPractitionerCategory": self.registered_practitioner_category,
+                "attorneyAddressBag": [a.to_dict() for a in self.attorney_address_bag],
+                "telecommunicationAddressBag": [
+                    t.to_dict() for t in self.telecommunication_address_bag
+                ],
+            }
+        )
+        return {
+            k: v
+            for k, v in d.items()
+            if v is not None and (not isinstance(v, list) or v)
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
 class EntityStatus:
-    """Represents entity status data."""
-
     small_entity_status_indicator: Optional[bool] = None
     business_entity_status_category: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "EntityStatus":
-        """Create an EntityStatus object from a dictionary."""
         return cls(
             small_entity_status_indicator=data.get("smallEntityStatusIndicator"),
             business_entity_status_category=data.get("businessEntityStatusCategory"),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "smallEntityStatusIndicator": self.small_entity_status_indicator,
+            "businessEntityStatusCategory": self.business_entity_status_category,
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
 class CustomerNumberCorrespondence:
-    """Represents customer number correspondence data."""
-
     patron_identifier: Optional[int] = None
     organization_standard_name: Optional[str] = None
     power_of_attorney_address_bag: List[Address] = field(default_factory=list)
@@ -397,39 +516,43 @@ class CustomerNumberCorrespondence:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CustomerNumberCorrespondence":
-        """Create a CustomerNumberCorrespondence object from a dictionary."""
-        addresses = []
-        if "powerOfAttorneyAddressBag" in data:
-            power_of_attorney_bag = data.get("powerOfAttorneyAddressBag", [])
-            # Ensure we only process dictionary objects
-            addresses = [
-                Address.from_dict(data=addr)
-                for addr in power_of_attorney_bag
-                if isinstance(addr, dict)
-            ]
-
-        telecom_addresses = []
-        if "telecommunicationAddressBag" in data:
-            telecom_bag = data.get("telecommunicationAddressBag", [])
-            # Ensure we only process dictionary objects
-            telecom_addresses = [
-                Telecommunication.from_dict(data=telecom)
-                for telecom in telecom_bag
-                if isinstance(telecom, dict)
-            ]
-
+        addrs = [
+            Address.from_dict(a)
+            for a in data.get("powerOfAttorneyAddressBag", [])
+            if isinstance(a, dict)
+        ]
+        telecoms = [
+            Telecommunication.from_dict(t)
+            for t in data.get("telecommunicationAddressBag", [])
+            if isinstance(t, dict)
+        ]
         return cls(
             patron_identifier=data.get("patronIdentifier"),
             organization_standard_name=data.get("organizationStandardName"),
-            power_of_attorney_address_bag=addresses,
-            telecommunication_address_bag=telecom_addresses,
+            power_of_attorney_address_bag=addrs,
+            telecommunication_address_bag=telecoms,
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = {
+            "patronIdentifier": self.patron_identifier,
+            "organizationStandardName": self.organization_standard_name,
+            "powerOfAttorneyAddressBag": [
+                a.to_dict() for a in self.power_of_attorney_address_bag
+            ],
+            "telecommunicationAddressBag": [
+                t.to_dict() for t in self.telecommunication_address_bag
+            ],
+        }
+        return {
+            k: v
+            for k, v in d.items()
+            if v is not None and (not isinstance(v, list) or v)
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
 class RecordAttorney:
-    """Represents record attorney data."""
-
     customer_number_correspondence_data: List[CustomerNumberCorrespondence] = field(
         default_factory=list
     )
@@ -438,84 +561,93 @@ class RecordAttorney:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "RecordAttorney":
-        """Create a RecordAttorney object from a dictionary."""
-        customer_correspondence = []
-        if "customerNumberCorrespondenceData" in data:
-            correspondence_data = data.get("customerNumberCorrespondenceData", [])
-            # Ensure we only process dictionary objects
-            customer_correspondence = [
-                CustomerNumberCorrespondence.from_dict(corr)
-                for corr in correspondence_data
-                if isinstance(corr, dict)
-            ]
-
-        power_attorneys = []
-        if "powerOfAttorneyBag" in data:
-            power_attorneys = [
-                Attorney.from_dict(data=attorney)
-                for attorney in data.get("powerOfAttorneyBag", [])
-            ]
-
-        attorneys = []
-        if "attorneyBag" in data:
-            attorneys = [
-                Attorney.from_dict(data=attorney)
-                for attorney in data.get("attorneyBag", [])
-            ]
-
+        cust_corr = [
+            CustomerNumberCorrespondence.from_dict(c)
+            for c in data.get("customerNumberCorrespondenceData", [])
+            if isinstance(c, dict)
+        ]
+        poa_bag = [
+            Attorney.from_dict(a)
+            for a in data.get("powerOfAttorneyBag", [])
+            if isinstance(a, dict)
+        ]
+        att_bag = [
+            Attorney.from_dict(a)
+            for a in data.get("attorneyBag", [])
+            if isinstance(a, dict)
+        ]
         return cls(
-            customer_number_correspondence_data=customer_correspondence,
-            power_of_attorney_bag=power_attorneys,
-            attorney_bag=attorneys,
+            customer_number_correspondence_data=cust_corr,
+            power_of_attorney_bag=poa_bag,
+            attorney_bag=att_bag,
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = {
+            "customerNumberCorrespondenceData": [
+                c.to_dict() for c in self.customer_number_correspondence_data
+            ],
+            "powerOfAttorneyBag": [p.to_dict() for p in self.power_of_attorney_bag],
+            "attorneyBag": [a.to_dict() for a in self.attorney_bag],
+        }
+        return {
+            k: v
+            for k, v in d.items()
+            if v is not None and (not isinstance(v, list) or v)
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
 class Assignor:
-    """Represents an assignor in an assignment."""
-
     assignor_name: Optional[str] = None
-    execution_date: Optional[str] = None
+    execution_date: Optional[date] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Assignor":
-        """Create an Assignor object from a dictionary."""
         return cls(
             assignor_name=data.get("assignorName"),
-            execution_date=data.get("executionDate"),
+            execution_date=parse_to_date(data.get("executionDate")),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "assignorName": self.assignor_name,
+            "executionDate": serialize_date(self.execution_date),
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
 class Assignee:
-    """Represents an assignee in an assignment."""
-
     assignee_name_text: Optional[str] = None
     assignee_address: Optional[Address] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Assignee":
-        """Create an Assignee object from a dictionary."""
-        address = None
-        if "assigneeAddress" in data and data.get("assigneeAddress") is not None:
-            address = Address.from_dict(data=data.get("assigneeAddress", {}))
-
+        addr_data = data.get("assigneeAddress")
+        addr = Address.from_dict(addr_data) if isinstance(addr_data, dict) else None
         return cls(
-            assignee_name_text=data.get("assigneeNameText"), assignee_address=address
+            assignee_name_text=data.get("assigneeNameText"), assignee_address=addr
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = {
+            "assigneeNameText": self.assignee_name_text,
+            "assigneeAddress": (
+                self.assignee_address.to_dict() if self.assignee_address else None
+            ),
+        }
+        return {k: v for k, v in d.items() if v is not None}
 
-@dataclass
+
+@dataclass(frozen=True)
 class Assignment:
-    """Represents an assignment in the patent data."""
-
-    reel_number: Optional[int] = None
-    frame_number: Optional[int] = None
+    reel_number: Optional[str] = None
+    frame_number: Optional[str] = None
     reel_and_frame_number: Optional[str] = None
     assignment_document_location_uri: Optional[str] = None
-    assignment_received_date: Optional[str] = None
-    assignment_recorded_date: Optional[str] = None
-    assignment_mailed_date: Optional[str] = None
+    assignment_received_date: Optional[date] = None
+    assignment_recorded_date: Optional[date] = None
+    assignment_mailed_date: Optional[date] = None
     conveyance_text: Optional[str] = None
     assignor_bag: List[Assignor] = field(default_factory=list)
     assignee_bag: List[Assignee] = field(default_factory=list)
@@ -523,89 +655,118 @@ class Assignment:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Assignment":
-        """Create an Assignment object from a dictionary."""
-        assignors = []
-        if "assignorBag" in data:
-            assignors = [
-                Assignor.from_dict(data=assignor)
-                for assignor in data.get("assignorBag", [])
-            ]
-
-        assignees = []
-        if "assigneeBag" in data:
-            assignees = [
-                Assignee.from_dict(data=assignee)
-                for assignee in data.get("assigneeBag", [])
-            ]
-
-        addresses = []
-        if "correspondenceAddressBag" in data:
-            addresses = [
-                Address.from_dict(data=addr)
-                for addr in data.get("correspondenceAddressBag", [])
-            ]
-
+        assignors = [
+            Assignor.from_dict(a)
+            for a in data.get("assignorBag", [])
+            if isinstance(a, dict)
+        ]
+        assignees = [
+            Assignee.from_dict(a)
+            for a in data.get("assigneeBag", [])
+            if isinstance(a, dict)
+        ]
+        addrs = [
+            Address.from_dict(a)
+            for a in data.get("correspondenceAddressBag", [])
+            if isinstance(a, dict)
+        ]
         return cls(
             reel_number=data.get("reelNumber"),
             frame_number=data.get("frameNumber"),
             reel_and_frame_number=data.get("reelAndFrameNumber"),
             assignment_document_location_uri=data.get("assignmentDocumentLocationURI"),
-            assignment_received_date=data.get("assignmentReceivedDate"),
-            assignment_recorded_date=data.get("assignmentRecordedDate"),
-            assignment_mailed_date=data.get("assignmentMailedDate"),
+            assignment_received_date=parse_to_date(data.get("assignmentReceivedDate")),
+            assignment_recorded_date=parse_to_date(data.get("assignmentRecordedDate")),
+            assignment_mailed_date=parse_to_date(data.get("assignmentMailedDate")),
             conveyance_text=data.get("conveyanceText"),
             assignor_bag=assignors,
             assignee_bag=assignees,
-            correspondence_address_bag=addresses,
+            correspondence_address_bag=addrs,
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "reelNumber": self.reel_number,
+            "frameNumber": self.frame_number,
+            "reelAndFrameNumber": self.reel_and_frame_number,
+            "assignmentDocumentLocationURI": self.assignment_document_location_uri,
+            "assignmentReceivedDate": serialize_date(self.assignment_received_date),
+            "assignmentRecordedDate": serialize_date(self.assignment_recorded_date),
+            "assignmentMailedDate": serialize_date(self.assignment_mailed_date),
+            "conveyanceText": self.conveyance_text,
+            "assignorBag": [a.to_dict() for a in self.assignor_bag],
+            "assigneeBag": [a.to_dict() for a in self.assignee_bag],
+            "correspondenceAddressBag": [
+                a.to_dict() for a in self.correspondence_address_bag
+            ],
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
 class ForeignPriority:
-    """Represents foreign priority information."""
-
     ip_office_name: Optional[str] = None
-    filing_date: Optional[str] = None
+    filing_date: Optional[date] = None
     application_number_text: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ForeignPriority":
-        """Create a ForeignPriority object from a dictionary."""
         return cls(
             ip_office_name=data.get("ipOfficeName"),
-            filing_date=data.get("filingDate"),
+            filing_date=parse_to_date(data.get("filingDate")),
             application_number_text=data.get("applicationNumberText"),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "ipOfficeName": self.ip_office_name,
+            "filingDate": serialize_date(self.filing_date),
+            "applicationNumberText": self.application_number_text,
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
 class Continuity:
-    """Base class for continuity information."""
-
     first_inventor_to_file_indicator: Optional[bool] = None
     application_number_text: Optional[str] = None
-    filing_date: Optional[str] = None
+    filing_date: Optional[date] = None
     status_code: Optional[int] = None
     status_description_text: Optional[str] = None
     patent_number: Optional[str] = None
     claim_parentage_type_code: Optional[str] = None
     claim_parentage_type_code_description_text: Optional[str] = None
 
+    @property
+    def is_aia(self) -> Optional[bool]:
+        return self.first_inventor_to_file_indicator
 
-@dataclass
+    @property
+    def is_pre_aia(self) -> Optional[bool]:
+        if self.first_inventor_to_file_indicator is None:
+            return None
+        return not self.first_inventor_to_file_indicator
+
+    def to_dict(self) -> Dict[str, Any]:
+        # Base to_dict for Continuity might not be directly used if subclasses serialize the full ODP structure.
+        # This version excludes properties and converts keys.
+        return {
+            to_camel_case(k): v
+            for k, v in asdict(self).items()
+            if v is not None and not k.startswith("is_")
+        }
+
+
+@dataclass(frozen=True)
 class ParentContinuity(Continuity):
-    """Represents parent continuity information."""
-
     parent_application_status_code: Optional[int] = None
     parent_patent_number: Optional[str] = None
     parent_application_status_description_text: Optional[str] = None
-    parent_application_filing_date: Optional[str] = None
+    parent_application_filing_date: Optional[date] = None
     parent_application_number_text: Optional[str] = None
     child_application_number_text: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ParentContinuity":
-        """Create a ParentContinuity object from a dictionary."""
+        p_filing_date = parse_to_date(data.get("parentApplicationFilingDate"))
         return cls(
             first_inventor_to_file_indicator=data.get("firstInventorToFileIndicator"),
             parent_application_status_code=data.get("parentApplicationStatusCode"),
@@ -613,36 +774,48 @@ class ParentContinuity(Continuity):
             parent_application_status_description_text=data.get(
                 "parentApplicationStatusDescriptionText"
             ),
-            parent_application_filing_date=data.get("parentApplicationFilingDate"),
+            parent_application_filing_date=p_filing_date,
             parent_application_number_text=data.get("parentApplicationNumberText"),
             child_application_number_text=data.get("childApplicationNumberText"),
             claim_parentage_type_code=data.get("claimParentageTypeCode"),
             claim_parentage_type_code_description_text=data.get(
                 "claimParentageTypeCodeDescriptionText"
             ),
-            # Map parent-specific fields to base class fields
+            application_number_text=data.get("parentApplicationNumberText"),
+            filing_date=p_filing_date,
             status_code=data.get("parentApplicationStatusCode"),
             status_description_text=data.get("parentApplicationStatusDescriptionText"),
-            filing_date=data.get("parentApplicationFilingDate"),
-            application_number_text=data.get("parentApplicationNumberText"),
             patent_number=data.get("parentPatentNumber"),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "firstInventorToFileIndicator": self.first_inventor_to_file_indicator,
+            "parentApplicationStatusCode": self.parent_application_status_code,
+            "parentPatentNumber": self.parent_patent_number,
+            "parentApplicationStatusDescriptionText": self.parent_application_status_description_text,
+            "parentApplicationFilingDate": serialize_date(
+                self.parent_application_filing_date
+            ),
+            "parentApplicationNumberText": self.parent_application_number_text,
+            "childApplicationNumberText": self.child_application_number_text,
+            "claimParentageTypeCode": self.claim_parentage_type_code,
+            "claimParentageTypeCodeDescriptionText": self.claim_parentage_type_code_description_text,
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
 class ChildContinuity(Continuity):
-    """Represents child continuity information."""
-
     child_application_status_code: Optional[int] = None
     parent_application_number_text: Optional[str] = None
     child_application_number_text: Optional[str] = None
     child_application_status_description_text: Optional[str] = None
-    child_application_filing_date: Optional[str] = None
+    child_application_filing_date: Optional[date] = None
     child_patent_number: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ChildContinuity":
-        """Create a ChildContinuity object from a dictionary."""
+        c_filing_date = parse_to_date(data.get("childApplicationFilingDate"))
         return cls(
             first_inventor_to_file_indicator=data.get("firstInventorToFileIndicator"),
             child_application_status_code=data.get("childApplicationStatusCode"),
@@ -651,26 +824,38 @@ class ChildContinuity(Continuity):
             child_application_status_description_text=data.get(
                 "childApplicationStatusDescriptionText"
             ),
-            child_application_filing_date=data.get("childApplicationFilingDate"),
+            child_application_filing_date=c_filing_date,
             child_patent_number=data.get("childPatentNumber"),
             claim_parentage_type_code=data.get("claimParentageTypeCode"),
             claim_parentage_type_code_description_text=data.get(
                 "claimParentageTypeCodeDescriptionText"
             ),
-            # Map child-specific fields to base class fields
+            application_number_text=data.get("childApplicationNumberText"),
+            filing_date=c_filing_date,
             status_code=data.get("childApplicationStatusCode"),
             status_description_text=data.get("childApplicationStatusDescriptionText"),
-            filing_date=data.get("childApplicationFilingDate"),
-            application_number_text=data.get("childApplicationNumberText"),
             patent_number=data.get("childPatentNumber"),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "childApplicationStatusCode": self.child_application_status_code,
+            "parentApplicationNumberText": self.parent_application_number_text,
+            "childApplicationNumberText": self.child_application_number_text,
+            "childApplicationStatusDescriptionText": self.child_application_status_description_text,
+            "childApplicationFilingDate": serialize_date(
+                self.child_application_filing_date
+            ),
+            "firstInventorToFileIndicator": self.first_inventor_to_file_indicator,
+            "childPatentNumber": self.child_patent_number,
+            "claimParentageTypeCode": self.claim_parentage_type_code,
+            "claimParentageTypeCodeDescriptionText": self.claim_parentage_type_code_description_text,
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
 class PatentTermAdjustmentHistoryData:
-    """Represents patent term adjustment history data."""
-
-    event_date: Optional[str] = None
+    event_date: Optional[date] = None
     applicant_day_delay_quantity: Optional[float] = None
     event_description_text: Optional[str] = None
     event_sequence_number: Optional[float] = None
@@ -680,9 +865,8 @@ class PatentTermAdjustmentHistoryData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PatentTermAdjustmentHistoryData":
-        """Create a PatentTermAdjustmentHistoryData object from a dictionary."""
         return cls(
-            event_date=data.get("eventDate"),
+            event_date=parse_to_date(data.get("eventDate")),
             applicant_day_delay_quantity=data.get("applicantDayDelayQuantity"),
             event_description_text=data.get("eventDescriptionText"),
             event_sequence_number=data.get("eventSequenceNumber"),
@@ -693,18 +877,21 @@ class PatentTermAdjustmentHistoryData:
             pta_pte_code=data.get("ptaPTECode"),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = asdict(self)
+        d["eventDate"] = serialize_date(self.event_date)
+        return {to_camel_case(k): v for k, v in d.items() if v is not None}
 
-@dataclass
+
+@dataclass(frozen=True)
 class PatentTermAdjustmentData:
-    """Represents patent term adjustment data."""
-
     a_delay_quantity: Optional[float] = None
     adjustment_total_quantity: Optional[float] = None
     applicant_day_delay_quantity: Optional[float] = None
     b_delay_quantity: Optional[float] = None
     c_delay_quantity: Optional[float] = None
-    filing_date: Optional[str] = None
-    grant_date: Optional[str] = None
+    filing_date: Optional[date] = None
+    grant_date: Optional[date] = None
     non_overlapping_day_quantity: Optional[float] = None
     overlapping_day_quantity: Optional[float] = None
     ip_office_day_delay_quantity: Optional[float] = None
@@ -714,88 +901,100 @@ class PatentTermAdjustmentData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PatentTermAdjustmentData":
-        """Create a PatentTermAdjustmentData object from a dictionary."""
-        history_data = []
-        if "patentTermAdjustmentHistoryDataBag" in data:
-            history_data = [
-                PatentTermAdjustmentHistoryData.from_dict(history)
-                for history in data.get("patentTermAdjustmentHistoryDataBag", [])
-            ]
-
+        history = [
+            PatentTermAdjustmentHistoryData.from_dict(h)
+            for h in data.get("patentTermAdjustmentHistoryDataBag", [])
+            if isinstance(h, dict)
+        ]
         return cls(
             a_delay_quantity=data.get("aDelayQuantity"),
             adjustment_total_quantity=data.get("adjustmentTotalQuantity"),
             applicant_day_delay_quantity=data.get("applicantDayDelayQuantity"),
             b_delay_quantity=data.get("bDelayQuantity"),
             c_delay_quantity=data.get("cDelayQuantity"),
-            filing_date=data.get("filingDate"),
-            grant_date=data.get("grantDate"),
+            filing_date=parse_to_date(data.get("filingDate")),
+            grant_date=parse_to_date(data.get("grantDate")),
             non_overlapping_day_quantity=data.get("nonOverlappingDayQuantity"),
             overlapping_day_quantity=data.get("overlappingDayQuantity"),
             ip_office_day_delay_quantity=data.get("ipOfficeDayDelayQuantity"),
-            patent_term_adjustment_history_data_bag=history_data,
+            patent_term_adjustment_history_data_bag=history,
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = asdict(self)
+        d["filingDate"] = serialize_date(self.filing_date)
+        d["grantDate"] = serialize_date(self.grant_date)
+        d["patentTermAdjustmentHistoryDataBag"] = [
+            h.to_dict() for h in self.patent_term_adjustment_history_data_bag
+        ]
+        return {
+            to_camel_case(k): v
+            for k, v in d.items()
+            if v is not None and (not isinstance(v, list) or v)
+        }
 
-@dataclass
-class Event:
-    """Represents an event in the patent data."""
 
+@dataclass(frozen=True)
+class EventData:
     event_code: Optional[str] = None
     event_description_text: Optional[str] = None
-    event_date: Optional[str] = None
+    event_date: Optional[date] = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Event":
-        """Create an Event object from a dictionary."""
+    def from_dict(cls, data: Dict[str, Any]) -> "EventData":
         return cls(
             event_code=data.get("eventCode"),
             event_description_text=data.get("eventDescriptionText"),
-            event_date=data.get("eventDate"),
+            event_date=parse_to_date(data.get("eventDate")),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = asdict(self)
+        d["eventDate"] = serialize_date(self.event_date)
+        return {to_camel_case(k): v for k, v in d.items() if v is not None}
 
-@dataclass
+
+@dataclass(frozen=True)
 class DocumentMetaData:
-    """Represents document metadata."""
-
     zip_file_name: Optional[str] = None
     product_identifier: Optional[str] = None
     file_location_uri: Optional[str] = None
-    file_create_date_time: Optional[str] = None
+    file_create_date_time: Optional[datetime] = None
     xml_file_name: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DocumentMetaData":
-        """Create a DocumentMetaData object from a dictionary."""
         return cls(
             zip_file_name=data.get("zipFileName"),
             product_identifier=data.get("productIdentifier"),
             file_location_uri=data.get("fileLocationURI"),
-            file_create_date_time=data.get("fileCreateDateTime"),
+            file_create_date_time=parse_to_datetime_utc(data.get("fileCreateDateTime")),
             xml_file_name=data.get("xmlFileName"),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = asdict(self)
+        d["fileCreateDateTime"] = serialize_datetime_as_iso(self.file_create_date_time)
+        return {to_camel_case(k): v for k, v in d.items() if v is not None}
 
-@dataclass
+
+@dataclass(frozen=True)
 class ApplicationMetaData:
-    """Represents application metadata."""
-
     national_stage_indicator: Optional[bool] = None
     entity_status_data: Optional[EntityStatus] = None
-    publication_date_bag: List[str] = field(default_factory=list)
+    publication_date_bag: List[date] = field(default_factory=list)
     publication_sequence_number_bag: List[str] = field(default_factory=list)
     publication_category_bag: List[str] = field(default_factory=list)
     docket_number: Optional[str] = None
-    first_inventor_to_file_indicator: Optional[str] = None
+    first_inventor_to_file_indicator: Optional[bool] = None
     first_applicant_name: Optional[str] = None
     first_inventor_name: Optional[str] = None
-    application_confirmation_number: Optional[int] = None
-    application_status_date: Optional[str] = None
+    application_confirmation_number: Optional[str] = None
+    application_status_date: Optional[date] = None
     application_status_description_text: Optional[str] = None
-    filing_date: Optional[str] = None
-    effective_filing_date: Optional[str] = None
-    grant_date: Optional[str] = None
+    filing_date: Optional[date] = None
+    effective_filing_date: Optional[date] = None
+    grant_date: Optional[date] = None
     group_art_unit_number: Optional[str] = None
     application_type_code: Optional[str] = None
     application_type_label_name: Optional[str] = None
@@ -804,13 +1003,13 @@ class ApplicationMetaData:
     patent_number: Optional[str] = None
     application_status_code: Optional[int] = None
     earliest_publication_number: Optional[str] = None
-    earliest_publication_date: Optional[str] = None
+    earliest_publication_date: Optional[date] = None
     pct_publication_number: Optional[str] = None
-    pct_publication_date: Optional[str] = None
-    international_registration_publication_date: Optional[str] = None
+    pct_publication_date: Optional[date] = None
+    international_registration_publication_date: Optional[date] = None
     international_registration_number: Optional[str] = None
     examiner_name_text: Optional[str] = None
-    class_field: Optional[str] = None  # 'class' is a reserved keyword
+    class_field: Optional[str] = None
     subclass: Optional[str] = None
     uspc_symbol_text: Optional[str] = None
     customer_number: Optional[int] = None
@@ -818,49 +1017,61 @@ class ApplicationMetaData:
     applicant_bag: List[Applicant] = field(default_factory=list)
     inventor_bag: List[Inventor] = field(default_factory=list)
 
+    @property
+    def is_aia(self) -> Optional[bool]:
+        return self.first_inventor_to_file_indicator
+
+    @property
+    def is_pre_aia(self) -> Optional[bool]:
+        if self.first_inventor_to_file_indicator is None:
+            return None
+        return not self.first_inventor_to_file_indicator
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ApplicationMetaData":
-        """Create an ApplicationMetaData object from a dictionary."""
-        entity_status = None
-        if "entityStatusData" in data and data.get("entityStatusData") is not None:
-            entity_status = EntityStatus.from_dict(
-                data=data.get("entityStatusData", {})
-            )
-
-        applicants = []
-        if "applicantBag" in data:
-            applicants = [
-                Applicant.from_dict(data=applicant)
-                for applicant in data.get("applicantBag", [])
-            ]
-
-        inventors = []
-        if "inventorBag" in data:
-            inventors = [
-                Inventor.from_dict(data=inventor)
-                for inventor in data.get("inventorBag", [])
-            ]
-
+        entity = (
+            EntityStatus.from_dict(data["entityStatusData"])
+            if isinstance(data.get("entityStatusData"), dict)
+            else None
+        )
+        app_bag = [
+            Applicant.from_dict(a)
+            for a in data.get("applicantBag", [])
+            if isinstance(a, dict)
+        ]
+        inv_bag = [
+            Inventor.from_dict(i)
+            for i in data.get("inventorBag", [])
+            if isinstance(i, dict)
+        ]
+        pub_dates_str = data.get("publicationDateBag", [])
+        pub_dates = (
+            [parse_to_date(d) for d in pub_dates_str if isinstance(d, str)]
+            if isinstance(pub_dates_str, list)
+            else []
+        )
+        fitf_indicator_str = data.get("firstInventorToFileIndicator")
+        fitf_indicator_bool = parse_yn_to_bool(fitf_indicator_str)
         return cls(
             national_stage_indicator=data.get("nationalStageIndicator"),
-            entity_status_data=entity_status,
-            publication_date_bag=data.get("publicationDateBag", []),
+            entity_status_data=entity,
+            publication_date_bag=[d for d in pub_dates if d is not None],
             publication_sequence_number_bag=data.get(
                 "publicationSequenceNumberBag", []
             ),
             publication_category_bag=data.get("publicationCategoryBag", []),
             docket_number=data.get("docketNumber"),
-            first_inventor_to_file_indicator=data.get("firstInventorToFileIndicator"),
+            first_inventor_to_file_indicator=fitf_indicator_bool,
             first_applicant_name=data.get("firstApplicantName"),
             first_inventor_name=data.get("firstInventorName"),
             application_confirmation_number=data.get("applicationConfirmationNumber"),
-            application_status_date=data.get("applicationStatusDate"),
+            application_status_date=parse_to_date(data.get("applicationStatusDate")),
             application_status_description_text=data.get(
                 "applicationStatusDescriptionText"
             ),
-            filing_date=data.get("filingDate"),
-            effective_filing_date=data.get("effectiveFilingDate"),
-            grant_date=data.get("grantDate"),
+            filing_date=parse_to_date(data.get("filingDate")),
+            effective_filing_date=parse_to_date(data.get("effectiveFilingDate")),
+            grant_date=parse_to_date(data.get("grantDate")),
             group_art_unit_number=data.get("groupArtUnitNumber"),
             application_type_code=data.get("applicationTypeCode"),
             application_type_label_name=data.get("applicationTypeLabelName"),
@@ -869,30 +1080,101 @@ class ApplicationMetaData:
             patent_number=data.get("patentNumber"),
             application_status_code=data.get("applicationStatusCode"),
             earliest_publication_number=data.get("earliestPublicationNumber"),
-            earliest_publication_date=data.get("earliestPublicationDate"),
+            earliest_publication_date=parse_to_date(
+                data.get("earliestPublicationDate")
+            ),
             pct_publication_number=data.get("pctPublicationNumber"),
-            pct_publication_date=data.get("pctPublicationDate"),
-            international_registration_publication_date=data.get(
-                "internationalRegistrationPublicationDate"
+            pct_publication_date=parse_to_date(data.get("pctPublicationDate")),
+            international_registration_publication_date=parse_to_date(
+                data.get("internationalRegistrationPublicationDate")
             ),
             international_registration_number=data.get(
                 "internationalRegistrationNumber"
             ),
             examiner_name_text=data.get("examinerNameText"),
-            class_field=data.get("class"),  # Renamed due to reserved keyword
+            class_field=data.get("class"),
             subclass=data.get("subclass"),
             uspc_symbol_text=data.get("uspcSymbolText"),
             customer_number=data.get("customerNumber"),
             cpc_classification_bag=data.get("cpcClassificationBag", []),
-            applicant_bag=applicants,
-            inventor_bag=inventors,
+            applicant_bag=app_bag,
+            inventor_bag=inv_bag,
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = asdict(self)
+        d.pop("is_aia", None)
+        d.pop("is_pre_aia", None)
+        date_fields = [
+            "application_status_date",
+            "filing_date",
+            "effective_filing_date",
+            "grant_date",
+            "earliest_publication_date",
+            "pct_publication_date",
+            "international_registration_publication_date",
+        ]
+        for field_name in date_fields:
+            camel_key = to_camel_case(field_name)
+            d[camel_key] = serialize_date(getattr(self, field_name, None))
+            if field_name != camel_key:
+                d.pop(field_name, None)
+        d["publicationDateBag"] = [
+            serialize_date(dt) for dt in self.publication_date_bag if dt
+        ]
+        if (
+            "publication_date_bag" in d
+            and "publication_date_bag" != "publicationDateBag"
+        ):
+            d.pop("publication_date_bag")
+        d["firstInventorToFileIndicator"] = serialize_bool_to_yn(
+            self.first_inventor_to_file_indicator
+        )
+        if (
+            "first_inventor_to_file_indicator" in d
+            and "first_inventor_to_file_indicator" != "firstInventorToFileIndicator"
+        ):
+            d.pop("first_inventor_to_file_indicator")
+        if self.entity_status_data:
+            d["entityStatusData"] = self.entity_status_data.to_dict()
+        else:
+            d.pop("entityStatusData", None)
+            d.pop("entity_status_data", None)
+        d["applicantBag"] = [a.to_dict() for a in self.applicant_bag]
+        if "applicant_bag" in d and "applicant_bag" != "applicantBag":
+            d.pop("applicant_bag")
+        d["inventorBag"] = [i.to_dict() for i in self.inventor_bag]
+        if "inventor_bag" in d and "inventor_bag" != "inventorBag":
+            d.pop("inventor_bag")
+        if "class_field" in d:
+            d["class"] = d.pop("class_field")
+        elif "class" in d and d["class"] is None:
+            d.pop("class", None)
+        final_data = {}
+        for k_snake, v_obj in d.items():
+            if k_snake.startswith("is_"):
+                continue
+            k_camel = to_camel_case(k_snake)
+            if k_snake == "class_field":
+                k_camel = "class"
+            # Preserve already camelCased keys from specific serializations
+            if k_snake in [
+                "firstInventorToFileIndicator",
+                "publicationDateBag",
+                "entityStatusData",
+                "applicantBag",
+                "inventorBag",
+            ] or any(to_camel_case(df) == k_snake for df in date_fields):
+                k_camel = k_snake
+            if v_obj is not None:
+                if isinstance(v_obj, list) and not v_obj:
+                    continue
+                final_data[k_camel] = v_obj
+        return final_data
 
-@dataclass
+
+@dataclass(frozen=True)
 class PatentFileWrapper:
-    """Represents a patent file wrapper."""
-
     application_number_text: Optional[str] = None
     application_meta_data: Optional[ApplicationMetaData] = None
     correspondence_address_bag: List[Address] = field(default_factory=list)
@@ -902,207 +1184,294 @@ class PatentFileWrapper:
     parent_continuity_bag: List[ParentContinuity] = field(default_factory=list)
     child_continuity_bag: List[ChildContinuity] = field(default_factory=list)
     patent_term_adjustment_data: Optional[PatentTermAdjustmentData] = None
-    event_data_bag: List[Event] = field(default_factory=list)
+    event_data_bag: List[EventData] = field(default_factory=list)
     pgpub_document_meta_data: Optional[DocumentMetaData] = None
     grant_document_meta_data: Optional[DocumentMetaData] = None
-    last_ingestion_date_time: Optional[str] = None
+    last_ingestion_date_time: Optional[datetime] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PatentFileWrapper":
-        """Create a PatentFileWrapper object from a dictionary."""
-        application_meta = None
-        if (
-            "applicationMetaData" in data
-            and data.get("applicationMetaData") is not None
-        ):
-            application_meta = ApplicationMetaData.from_dict(
-                data=data.get("applicationMetaData", {})
-            )
-
-        addresses = []
-        if "correspondenceAddressBag" in data:
-            addresses = [
-                Address.from_dict(data=addr)
-                for addr in data.get("correspondenceAddressBag", [])
-            ]
-
-        assignments = []
-        if "assignmentBag" in data:
-            assignments = [
-                Assignment.from_dict(data=assignment)
-                for assignment in data.get("assignmentBag", [])
-            ]
-
-        record_atty = None
-        if "recordAttorney" in data and data.get("recordAttorney") is not None:
-            record_atty = RecordAttorney.from_dict(data=data.get("recordAttorney", {}))
-
-        foreign_priorities = []
-        if "foreignPriorityBag" in data:
-            foreign_priorities = [
-                ForeignPriority.from_dict(data=priority)
-                for priority in data.get("foreignPriorityBag", [])
-            ]
-
-        parent_continuities = []
-        if "parentContinuityBag" in data:
-            parent_continuities = [
-                ParentContinuity.from_dict(data=continuity)
-                for continuity in data.get("parentContinuityBag", [])
-            ]
-
-        child_continuities = []
-        if "childContinuityBag" in data:
-            child_continuities = [
-                ChildContinuity.from_dict(data=continuity)
-                for continuity in data.get("childContinuityBag", [])
-            ]
-
-        patent_term = None
-        if (
-            "patentTermAdjustmentData" in data
-            and data.get("patentTermAdjustmentData") is not None
-        ):
-            patent_term = PatentTermAdjustmentData.from_dict(
-                data=data.get("patentTermAdjustmentData", {})
-            )
-
-        events = []
-        if "eventDataBag" in data:
-            events = [
-                Event.from_dict(data=event) for event in data.get("eventDataBag", [])
-            ]
-
-        pgpub_meta = None
-        if (
-            "pgpubDocumentMetaData" in data
-            and data.get("pgpubDocumentMetaData") is not None
-        ):
-            pgpub_meta = DocumentMetaData.from_dict(
-                data=data.get("pgpubDocumentMetaData", {})
-            )
-
-        grant_meta = None
-        if (
-            "grantDocumentMetaData" in data
-            and data.get("grantDocumentMetaData") is not None
-        ):
-            grant_meta = DocumentMetaData.from_dict(
-                data=data.get("grantDocumentMetaData", {})
-            )
-
+        amd_json = data.get("applicationMetaData")
+        amd = (
+            ApplicationMetaData.from_dict(amd_json)
+            if isinstance(amd_json, dict)
+            else None
+        )
+        corr_addrs = [
+            Address.from_dict(a)
+            for a in data.get("correspondenceAddressBag", [])
+            if isinstance(a, dict)
+        ]
+        assigns = [
+            Assignment.from_dict(a)
+            for a in data.get("assignmentBag", [])
+            if isinstance(a, dict)
+        ]
+        rec_att_json = data.get("recordAttorney")
+        rec_att = (
+            RecordAttorney.from_dict(rec_att_json)
+            if isinstance(rec_att_json, dict)
+            else None
+        )
+        f_pris = [
+            ForeignPriority.from_dict(fp)
+            for fp in data.get("foreignPriorityBag", [])
+            if isinstance(fp, dict)
+        ]
+        p_conts = [
+            ParentContinuity.from_dict(pc)
+            for pc in data.get("parentContinuityBag", [])
+            if isinstance(pc, dict)
+        ]
+        c_conts = [
+            ChildContinuity.from_dict(cc)
+            for cc in data.get("childContinuityBag", [])
+            if isinstance(cc, dict)
+        ]
+        pta_json = data.get("patentTermAdjustmentData")
+        pta = (
+            PatentTermAdjustmentData.from_dict(pta_json)
+            if isinstance(pta_json, dict)
+            else None
+        )
+        evts = [
+            EventData.from_dict(e)
+            for e in data.get("eventDataBag", [])
+            if isinstance(e, dict)
+        ]
+        pgpub_json = data.get("pgpubDocumentMetaData")
+        pgpub = (
+            DocumentMetaData.from_dict(pgpub_json)
+            if isinstance(pgpub_json, dict)
+            else None
+        )
+        grant_json = data.get("grantDocumentMetaData")
+        grant = (
+            DocumentMetaData.from_dict(grant_json)
+            if isinstance(grant_json, dict)
+            else None
+        )
         return cls(
             application_number_text=data.get("applicationNumberText"),
-            application_meta_data=application_meta,
-            correspondence_address_bag=addresses,
-            assignment_bag=assignments,
-            record_attorney=record_atty,
-            foreign_priority_bag=foreign_priorities,
-            parent_continuity_bag=parent_continuities,
-            child_continuity_bag=child_continuities,
-            patent_term_adjustment_data=patent_term,
-            event_data_bag=events,
-            pgpub_document_meta_data=pgpub_meta,
-            grant_document_meta_data=grant_meta,
-            last_ingestion_date_time=data.get("lastIngestionDateTime"),
+            application_meta_data=amd,
+            correspondence_address_bag=corr_addrs,
+            assignment_bag=assigns,
+            record_attorney=rec_att,
+            foreign_priority_bag=f_pris,
+            parent_continuity_bag=p_conts,
+            child_continuity_bag=c_conts,
+            patent_term_adjustment_data=pta,
+            event_data_bag=evts,
+            pgpub_document_meta_data=pgpub,
+            grant_document_meta_data=grant,
+            last_ingestion_date_time=parse_to_datetime_utc(
+                data.get("lastIngestionDateTime")
+            ),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        _dict = {
+            "applicationNumberText": self.application_number_text,
+            "applicationMetaData": (
+                self.application_meta_data.to_dict()
+                if self.application_meta_data
+                else None
+            ),
+            "correspondenceAddressBag": [
+                a.to_dict() for a in self.correspondence_address_bag
+            ],
+            "assignmentBag": [a.to_dict() for a in self.assignment_bag],
+            "recordAttorney": (
+                self.record_attorney.to_dict() if self.record_attorney else None
+            ),
+            "foreignPriorityBag": [fp.to_dict() for fp in self.foreign_priority_bag],
+            "parentContinuityBag": [pc.to_dict() for pc in self.parent_continuity_bag],
+            "childContinuityBag": [cc.to_dict() for cc in self.child_continuity_bag],
+            "patentTermAdjustmentData": (
+                self.patent_term_adjustment_data.to_dict()
+                if self.patent_term_adjustment_data
+                else None
+            ),
+            "eventDataBag": [e.to_dict() for e in self.event_data_bag],
+            "pgpubDocumentMetaData": (
+                self.pgpub_document_meta_data.to_dict()
+                if self.pgpub_document_meta_data
+                else None
+            ),
+            "grantDocumentMetaData": (
+                self.grant_document_meta_data.to_dict()
+                if self.grant_document_meta_data
+                else None
+            ),
+            "lastIngestionDateTime": serialize_datetime_as_iso(
+                self.last_ingestion_date_time
+            ),
+        }
+        return {
+            k: v
+            for k, v in _dict.items()
+            if v is not None and (not isinstance(v, list) or v)
+        }
 
-@dataclass
+
+@dataclass(frozen=True)
+class PatentDataResponse:
+    count: int
+    patent_file_wrapper_data_bag: List[PatentFileWrapper] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PatentDataResponse":
+        wrappers = [
+            PatentFileWrapper.from_dict(w)
+            for w in data.get("patentFileWrapperDataBag", [])
+            if isinstance(w, dict)
+        ]
+        return cls(count=data.get("count", 0), patent_file_wrapper_data_bag=wrappers)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "count": self.count,
+            "patentFileWrapperDataBag": [
+                w.to_dict() for w in self.patent_file_wrapper_data_bag
+            ],
+        }
+
+
+@dataclass(frozen=True)
 class StatusCode:
-    """Represents a single USPTO patent application status code.
-
-    Attributes:
-        code: The numeric status code
-        description: Human-readable description of the status
-    """
-
     code: Optional[int] = None
     description: Optional[str] = None
 
     def __str__(self) -> str:
-        """Return a user-friendly string representation of this status code."""
         return f"{self.code}: {self.description}"
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "StatusCode":
-        """Create a StatusCode object from a dictionary."""
-        return cls(code=data.get("code"), description=data.get("description"))
+        return cls(
+            code=data.get("applicationStatusCode"),
+            description=data.get("applicationStatusDescriptionText"),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "applicationStatusCode": self.code,
+            "applicationStatusDescriptionText": self.description,
+        }
 
 
 class StatusCodeCollection:
-    """Collection of USPTO patent application status codes that supports iteration.
-
-    This class provides an object-oriented wrapper around status code data from the USPTO API.
-    It implements iteration allowing you to loop directly over status codes:
-
-    Example:
-        status_codes = client.get_patent_status_codes()
-        for status in status_codes:
-            print(status.code, status.description)
-    """
-
     def __init__(self, status_codes: List[StatusCode]):
-        self.status_codes = status_codes
-
-    def __str__(self) -> str:
-        """Return a user-friendly string representation of the status code collection."""
-        return f"StatusCodeCollection with {len(self)} status codes"
-
-    def __repr__(self) -> str:
-        """Return a detailed string representation for debugging."""
-        if len(self) == 0:
-            return "StatusCodeCollection(empty)"
-
-        preview = ", ".join(str(code.code) for code in self.status_codes[:3])
-        if len(self) > 3:
-            preview += f", ... ({len(self) - 3} more)"
-        return f"StatusCodeCollection({len(self)} status codes: {preview})"
+        self._status_codes: tuple[StatusCode, ...] = tuple(status_codes)
 
     def __iter__(self) -> Iterator[StatusCode]:
-        return iter(self.status_codes)
+        return iter(self._status_codes)
 
     def __len__(self) -> int:
-        return len(self.status_codes)
+        return len(self._status_codes)
 
-    @classmethod
-    def from_dict(
-        cls, data: Union[Dict[str, Any], List[Dict[str, Any]]]
-    ) -> "StatusCodeCollection":
-        """Create a StatusCodeCollection object from a dictionary or list."""
-        status_codes = []
+    def __getitem__(self, index: int) -> StatusCode:
+        return self._status_codes[index]
 
-        # If data is a list, treat each item as a status code
-        if isinstance(data, list):
-            status_codes = [StatusCode.from_dict(code_data) for code_data in data]
-        # Otherwise, data is a dictionary
-        else:
-            # Handle different possible response structures
-            if "status-codes" in data:
-                status_codes = [
-                    StatusCode.from_dict(code_data)
-                    for code_data in data.get("status-codes", [])
-                ]
-            elif "statusCodes" in data:
-                status_codes = [
-                    StatusCode.from_dict(code_data)
-                    for code_data in data.get("statusCodes", [])
-                ]
-
-        return cls(status_codes=status_codes)
-
-    def find_by_code(self, code: int) -> Optional[StatusCode]:
-        """Find a status code by its numeric code."""
-        for status in self.status_codes:
-            if status.code == code:
+    def find_by_code(self, code_to_find: int) -> Optional[StatusCode]:
+        for status in self._status_codes:
+            if status.code == code_to_find:
                 return status
         return None
 
     def search_by_description(self, text: str) -> "StatusCodeCollection":
-        """Find status codes that contain the given text in their descriptions."""
-        matching_codes = [
-            status
-            for status in self.status_codes
-            if status.description and text.lower() in status.description.lower()
+        matching = [
+            s
+            for s in self._status_codes
+            if s.description and text.lower() in s.description.lower()
         ]
-        return StatusCodeCollection(status_codes=matching_codes)
+        return StatusCodeCollection(status_codes=matching)
+
+    def to_dict(self) -> List[Dict[str, Any]]:
+        return [sc.to_dict() for sc in self._status_codes]
+
+
+@dataclass(frozen=True)
+class StatusCodeSearchResponse:
+    count: int
+    status_code_bag: StatusCodeCollection
+    request_identifier: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "StatusCodeSearchResponse":
+        codes_json = data.get("statusCodeBag", [])
+        parsed_codes = (
+            [StatusCode.from_dict(cd) for cd in codes_json if isinstance(cd, dict)]
+            if isinstance(codes_json, list)
+            else []
+        )
+        collection = StatusCodeCollection(parsed_codes)
+        return cls(
+            count=data.get("count", 0),
+            status_code_bag=collection,
+            request_identifier=data.get("requestIdentifier"),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        _dict = {
+            "count": self.count,
+            "statusCodeBag": self.status_code_bag.to_dict(),
+            "requestIdentifier": self.request_identifier,
+        }
+        return {
+            k: v
+            for k, v in _dict.items()
+            if v is not None and (not isinstance(v, list) or v)
+        }
+
+
+# --- New Helper Dataclasses for Client Return Types ---
+@dataclass(frozen=True)
+class ApplicationContinuityData:
+    """Holds parent and child continuity data for an application."""
+
+    parent_continuity_bag: List[ParentContinuity] = field(default_factory=list)
+    child_continuity_bag: List[ChildContinuity] = field(default_factory=list)
+
+    @classmethod
+    def from_wrapper(cls, wrapper: PatentFileWrapper) -> "ApplicationContinuityData":
+        return cls(
+            parent_continuity_bag=wrapper.parent_continuity_bag,
+            child_continuity_bag=wrapper.child_continuity_bag,
+        )
+
+    def to_dict(
+        self,
+    ) -> Dict[str, Any]:  # For consistency, though client might not use this directly
+        return {
+            "parentContinuityBag": [pc.to_dict() for pc in self.parent_continuity_bag],
+            "childContinuityBag": [cc.to_dict() for cc in self.child_continuity_bag],
+        }
+
+
+@dataclass(frozen=True)
+class AssociatedDocumentsData:
+    """Holds PGPUB and Grant document metadata for an application."""
+
+    pgpub_document_meta_data: Optional[DocumentMetaData] = None
+    grant_document_meta_data: Optional[DocumentMetaData] = None
+
+    @classmethod
+    def from_wrapper(cls, wrapper: PatentFileWrapper) -> "AssociatedDocumentsData":
+        return cls(
+            pgpub_document_meta_data=wrapper.pgpub_document_meta_data,
+            grant_document_meta_data=wrapper.grant_document_meta_data,
+        )
+
+    def to_dict(self) -> Dict[str, Any]:  # For consistency
+        return {
+            "pgpubDocumentMetaData": (
+                self.pgpub_document_meta_data.to_dict()
+                if self.pgpub_document_meta_data
+                else None
+            ),
+            "grantDocumentMetaData": (
+                self.grant_document_meta_data.to_dict()
+                if self.grant_document_meta_data
+                else None
+            ),
+        }

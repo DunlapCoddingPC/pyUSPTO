@@ -8,7 +8,7 @@ auxiliary data methods in the PatentDataClient class.
 from unittest.mock import MagicMock, patch
 
 from pyUSPTO.clients.patent_data import PatentDataClient
-from pyUSPTO.models.patent_data import PatentDataResponse
+from pyUSPTO.models.patent_data import ApplicationMetaData, PatentDataResponse
 
 
 class TestApplicationMetadata:
@@ -17,15 +17,10 @@ class TestApplicationMetadata:
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
     def test_get_application_metadata(self, mock_make_request: MagicMock) -> None:
         """Test get_application_metadata method."""
-        # Setup mock with a response object
-        mock_response_obj = PatentDataResponse(
-            count=1,
-            patent_file_wrapper_data_bag=[
-                MagicMock(
-                    application_number_text="12345678",
-                    application_meta_data=MagicMock(invention_title="Test Invention"),
-                ),
-            ],
+        # Setup mock with a response object that matches ApplicationMetadataResponse structure
+        mock_metadata_obj = MagicMock(invention_title="Test Invention")
+        mock_response_obj = ApplicationMetaData(
+            application_meta_data=mock_metadata_obj,
         )
         mock_make_request.return_value = mock_response_obj
 
@@ -37,12 +32,11 @@ class TestApplicationMetadata:
         mock_make_request.assert_called_once_with(
             method="GET",
             endpoint="applications/12345678/meta-data",
-            response_class=PatentDataResponse,
+            response_class=ApplicationMetaData,
         )
 
-        # Verify result
-        assert isinstance(result, PatentDataResponse)
-        assert result.count == 1
+        # Verify result is the correct type and contains the expected data
+        assert isinstance(result, ApplicationMetaData)
 
     @patch("pyUSPTO.clients.patent_data.PatentDataClient._make_request")
     def test_get_application_adjustment(self, mock_make_request: MagicMock) -> None:

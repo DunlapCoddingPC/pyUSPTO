@@ -7,42 +7,53 @@ It allows you to search for and retrieve patent application data.
 
 import os
 import re
-from typing import Any, Dict, Iterator, Optional
-from urllib.parse import urlparse
+from typing import Any, Dict, Iterator, List, Optional, Tuple  # Added List, Tuple
+from urllib.parse import urljoin, urlparse
 
+# Assuming these are from your project structure
 from pyUSPTO.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
+
+# Updated model imports
+from pyUSPTO.models.patent_data import ApplicationContinuityData  # Added
+from pyUSPTO.models.patent_data import Assignment  # Added
+from pyUSPTO.models.patent_data import AssociatedDocumentsData  # Added
+from pyUSPTO.models.patent_data import ChildContinuity  # Added
+from pyUSPTO.models.patent_data import DocumentMetaData  # Added
+from pyUSPTO.models.patent_data import EventData  # Added
+from pyUSPTO.models.patent_data import ForeignPriority  # Added
+from pyUSPTO.models.patent_data import ParentContinuity  # Added
+from pyUSPTO.models.patent_data import PatentTermAdjustmentData  # Added
+from pyUSPTO.models.patent_data import RecordAttorney  # Added
 from pyUSPTO.models.patent_data import (
+    ApplicationMetaData,
     DocumentBag,
     DocumentDownloadFormat,
     PatentDataResponse,
     PatentFileWrapper,
     StatusCodeCollection,
+    StatusCodeSearchResponse,
 )
 
 
 class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     """Client for interacting with the USPTO Patent Data API."""
 
-    # Centralized endpoint configuration
     ENDPOINTS = {
-        # Application endpoints
-        "applications_search": "applications/search",
-        "applications_search_download": "applications/search/download",
-        "application_by_number": "applications/{application_number}",
-        "application_metadata": "applications/{application_number}/meta-data",
-        "application_adjustment": "applications/{application_number}/adjustment",
-        "application_assignment": "applications/{application_number}/assignment",
-        "application_attorney": "applications/{application_number}/attorney",
-        "application_continuity": "applications/{application_number}/continuity",
-        "application_foreign_priority": "applications/{application_number}/foreign-priority",
-        "application_transactions": "applications/{application_number}/transactions",
-        "application_documents": "applications/{application_number}/documents",
-        "application_associated_documents": "applications/{application_number}/associated-documents",
-        # Document download endpoint (different base URL)
-        "download_document": "download/applications/{application_number}/{document_id}",
-        # Status code endpoints
-        "status_codes": "status-codes",
+        "applications_search": "api/v1/patent/applications/search",
+        "applications_search_download": "api/v1/patent/applications/search/download",
+        "application_by_number": "api/v1/patent/applications/{application_number}",
+        "application_metadata": "api/v1/patent/applications/{application_number}/meta-data",
+        "application_adjustment": "api/v1/patent/applications/{application_number}/adjustment",
+        "application_assignment": "api/v1/patent/applications/{application_number}/assignment",
+        "application_attorney": "api/v1/patent/applications/{application_number}/attorney",
+        "application_continuity": "api/v1/patent/applications/{application_number}/continuity",
+        "application_foreign_priority": "api/v1/patent/applications/{application_number}/foreign-priority",
+        "application_transactions": "api/v1/patent/applications/{application_number}/transactions",
+        "application_documents": "api/v1/patent/applications/{application_number}/documents",
+        "application_associated_documents": "api/v1/patent/applications/{application_number}/associated-documents",
+        "download_document": "api/v1/download/applications/{application_number}/{document_id}",
+        "status_codes": "api/v1/patent/status-codes",
     }
 
     def __init__(
@@ -51,454 +62,252 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         base_url: Optional[str] = None,
         config: Optional[USPTOConfig] = None,
     ):
-        """
-        Initialize the PatentDataClient.
-
-        Args:
-            api_key: Optional API key for authentication
-            base_url: The base URL of the API, defaults to config.patent_data_base_url or "https://api.uspto.gov/api/v1/patent"
-            config: Optional USPTOConfig instance
-        """
-        # Use config if provided, otherwise create default config
         self.config = config or USPTOConfig(api_key=api_key)
+        api_key_to_use = api_key or self.config.api_key
+        effective_base_url = (
+            base_url or self.config.patent_data_base_url or "https://api.uspto.gov"
+        )
+        super().__init__(api_key=api_key_to_use, base_url=effective_base_url)
 
-        # Use provided API key or get from config
-        api_key = api_key or self.config.api_key
+    def _get_wrapper_from_response(
+        self,
+        response_data: PatentDataResponse,
+        application_number_for_validation: Optional[str] = None,
+    ) -> Optional[PatentFileWrapper]:
+        """Helper to extract a single PatentFileWrapper, optionally validating the app number."""
+        if not response_data or not response_data.patent_file_wrapper_data_bag:
+            return None
 
-        # Use provided base_url or get from config
-        base_url = base_url or self.config.patent_data_base_url
+        wrapper = response_data.patent_file_wrapper_data_bag[0]
+        if not isinstance(wrapper, PatentFileWrapper):
+            # This case should ideally not happen if response_class parsing works
+            print(
+                f"Warning: Expected PatentFileWrapper, got {type(wrapper)}. Attempting manual parse."
+            )
+            if isinstance(wrapper, dict):  # type: ignore
+                wrapper = PatentFileWrapper.from_dict(wrapper)  # type: ignore
+            else:
+                return None
 
-        super().__init__(api_key=api_key, base_url=base_url)
+        if (
+            application_number_for_validation
+            and wrapper.application_number_text != application_number_for_validation
+        ):
+            print(
+                f"Warning: Fetched wrapper application number '{wrapper.application_number_text}' "
+                f"does not match requested '{application_number_for_validation}'."
+            )
+            # Depending on strictness, could return None here or still return the wrapper.
+            # For now, returning it, as the API should have filtered.
+        return wrapper
 
     def get_patent_applications(
         self, params: Optional[Dict[str, Any]] = None
     ) -> PatentDataResponse:
-        """
-        Get a list of patent applications using the search endpoint.
-
-        Args:
-            params: Optional query parameters including:
-                - q: Search query string
-                - sort: Field to sort by followed by sort order
-                - offset: Position in dataset to start from
-                - limit: Number of results to return
-                - facets: List of fields to facet upon
-                - fields: Fields to include in response
-                - filters: Field filters
-                - rangeFilters: Range filters
-
-        Returns:
-            PatentDataResponse object containing the API response
-        """
         result = self._make_request(
             method="GET",
             endpoint=self.ENDPOINTS["applications_search"],
             params=params,
             response_class=PatentDataResponse,
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
         assert isinstance(result, PatentDataResponse)
         return result
 
     def search_patent_applications_post(
         self, search_request: Dict[str, Any]
     ) -> PatentDataResponse:
-        """
-        Search patent applications using POST method with JSON payload.
-
-        Args:
-            search_request: JSON payload with search parameters including:
-                - q: Search query string
-                - filters: Array of filter objects
-                - rangeFilters: Array of range filter objects
-                - sort: Array of sort objects
-                - fields: Array of field names to include
-                - pagination: Pagination object
-                - facets: Array of facet field names
-
-        Returns:
-            PatentDataResponse object containing the API response
-        """
         result = self._make_request(
             method="POST",
             endpoint=self.ENDPOINTS["applications_search"],
             json_data=search_request,
             response_class=PatentDataResponse,
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
         assert isinstance(result, PatentDataResponse)
         return result
 
-    def download_patent_applications(
-        self, params: Optional[Dict[str, Any]] = None, format: str = "json"
+    def download_patent_applications_get(
+        self, params: Optional[Dict[str, Any]] = None, format_type: str = "json"
     ) -> PatentDataResponse:
-        """
-        Download patent data with specified format.
-
-        Args:
-            params: Optional query parameters
-            format: Download format (json or csv)
-
-        Returns:
-            PatentDataResponse object containing the API response
-        """
-        # Add format parameter if not already in params
         if params is None:
             params = {}
         if "format" not in params:
-            params["format"] = format
-
+            params["format"] = format_type
         result = self._make_request(
             method="GET",
             endpoint=self.ENDPOINTS["applications_search_download"],
             params=params,
             response_class=PatentDataResponse,
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
         assert isinstance(result, PatentDataResponse)
         return result
 
     def download_patent_applications_post(
         self, download_request: Dict[str, Any]
     ) -> PatentDataResponse:
-        """
-        Download patent data using POST method with JSON payload.
-
-        Args:
-            download_request: JSON payload with download parameters including format
-
-        Returns:
-            PatentDataResponse object containing the API response
-        """
         result = self._make_request(
             method="POST",
             endpoint=self.ENDPOINTS["applications_search_download"],
             json_data=download_request,
             response_class=PatentDataResponse,
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
         assert isinstance(result, PatentDataResponse)
         return result
 
-    def get_patent_by_application_number(
+    def get_patent_application_details(
         self, application_number: str
-    ) -> PatentFileWrapper:
-        """
-        Get a specific patent by application number.
-
-        Args:
-            application_number: The application number
-
-        Returns:
-            PatentFileWrapper object containing the patent data
-        """
+    ) -> Optional[PatentFileWrapper]:
         endpoint = self.ENDPOINTS["application_by_number"].format(
             application_number=application_number
         )
-        data = self._make_request(method="GET", endpoint=endpoint)
+        response_data = self._make_request(
+            method="GET", endpoint=endpoint, response_class=PatentDataResponse
+        )
+        assert isinstance(response_data, PatentDataResponse)
+        return self._get_wrapper_from_response(response_data, application_number)
 
-        # Handling different response formats
-        if isinstance(data, dict):
-            if "patentFileWrapperDataBag" in data:
-                for wrapper in data["patentFileWrapperDataBag"]:
-                    if wrapper.get("applicationNumberText") == application_number:
-                        return PatentFileWrapper.from_dict(wrapper)
-                raise ValueError(
-                    f"Patent with application number {application_number} not found in response"
-                )
-            else:
-                # If response doesn't contain patentFileWrapperDataBag, assume it's a direct PatentFileWrapper
-                return PatentFileWrapper.from_dict(data)
-        elif isinstance(data, PatentFileWrapper):
-            return data
-        else:
-            raise TypeError(f"Unexpected response type: {type(data)}")
-
-    def get_application_metadata(self, application_number: str) -> PatentDataResponse:
-        """
-        Get metadata for a specific patent application.
-
-        Args:
-            application_number: The application number
-
-        Returns:
-            PatentDataResponse object containing the application metadata
-        """
+    def get_application_metadata(
+        self, application_number: str
+    ) -> Optional[ApplicationMetaData]:  # Changed return type
         endpoint = self.ENDPOINTS["application_metadata"].format(
             application_number=application_number
         )
-        result = self._make_request(
-            method="GET",
-            endpoint=endpoint,
-            response_class=PatentDataResponse,
+        response_data = self._make_request(
+            method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, PatentDataResponse)
-        return result
+        assert isinstance(response_data, PatentDataResponse)
+        wrapper = self._get_wrapper_from_response(response_data, application_number)
+        return wrapper.application_meta_data if wrapper else None
 
-    def get_application_adjustment(self, application_number: str) -> PatentDataResponse:
-        """
-        Get patent term adjustment data for an application.
-
-        Args:
-            application_number: The application number
-
-        Returns:
-            PatentDataResponse object containing the adjustment data
-        """
+    def get_application_adjustment(
+        self, application_number: str
+    ) -> Optional[PatentTermAdjustmentData]:  # Changed return type
         endpoint = self.ENDPOINTS["application_adjustment"].format(
             application_number=application_number
         )
-        result = self._make_request(
-            method="GET",
-            endpoint=endpoint,
-            response_class=PatentDataResponse,
+        response_data = self._make_request(
+            method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, PatentDataResponse)
-        return result
+        assert isinstance(response_data, PatentDataResponse)
+        wrapper = self._get_wrapper_from_response(response_data, application_number)
+        return wrapper.patent_term_adjustment_data if wrapper else None
 
-    def get_application_assignment(self, application_number: str) -> PatentDataResponse:
-        """
-        Get assignment data for an application.
-
-        Args:
-            application_number: The application number
-
-        Returns:
-            PatentDataResponse object containing the assignment data
-        """
+    def get_application_assignment(
+        self, application_number: str
+    ) -> Optional[List[Assignment]]:  # Changed return type
         endpoint = self.ENDPOINTS["application_assignment"].format(
             application_number=application_number
         )
-        result = self._make_request(
-            method="GET",
-            endpoint=endpoint,
-            response_class=PatentDataResponse,
+        response_data = self._make_request(
+            method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, PatentDataResponse)
-        return result
+        assert isinstance(response_data, PatentDataResponse)
+        wrapper = self._get_wrapper_from_response(response_data, application_number)
+        return wrapper.assignment_bag if wrapper else None
 
-    def get_application_attorney(self, application_number: str) -> PatentDataResponse:
-        """
-        Get attorney/agent data for an application.
-
-        Args:
-            application_number: The application number
-
-        Returns:
-            PatentDataResponse object containing the attorney data
-        """
+    def get_application_attorney(
+        self, application_number: str
+    ) -> Optional[RecordAttorney]:  # Changed return type
         endpoint = self.ENDPOINTS["application_attorney"].format(
             application_number=application_number
         )
-        result = self._make_request(
-            method="GET",
-            endpoint=endpoint,
-            response_class=PatentDataResponse,
+        response_data = self._make_request(
+            method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, PatentDataResponse)
-        return result
+        assert isinstance(response_data, PatentDataResponse)
+        wrapper = self._get_wrapper_from_response(response_data, application_number)
+        return wrapper.record_attorney if wrapper else None
 
-    def get_application_continuity(self, application_number: str) -> PatentDataResponse:
-        """
-        Get continuity data for an application.
-
-        Args:
-            application_number: The application number
-
-        Returns:
-            PatentDataResponse object containing the continuity data
-        """
+    def get_application_continuity(
+        self, application_number: str
+    ) -> Optional[ApplicationContinuityData]:  # Changed return type
         endpoint = self.ENDPOINTS["application_continuity"].format(
             application_number=application_number
         )
-        result = self._make_request(
-            method="GET",
-            endpoint=endpoint,
-            response_class=PatentDataResponse,
+        response_data = self._make_request(
+            method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, PatentDataResponse)
-        return result
+        assert isinstance(response_data, PatentDataResponse)
+        wrapper = self._get_wrapper_from_response(response_data, application_number)
+        return ApplicationContinuityData.from_wrapper(wrapper) if wrapper else None
 
     def get_application_foreign_priority(
         self, application_number: str
-    ) -> PatentDataResponse:
-        """
-        Get foreign priority data for an application.
-
-        Args:
-            application_number: The application number
-
-        Returns:
-            PatentDataResponse object containing the foreign priority data
-        """
+    ) -> Optional[List[ForeignPriority]]:  # Changed return type
         endpoint = self.ENDPOINTS["application_foreign_priority"].format(
             application_number=application_number
         )
-        result = self._make_request(
-            method="GET",
-            endpoint=endpoint,
-            response_class=PatentDataResponse,
+        response_data = self._make_request(
+            method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, PatentDataResponse)
-        return result
+        assert isinstance(response_data, PatentDataResponse)
+        wrapper = self._get_wrapper_from_response(response_data, application_number)
+        return wrapper.foreign_priority_bag if wrapper else None
 
     def get_application_transactions(
         self, application_number: str
-    ) -> PatentDataResponse:
-        """
-        Get transaction data for an application.
-
-        Args:
-            application_number: The application number
-
-        Returns:
-            PatentDataResponse object containing the transaction data
-        """
+    ) -> Optional[List[EventData]]:  # Changed return type
         endpoint = self.ENDPOINTS["application_transactions"].format(
             application_number=application_number
         )
-        result = self._make_request(
-            method="GET",
-            endpoint=endpoint,
-            response_class=PatentDataResponse,
+        response_data = self._make_request(
+            method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, PatentDataResponse)
-        return result
+        assert isinstance(response_data, PatentDataResponse)
+        wrapper = self._get_wrapper_from_response(response_data, application_number)
+        return wrapper.event_data_bag if wrapper else None
 
     def get_application_documents(self, application_number: str) -> DocumentBag:
-        """
-        Get document details for an application.
-
-        This method retrieves all documents associated with a patent application
-        and returns them as an iterable DocumentBag object.
-
-        Args:
-            application_number: The application number
-
-        Returns:
-            DocumentBag object containing the documents. This object is iterable,
-            allowing you to loop directly through the documents:
-
-            Example:
-                docs = client.get_application_documents("12345678")
-                for doc in docs:
-                    print(doc.document_identifier)
-        """
         endpoint = self.ENDPOINTS["application_documents"].format(
             application_number=application_number
         )
-        result = self._make_request(
-            method="GET",
-            endpoint=endpoint,
-        )
-        assert isinstance(result, dict)
-        # Convert the raw dictionary to a DocumentBag object
-        return DocumentBag.from_dict(result)
+        result_dict = self._make_request(method="GET", endpoint=endpoint)
+        assert isinstance(result_dict, dict)
+        return DocumentBag.from_dict(result_dict)
 
     def get_application_associated_documents(
         self, application_number: str
-    ) -> PatentDataResponse:
-        """
-        Get associated documents metadata for an application.
-
-        Args:
-            application_number: The application number
-
-        Returns:
-            PatentDataResponse object containing the associated documents metadata
-        """
+    ) -> Optional[AssociatedDocumentsData]:  # Changed return type
         endpoint = self.ENDPOINTS["application_associated_documents"].format(
             application_number=application_number
         )
-        result = self._make_request(
-            method="GET",
-            endpoint=endpoint,
-            response_class=PatentDataResponse,
+        response_data = self._make_request(
+            method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, PatentDataResponse)
-        return result
+        assert isinstance(response_data, PatentDataResponse)
+        wrapper = self._get_wrapper_from_response(response_data, application_number)
+        return AssociatedDocumentsData.from_wrapper(wrapper) if wrapper else None
 
-    def download_document(
+    def download_document_file(
         self,
-        destination: str,
-        download_format: Optional[DocumentDownloadFormat] = None,
-        download_url: Optional[str] = None,
+        application_number: str,
+        document_id: str,
+        destination_dir: str,
     ) -> str:
-        """
-        Download a document using either a DocumentDownloadFormat object or a direct URL.
-
-        Args:
-            destination: Directory where the file should be saved
-            download_format: DocumentDownloadFormat object containing download information
-            download_url: Direct URL to download the document (if download_format not provided)
-
-        Returns:
-            Path to the downloaded file
-        """
-        # Extract URL from DocumentDownloadFormat if provided
-        if download_format and download_format.download_url:
-            download_url = download_format.download_url
-
-        if not download_url:
-            raise ValueError(
-                "Either download_format with URL or download_url must be provided"
-            )
-
-        # Parse the download URL to separate base and path
-        parsed_url = urlparse(download_url)
-        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
-        endpoint = parsed_url.path.lstrip("/")  # Remove leading slash
-
-        # Use _make_request with the parsed components
-        response = self._make_request(
-            method="GET", endpoint=endpoint, stream=True, custom_base_url=base_url
+        endpoint = self.ENDPOINTS["download_document"].format(
+            application_number=application_number, document_id=document_id
         )
-
-        # Ensure we have a Response object with iter_content
+        response = self._make_request(method="GET", endpoint=endpoint, stream=True)
         import requests
 
         if not isinstance(response, requests.Response):
-            raise TypeError("Expected a Response object for streaming download")
-
-        if not os.path.exists(destination):
-            os.makedirs(destination)
-
-        # Get filename from Content-Disposition header if available
+            raise TypeError(
+                f"Expected a requests.Response object for streaming download, got {type(response)}"
+            )
+        os.makedirs(destination_dir, exist_ok=True)
         content_disposition = response.headers.get("Content-Disposition")
+        filename = document_id
         if content_disposition and "filename=" in content_disposition:
-            filename_match = re.search(r'filename="(.+?)"', content_disposition)
+            filename_match = re.search(r'filename="?(.+?)"?$', content_disposition)
             if filename_match:
                 filename = filename_match.group(1)
-        else:
-            # Generate a filename based on URL if not available in header
-            filename = os.path.basename(parsed_url.path) or "document.pdf"
-
-        file_path = os.path.join(destination, filename)
-
+        file_path = os.path.join(destination_dir, filename)
         with open(file=file_path, mode="wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
-
+        print(f"Document downloaded to: {file_path}")
         return file_path
 
     def paginate_patents(self, **kwargs: Any) -> Iterator[PatentFileWrapper]:
-        """
-        Paginate through all patents matching the search criteria.
-
-        Args:
-            **kwargs: Keyword arguments to pass to search_patents
-
-        Yields:
-            PatentFileWrapper objects
-        """
         return self.paginate_results(
             method_name="get_patent_applications",
             response_container_attr="patent_file_wrapper_data_bag",
@@ -507,44 +316,23 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_patent_status_codes(
         self, params: Optional[Dict[str, Any]] = None
-    ) -> StatusCodeCollection:
-        """
-        Get patent application status codes and descriptions.
-
-        Args:
-            params: Optional query parameters including:
-                - q: Search query string
-                - offset: Position in dataset to start from
-                - limit: Number of results to return
-
-        Returns:
-            StatusCodeCollection containing status codes and descriptions
-        """
-        result = self._make_request(
+    ) -> StatusCodeSearchResponse:
+        result_dict = self._make_request(
             method="GET", endpoint=self.ENDPOINTS["status_codes"], params=params
         )
-        assert isinstance(result, dict)
-        return StatusCodeCollection.from_dict(result)
+        assert isinstance(result_dict, dict)
+        return StatusCodeSearchResponse.from_dict(result_dict)
 
     def search_patent_status_codes_post(
         self, search_request: Dict[str, Any]
-    ) -> StatusCodeCollection:
-        """
-        Search patent status codes using POST method with JSON payload.
-
-        Args:
-            search_request: JSON payload with search parameters
-
-        Returns:
-            StatusCodeCollection containing status codes and descriptions
-        """
-        result = self._make_request(
+    ) -> StatusCodeSearchResponse:
+        result_dict = self._make_request(
             method="POST",
             endpoint=self.ENDPOINTS["status_codes"],
             json_data=search_request,
         )
-        assert isinstance(result, dict)
-        return StatusCodeCollection.from_dict(result)
+        assert isinstance(result_dict, dict)
+        return StatusCodeSearchResponse.from_dict(result_dict)
 
     def search_patents(
         self,
@@ -562,101 +350,49 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         limit: Optional[int] = 25,
         offset: Optional[int] = 0,
     ) -> PatentDataResponse:
-        """
-        Search for patents with various filters.
-
-        Args:
-            query: Search text in all fields
-            application_number: Filter by application number
-            patent_number: Filter by patent number
-            inventor_name: Filter by inventor name
-            applicant_name: Filter by applicant name
-            assignee_name: Filter by assignee name
-            filing_date_from: Filter by filing date from (YYYY-MM-DD)
-            filing_date_to: Filter by filing date to (YYYY-MM-DD)
-            grant_date_from: Filter by grant date from (YYYY-MM-DD)
-            grant_date_to: Filter by grant date to (YYYY-MM-DD)
-            classification: Filter by CPC classification
-            limit: Number of results to return (default 25)
-            offset: Position in dataset to start from (default 0)
-
-        Returns:
-            PatentDataResponse object containing matching patents
-        """
-        # Build the query string
         q_parts = []
-
         if application_number:
             q_parts.append(f"applicationNumberText:{application_number}")
-
         if patent_number:
             q_parts.append(f"applicationMetaData.patentNumber:{patent_number}")
-
+        # ... (rest of query building logic remains the same)
         if inventor_name:
             q_parts.append(
                 f"applicationMetaData.inventorBag.inventorNameText:{inventor_name}"
             )
-
         if applicant_name:
             q_parts.append(f"applicationMetaData.firstApplicantName:{applicant_name}")
-
         if assignee_name:
             q_parts.append(
                 f"assignmentBag.assigneeBag.assigneeNameText:{assignee_name}"
             )
-
         if classification:
             q_parts.append(f"applicationMetaData.cpcClassificationBag:{classification}")
-
-        # Add date range filters
-        range_filters = []
-
         if filing_date_from and filing_date_to:
-            range_filters.append(
+            q_parts.append(
                 f"applicationMetaData.filingDate:[{filing_date_from} TO {filing_date_to}]"
             )
         elif filing_date_from:
-            range_filters.append(f"applicationMetaData.filingDate:>={filing_date_from}")
+            q_parts.append(f"applicationMetaData.filingDate:>={filing_date_from}")
         elif filing_date_to:
-            range_filters.append(f"applicationMetaData.filingDate:<={filing_date_to}")
-
+            q_parts.append(f"applicationMetaData.filingDate:<={filing_date_to}")
         if grant_date_from and grant_date_to:
-            range_filters.append(
+            q_parts.append(
                 f"applicationMetaData.grantDate:[{grant_date_from} TO {grant_date_to}]"
             )
         elif grant_date_from:
-            range_filters.append(f"applicationMetaData.grantDate:>={grant_date_from}")
+            q_parts.append(f"applicationMetaData.grantDate:>={grant_date_from}")
         elif grant_date_to:
-            range_filters.append(f"applicationMetaData.grantDate:<={grant_date_to}")
-
-        # Combine all query parts
+            q_parts.append(f"applicationMetaData.grantDate:<={grant_date_to}")
         if query:
             q_parts.append(query)
-
-        q_parts.extend(range_filters)
-
-        # Build the final query string
-        q = " AND ".join(q_parts) if q_parts else None
-
-        # Set up parameters
-        params = {}
-
+        final_q = " AND ".join(q_parts) if q_parts else None
+        params: Dict[str, Any] = {}
         if offset is not None:
-            params["offset"] = str(offset)
-
+            params["offset"] = offset
         if limit is not None:
-            params["limit"] = str(limit)
-
-        if q:
-            params["q"] = q
-
-        # Use the applications_search endpoint from ENDPOINTS
-        result = self._make_request(
-            method="GET",
-            endpoint=self.ENDPOINTS["applications_search"],
-            params=params,
-            response_class=PatentDataResponse,
-        )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, PatentDataResponse)
-        return result
+            params["limit"] = limit
+        if final_q:
+            params["q"] = final_q
+        # Changed from self.search_patent_applications_get to self.get_patent_applications
+        return self.get_patent_applications(params=params)

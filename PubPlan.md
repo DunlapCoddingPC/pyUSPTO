@@ -82,9 +82,22 @@ Before publishing, ensure you have the following:
    - Verify that pyproject.toml is properly configured
 
 3. **Run Tests**:
+
    - Run the test suite to ensure everything is working:
+
      ```bash
-     python -m pytest pyUSPTO/tests/
+      python -m pytest pyUSPTO/tests/models/test_patent_data_models.py pyUSPTO/tests/models/test_patent_data_helper_models.py pyUSPTO/tests/clients/test_patent_data_client_return_types.py -v > ./notes/patent_data_tests_output.txt
+     ```
+
+   - Test Coverage:
+
+     ```bash
+     pytest --cov=pyUSPTO --cov-report=term-missing -v > notes/coverage_report.txt
+     ```
+
+   - Test Typecheck
+     ```bash
+     python -m mypy pyUSPTO/models/patent_data.py > notes/mypy_typecheck_models_patent_data.txt
      ```
 
 ### Pre-Publication Checklist
