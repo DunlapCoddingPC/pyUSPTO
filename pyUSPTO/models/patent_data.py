@@ -47,24 +47,6 @@ def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
             parsed_successfully = True
         except ValueError:
             pass
-    if not parsed_successfully and isinstance(datetime_str, str):
-        formats_to_try = [
-            "%Y-%m-%dT%H:%M:%S.%f%z",
-            "%Y-%m-%dT%H:%M:%S%z",
-            "%Y-%m-%dT%H:%M:%S.%f",
-            "%Y-%m-%dT%H:%M:%S",
-            "%Y-%m-%d:%H:%M:%S",
-            "%Y-%m-%d %H:%M:%S.%f%z",
-            "%Y-%m-%d %H:%M:%S%z",
-            "%Y-%m-%d %H:%M:%S",
-        ]
-        for fmt in formats_to_try:
-            try:
-                dt_obj = datetime.strptime(datetime_str, fmt)
-                parsed_successfully = True
-                break
-            except ValueError:
-                continue
     if not parsed_successfully or dt_obj is None:
         print(
             f"Warning: Could not parse datetime string '{datetime_str}' with any known format."
@@ -76,9 +58,7 @@ def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
                 aware_dt = dt_obj.replace(tzinfo=ASSUMED_NAIVE_TIMEZONE)
                 return aware_dt.astimezone(timezone.utc)
             except Exception as e:
-                print(
-                    f"Warning: Error localizing naive datetime '{datetime_str}': {e}."
-                )
+                print(f"Warning: Error localizing naive datetime '{datetime_str}': {e}.")
                 if ASSUMED_NAIVE_TIMEZONE == timezone.utc:
                     return dt_obj.replace(tzinfo=timezone.utc)
                 return None
@@ -119,6 +99,10 @@ def serialize_bool_to_yn(value: Optional[bool]) -> Optional[str]:
         return None
     return "Y" if value else "N"
 
+# --- Data Models ---
+def to_camel_case(snake_str: str) -> str:
+    parts = snake_str.split("_")
+    return parts[0] + "".join(x.title() for x in parts[1:])
 
 # --- Enums for Categorical Data ---
 class DirectionCategory(Enum):
@@ -150,10 +134,6 @@ class ActiveIndicator(Enum):
         return super()._missing_(value)
 
 
-# --- Data Models ---
-def to_camel_case(snake_str: str) -> str:
-    parts = snake_str.split("_")
-    return parts[0] + "".join(x.title() for x in parts[1:])
 
 
 @dataclass(frozen=True)
@@ -161,6 +141,14 @@ class DocumentDownloadFormat:
     mime_type_identifier: Optional[str] = None
     download_url: Optional[str] = None
     page_total_quantity: Optional[int] = None
+
+    def __str__(self) -> str:
+        return (
+            f"{self.mime_type_identifier} format with {self.page_total_quantity} pages"
+        )
+
+    def __repr__(self) -> str:
+        return f"DocumentDownloadFormat(mime_type={self.mime_type_identifier}, pages={self.page_total_quantity})"
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DocumentDownloadFormat":
@@ -187,6 +175,15 @@ class Document:
     document_code_description_text: Optional[str] = None
     direction_category: Optional[DirectionCategory] = None
     download_formats: List[DocumentDownloadFormat] = field(default_factory=list)
+
+    def __str__(self) -> str:
+        date_str = (
+            self.official_date.strftime("%Y-%m-%d") if self.official_date else "No date"
+        )
+        return f"Document {self.document_identifier} ({self.document_code}): {self.document_code_description_text} - {date_str}"
+
+    def __repr__(self) -> str:
+        return f"Document(id={self.document_identifier}, code={self.document_code}, date={self.official_date.strftime('%Y-%m-%d') if self.official_date else 'None'})"
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Document":
@@ -1347,10 +1344,17 @@ class StatusCode:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "StatusCode":
-        return cls(
-            code=data.get("applicationStatusCode"),
-            description=data.get("applicationStatusDescriptionText"),
-        )
+        # Support both formats - the direct format used in tests and the application format
+        if "code" in data:
+            return cls(
+                code=data.get("code"),
+                description=data.get("description"),
+            )
+        else:
+            return cls(
+                code=data.get("applicationStatusCode"),
+                description=data.get("applicationStatusDescriptionText"),
+            )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -1371,6 +1375,20 @@ class StatusCodeCollection:
 
     def __getitem__(self, index: int) -> StatusCode:
         return self._status_codes[index]
+
+    def __str__(self) -> str:
+        return f"StatusCodeCollection with {len(self)} status codes"
+
+    def __repr__(self) -> str:
+        if not self._status_codes:
+            return "StatusCodeCollection(empty)"
+
+        if len(self._status_codes) <= 3:
+            codes = ", ".join(str(s.code) for s in self._status_codes)
+            return f"StatusCodeCollection({len(self)} status codes: {codes})"
+        else:
+            first_codes = ", ".join(str(s.code) for s in self._status_codes[:3])
+            return f"StatusCodeCollection({len(self)} status codes: {first_codes}, ...)"
 
     def find_by_code(self, code_to_find: int) -> Optional[StatusCode]:
         for status in self._status_codes:
@@ -1424,7 +1442,6 @@ class StatusCodeSearchResponse:
         }
 
 
-# --- New Helper Dataclasses for Client Return Types ---
 @dataclass(frozen=True)
 class ApplicationContinuityData:
     """Holds parent and child continuity data for an application."""

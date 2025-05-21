@@ -7,7 +7,7 @@ It allows you to search for and retrieve patent application data.
 
 import os
 import re
-from typing import Any, Dict, Iterator, List, Optional, Tuple  # Added List, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
 # Assuming these are from your project structure
@@ -15,22 +15,22 @@ from pyUSPTO.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
 
 # Updated model imports
-from pyUSPTO.models.patent_data import ApplicationContinuityData  # Added
-from pyUSPTO.models.patent_data import Assignment  # Added
-from pyUSPTO.models.patent_data import AssociatedDocumentsData  # Added
-from pyUSPTO.models.patent_data import ChildContinuity  # Added
-from pyUSPTO.models.patent_data import DocumentMetaData  # Added
-from pyUSPTO.models.patent_data import EventData  # Added
-from pyUSPTO.models.patent_data import ForeignPriority  # Added
-from pyUSPTO.models.patent_data import ParentContinuity  # Added
-from pyUSPTO.models.patent_data import PatentTermAdjustmentData  # Added
-from pyUSPTO.models.patent_data import RecordAttorney  # Added
 from pyUSPTO.models.patent_data import (
+    ApplicationContinuityData,
     ApplicationMetaData,
+    Assignment,
+    AssociatedDocumentsData,
+    ChildContinuity,
     DocumentBag,
     DocumentDownloadFormat,
+    DocumentMetaData,
+    EventData,
+    ForeignPriority,
+    ParentContinuity,
     PatentDataResponse,
     PatentFileWrapper,
+    PatentTermAdjustmentData,
+    RecordAttorney,
     StatusCodeCollection,
     StatusCodeSearchResponse,
 )

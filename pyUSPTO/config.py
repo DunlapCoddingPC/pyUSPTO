@@ -15,7 +15,7 @@ class USPTOConfig:
         self,
         api_key: Optional[str] = None,
         bulk_data_base_url: str = "https://api.uspto.gov/api/v1/datasets",
-        patent_data_base_url: str = "https://api.uspto.gov/api/v1/patent",
+        patent_data_base_url: str = "https://api.uspto.gov",
     ):
         """
         Initialize the USPTOConfig.
