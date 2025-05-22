@@ -283,13 +283,14 @@ class TestBaseUSPTOClient:
         # Test 413 error (Payload Too Large)
         mock_response.status_code = 413
         mock_response.json.return_value = {
-            "errorDetails": "Payload too large",
-            "requestIdentifier": "req-413",
+            "message": "API Payload Too Large",
+            "detailedMessage": "Request entity too large.", 
+            "requestIdentifier": "req-413"
         }
-        with pytest.raises(USPTOApiPayloadTooLargeError) as excinfo:
+        with pytest.raises(expected_exception=USPTOApiPayloadTooLargeError) as excinfo:
             client._make_request(method="GET", endpoint="test")
-        assert "Payload too large" in str(excinfo.value)
-        assert excinfo.value.error_details == "Payload too large"
+        assert "Payload Too Large" in str(excinfo.value)
+        assert excinfo.value.error_details == "Request entity too large."
         assert excinfo.value.request_identifier == "req-413"
 
         # Test 429 error (Rate Limit)
@@ -319,21 +320,21 @@ class TestBaseUSPTOClient:
         # Test detailedError field instead of errorDetails
         mock_response.status_code = 500
         mock_response.json.return_value = {
-            "detailedError": "Alternative error format",
+            "errorDetails": "Alternative error format",
             "requestIdentifier": "req-500-alt",
         }
         with pytest.raises(USPTOApiServerError) as excinfo:
             client._make_request(method="GET", endpoint="test")
-        assert "Alternative error format" in str(excinfo.value)
+        assert "Alternative error format" in str(object=excinfo.value)
         assert excinfo.value.error_details == "Alternative error format"
         assert excinfo.value.request_identifier == "req-500-alt"
 
         # Test other HTTP error without JSON response
         mock_response.json.side_effect = ValueError("Invalid JSON")
+        mock_response.text = "This is an error less than 500 chars."
         with pytest.raises(USPTOApiServerError) as excinfo:
             client._make_request(method="GET", endpoint="test")
-        assert "API Error 500" in str(excinfo.value)
-        assert excinfo.value.error_details is None
+        assert "This is an error less than 500 chars." in str(excinfo.value)
         assert excinfo.value.request_identifier is None
 
     def test_make_request_request_exception(self, mock_session: MagicMock) -> None:
@@ -341,13 +342,19 @@ class TestBaseUSPTOClient:
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.session = mock_session
+        url_for_message = "https://api.test.com/test" # Define for clarity in assertion
 
         # Test request exception
         mock_session.get.side_effect = requests.exceptions.ConnectionError(
             "Connection refused"
         )
-        with pytest.raises(USPTOApiError, match="Request failed: Connection refused"):
+        # Updated match pattern to be more flexible and correct
+        expected_message_pattern = (
+            f"API request to 'https://api.test.com/test' failed due to a network or request issue: Connection refused"
+        )
+        with pytest.raises(USPTOApiError, match=expected_message_pattern):
             client._make_request(method="GET", endpoint="test")
+
 
     def test_paginate_results(self, mock_session: MagicMock) -> None:
         """Test paginate_results method."""

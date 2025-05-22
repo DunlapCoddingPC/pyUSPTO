@@ -22,15 +22,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from pyUSPTO.exceptions import (
-    USPTOApiAuthError,
-    USPTOApiBadRequestError,
-    USPTOApiError,
-    USPTOApiNotFoundError,
-    USPTOApiPayloadTooLargeError,
-    USPTOApiRateLimitError,
-    USPTOApiServerError,
-)
+from pyUSPTO.exceptions import APIErrorArgs, USPTOApiError, get_api_exception
 
 
 @runtime_checkable
@@ -137,62 +129,31 @@ class BaseUSPTOClient(Generic[T]):
             json_response: Dict[str, Any] = response.json()
             return json_response
 
-        except requests.exceptions.HTTPError as e:
-            # Map HTTP errors to custom exceptions
-            status_code = e.response.status_code
+        except requests.exceptions.HTTPError as http_err:
+            client_operation_message = f"API request to '{url}' failed with HTTPError" # 'url' is from _make_request scope
+            
+            # Create APIErrorArgs directly from the HTTPError
+            current_error_args = APIErrorArgs.from_http_error(
+                http_error=http_err,
+                client_operation_message=client_operation_message
+            )
+            
+            api_exception_to_raise = get_api_exception(error_args=current_error_args)
+            raise api_exception_to_raise from http_err
 
-            # Attempt to parse the error response for additional details
-            error_details = None
-            request_identifier = None
 
-            try:
-                error_data = e.response.json()
-                error_details = error_data.get("errorDetails") or error_data.get(
-                    "detailedError"
-                )
-                request_identifier = error_data.get("requestIdentifier")
-            except (ValueError, KeyError):
-                # If we can't parse the error response, proceed with basic info
-                pass
+        except requests.exceptions.RequestException as req_err: # Catches non-HTTP errors from requests
+            client_operation_message = f"API request to '{url}' failed" # 'url' is from _make_request scope
 
-            # Create the appropriate error message
-            error_message = f"API Error {status_code}"
-            if error_details:
-                error_message = f"{error_message}: {error_details}"
+            # Create APIErrorArgs from the generic RequestException
+            current_error_args = APIErrorArgs.from_request_exception(
+                request_exception=req_err,
+                client_operation_message=client_operation_message # or pass None if you prefer default message
+            )
+            
+            api_exception_to_raise = get_api_exception(current_error_args) # Will default to USPTOApiError
+            raise api_exception_to_raise from req_err
 
-            # Map specific status codes to appropriate exception classes
-            if status_code == 400:
-                raise USPTOApiBadRequestError(
-                    error_message, status_code, error_details, request_identifier
-                ) from e
-            elif status_code in (401, 403):
-                raise USPTOApiAuthError(
-                    error_message, status_code, error_details, request_identifier
-                ) from e
-            elif status_code == 404:
-                raise USPTOApiNotFoundError(
-                    error_message, status_code, error_details, request_identifier
-                ) from e
-            elif status_code == 413:
-                raise USPTOApiPayloadTooLargeError(
-                    error_message, status_code, error_details, request_identifier
-                ) from e
-            elif status_code == 429:
-                raise USPTOApiRateLimitError(
-                    error_message, status_code, error_details, request_identifier
-                ) from e
-            elif status_code >= 500:
-                raise USPTOApiServerError(
-                    error_message, status_code, error_details, request_identifier
-                ) from e
-            else:
-                # For any other status codes, use the base USPTOApiError
-                raise USPTOApiError(
-                    error_message, status_code, error_details, request_identifier
-                ) from e
-        except requests.exceptions.RequestException as e:
-            # Re-raise other request exceptions as USPTOApiError
-            raise USPTOApiError(f"Request failed: {str(e)}") from e
 
     def paginate_results(
         self, method_name: str, response_container_attr: str, **kwargs: Any
