@@ -146,7 +146,7 @@ def sample_application_number(patent_data_client: PatentDataClient) -> str:
         pytest.skip(
             f"Could not fetch sample application number due to unexpected error: {e}"
         )
-    return "" # type: ignore[unreachable]
+    return ""  # type: ignore[unreachable]
 
 
 class TestBulkDataIntegration:
