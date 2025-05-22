@@ -146,6 +146,7 @@ def sample_application_number(patent_data_client: PatentDataClient) -> str:
         pytest.skip(
             f"Could not fetch sample application number due to unexpected error: {e}"
         )
+    return "" # type: ignore[unreachable]
 
 
 class TestBulkDataIntegration:
@@ -520,7 +521,7 @@ class TestPatentDataIntegration:
             documents_bag = patent_data_client.get_application_documents(
                 self.KNOWN_APP_NUM_WITH_DOCS
             )
-            if documents_bag is None:
+            if documents_bag is None:  # type: ignore[unreachable]
                 pytest.skip(
                     f"No document bag returned for {self.KNOWN_APP_NUM_WITH_DOCS}"
                 )  # type: ignore[unreachable]
@@ -604,7 +605,7 @@ class TestPatentDataIntegration:
                 pytest.skip(
                     f"No downloadable document found for {self.KNOWN_APP_NUM_WITH_DOCS}"
                 )
-
+            assert doc_to_download is Document
             assert doc_to_download.document_identifier is str
             file_path = patent_data_client.download_document_file(
                 application_number=self.KNOWN_APP_NUM_WITH_DOCS,
