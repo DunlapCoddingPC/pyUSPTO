@@ -32,15 +32,15 @@ def test_from_env_with_missing_variables() -> None:
     with patch.dict("os.environ", {}, clear=True):
         config = USPTOConfig.from_env()
         assert config.api_key is None
-        assert config.bulk_data_base_url == "https://api.uspto.gov/api/v1/datasets"
-        assert config.patent_data_base_url == "https://api.uspto.gov/api/v1/patent"
+        assert config.bulk_data_base_url == "https://api.uspto.gov"
+        assert config.patent_data_base_url == "https://api.uspto.gov"
 
     # Only API key
     with patch.dict("os.environ", {"USPTO_API_KEY": "env_key"}, clear=True):
         config = USPTOConfig.from_env()
         assert config.api_key == "env_key"
-        assert config.bulk_data_base_url == "https://api.uspto.gov/api/v1/datasets"
-        assert config.patent_data_base_url == "https://api.uspto.gov/api/v1/patent"
+        assert config.bulk_data_base_url == "https://api.uspto.gov"
+        assert config.patent_data_base_url == "https://api.uspto.gov"
 
     # Custom URLs
     with patch.dict(

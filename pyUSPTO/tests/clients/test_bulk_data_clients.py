@@ -212,7 +212,7 @@ class TestBulkDataClientInit:
         """Test initialization with direct API key."""
         client = BulkDataClient(api_key="test_key")
         assert client.api_key == "test_key"
-        assert client.base_url == "https://api.uspto.gov/api/v1/datasets"
+        assert client.base_url == "https://api.uspto.gov"
         assert client.config is not None
         assert client.config.api_key == "test_key"
 

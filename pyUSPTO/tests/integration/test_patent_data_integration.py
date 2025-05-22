@@ -1,35 +1,26 @@
 """
-Integration tests for the USPTO API client.
+Integration tests for the USPTO Patent Data API client.
 
-This module contains integration tests that make real API calls to the USPTO API.
+This module contains integration tests that make real API calls to the USPTO Patent Data API.
 These tests are optional and are skipped by default unless the ENABLE_INTEGRATION_TESTS
 environment variable is set to 'true'.
 """
 
-import datetime  # For date and datetime assertions
+import datetime
 import os
-import shutil
-from typing import Iterator, List, Optional  # Keep List for type hinting
+from typing import Iterator, List, Optional
 
 import pytest
 
-from pyUSPTO.clients import BulkDataClient, PatentDataClient
+from pyUSPTO.clients import PatentDataClient
 from pyUSPTO.config import USPTOConfig
-
-# Updated exception imports based on provided files
 from pyUSPTO.exceptions import USPTOApiError, USPTOApiNotFoundError
-from pyUSPTO.models.bulk_data import BulkDataProduct, BulkDataResponse
-
-# Updated model imports for patent_data based on provided files
-from pyUSPTO.models.patent_data import Document  # Added Document as it's used directly
 from pyUSPTO.models.patent_data import (
-    StatusCode,  # Added StatusCode as it's used directly
-)
-from pyUSPTO.models.patent_data import (  # DocumentMetaData, # This is a component, not directly asserted on in the same way Document is
     ApplicationContinuityData,
     ApplicationMetaData,
     Assignment,
     AssociatedDocumentsData,
+    Document,
     DocumentBag,
     EventData,
     ForeignPriority,
@@ -37,73 +28,19 @@ from pyUSPTO.models.patent_data import (  # DocumentMetaData, # This is a compon
     PatentFileWrapper,
     PatentTermAdjustmentData,
     RecordAttorney,
+    StatusCode,
     StatusCodeCollection,
     StatusCodeSearchResponse,
 )
+
+# Import shared fixtures
+from pyUSPTO.tests.integration.conftest import TEST_DOWNLOAD_DIR
 
 # Skip all tests in this module unless ENABLE_INTEGRATION_TESTS is set to 'true'
 pytestmark = pytest.mark.skipif(
     os.environ.get("ENABLE_INTEGRATION_TESTS", "").lower() != "true",
     reason="Integration tests are disabled. Set ENABLE_INTEGRATION_TESTS=true to enable.",
 )
-
-# Define a temporary download directory for tests
-TEST_DOWNLOAD_DIR = "./temp_test_downloads"
-
-
-@pytest.fixture(scope="module", autouse=True)
-def manage_test_download_dir() -> Iterator[None]:
-    """Create and clean up the test download directory."""
-    if os.path.exists(TEST_DOWNLOAD_DIR):
-        shutil.rmtree(TEST_DOWNLOAD_DIR)
-    os.makedirs(TEST_DOWNLOAD_DIR, exist_ok=True)
-    yield
-    if os.path.exists(TEST_DOWNLOAD_DIR):
-        shutil.rmtree(TEST_DOWNLOAD_DIR)
-
-
-@pytest.fixture
-def api_key() -> Optional[str]:
-    """
-    Get the API key from the environment.
-
-    Returns:
-        Optional[str]: The API key or None if not set
-    """
-    key = os.environ.get("USPTO_API_KEY")
-    if not key:
-        pytest.skip(
-            "USPTO_API_KEY environment variable not set. Skipping integration tests."
-        )
-    return key
-
-
-@pytest.fixture
-def config(api_key: Optional[str]) -> USPTOConfig:
-    """
-    Create a USPTOConfig instance for integration tests.
-
-    Args:
-        api_key: The API key from the environment
-
-    Returns:
-        USPTOConfig: A configuration instance
-    """
-    return USPTOConfig(api_key=api_key)
-
-
-@pytest.fixture
-def bulk_data_client(config: USPTOConfig) -> BulkDataClient:
-    """
-    Create a BulkDataClient instance for integration tests.
-
-    Args:
-        config: The configuration instance
-
-    Returns:
-        BulkDataClient: A client instance
-    """
-    return BulkDataClient(config=config)
 
 
 @pytest.fixture
@@ -149,61 +86,6 @@ def sample_application_number(patent_data_client: PatentDataClient) -> str:
     return ""  # type: ignore[unreachable]
 
 
-class TestBulkDataIntegration:
-    """Integration tests for the BulkDataClient."""
-
-    def test_get_products(self, bulk_data_client: BulkDataClient) -> None:
-        """Test getting products from the API."""
-        response = bulk_data_client.get_products()
-
-        assert response is not None
-        assert isinstance(response, BulkDataResponse)
-        assert response.count > 0
-        assert response.bulk_data_product_bag is not None
-        assert len(response.bulk_data_product_bag) > 0
-
-        product = response.bulk_data_product_bag[0]
-        assert isinstance(product, BulkDataProduct)
-        assert product.product_identifier is not None
-        assert product.product_title_text is not None
-
-    def test_search_products(self, bulk_data_client: BulkDataClient) -> None:
-        """Test searching for products."""
-        response = bulk_data_client.search_products(
-            query="PAIF", limit=5
-        )  # PAIF is a common product type
-
-        assert response is not None
-        assert isinstance(response, BulkDataResponse)
-        assert response.count > 0
-        assert response.bulk_data_product_bag is not None
-        assert len(response.bulk_data_product_bag) > 0
-        assert len(response.bulk_data_product_bag) <= 5
-
-    def test_get_product_by_id(self, bulk_data_client: BulkDataClient) -> None:
-        """Test getting a specific product by ID."""
-        response = bulk_data_client.get_products(
-            params={
-                "limit": 1,
-                "q": "productTitleText:Patent Application Information Retrieval*",
-            }
-        )  # More specific query
-        assert response.count > 0
-        assert response.bulk_data_product_bag
-
-        product_id = response.bulk_data_product_bag[0].product_identifier
-        assert product_id is not None
-        product = bulk_data_client.get_product_by_id(product_id, include_files=True)
-
-        assert product is not None
-        assert isinstance(product, BulkDataProduct)
-        assert product.product_identifier == product_id
-
-        if product.product_file_total_quantity > 0:
-            assert product.product_file_bag is not None
-            assert product.product_file_bag.count > 0
-
-
 class TestPatentDataIntegration:
     """Integration tests for the PatentDataClient."""
 
@@ -218,7 +100,7 @@ class TestPatentDataIntegration:
         response = patent_data_client.get_patent_applications(
             params={
                 "limit": 2,
-                "q": "applicationMetaData.applicationTypeCategory:Utility",
+                "q": "applicationMetaData.applicationTypeLabelName:Utility",
             }
         )
 
@@ -367,7 +249,7 @@ class TestPatentDataIntegration:
 
         except USPTOApiNotFoundError:
             pytest.skip(
-                f"Assignment data not found (404) for {sample_application_number}"
+                f"Assignment data not found (404) for application {sample_application_number}"
             )
         except USPTOApiError as e:
             pytest.skip(
@@ -409,7 +291,7 @@ class TestPatentDataIntegration:
 
         except USPTOApiNotFoundError:
             pytest.skip(
-                f"Attorney data not found (404) for {sample_application_number}"
+                f"Attorney data not found (404) for application {sample_application_number}"
             )
         except USPTOApiError as e:
             pytest.skip(
@@ -441,7 +323,7 @@ class TestPatentDataIntegration:
                 )
         except USPTOApiNotFoundError:
             pytest.skip(
-                f"Continuity data not found (404) for {sample_application_number}"
+                f"Continuity data not found (404) for application {sample_application_number}"
             )
         except USPTOApiError as e:
             pytest.skip(
@@ -474,7 +356,7 @@ class TestPatentDataIntegration:
 
         except USPTOApiNotFoundError:
             pytest.skip(
-                f"Foreign priority data not found (404) for {sample_application_number}"
+                f"Foreign priority data not found (404) for application {sample_application_number}"
             )
         except USPTOApiError as e:
             pytest.skip(
@@ -506,7 +388,7 @@ class TestPatentDataIntegration:
             assert isinstance(transactions[0].event_date, datetime.date)
         except USPTOApiNotFoundError:
             pytest.skip(
-                f"Transaction data not found (404) for {sample_application_number}"
+                f"Transaction data not found (404) for application {sample_application_number}"
             )
         except USPTOApiError as e:
             pytest.skip(
@@ -605,11 +487,14 @@ class TestPatentDataIntegration:
                 pytest.skip(
                     f"No downloadable document found for {self.KNOWN_APP_NUM_WITH_DOCS}"
                 )
-            assert doc_to_download is Document  # type: ignore[union-attr]
-            assert doc_to_download.document_identifier is str  # type: ignore[union-attr]
+
+            # Fixed assertions
+            assert isinstance(doc_to_download, Document)
+            assert isinstance(doc_to_download.document_identifier, str)
+
             file_path = patent_data_client.download_document_file(
                 application_number=self.KNOWN_APP_NUM_WITH_DOCS,
-                document_id=doc_to_download.document_identifier,  # type: ignore[union-attr]
+                document_id=doc_to_download.document_identifier,
                 destination_dir=TEST_DOWNLOAD_DIR,
             )
 

@@ -14,7 +14,7 @@ class USPTOConfig:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        bulk_data_base_url: str = "https://api.uspto.gov/api/v1/datasets",
+        bulk_data_base_url: str = "https://api.uspto.gov",
         patent_data_base_url: str = "https://api.uspto.gov",
     ):
         """
@@ -43,9 +43,9 @@ class USPTOConfig:
         return cls(
             api_key=os.environ.get("USPTO_API_KEY"),
             bulk_data_base_url=os.environ.get(
-                "USPTO_BULK_DATA_BASE_URL", "https://api.uspto.gov/api/v1/datasets"
+                "USPTO_BULK_DATA_BASE_URL", "https://api.uspto.gov"
             ),
             patent_data_base_url=os.environ.get(
-                "USPTO_PATENT_DATA_BASE_URL", "https://api.uspto.gov/api/v1/patent"
+                "USPTO_PATENT_DATA_BASE_URL", "https://api.uspto.gov"
             ),
         )
