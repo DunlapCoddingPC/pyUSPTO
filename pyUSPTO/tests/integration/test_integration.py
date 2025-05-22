@@ -609,7 +609,7 @@ class TestPatentDataIntegration:
             assert doc_to_download.document_identifier is str  # type: ignore[union-attr]
             file_path = patent_data_client.download_document_file(
                 application_number=self.KNOWN_APP_NUM_WITH_DOCS,
-                document_id=doc_to_download.document_identifier,
+                document_id=doc_to_download.document_identifier,  # mypy: disable-error-code=union-attr
                 destination_dir=TEST_DOWNLOAD_DIR,
             )
 
