@@ -79,15 +79,6 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             return None
 
         wrapper = response_data.patent_file_wrapper_data_bag[0]
-        if not isinstance(wrapper, PatentFileWrapper):
-            # This case should ideally not happen if response_class parsing works
-            print(
-                f"Warning: Expected PatentFileWrapper, got {type(wrapper)}. Attempting manual parse."
-            )
-            if isinstance(wrapper, dict):  # type: ignore
-                wrapper = PatentFileWrapper.from_dict(wrapper)  # type: ignore
-            else:
-                return None
 
         if (
             application_number_for_validation

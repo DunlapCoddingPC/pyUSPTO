@@ -6,11 +6,13 @@ This module contains consolidated tests for classes in pyUSPTO.models.patent_dat
 
 import importlib
 from datetime import date, datetime, timedelta, timezone, tzinfo
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from unittest.mock import MagicMock, patch
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pytest
+from _pytest.capture import CaptureFixture
+from click import Option
 
 from pyUSPTO.models.patent_data import (
     ASSUMED_NAIVE_TIMEZONE,
@@ -517,7 +519,7 @@ class TestActiveIndicator:
         with pytest.raises(ValueError):
             ActiveIndicator("Invalid")
         with pytest.raises(ValueError):
-            ActiveIndicator(None) # type: ignore
+            ActiveIndicator(None) 
 
 
 class TestDocumentDownloadFormat:
@@ -538,13 +540,13 @@ class TestDocumentDownloadFormat:
         expected_data = sample_document_download_format_data.copy()
         assert data == expected_data
 
-    def test_from_dict_empty(self):
+    def test_from_dict_empty(self)-> None:
         fmt = DocumentDownloadFormat.from_dict({})
         assert fmt.mime_type_identifier is None
         assert fmt.download_url is None
         assert fmt.page_total_quantity is None
 
-    def test_to_dict_empty(self):
+    def test_to_dict_empty(self)-> None:
         fmt = DocumentDownloadFormat()
         assert fmt.to_dict() == {
             "mimeTypeIdentifier": None,
@@ -552,7 +554,7 @@ class TestDocumentDownloadFormat:
             "pageTotalQuantity": None,
         }
 
-    def test_document_download_format_repr(self):
+    def test_document_download_format_repr(self)-> None:
         fmt = DocumentDownloadFormat(
             mime_type_identifier="application/pdf",
             download_url="http://example.com/doc.pdf",
@@ -564,7 +566,7 @@ class TestDocumentDownloadFormat:
 
 class TestDocument:
     """Tests for the Document class."""
-    def test_document_from_dict_basic(self):
+    def test_document_from_dict_basic(self)-> None:
         data = {
             "documentIdentifier": "doc123",
             "documentCode": "CODE_X",
@@ -583,7 +585,7 @@ class TestDocument:
         assert len(doc.download_formats) == 1
         assert doc.download_formats[0].mime_type_identifier == "application/pdf"
 
-    def test_document_to_dict_basic(self):
+    def test_document_to_dict_basic(self)-> None:
         doc = Document(
             document_identifier="doc123",
             document_code="CODE_X",
@@ -599,7 +601,7 @@ class TestDocument:
         assert data["downloadOptionBag"][0]["mimeTypeIdentifier"] == "image/tiff"
         assert data["downloadOptionBag"][0]["pageTotalQuantity"] == 5
 
-    def test_document_from_dict_unknown_enum(self, capsys): # Target line 135
+    def test_document_from_dict_unknown_enum(self, capsys: CaptureFixture)-> None: 
         """Test Document.from_dict with an unknown direction category."""
         data = {"documentDirectionCategory": "UNKNOWN_DIRECTION"}
         doc = Document.from_dict(data)
@@ -607,7 +609,7 @@ class TestDocument:
         captured = capsys.readouterr()
         assert "Warning: Unknown document direction category 'UNKNOWN_DIRECTION'." in captured.out
 
-    def test_document_to_dict_all_none_and_empty_lists(self): # Target line 153
+    def test_document_to_dict_all_none_and_empty_lists(self)-> None: 
         """Test Document.to_dict when all fields are None or empty lists."""
         doc = Document(
             application_number_text=None,
@@ -621,7 +623,7 @@ class TestDocument:
         data = doc.to_dict()
         # The to_dict method filters out None values and empty lists
         assert data == {}
-    def test_document_repr(self):
+    def test_document_repr(self)-> None:
         doc = Document(
             document_identifier="doc123",
             document_code="CODE_X",
@@ -679,24 +681,24 @@ class TestDocumentBag:
         assert data["documentBag"][0] == {"documentIdentifier": "doc1"}
         assert data["documentBag"][1] == {"documentIdentifier": "doc2"}
 
-    def test_document_bag_from_dict_empty(self):
+    def test_document_bag_from_dict_empty(self)-> None:
         doc_bag = DocumentBag.from_dict({})
         assert len(doc_bag.documents) == 0
         doc_bag_empty_list = DocumentBag.from_dict({"documentBag": []})
         assert len(doc_bag_empty_list.documents) == 0
 
-    def test_document_bag_from_dict_not_a_list(self): # Target line 188 (else part)
+    def test_document_bag_from_dict_not_a_list(self)-> None:
         """Test DocumentBag.from_dict when 'documentBag' is not a list."""
         data = {"documentBag": "not_a_list_value"}
         doc_bag = DocumentBag.from_dict(data)
-        assert len(doc_bag.documents) == 0 # Should default to empty list
+        assert len(doc_bag.documents) == 0 
 
         data_int = {"documentBag": 123}
         doc_bag_int = DocumentBag.from_dict(data_int)
         assert len(doc_bag_int.documents) == 0
 
 
-    def test_document_bag_iterable(self):
+    def test_document_bag_iterable(self)-> None:
         doc1 = Document(document_identifier="doc1")
         doc_bag = DocumentBag(documents=[doc1])
         count = 0
@@ -721,12 +723,12 @@ class TestAddress:
         })
         assert address.to_dict() == sample_address_data
 
-    def test_address_from_dict_empty(self):
+    def test_address_from_dict_empty(self)-> None:
         address = Address.from_dict({})
         for field_name in Address.__annotations__:
             assert getattr(address, field_name) is None
 
-    def test_address_to_dict_empty(self):
+    def test_address_to_dict_empty(self)-> None:
         address = Address()
         expected_camel_case_empty_dict = {
             "nameLineOneText": None, "nameLineTwoText": None, "addressLineOneText": None,
@@ -754,13 +756,13 @@ class TestTelecommunication:
         )
         assert telecom.to_dict() == sample_telecommunication_data
 
-    def test_telecommunication_from_dict_empty(self):
+    def test_telecommunication_from_dict_empty(self)-> None:
         telecom = Telecommunication.from_dict({})
         assert telecom.telecommunication_number is None
         assert telecom.extension_number is None
         assert telecom.telecom_type_code is None
 
-    def test_telecommunication_to_dict_empty(self):
+    def test_telecommunication_to_dict_empty(self)-> None:
         telecom = Telecommunication()
         assert telecom.to_dict() == {
             "telecommunicationNumber": None,
@@ -771,7 +773,7 @@ class TestTelecommunication:
 
 class TestPerson:
     """Tests for the Person base class."""
-    def test_person_to_dict(self, sample_person_base_data: Dict[str, Any]):
+    def test_person_to_dict(self, sample_person_base_data: Dict[str, Any])-> None:
         data_snake = {
             "first_name": sample_person_base_data["firstName"],
             "middle_name": sample_person_base_data.get("middleName"),
@@ -781,7 +783,7 @@ class TestPerson:
             "preferred_name": sample_person_base_data.get("preferredName"),
             "country_code": sample_person_base_data.get("countryCode")
         }
-        person = Person(**data_snake) # type: ignore
+        person = Person(**data_snake) 
         person_dict = person.to_dict()
 
         expected_dict = {}
@@ -791,7 +793,7 @@ class TestPerson:
         assert person_dict == expected_dict
 
 
-    def test_person_to_dict_with_nones(self):
+    def test_person_to_dict_with_nones(self)-> None:
         person = Person(first_name="OnlyFirst")
         assert person.to_dict() == {"firstName": "OnlyFirst"}
 
@@ -819,13 +821,13 @@ class TestApplicant:
         assert len(data_dict["correspondenceAddressBag"]) == 1
         assert data_dict["correspondenceAddressBag"][0]["cityName"] == sample_address_data["cityName"]
 
-    def test_applicant_from_dict_empty(self):
+    def test_applicant_from_dict_empty(self)-> None:
         applicant = Applicant.from_dict({})
         assert applicant.first_name is None
         assert applicant.applicant_name_text is None
         assert applicant.correspondence_address_bag == []
 
-    def test_applicant_to_dict_empty_fields(self):
+    def test_applicant_to_dict_empty_fields(self)-> None:
         applicant = Applicant(first_name="Test", correspondence_address_bag=[]) # Empty list
         data = applicant.to_dict()
         # correspondenceAddressBag is filtered if empty by Applicant.to_dict()
@@ -855,7 +857,7 @@ class TestInventor:
         assert len(data_dict["correspondenceAddressBag"]) == 1
         assert data_dict["correspondenceAddressBag"][0]["cityName"] == sample_address_data["cityName"]
 
-    def test_inventor_to_dict_empty_bag(self):
+    def test_inventor_to_dict_empty_bag(self)-> None:
         inventor = Inventor(inventor_name_text="Test Inventor", correspondence_address_bag=[])
         data = inventor.to_dict()
         assert data == {"inventorNameText": "Test Inventor"}
@@ -891,7 +893,7 @@ class TestAttorney:
         assert len(data_dict["telecommunicationAddressBag"]) == 1
         assert data_dict["telecommunicationAddressBag"][0]["telecommunicationNumber"] == sample_telecommunication_data["telecommunicationNumber"]
 
-    def test_attorney_to_dict_empty_bags(self):
+    def test_attorney_to_dict_empty_bags(self)-> None:
         attorney = Attorney(registration_number="Reg123", attorney_address_bag=[], telecommunication_address_bag=[])
         data = attorney.to_dict()
         assert data == {"registrationNumber": "Reg123"}
@@ -945,7 +947,7 @@ class TestCustomerNumberCorrespondence:
         assert len(data["powerOfAttorneyAddressBag"]) == 1
         assert len(data["telecommunicationAddressBag"]) == 1
 
-    def test_customer_number_correspondence_to_dict_empty_bags(self):
+    def test_customer_number_correspondence_to_dict_empty_bags(self)-> None:
         cust_corr = CustomerNumberCorrespondence(
             patron_identifier=777,
             power_of_attorney_address_bag=[],
@@ -989,7 +991,7 @@ class TestRecordAttorney:
         assert data["powerOfAttorneyBag"][0]["firstName"] == sample_attorney_data["firstName"]
         assert len(data["attorneyBag"]) == 1
 
-    def test_record_attorney_to_dict_all_empty_bags(self):
+    def test_record_attorney_to_dict_all_empty_bags(self)-> None:
         record_attorney = RecordAttorney(
             customer_number_correspondence_data=[],
             power_of_attorney_bag=[],
@@ -1110,7 +1112,7 @@ class TestAssignment:
         assert len(data["assigneeBag"]) == 1
         assert len(data["correspondenceAddressBag"]) == 1
 
-    def test_assignment_to_dict_empty_bags(self):
+    def test_assignment_to_dict_empty_bags(self)-> None:
         assignment = Assignment(
             reel_number="R002",
             assignor_bag=[],
@@ -1170,7 +1172,7 @@ class TestForeignPriority:
 
 class TestContinuity:
     """Tests for the Continuity base class."""
-    def test_continuity_properties(self):
+    def test_continuity_properties(self)-> None:
         cont_true = Continuity(first_inventor_to_file_indicator=True)
         assert cont_true.is_aia is True
         assert cont_true.is_pre_aia is False
@@ -1183,7 +1185,7 @@ class TestContinuity:
         assert cont_none.is_aia is None
         assert cont_none.is_pre_aia is None
 
-    def test_continuity_to_dict(self):
+    def test_continuity_to_dict(self)-> None:
         cont = Continuity(
             first_inventor_to_file_indicator=True,
             application_number_text="123",
@@ -1317,7 +1319,7 @@ class TestPatentTermAdjustmentData:
         assert len(data["patentTermAdjustmentHistoryDataBag"]) == 1
         assert data["patentTermAdjustmentHistoryDataBag"][0]["eventDate"] == "2022-01-01"
 
-    def test_pta_data_to_dict_empty_history_bag(self):
+    def test_pta_data_to_dict_empty_history_bag(self)-> None:
         pta_data = PatentTermAdjustmentData(
             a_delay_quantity=50.0,
             patent_term_adjustment_history_data_bag=[] # Empty bag
@@ -1478,7 +1480,7 @@ class TestApplicationMetaData:
         assert original_app_meta == reconstructed_app_meta
 
 
-    def test_aia_properties(self):
+    def test_aia_properties(self)-> None:
         amd_true = ApplicationMetaData(first_inventor_to_file_indicator=True)
         assert amd_true.is_aia is True
         assert amd_true.is_pre_aia is False
@@ -1541,7 +1543,7 @@ class TestPatentFileWrapper:
         assert wrapper.correspondence_address_bag == []
         assert wrapper.last_ingestion_date_time is None
 
-    def test_empty_patent_file_wrapper_to_dict(self):
+    def test_empty_patent_file_wrapper_to_dict(self)-> None:
         wrapper = PatentFileWrapper()
         assert wrapper.to_dict() == {}
 
@@ -1611,7 +1613,7 @@ class TestPatentDataResponse:
         assert response.count == 0
         assert response.patent_file_wrapper_data_bag == []
 
-    def test_empty_patent_data_response_to_dict(self):
+    def test_empty_patent_data_response_to_dict(self)-> None:
         response = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
         result = response.to_dict()
         assert result["count"] == 0
@@ -1639,7 +1641,7 @@ class TestStatusCode:
 
 class TestStatusCodeCollection:
     """Tests for the StatusCodeCollection class."""
-    def test_status_code_collection_iterable_len_getitem(self):
+    def test_status_code_collection_iterable_len_getitem(self)-> None:
         sc1 = StatusCode(code=1)
         sc2 = StatusCode(code=2)
         collection = StatusCodeCollection([sc1, sc2])
@@ -1684,7 +1686,7 @@ class TestStatusCodeCollection:
         assert len(results_one) == 1
         assert code1 in results_one._status_codes
 
-    def test_status_code_collection_repr(self): # Target line 1392
+    def test_status_code_collection_repr(self)-> None: 
         """Test the __repr__ method of StatusCodeCollection."""
         sc1 = StatusCode(code=1, description="Desc1")
         sc2 = StatusCode(code=2, description="Desc2")
@@ -1736,8 +1738,7 @@ class TestStatusCodeSearchResponse:
 
 class TestApplicationContinuityData:
     """Tests for the ApplicationContinuityData helper class."""
-
-    def test_from_wrapper_with_data(self, sample_parent_continuity_data, sample_child_continuity_data):
+    def test_from_wrapper_with_data(self, sample_parent_continuity_data: Dict[str,Any], sample_child_continuity_data: Dict[str,Any])-> None:
         parent_cont = ParentContinuity.from_dict(sample_parent_continuity_data)
         child_cont = ChildContinuity.from_dict(sample_child_continuity_data)
         wrapper = PatentFileWrapper(
@@ -1750,13 +1751,13 @@ class TestApplicationContinuityData:
         assert continuity_data.parent_continuity_bag[0] is parent_cont
         assert continuity_data.child_continuity_bag[0] is child_cont
 
-    def test_from_wrapper_with_empty_data(self):
+    def test_from_wrapper_with_empty_data(self)-> None:
         wrapper = PatentFileWrapper(parent_continuity_bag=[], child_continuity_bag=[])
         continuity_data = ApplicationContinuityData.from_wrapper(wrapper)
         assert len(continuity_data.parent_continuity_bag) == 0
         assert len(continuity_data.child_continuity_bag) == 0
 
-    def test_to_dict(self, sample_parent_continuity_data, sample_child_continuity_data):
+    def test_to_dict(self, sample_parent_continuity_data: Dict[str,Any], sample_child_continuity_data: Dict[str,Any])-> None:
         parent = ParentContinuity.from_dict(sample_parent_continuity_data)
         child = ChildContinuity.from_dict(sample_child_continuity_data)
         continuity_data = ApplicationContinuityData(
@@ -1774,7 +1775,7 @@ class TestApplicationContinuityData:
 class TestAssociatedDocumentsData:
     """Tests for the AssociatedDocumentsData helper class."""
 
-    def test_from_wrapper_with_data(self, sample_document_meta_data_data):
+    def test_from_wrapper_with_data(self, sample_document_meta_data_data: Dict[str,Any])-> None:
         pgpub_meta_data = sample_document_meta_data_data.copy()
         pgpub_meta_data["productIdentifier"] = "PGPUB"
         grant_meta_data = sample_document_meta_data_data.copy()
@@ -1790,7 +1791,7 @@ class TestAssociatedDocumentsData:
         assert assoc_docs.pgpub_document_meta_data is pgpub_meta
         assert assoc_docs.grant_document_meta_data is grant_meta
 
-    def test_from_wrapper_with_partial_data(self, sample_document_meta_data_data):
+    def test_from_wrapper_with_partial_data(self, sample_document_meta_data_data: Dict[str,Any])-> None:
         pgpub_meta = DocumentMetaData.from_dict(sample_document_meta_data_data)
         wrapper = PatentFileWrapper(
             pgpub_document_meta_data=pgpub_meta, grant_document_meta_data=None
@@ -1799,7 +1800,7 @@ class TestAssociatedDocumentsData:
         assert assoc_docs.pgpub_document_meta_data is pgpub_meta
         assert assoc_docs.grant_document_meta_data is None
 
-    def test_from_wrapper_with_no_data(self):
+    def test_from_wrapper_with_no_data(self)-> None:
         wrapper = PatentFileWrapper(
             pgpub_document_meta_data=None, grant_document_meta_data=None
         )
@@ -1807,7 +1808,7 @@ class TestAssociatedDocumentsData:
         assert assoc_docs.pgpub_document_meta_data is None
         assert assoc_docs.grant_document_meta_data is None
 
-    def test_to_dict(self, sample_document_meta_data_data):
+    def test_to_dict(self, sample_document_meta_data_data: Dict[str,Any])-> None:
         pgpub_meta_dict = sample_document_meta_data_data.copy()
         pgpub_meta_dict["zipFileName"] = "pgpub.zip"
         grant_meta_dict = sample_document_meta_data_data.copy()
@@ -1825,7 +1826,7 @@ class TestAssociatedDocumentsData:
         assert data_dict["pgpubDocumentMetaData"]["zipFileName"] == "pgpub.zip"
         assert data_dict["grantDocumentMetaData"]["zipFileName"] == "grant.zip"
 
-    def test_to_dict_with_partial_data(self, sample_document_meta_data_data):
+    def test_to_dict_with_partial_data(self, sample_document_meta_data_data: Dict[str,Any])-> None:
         pgpub_meta = DocumentMetaData.from_dict(sample_document_meta_data_data)
         assoc_docs = AssociatedDocumentsData(
             pgpub_document_meta_data=pgpub_meta, grant_document_meta_data=None
@@ -1840,7 +1841,7 @@ class TestAssociatedDocumentsData:
 class TestUtilityFunctions:
     """Tests for utility functions in models.patent_data.py."""
 
-    def test_parse_to_datetime_utc(self, capsys) -> None: # Added capsys
+    def test_parse_to_datetime_utc(self, capsys: CaptureFixture) -> None: 
         """Test parse_to_datetime_utc utility function comprehensively."""
         # Test with Z suffix (UTC)
         dt_utc_z = parse_to_datetime_utc("2023-01-01T10:00:00Z")
@@ -1918,12 +1919,16 @@ class TestUtilityFunctions:
         assert serialize_datetime_as_iso(None) is None
 
 
-    def test_parse_to_datetime_utc_localization_failure_and_fallback(self, capsys) -> None:
+    def test_parse_to_datetime_utc_localization_failure_and_fallback(self, capsys: CaptureFixture) -> None:
         """Triggers the except block by making astimezone() raise, and tests fallback path."""
 
         class FailingTZ(tzinfo):
-            def utcoffset(self, dt): raise Exception("boom")
-
+            def utcoffset(self, dt: Optional[datetime])-> None: raise Exception("boom")
+            def dst(self, dt: Optional[datetime]) -> Optional[timedelta]:
+                return None
+            def tzname(self, dt: Optional[datetime]) -> Optional[str]:
+                return None
+            
         dt_str = "2023-01-01T10:00:00"
 
         # Patch ASSUMED_NAIVE_TIMEZONE to a tzinfo that will break astimezone()
@@ -1938,14 +1943,18 @@ class TestUtilityFunctions:
 
 
 
-    def test_parse_to_datetime_utc_fallback_to_utc_replace(self, capsys) -> None:
+    def test_parse_to_datetime_utc_fallback_to_utc_replace(self, capsys: CaptureFixture) -> None:
         """Triggers fallback to dt_obj.replace(tzinfo=timezone.utc) without touching datetime.*"""
 
         class FailingButEqualToUTC(tzinfo):
-            def utcoffset(self, dt):
+            def utcoffset(self, dt: Optional[datetime])-> None:
                 raise Exception("boom")
+            def dst(self, dt: Optional[datetime]) -> Optional[timedelta]:
+                return None
+            def tzname(self, dt: Optional[datetime]) -> Optional[str]:
+                return None
 
-            def __eq__(self, other):
+            def __eq__(self, other: object)-> bool:
                 return other is timezone.utc
 
         dt_str = "2023-01-01T10:00:00"
@@ -1961,7 +1970,7 @@ class TestUtilityFunctions:
         assert "Warning: Error localizing naive datetime" in captured.out
 
 
-    def test_parse_yn_to_bool(self, capsys) -> None: # Added capsys
+    def test_parse_yn_to_bool(self, capsys: CaptureFixture) -> None: # Added capsys
         """Test parse_yn_to_bool utility function."""
         assert parse_yn_to_bool("Y") is True
         assert parse_yn_to_bool("y") is True
@@ -1993,7 +2002,7 @@ class TestUtilityFunctions:
         assert serialize_bool_to_yn(None) is None
 
 
-    def test_timezone_setup_fallback(self):
+    def test_timezone_setup_fallback(self)-> None:
         """Test fallback to UTC when timezone not found."""
         with patch('zoneinfo.ZoneInfo', side_effect=ZoneInfoNotFoundError("Test error")):
             import pyUSPTO.models.patent_data
@@ -2003,8 +2012,8 @@ class TestUtilityFunctions:
                 ASSUMED_NAIVE_TIMEZONE = ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR)
             except ZoneInfoNotFoundError:
                 print(f"Warning: Timezone '{ASSUMED_NAIVE_TIMEZONE_STR}' not found. Naive datetimes will be treated as UTC or may cause errors.")
-                ASSUMED_NAIVE_TIMEZONE = timezone.utc
+                ASSUMED_NAIVE_TIMEZONE = ZoneInfo("UTC")
             
-            assert ASSUMED_NAIVE_TIMEZONE == timezone.utc
+            assert ASSUMED_NAIVE_TIMEZONE == ZoneInfo("UTC")
 
         importlib.reload(module=pyUSPTO.models.patent_data)

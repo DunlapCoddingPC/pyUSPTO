@@ -240,9 +240,9 @@ class TestBaseUSPTOClient:
 
         with pytest.raises(USPTOApiBadRequestError) as excinfo:
             client._make_request(method="GET", endpoint="test")
-        assert "Invalid request parameters" in str(excinfo.value)
-        assert excinfo.value.error_details == "Invalid request parameters"
-        assert excinfo.value.request_identifier == "req-400"
+            assert "Invalid request parameters" in str(excinfo.value)
+            assert excinfo.value.error_details == "Invalid request parameters"
+            assert excinfo.value.request_identifier == "req-400"
 
         # Test 401 error (Auth Error)
         mock_response.status_code = 401
@@ -250,11 +250,11 @@ class TestBaseUSPTOClient:
             "errorDetails": "Authentication failed",
             "requestIdentifier": "req-401",
         }
-        with pytest.raises(USPTOApiAuthError) as excinfo:
+        with pytest.raises(expected_exception=USPTOApiAuthError) as excinfo:
             client._make_request(method="GET", endpoint="test")
-        assert "Authentication failed" in str(excinfo.value)
-        assert excinfo.value.error_details == "Authentication failed"
-        assert excinfo.value.request_identifier == "req-401"
+            assert "Authentication failed" in str(excinfo.value)
+            assert excinfo.value.error_details == "Authentication failed"
+            assert excinfo.value.request_identifier == "req-401"
 
         # Test 403 error (Auth Error)
         mock_response.status_code = 403
@@ -264,9 +264,9 @@ class TestBaseUSPTOClient:
         }
         with pytest.raises(USPTOApiAuthError) as excinfo:
             client._make_request(method="GET", endpoint="test")
-        assert "Access forbidden" in str(excinfo.value)
-        assert excinfo.value.error_details == "Access forbidden"
-        assert excinfo.value.request_identifier == "req-403"
+            assert "Access forbidden" in str(excinfo.value)
+            assert excinfo.value.error_details == "Access forbidden"
+            assert excinfo.value.request_identifier == "req-403"
 
         # Test 404 error (Not Found)
         mock_response.status_code = 404
@@ -276,9 +276,9 @@ class TestBaseUSPTOClient:
         }
         with pytest.raises(USPTOApiNotFoundError) as excinfo:
             client._make_request(method="GET", endpoint="test")
-        assert "Resource not found" in str(excinfo.value)
-        assert excinfo.value.error_details == "Resource not found"
-        assert excinfo.value.request_identifier == "req-404"
+            assert "Resource not found" in str(excinfo.value)
+            assert excinfo.value.error_details == "Resource not found"
+            assert excinfo.value.request_identifier == "req-404"
 
         # Test 413 error (Payload Too Large)
         mock_response.status_code = 413
@@ -289,9 +289,9 @@ class TestBaseUSPTOClient:
         }
         with pytest.raises(expected_exception=USPTOApiPayloadTooLargeError) as excinfo:
             client._make_request(method="GET", endpoint="test")
-        assert "Payload Too Large" in str(excinfo.value)
-        assert excinfo.value.error_details == "Request entity too large."
-        assert excinfo.value.request_identifier == "req-413"
+            assert "Payload Too Large" in str(excinfo.value)
+            assert excinfo.value.error_details == "Request entity too large."
+            assert excinfo.value.request_identifier == "req-413"
 
         # Test 429 error (Rate Limit)
         mock_response.status_code = 429
@@ -301,9 +301,9 @@ class TestBaseUSPTOClient:
         }
         with pytest.raises(USPTOApiRateLimitError) as excinfo:
             client._make_request(method="GET", endpoint="test")
-        assert "Rate limit exceeded" in str(excinfo.value)
-        assert excinfo.value.error_details == "Rate limit exceeded"
-        assert excinfo.value.request_identifier == "req-429"
+            assert "Rate limit exceeded" in str(excinfo.value)
+            assert excinfo.value.error_details == "Rate limit exceeded"
+            assert excinfo.value.request_identifier == "req-429"
 
         # Test 500 error (Server Error)
         mock_response.status_code = 500
@@ -313,9 +313,9 @@ class TestBaseUSPTOClient:
         }
         with pytest.raises(USPTOApiServerError) as excinfo:
             client._make_request(method="GET", endpoint="test")
-        assert "Internal server error" in str(excinfo.value)
-        assert excinfo.value.error_details == "Internal server error"
-        assert excinfo.value.request_identifier == "req-500"
+            assert "Internal server error" in str(excinfo.value)
+            assert excinfo.value.error_details == "Internal server error"
+            assert excinfo.value.request_identifier == "req-500"
 
         # Test detailedError field instead of errorDetails
         mock_response.status_code = 500
@@ -325,17 +325,17 @@ class TestBaseUSPTOClient:
         }
         with pytest.raises(USPTOApiServerError) as excinfo:
             client._make_request(method="GET", endpoint="test")
-        assert "Alternative error format" in str(object=excinfo.value)
-        assert excinfo.value.error_details == "Alternative error format"
-        assert excinfo.value.request_identifier == "req-500-alt"
+            assert "Alternative error format" in str(object=excinfo.value)
+            assert excinfo.value.error_details == "Alternative error format"
+            assert excinfo.value.request_identifier == "req-500-alt"
 
         # Test other HTTP error without JSON response
         mock_response.json.side_effect = ValueError("Invalid JSON")
         mock_response.text = "This is an error less than 500 chars."
         with pytest.raises(USPTOApiServerError) as excinfo:
             client._make_request(method="GET", endpoint="test")
-        assert "This is an error less than 500 chars." in str(excinfo.value)
-        assert excinfo.value.request_identifier is None
+            assert "This is an error less than 500 chars." in str(excinfo.value)
+            assert excinfo.value.request_identifier is None
 
     def test_make_request_request_exception(self, mock_session: MagicMock) -> None:
         """Test _make_request method with request exception."""

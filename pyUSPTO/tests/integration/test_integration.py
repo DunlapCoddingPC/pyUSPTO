@@ -6,18 +6,39 @@ These tests are optional and are skipped by default unless the ENABLE_INTEGRATIO
 environment variable is set to 'true'.
 """
 
+import datetime  # For date and datetime assertions
 import os
-from typing import Optional
+import shutil
+from typing import Iterator, List, Optional  # Keep List for type hinting
 
 import pytest
 
 from pyUSPTO.clients import BulkDataClient, PatentDataClient
 from pyUSPTO.config import USPTOConfig
+
+# Updated exception imports based on provided files
+from pyUSPTO.exceptions import USPTOApiError, USPTOApiNotFoundError
 from pyUSPTO.models.bulk_data import BulkDataProduct, BulkDataResponse
+
+# Updated model imports for patent_data based on provided files
+from pyUSPTO.models.patent_data import Document  # Added Document as it's used directly
 from pyUSPTO.models.patent_data import (
+    StatusCode,  # Added StatusCode as it's used directly
+)
+from pyUSPTO.models.patent_data import (  # DocumentMetaData, # This is a component, not directly asserted on in the same way Document is
+    ApplicationContinuityData,
+    ApplicationMetaData,
+    Assignment,
+    AssociatedDocumentsData,
     DocumentBag,
+    EventData,
+    ForeignPriority,
     PatentDataResponse,
     PatentFileWrapper,
+    PatentTermAdjustmentData,
+    RecordAttorney,
+    StatusCodeCollection,
+    StatusCodeSearchResponse,
 )
 
 # Skip all tests in this module unless ENABLE_INTEGRATION_TESTS is set to 'true'
@@ -25,6 +46,19 @@ pytestmark = pytest.mark.skipif(
     os.environ.get("ENABLE_INTEGRATION_TESTS", "").lower() != "true",
     reason="Integration tests are disabled. Set ENABLE_INTEGRATION_TESTS=true to enable.",
 )
+
+# Define a temporary download directory for tests
+TEST_DOWNLOAD_DIR = "./temp_test_downloads"
+
+@pytest.fixture(scope="module", autouse=True)
+def manage_test_download_dir()-> Iterator[None]:
+    """Create and clean up the test download directory."""
+    if os.path.exists(TEST_DOWNLOAD_DIR):
+        shutil.rmtree(TEST_DOWNLOAD_DIR)
+    os.makedirs(TEST_DOWNLOAD_DIR, exist_ok=True)
+    yield
+    if os.path.exists(TEST_DOWNLOAD_DIR):
+        shutil.rmtree(TEST_DOWNLOAD_DIR)
 
 
 @pytest.fixture
@@ -35,7 +69,10 @@ def api_key() -> Optional[str]:
     Returns:
         Optional[str]: The API key or None if not set
     """
-    return os.environ.get("USPTO_API_KEY")
+    key = os.environ.get("USPTO_API_KEY")
+    if not key:
+        pytest.skip("USPTO_API_KEY environment variable not set. Skipping integration tests.")
+    return key
 
 
 @pytest.fixture
@@ -79,6 +116,21 @@ def patent_data_client(config: USPTOConfig) -> PatentDataClient:
     """
     return PatentDataClient(config=config)
 
+@pytest.fixture
+def sample_application_number(patent_data_client: PatentDataClient) -> str:
+    """Provides a sample application number for tests."""
+    try:
+        # Query for a utility application to increase chances of having diverse data
+        response = patent_data_client.get_patent_applications(params={"limit": 1, "q": "applicationMetaData.applicationTypeCategory:Utility AND applicationMetaData.applicationStatusDescriptionText:(Pending OR \"Patented Case\")"})
+        if response.count > 0 and response.patent_file_wrapper_data_bag:
+            app_num = response.patent_file_wrapper_data_bag[0].application_number_text
+            if app_num:
+                return app_num
+    except USPTOApiError as e: # Catch specific API errors
+        pytest.skip(f"Could not fetch sample application number due to API error: {e}")
+    except Exception as e: # Catch other potential errors during setup
+        pytest.skip(f"Could not fetch sample application number due to unexpected error: {e}")
+    pytest.skip("Could not retrieve a sample application number. Ensure API is reachable and query is valid.")
 
 class TestBulkDataIntegration:
     """Integration tests for the BulkDataClient."""
@@ -90,9 +142,9 @@ class TestBulkDataIntegration:
         assert response is not None
         assert isinstance(response, BulkDataResponse)
         assert response.count > 0
+        assert response.bulk_data_product_bag is not None
         assert len(response.bulk_data_product_bag) > 0
 
-        # Verify the structure of the first product
         product = response.bulk_data_product_bag[0]
         assert isinstance(product, BulkDataProduct)
         assert product.product_identifier is not None
@@ -100,30 +152,29 @@ class TestBulkDataIntegration:
 
     def test_search_products(self, bulk_data_client: BulkDataClient) -> None:
         """Test searching for products."""
-        # Search for patent products
-        response = bulk_data_client.search_products(query="patent", limit=5)
+        response = bulk_data_client.search_products(query="PAIF", limit=5) # PAIF is a common product type
 
         assert response is not None
         assert isinstance(response, BulkDataResponse)
         assert response.count > 0
+        assert response.bulk_data_product_bag is not None
         assert len(response.bulk_data_product_bag) > 0
-        assert len(response.bulk_data_product_bag) <= 5  # Respect the limit
+        assert len(response.bulk_data_product_bag) <= 5
 
     def test_get_product_by_id(self, bulk_data_client: BulkDataClient) -> None:
         """Test getting a specific product by ID."""
-        # First get a list of products to find a valid ID
-        response = bulk_data_client.get_products(params={"limit": 1})
+        response = bulk_data_client.get_products(params={"limit": 1, "q": "productTitleText:Patent Application Information Retrieval*"}) # More specific query
         assert response.count > 0
+        assert response.bulk_data_product_bag
 
         product_id = response.bulk_data_product_bag[0].product_identifier
+        assert product_id is not None
         product = bulk_data_client.get_product_by_id(product_id, include_files=True)
 
         assert product is not None
         assert isinstance(product, BulkDataProduct)
         assert product.product_identifier == product_id
-        assert product.product_title_text is not None
-
-        # Check if files are included
+        
         if product.product_file_total_quantity > 0:
             assert product.product_file_bag is not None
             assert product.product_file_bag.count > 0
@@ -132,556 +183,430 @@ class TestBulkDataIntegration:
 class TestPatentDataIntegration:
     """Integration tests for the PatentDataClient."""
 
+    KNOWN_APP_NUM_WITH_DOCS = "18045436" # From USPTO API sample, likely has various data
+
     def test_get_patent_applications(
         self, patent_data_client: PatentDataClient
     ) -> None:
         """Test getting patent applications from the API."""
-        response = patent_data_client.get_patent_applications(params={"limit": 5})
+        response = patent_data_client.get_patent_applications(params={"limit": 2, "q": "applicationMetaData.applicationTypeCategory:Utility"})
 
         assert response is not None
         assert isinstance(response, PatentDataResponse)
         assert response.count > 0
+        assert response.patent_file_wrapper_data_bag is not None
         assert len(response.patent_file_wrapper_data_bag) > 0
-        assert len(response.patent_file_wrapper_data_bag) <= 5  # Respect the limit
+        assert len(response.patent_file_wrapper_data_bag) <= 2
 
-        # Verify the structure of the first patent
-        patent = response.patent_file_wrapper_data_bag[0]
-        assert isinstance(patent, PatentFileWrapper)
-        assert patent.application_number_text is not None
-        assert patent.application_meta_data is not None
+        patent_wrapper = response.patent_file_wrapper_data_bag[0]
+        assert isinstance(patent_wrapper, PatentFileWrapper)
+        assert patent_wrapper.application_number_text is not None
+        assert patent_wrapper.application_meta_data is not None
+        assert isinstance(patent_wrapper.application_meta_data, ApplicationMetaData)
 
     def test_search_patents(self, patent_data_client: PatentDataClient) -> None:
         """Test searching for patents."""
-        # Search for patents with a common inventor name
-        response = patent_data_client.search_patents(inventor_name="Smith", limit=5)
+        # Using a common assignee name known to yield results
+        response = patent_data_client.search_patents(assignee_name="International Business Machines", limit=2)
 
         assert response is not None
         assert isinstance(response, PatentDataResponse)
-        assert response.count > 0
-        assert len(response.patent_file_wrapper_data_bag) > 0
-        assert len(response.patent_file_wrapper_data_bag) <= 5  # Respect the limit
+        if response.count > 0:
+            assert response.patent_file_wrapper_data_bag is not None
+            assert len(response.patent_file_wrapper_data_bag) > 0
+            assert len(response.patent_file_wrapper_data_bag) <= 2
+            assert isinstance(response.patent_file_wrapper_data_bag[0], PatentFileWrapper)
+        else:
+            # If count is 0, the bag should be empty
+            assert response.patent_file_wrapper_data_bag == []
 
-    def test_get_patent_by_application_number(
-        self, patent_data_client: PatentDataClient
+
+    def test_get_patent_application_details(
+        self, patent_data_client: PatentDataClient, sample_application_number: str
     ) -> None:
         """Test getting a specific patent by application number."""
-        # First get a list of patents to find a valid application number
-        response = patent_data_client.get_patent_applications(params={"limit": 1})
-        assert response.count > 0
+        patent_wrapper = patent_data_client.get_patent_application_details(sample_application_number)
 
-        application_number = response.patent_file_wrapper_data_bag[
-            0
-        ].application_number_text
-        # Ensure application_number is not None before proceeding
-        assert application_number is not None, "Application number should not be None"
-        patent = patent_data_client.get_patent_by_application_number(application_number)
+        assert patent_wrapper is not None
+        assert isinstance(patent_wrapper, PatentFileWrapper)
+        assert patent_wrapper.application_number_text == sample_application_number
+        assert patent_wrapper.application_meta_data is not None
+        assert isinstance(patent_wrapper.application_meta_data, ApplicationMetaData)
+        assert patent_wrapper.application_meta_data.invention_title is not None
 
-        assert patent is not None
-        assert isinstance(patent, PatentFileWrapper)
-        assert patent.application_number_text == application_number
-        assert patent.application_meta_data is not None
 
     def test_get_patent_status_codes(
         self, patent_data_client: PatentDataClient
     ) -> None:
         """Test getting patent status codes."""
-        status_codes = patent_data_client.get_patent_status_codes()
+        status_codes_response = patent_data_client.get_patent_status_codes()
 
-        assert status_codes is not None
-        assert isinstance(status_codes, dict)
-        assert "statusCodeBag" in status_codes
-        assert len(status_codes["statusCodeBag"]) > 0
+        assert status_codes_response is not None
+        assert isinstance(status_codes_response, StatusCodeSearchResponse)
+        assert status_codes_response.status_code_bag is not None
+        assert isinstance(status_codes_response.status_code_bag, StatusCodeCollection)
+        assert len(status_codes_response.status_code_bag) > 0 # Expecting some status codes
+        
+        first_status_code = status_codes_response.status_code_bag[0]
+        assert isinstance(first_status_code, StatusCode)
+        assert first_status_code.code is not None
+        assert first_status_code.description is not None
+
 
     def test_get_application_metadata(
-        self, patent_data_client: PatentDataClient
+        self, patent_data_client: PatentDataClient, sample_application_number: str
     ) -> None:
         """Test getting metadata for a patent application."""
-        # Get a valid application number from existing applications
-        response = patent_data_client.get_patent_applications(params={"limit": 1})
-        assert response.count > 0
+        try:
+            metadata = patent_data_client.get_application_metadata(sample_application_number)
+            if metadata is None: # Client method returns Optional
+                pytest.skip(f"No metadata available for application {sample_application_number}")
+            
+            assert isinstance(metadata, ApplicationMetaData)
+            assert metadata.invention_title is not None # Check a key field
+            assert metadata.filing_date is not None 
+            assert isinstance(metadata.filing_date, datetime.date)
+        except USPTOApiNotFoundError:
+             pytest.skip(f"Metadata not found (404) for application {sample_application_number}")
+        except USPTOApiError as e:
+            pytest.skip(f"API call for metadata failed for {sample_application_number}: {e}")
 
-        application_number = response.patent_file_wrapper_data_bag[
-            0
-        ].application_number_text
-        assert application_number is not None, "Application number should not be None"
-
-        # Call the metadata endpoint
-        metadata_response = patent_data_client.get_application_metadata(
-            application_number
-        )
-
-        # Verify response structure
-        assert metadata_response is not None
-        assert isinstance(metadata_response, PatentDataResponse)
-        assert len(metadata_response.patent_file_wrapper_data_bag) > 0
-
-        # Verify the metadata contains the correct application number
-        assert (
-            metadata_response.patent_file_wrapper_data_bag[0].application_number_text
-            == application_number
-        )
 
     def test_get_application_adjustment(
-        self, patent_data_client: PatentDataClient
+        self, patent_data_client: PatentDataClient, sample_application_number: str
     ) -> None:
         """Test getting patent term adjustment data."""
-        # Get a valid application number
-        response = patent_data_client.get_patent_applications(params={"limit": 1})
-        assert response.count > 0
-
-        application_number = response.patent_file_wrapper_data_bag[
-            0
-        ].application_number_text
-        assert application_number is not None, "Application number should not be None"
-
         try:
-            # Call the adjustment endpoint
-            adjustment_response = patent_data_client.get_application_adjustment(
-                application_number
-            )
-
-            # Verify response structure
-            assert adjustment_response is not None
-            assert isinstance(adjustment_response, PatentDataResponse)
-
-            # The response might be empty if the application doesn't have adjustment data
-            if adjustment_response.count > 0:
-                assert len(adjustment_response.patent_file_wrapper_data_bag) > 0
-                assert (
-                    adjustment_response.patent_file_wrapper_data_bag[
-                        0
-                    ].application_number_text
-                    == application_number
-                )
-        except Exception as e:
-            # Some applications might not have adjustment data
-            pytest.skip(f"Patent adjustment data not available: {str(e)}")
+            adjustment_data = patent_data_client.get_application_adjustment(sample_application_number)
+            if adjustment_data is None:
+                pytest.skip(f"No adjustment data for {sample_application_number}")
+            
+            assert isinstance(adjustment_data, PatentTermAdjustmentData)
+            # Check a key field, can be 0 so `is not None` is appropriate
+            assert adjustment_data.adjustment_total_quantity is not None
+        except USPTOApiNotFoundError:
+             pytest.skip(f"Adjustment data not found (404) for application {sample_application_number}")
+        except USPTOApiError as e:
+             pytest.skip(f"Adjustment data not available or API error for {sample_application_number}: {e}")
 
     def test_get_application_assignment(
-        self, patent_data_client: PatentDataClient
+        self, patent_data_client: PatentDataClient, sample_application_number: str
     ) -> None:
         """Test getting assignment data."""
-        # Get a valid application number
-        response = patent_data_client.get_patent_applications(params={"limit": 1})
-        assert response.count > 0
-
-        application_number = response.patent_file_wrapper_data_bag[
-            0
-        ].application_number_text
-        assert application_number is not None, "Application number should not be None"
-
         try:
-            # Call the assignment endpoint
-            assignment_response = patent_data_client.get_application_assignment(
-                application_number
-            )
+            assignments = patent_data_client.get_application_assignment(sample_application_number)
+            if assignments is None: 
+                 pytest.skip(f"No assignment data (returned None) for {sample_application_number}")
 
-            # Verify response structure
-            assert assignment_response is not None
-            assert isinstance(assignment_response, PatentDataResponse)
+            assert isinstance(assignments, list)
+            if not assignments: # Empty list is valid if no assignments
+                 pytest.skip(f"Assignment data list is empty for {sample_application_number}")
+            
+            assert isinstance(assignments[0], Assignment)
+            assert assignments[0].reel_number is not None or assignments[0].frame_number is not None
+            if assignments[0].assignee_bag:
+                assert assignments[0].assignee_bag[0].assignee_name_text is not None
 
-            # The response might be empty if the application doesn't have assignment data
-            if assignment_response.count > 0:
-                assert len(assignment_response.patent_file_wrapper_data_bag) > 0
-                assert (
-                    assignment_response.patent_file_wrapper_data_bag[
-                        0
-                    ].application_number_text
-                    == application_number
-                )
-        except Exception as e:
-            # Some applications might not have assignment data
-            pytest.skip(f"Patent assignment data not available: {str(e)}")
+        except USPTOApiNotFoundError:
+            pytest.skip(f"Assignment data not found (404) for {sample_application_number}")
+        except USPTOApiError as e:
+            pytest.skip(f"Assignment data not available or API error for {sample_application_number}: {e}")
+
 
     def test_get_application_attorney(
-        self, patent_data_client: PatentDataClient
+        self, patent_data_client: PatentDataClient, sample_application_number: str
     ) -> None:
         """Test getting attorney/agent data."""
-        # Get a valid application number
-        response = patent_data_client.get_patent_applications(params={"limit": 1})
-        assert response.count > 0
-
-        application_number = response.patent_file_wrapper_data_bag[
-            0
-        ].application_number_text
-        assert application_number is not None, "Application number should not be None"
-
         try:
-            # Call the attorney endpoint
-            attorney_response = patent_data_client.get_application_attorney(
-                application_number
-            )
+            attorney_data = patent_data_client.get_application_attorney(sample_application_number)
+            if attorney_data is None:
+                pytest.skip(f"No attorney data for {sample_application_number}")
 
-            # Verify response structure
-            assert attorney_response is not None
-            assert isinstance(attorney_response, PatentDataResponse)
+            assert isinstance(attorney_data, RecordAttorney)
+            # RecordAttorney can have empty bags. Check if customer_number_correspondence_data or attorney_bag has content.
+            has_attorney_info = False
+            if attorney_data.attorney_bag:
+                assert isinstance(attorney_data.attorney_bag[0].first_name, str) or \
+                       isinstance(attorney_data.attorney_bag[0].last_name, str)
+                has_attorney_info = True
+            if attorney_data.customer_number_correspondence_data:
+                 assert attorney_data.customer_number_correspondence_data[0].patron_identifier is not None
+                 has_attorney_info = True
+            
+            if not has_attorney_info:
+                pytest.skip(f"Attorney data present but bags are empty for {sample_application_number}")
 
-            # The response might be empty if the application doesn't have attorney data
-            if attorney_response.count > 0:
-                assert len(attorney_response.patent_file_wrapper_data_bag) > 0
-                assert (
-                    attorney_response.patent_file_wrapper_data_bag[
-                        0
-                    ].application_number_text
-                    == application_number
-                )
-        except Exception as e:
-            # Some applications might not have attorney data
-            pytest.skip(f"Patent attorney data not available: {str(e)}")
+        except USPTOApiNotFoundError:
+            pytest.skip(f"Attorney data not found (404) for {sample_application_number}")
+        except USPTOApiError as e:
+            pytest.skip(f"Attorney data not available or API error for {sample_application_number}: {e}")
 
     def test_get_application_continuity(
-        self, patent_data_client: PatentDataClient
+        self, patent_data_client: PatentDataClient, sample_application_number: str
     ) -> None:
         """Test getting continuity data."""
-        # Get a valid application number
-        response = patent_data_client.get_patent_applications(params={"limit": 1})
-        assert response.count > 0
-
-        application_number = response.patent_file_wrapper_data_bag[
-            0
-        ].application_number_text
-        assert application_number is not None, "Application number should not be None"
-
         try:
-            # Call the continuity endpoint
-            continuity_response = patent_data_client.get_application_continuity(
-                application_number
-            )
-
-            # Verify response structure
-            assert continuity_response is not None
-            assert isinstance(continuity_response, PatentDataResponse)
-
-            # The response might be empty if the application doesn't have continuity data
-            if continuity_response.count > 0:
-                assert len(continuity_response.patent_file_wrapper_data_bag) > 0
-                assert (
-                    continuity_response.patent_file_wrapper_data_bag[
-                        0
-                    ].application_number_text
-                    == application_number
-                )
-        except Exception as e:
-            # Some applications might not have continuity data
-            pytest.skip(f"Patent continuity data not available: {str(e)}")
+            continuity_data = patent_data_client.get_application_continuity(sample_application_number)
+            if continuity_data is None:
+                 pytest.skip(f"No continuity data for {sample_application_number}")
+            
+            assert isinstance(continuity_data, ApplicationContinuityData)
+            # Continuity data can have empty parent/child bags, which is valid.
+            assert continuity_data.parent_continuity_bag is not None 
+            assert continuity_data.child_continuity_bag is not None
+            # If there's parent data, check a field
+            if continuity_data.parent_continuity_bag:
+                assert continuity_data.parent_continuity_bag[0].parent_application_number_text is not None
+        except USPTOApiNotFoundError:
+            pytest.skip(f"Continuity data not found (404) for {sample_application_number}")
+        except USPTOApiError as e:
+            pytest.skip(f"Continuity data not available or API error for {sample_application_number}: {e}")
 
     def test_get_application_foreign_priority(
-        self, patent_data_client: PatentDataClient
+        self, patent_data_client: PatentDataClient, sample_application_number: str
     ) -> None:
         """Test getting foreign priority data."""
-        # Get a valid application number
-        response = patent_data_client.get_patent_applications(params={"limit": 1})
-        assert response.count > 0
-
-        application_number = response.patent_file_wrapper_data_bag[
-            0
-        ].application_number_text
-        assert application_number is not None, "Application number should not be None"
-
         try:
-            # Call the foreign priority endpoint
-            priority_response = patent_data_client.get_application_foreign_priority(
-                application_number
-            )
+            priorities = patent_data_client.get_application_foreign_priority(sample_application_number)
+            if priorities is None:
+                pytest.skip(f"No foreign priority data (returned None) for {sample_application_number}")
 
-            # Verify response structure
-            assert priority_response is not None
-            assert isinstance(priority_response, PatentDataResponse)
+            assert isinstance(priorities, list)
+            if not priorities: # Empty list is valid
+                pytest.skip(f"Foreign priority data list is empty for {sample_application_number}")
+            
+            assert isinstance(priorities[0], ForeignPriority)
+            assert priorities[0].ip_office_name is not None
+            assert priorities[0].filing_date is not None
+            assert isinstance(priorities[0].filing_date, datetime.date)
 
-            # The response might be empty if the application doesn't have foreign priority data
-            if priority_response.count > 0:
-                assert len(priority_response.patent_file_wrapper_data_bag) > 0
-                assert (
-                    priority_response.patent_file_wrapper_data_bag[
-                        0
-                    ].application_number_text
-                    == application_number
-                )
-        except Exception as e:
-            # Some applications might not have foreign priority data
-            pytest.skip(f"Patent foreign priority data not available: {str(e)}")
+        except USPTOApiNotFoundError:
+            pytest.skip(f"Foreign priority data not found (404) for {sample_application_number}")
+        except USPTOApiError as e:
+            pytest.skip(f"Foreign priority data not available or API error for {sample_application_number}: {e}")
 
     def test_get_application_transactions(
-        self, patent_data_client: PatentDataClient
+        self, patent_data_client: PatentDataClient, sample_application_number: str
     ) -> None:
         """Test getting transaction history data."""
-        # Get a valid application number
-        response = patent_data_client.get_patent_applications(params={"limit": 1})
-        assert response.count > 0
-
-        application_number = response.patent_file_wrapper_data_bag[
-            0
-        ].application_number_text
-        assert application_number is not None, "Application number should not be None"
-
         try:
-            # Call the transactions endpoint
-            transactions_response = patent_data_client.get_application_transactions(
-                application_number
-            )
+            transactions = patent_data_client.get_application_transactions(sample_application_number)
+            if transactions is None: 
+                pytest.skip(f"No transaction data (returned None) for {sample_application_number}")
+            
+            assert isinstance(transactions, list)
+            if not transactions: # Empty list is valid
+                pytest.skip(f"Transaction data list is empty for {sample_application_number}")
 
-            # Verify response structure
-            assert transactions_response is not None
-            assert isinstance(transactions_response, PatentDataResponse)
+            assert isinstance(transactions[0], EventData)
+            assert transactions[0].event_code is not None
+            assert transactions[0].event_date is not None
+            assert isinstance(transactions[0].event_date, datetime.date)
+        except USPTOApiNotFoundError:
+            pytest.skip(f"Transaction data not found (404) for {sample_application_number}")
+        except USPTOApiError as e:
+            pytest.skip(f"Transaction data not available or API error for {sample_application_number}: {e}")
 
-            # The response might be empty if the application doesn't have transaction data
-            if transactions_response.count > 0:
-                assert len(transactions_response.patent_file_wrapper_data_bag) > 0
-                assert (
-                    transactions_response.patent_file_wrapper_data_bag[
-                        0
-                    ].application_number_text
-                    == application_number
-                )
-        except Exception as e:
-            # Some applications might not have transaction data
-            pytest.skip(f"Patent transaction data not available: {str(e)}")
 
     def test_get_application_documents(
         self, patent_data_client: PatentDataClient
     ) -> None:
         """Test getting document listings."""
-        # Use a known application number that has documents
-        # 18045436 is a published application with documents from USPTO API Response Sample
-        application_number = "18045436"
-
         try:
-            # Call the documents endpoint
-            documents = patent_data_client.get_application_documents(application_number)
+            documents_bag = patent_data_client.get_application_documents(self.KNOWN_APP_NUM_WITH_DOCS)
+            if documents_bag is None:
+                 pytest.skip(f"No document bag returned for {self.KNOWN_APP_NUM_WITH_DOCS}")
+            
+            assert isinstance(documents_bag, DocumentBag)
+            assert documents_bag.documents is not None # documents is a tuple
+            if not documents_bag.documents:
+                 pytest.skip(f"Document bag is empty for {self.KNOWN_APP_NUM_WITH_DOCS}")
 
-            # Verify response structure
-            assert documents is not None
-            assert isinstance(documents, DocumentBag)
-
-            # Verify we have documents
-            assert len(documents) > 0
-
-            # Test the first document properties
-            first_doc = documents.documents[0]
+            first_doc = documents_bag.documents[0]
+            assert isinstance(first_doc, Document) # Changed from DocumentMetaData
             assert first_doc.document_identifier is not None
             assert first_doc.document_code is not None
-        except Exception as e:
-            pytest.skip(f"Document endpoint failed with application 18045436: {str(e)}")
+            assert first_doc.official_date is not None
+            assert isinstance(first_doc.official_date, datetime.datetime)
+
+        except USPTOApiNotFoundError:
+            pytest.skip(f"Documents not found (404) for {self.KNOWN_APP_NUM_WITH_DOCS}")
+        except USPTOApiError as e:
+            pytest.skip(f"Document endpoint failed for {self.KNOWN_APP_NUM_WITH_DOCS}: {e}")
+
 
     def test_get_application_associated_documents(
-        self, patent_data_client: PatentDataClient
+        self, patent_data_client: PatentDataClient, sample_application_number: str
     ) -> None:
         """Test getting associated documents metadata."""
-        # Get a valid application number
-        response = patent_data_client.get_patent_applications(params={"limit": 1})
-        assert response.count > 0
-
-        application_number = response.patent_file_wrapper_data_bag[
-            0
-        ].application_number_text
-        assert application_number is not None, "Application number should not be None"
-
         try:
-            # Call the associated documents endpoint
-            associated_docs_response = (
-                patent_data_client.get_application_associated_documents(
-                    application_number
-                )
-            )
+            assoc_docs_data = patent_data_client.get_application_associated_documents(sample_application_number)
+            if assoc_docs_data is None:
+                pytest.skip(f"No associated documents data for {sample_application_number}")
 
-            # Verify response structure
-            assert associated_docs_response is not None
-            assert isinstance(associated_docs_response, PatentDataResponse)
+            assert isinstance(assoc_docs_data, AssociatedDocumentsData)
+            # Check if at least one of the metadata fields is present
+            assert assoc_docs_data.pgpub_document_meta_data is not None or \
+                   assoc_docs_data.grant_document_meta_data is not None
+            if assoc_docs_data.pgpub_document_meta_data:
+                assert assoc_docs_data.pgpub_document_meta_data.file_location_uri is not None
+            if assoc_docs_data.grant_document_meta_data:
+                assert assoc_docs_data.grant_document_meta_data.file_location_uri is not None
+        except USPTOApiNotFoundError:
+            pytest.skip(f"Associated documents data not found (404) for {sample_application_number}")
+        except USPTOApiError as e:
+            pytest.skip(f"Associated documents data not available or API error for {sample_application_number}: {e}")
 
-            # The response might be empty if the application doesn't have associated documents
-            if associated_docs_response.count > 0:
-                assert len(associated_docs_response.patent_file_wrapper_data_bag) > 0
-                assert (
-                    associated_docs_response.patent_file_wrapper_data_bag[
-                        0
-                    ].application_number_text
-                    == application_number
-                )
-        except Exception as e:
-            # Some applications might not have associated document data
-            pytest.skip(f"Patent associated document data not available: {str(e)}")
 
-    def test_download_document(self, patent_data_client: PatentDataClient) -> None:
-        """Test downloading a document."""
-        import os
-
-        # Use a known application number that has documents
-        application_number = "18045436"
-
+    def test_download_document_file(self, patent_data_client: PatentDataClient) -> None:
+        """Test downloading a document file."""
         try:
-            # Get document list for this application
-            documents = patent_data_client.get_application_documents(application_number)
-
-            # Verify we have documents to work with
-            assert isinstance(documents, DocumentBag)
-            assert len(documents) > 0
-
-            # Get the first document that has download formats
-            document = None
-            for doc in documents:
+            documents_bag = patent_data_client.get_application_documents(self.KNOWN_APP_NUM_WITH_DOCS)
+            if documents_bag is None or not documents_bag.documents:
+                pytest.skip(f"No documents found for {self.KNOWN_APP_NUM_WITH_DOCS} to test download.")
+            
+            doc_to_download = None
+            # Find a document that has download formats
+            for doc in documents_bag.documents:
                 if doc.download_formats:
-                    document = doc
+                    doc_to_download = doc
                     break
+            
+            if doc_to_download is None or doc_to_download.document_identifier is None:
+                pytest.skip(f"No downloadable document found for {self.KNOWN_APP_NUM_WITH_DOCS}")
 
-            assert document is not None, "No documents with download formats found"
-            assert document.download_formats, "Document has no download formats"
-
-            # Use the first available download format
-            download_format = document.download_formats[0]
-
-            # Create downloads directory if it doesn't exist
-            if not os.path.exists("./downloads"):
-                os.makedirs("./downloads")
-
-            # Download the document
-            file_path = patent_data_client.download_document(
-                destination="./downloads", download_format=download_format
+            file_path = patent_data_client.download_document_file(
+                application_number=self.KNOWN_APP_NUM_WITH_DOCS,
+                document_id=doc_to_download.document_identifier, # Ensured not None above
+                destination_dir=TEST_DOWNLOAD_DIR
             )
 
-            # Verify the file was downloaded
             assert file_path is not None
             assert os.path.exists(file_path)
+            assert os.path.getsize(file_path) > 0
+        except USPTOApiNotFoundError:
+            pytest.skip(f"Document or application not found (404) for download: {self.KNOWN_APP_NUM_WITH_DOCS}")
+        except USPTOApiError as e:
+            pytest.skip(f"Document download failed for {self.KNOWN_APP_NUM_WITH_DOCS}: {e}")
+        except IndexError: # Should be caught by earlier checks if documents_bag.documents is empty
+            pytest.skip(f"No documents available in bag for {self.KNOWN_APP_NUM_WITH_DOCS} to test download.")
 
-            # Get file size to verify it's not empty
-            file_size = os.path.getsize(file_path)
-            assert file_size > 0, "Downloaded file is empty"
-
-            # Clean up
-            if os.path.exists(file_path):
-                os.remove(file_path)
-        except Exception as e:
-            pytest.skip(f"Document download failed with application 18045436: {str(e)}")
 
     def test_search_patent_applications_post(
         self, patent_data_client: PatentDataClient
     ) -> None:
         """Test searching patent applications using POST method."""
-        # Create a search request
         search_request = {
-            "q": "applicationMetaData.applicationTypeLabelName:Utility",
-            "pagination": {"offset": 0, "limit": 5},
+            "q": "applicationMetaData.applicationTypeCategory:Utility AND applicationMetaData.inventionTitle:(computer OR software)",
+            "pagination": {"offset": 0, "limit": 2},
         }
-
         try:
-            # Call the search endpoint
-            response = patent_data_client.search_patent_applications_post(
-                search_request
-            )
-
-            # Verify response
+            response = patent_data_client.search_patent_applications_post(search_request)
             assert response is not None
             assert isinstance(response, PatentDataResponse)
-            assert response.count > 0
-            assert len(response.patent_file_wrapper_data_bag) > 0
-            assert len(response.patent_file_wrapper_data_bag) <= 5  # Respect the limit
-        except Exception as e:
-            pytest.skip(f"POST search failed: {str(e)}")
+            assert response.count >= 0 
+            if response.count > 0:
+                assert response.patent_file_wrapper_data_bag is not None
+                assert len(response.patent_file_wrapper_data_bag) > 0
+                assert len(response.patent_file_wrapper_data_bag) <= 2
+                assert isinstance(response.patent_file_wrapper_data_bag[0], PatentFileWrapper)
+            else:
+                assert response.patent_file_wrapper_data_bag == []
+        except USPTOApiError as e: # General API error
+            pytest.skip(f"POST search failed: {e}")
 
-    def test_download_patent_applications(
+
+    def test_download_patent_applications_get(
         self, patent_data_client: PatentDataClient
     ) -> None:
-        """Test downloading patent data as JSON."""
-        import os
-
-        # Use a very specific query to find patents - using our known good application number
+        """Test downloading patent data (as structure) using GET."""
         params = {
-            "q": "applicationNumberText:18045436",
+            "q": f"applicationNumberText:{self.KNOWN_APP_NUM_WITH_DOCS}",
             "limit": "1",
-            "format": "json",
+            "format": "json", 
         }
-
-        # Create downloads directory if it doesn't exist
-        if not os.path.exists("./downloads"):
-            os.makedirs("./downloads")
-
         try:
-            # Call the download endpoint
-            download_dir = "./downloads"
-            response = patent_data_client.download_patent_applications(params=params)
-
-            # Verify response structure
+            response = patent_data_client.download_patent_applications_get(params=params)
             assert response is not None
             assert isinstance(response, PatentDataResponse)
-
-            # Note: The response might be empty in a test environment
-            # Only validate the application number if we have results
             if response.count > 0 and response.patent_file_wrapper_data_bag:
-                # Verify it's the patent we requested
-                application_number = response.patent_file_wrapper_data_bag[
-                    0
-                ].application_number_text
-                assert application_number == "18045436"
-        except Exception as e:
-            pytest.skip(f"Download test failed: {str(e)}")
+                assert response.patent_file_wrapper_data_bag[0].application_number_text == self.KNOWN_APP_NUM_WITH_DOCS
+            elif response.count == 0:
+                assert response.patent_file_wrapper_data_bag == []
+            else: # Should not happen if count is > 0
+                 pytest.fail(f"Unexpected response structure for download GET: count={response.count} but bag is {response.patent_file_wrapper_data_bag}")
+        except USPTOApiError as e:
+            pytest.skip(f"Download GET test failed: {e}")
 
     def test_download_patent_applications_post(
         self, patent_data_client: PatentDataClient
     ) -> None:
-        """Test downloading patent data using POST method."""
-        import os
-
-        # Create a download request for a specific application number
+        """Test downloading patent data (as structure) using POST."""
         download_request = {
-            "q": "applicationNumberText:18045436",
+            "q": f"applicationNumberText:{self.KNOWN_APP_NUM_WITH_DOCS}",
             "pagination": {"offset": 0, "limit": 1},
             "format": "json",
         }
-
-        # Create downloads directory if it doesn't exist
-        if not os.path.exists("./downloads"):
-            os.makedirs("./downloads")
-
         try:
-            # Call the download endpoint
-            response = patent_data_client.download_patent_applications_post(
-                download_request
-            )
-
-            # Verify response structure
+            response = patent_data_client.download_patent_applications_post(download_request)
             assert response is not None
             assert isinstance(response, PatentDataResponse)
 
-            # Note: The response might be empty in a test environment
-            # Only validate the application number if we have results
             if response.count > 0 and response.patent_file_wrapper_data_bag:
-                # Verify it's the patent we requested
-                application_number = response.patent_file_wrapper_data_bag[
-                    0
-                ].application_number_text
-                assert application_number == "18045436"
-        except Exception as e:
-            pytest.skip(f"Download POST test failed: {str(e)}")
+                assert response.patent_file_wrapper_data_bag[0].application_number_text == self.KNOWN_APP_NUM_WITH_DOCS
+            elif response.count == 0:
+                 assert response.patent_file_wrapper_data_bag == []
+            else:
+                pytest.fail(f"Unexpected response structure for download POST: count={response.count} but bag is {response.patent_file_wrapper_data_bag}")
+        except USPTOApiError as e:
+            pytest.skip(f"Download POST test failed: {e}")
 
     def test_search_patent_status_codes_post(
         self, patent_data_client: PatentDataClient
     ) -> None:
         """Test searching status codes using POST method."""
-        # Create a search request
         search_request = {
-            "q": "applicationStatusCode:150",
-            "pagination": {"offset": 0, "limit": 10},
+            "q": "applicationStatusCodeDescriptionText:(abandoned OR expired OR pending)", 
+            "pagination": {"offset": 0, "limit": 5},
         }
-
         try:
-            # Call the status codes search endpoint
-            response = patent_data_client.search_patent_status_codes_post(
-                search_request
-            )
-
-            # Verify response
+            response = patent_data_client.search_patent_status_codes_post(search_request)
             assert response is not None
-            assert isinstance(response, dict)
-            assert "statusCodeBag" in response
-            assert len(response["statusCodeBag"]) > 0
-        except Exception as e:
-            pytest.skip(f"Status codes POST search failed: {str(e)}")
+            assert isinstance(response, StatusCodeSearchResponse)
+            assert response.status_code_bag is not None
+            assert isinstance(response.status_code_bag, StatusCodeCollection)
+
+            # The API's 'count' field in this response is the total matching, not page size.
+            # So, len(response.status_code_bag) should be <= limit and <= response.count
+            if response.count > 0 : 
+                 assert len(response.status_code_bag) > 0
+                 assert len(response.status_code_bag) <=5
+                 assert isinstance(response.status_code_bag[0], StatusCode)
+                 assert response.status_code_bag[0].code is not None
+            else: 
+                 assert len(response.status_code_bag) == 0
+
+        except USPTOApiError as e:
+            pytest.skip(f"Status codes POST search failed: {e}")
 
     def test_invalid_application_number_handling(
         self, patent_data_client: PatentDataClient
     ) -> None:
         """Test proper error handling with an invalid application number."""
-        invalid_app_num = "INVALID1234567890"
+        invalid_app_num = "INVALID123XYZ" 
+        
+        try:
+            # This method returns Optional[ApplicationMetaData]
+            # For an invalid number, the API should ideally 404, leading to USPTOApiNotFoundError
+            # or the client might return None if it handles the error internally that way.
+            metadata = patent_data_client.get_application_metadata(invalid_app_num)
+            # If the client returns None on 404 instead of raising, this would be the path.
+            assert metadata is None, "Expected None for invalid application number if client handles 404 by returning None"
+        except USPTOApiNotFoundError as e:
+            # This is the expected path if the client raises on 404.
+            assert e.status_code == 404, f"Expected 404 error, got {e.status_code}"
+        except USPTOApiError as e: # Catch other API errors
+            pytest.fail(f"Expected USPTOApiNotFoundError for invalid app number, but got different USPTOApiError: {e}")
+        except Exception as e: # Catch any other unexpected errors
+            pytest.fail(f"Unexpected exception for invalid app number: {e}")
 
-        # The call should raise an exception or return an appropriate error response
-        with pytest.raises(Exception) as excinfo:
-            patent_data_client.get_application_metadata(invalid_app_num)

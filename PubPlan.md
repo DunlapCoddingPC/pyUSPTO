@@ -2,9 +2,6 @@
 
 This is a comprehensive plan to prepare the USPTO Open Data Portal (ODP) API client for PyPI publication under the name "pyUSPTO".
 
-## Items for Immediate Action
-
-None! All immediate action items have been completed.
 
 ## Completed Items
 
@@ -84,20 +81,18 @@ Before publishing, ensure you have the following:
 3. **Run Tests**:
 
    - Run the test suite to ensure everything is working:
-
-     ```bash
-      python -m pytest pyUSPTO/tests/models/test_patent_data_models.py pyUSPTO/tests/models/test_patent_data_helper_models.py pyUSPTO/tests/clients/test_patent_data_client_return_types.py -v > ./notes/patent_data_tests_output.txt
-     ```
+      ```bash
+      python -m pytest -v
+      ```
 
    - Test Coverage:
-
      ```bash
-     pytest --cov=pyUSPTO --cov-report=term-missing -v > notes/coverage_report.txt
+     python -m pytest --cov=pyUSPTO --cov-report=term --cov-report=term-missing -vv > ./notes/full_coverage_report.txt
      ```
 
    - Test Typecheck
      ```bash
-     python -m mypy pyUSPTO/models/patent_data.py > notes/mypy_typecheck_models_patent_data.txt
+     mypy pyUSPTO > ./notes/mypy_results.txt
      ```
 
 ### Pre-Publication Checklist

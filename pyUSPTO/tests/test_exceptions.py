@@ -5,6 +5,7 @@ This module contains tests for exception classes, helper structures,
 and functions defined in pyUSPTO.exceptions.
 """
 
+from typing import Optional, Type, Union
 from unittest.mock import MagicMock
 
 import pytest
@@ -27,7 +28,7 @@ from pyUSPTO.exceptions import (
 class TestAPIErrorArgs:
     """Tests for the APIErrorArgs dataclass and its methods."""
 
-    def test_direct_instantiation(self):
+    def test_direct_instantiation(self)-> None:
         """Test direct instantiation of APIErrorArgs."""
         args = APIErrorArgs(
             message="Client message",
@@ -42,7 +43,7 @@ class TestAPIErrorArgs:
         assert args.error_details == {"field": "is wrong"}
         assert args.request_identifier == "req-123"
 
-    def test_from_http_error_basic(self):
+    def test_from_http_error_basic(self)-> None:
         """Test from_http_error with a basic HTTPError."""
         mock_http_error = MagicMock(spec=requests.exceptions.HTTPError)
         mock_http_error.response = MagicMock(spec=requests.Response)
@@ -68,7 +69,7 @@ class TestAPIErrorArgs:
         assert args.error_details == "Invalid parameter."
         assert args.request_identifier == "req-abc"
 
-    def test_from_http_error_413(self):
+    def test_from_http_error_413(self)-> None:
         """Test from_http_error for 413 status code with different field names."""
         mock_http_error = MagicMock(spec=requests.exceptions.HTTPError)
         mock_http_error.response = MagicMock(spec=requests.Response)
@@ -95,7 +96,7 @@ class TestAPIErrorArgs:
         assert args.request_identifier == "req-413"
 
 
-    def test_from_http_error_json_body_missing_fields(self):
+    def test_from_http_error_json_body_missing_fields(self)-> None:
         """Test from_http_error with JSON body but missing expected error fields."""
         mock_http_error = MagicMock(spec=requests.exceptions.HTTPError)
         mock_http_error.response = MagicMock(spec=requests.Response)
@@ -116,10 +117,10 @@ class TestAPIErrorArgs:
         assert args.request_identifier is None
 
 
-    def test_from_request_exception(self):
+    def test_from_request_exception(self)-> None:
         """Test from_request_exception for non-HTTP errors."""
         mock_req_exception = MagicMock(spec=requests.exceptions.ConnectionError)
-        mock_req_exception.__str__ = MagicMock(return_value="Connection refused")
+        mock_req_exception.__str__.return_value = "Connection refused" # type: ignore[attr-defined]
 
         args_with_client_msg = APIErrorArgs.from_request_exception(
             request_exception=mock_req_exception,
@@ -134,7 +135,7 @@ class TestAPIErrorArgs:
         )
         assert args_no_client_msg.message == "API request failed due to a network or request issue: Connection refused"
 
-    def test_from_http_error_non_json_long_text(self):
+    def test_from_http_error_non_json_long_text(self)-> None:
         """
         Tests from_http_error when response text is long, not JSON,
         and error_details should be the generic message.
@@ -157,7 +158,7 @@ class TestAPIErrorArgs:
         assert args.error_details == f"Non-JSON error response (status {status_code}). Check response text."
         assert args.api_short_error == "Internal Server Error"
 
-    def test_from_http_error_non_json_short_text(self):
+    def test_from_http_error_non_json_short_text(self)-> None:
         """
         Tests from_http_error when response text is short, not JSON,
         and error_details should be the actual response text.
@@ -198,35 +199,41 @@ class TestGetAPIException:
             (None, USPTOApiError), # For non-HTTP errors
         ],
     )
-    def test_returns_correct_exception_type(self, status_code, expected_exception_type):
+    def test_returns_correct_exception_type(self, status_code: Optional[int], expected_exception_type: USPTOApiError)-> None:
         """Test that get_api_exception returns the correct type of exception."""
-        error_args_data = {
-            "message": "Test operation",
-            "status_code": status_code,
-            "api_short_error": "API Short Error",
-            "error_details": "Some details here.",
-            "request_identifier": "req-id-test"
-        }
+        message_val: str = "Test operation"
+        api_short_error_val: Optional[str] = "API Short Error"
+        # Ensure error_details_val matches the Optional[Union[str, dict]] type
+        error_details_val: Optional[Union[str, dict]] = "Some details here."
+        request_identifier_val: Optional[str] = "req-id-test"
+
         if status_code is None: # For non-HTTP errors, these fields might be None
-            error_args_data["api_short_error"] = None
-            error_args_data["error_details"] = None
-            error_args_data["request_identifier"] = None
+            api_short_error_val = None
+            error_details_val = None
+            request_identifier_val = None
 
 
-        args = APIErrorArgs(**error_args_data)
+        args = APIErrorArgs(
+            message=message_val,
+            status_code=status_code,
+            api_short_error=api_short_error_val,
+            error_details=error_details_val,
+            request_identifier=request_identifier_val
+        )
         exception_instance = get_api_exception(args)
 
-        assert isinstance(exception_instance, expected_exception_type)
-        assert exception_instance.message == error_args_data["message"]
-        assert exception_instance.status_code == error_args_data["status_code"]
-        assert exception_instance.api_short_error == error_args_data["api_short_error"]
-        assert exception_instance.error_details == error_args_data["error_details"]
-        assert exception_instance.request_identifier == error_args_data["request_identifier"]
+        assert isinstance(exception_instance, USPTOApiError)
+        # Access the message via .message property or .args[0] as per USPTOApiError definition
+        assert exception_instance.message == message_val
+        assert exception_instance.status_code == status_code
+        assert exception_instance.api_short_error == api_short_error_val
+        assert exception_instance.error_details == error_details_val
+        assert exception_instance.request_identifier == request_identifier_val
 
 class TestExceptionClassesStr:
     """Tests the __str__ method of USPTOApiError and its subclasses."""
 
-    def test_uspto_api_error_str_all_fields(self):
+    def test_uspto_api_error_str_all_fields(self)-> None:
         """Test USPTOApiError.__str__ with all fields populated."""
         error = USPTOApiError(
             message="Client context message",
@@ -241,7 +248,7 @@ class TestExceptionClassesStr:
         )
         assert str(error) == expected_str
 
-    def test_uspto_api_error_str_some_fields_none(self):
+    def test_uspto_api_error_str_some_fields_none(self)-> None:
         """Test USPTOApiError.__str__ with some optional fields being None."""
         error = USPTOApiError(
             message="Client context message",
@@ -252,13 +259,13 @@ class TestExceptionClassesStr:
         expected_str = "Client context message - HTTP Status: 404 - API Error: Not Found"
         assert str(error) == expected_str
 
-    def test_uspto_api_error_str_only_message(self):
+    def test_uspto_api_error_str_only_message(self)-> None:
         """Test USPTOApiError.__str__ with only the message field."""
         error = USPTOApiError(message="A network connection error occurred.")
         expected_str = "A network connection error occurred."
         assert str(error) == expected_str
 
-    def test_subclass_str_method_inherited(self):
+    def test_subclass_str_method_inherited(self)-> None:
         """Test that subclasses inherit and use the USPTOApiError.__str__ method."""
         error = USPTOApiBadRequestError(
             message="Specific client context for bad request",

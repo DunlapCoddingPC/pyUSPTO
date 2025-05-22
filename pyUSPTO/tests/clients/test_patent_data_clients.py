@@ -375,7 +375,7 @@ class TestPatentApplicationSearch:
         final_params = {"limit": limit, "offset": offset, **search_params}
 
 
-        client.search_patents(**final_params) # type: ignore
+        client.search_patents(**final_params)
 
         expected_call_params = {"q": expected_q_part, "limit": limit, "offset": offset}
         
@@ -904,7 +904,7 @@ class TestPatentStatusCodesEndpoints:
         )
         assert isinstance(result, StatusCodeSearchResponse)
         assert result.count == 1
-        assert result.status_code_bag[0].code == 100 # type: ignore
+        assert result.status_code_bag[0].code == 100 
 
     def test_search_patent_status_codes_post(
         self, client_with_mocked_request: tuple[PatentDataClient, MagicMock]
@@ -925,7 +925,7 @@ class TestPatentStatusCodesEndpoints:
             json_data=search_request,
         )
         assert isinstance(result, StatusCodeSearchResponse)
-        assert result.status_code_bag[0].description == "Pending" # type: ignore
+        assert result.status_code_bag[0].description == "Pending"
 
 
 class TestStatusCodeModels:
@@ -1157,31 +1157,6 @@ class TestInternalHelpersEdgeCases:
         result = patent_data_client._get_wrapper_from_response(mock_patent_data_response_empty)
         assert result is None
 
-    def test_get_wrapper_from_response_item_is_dict(
-        self, patent_data_client: PatentDataClient
-    ) -> None:
-        """Test _get_wrapper_from_response handles dict item in bag by calling from_dict."""
-        app_num = "dict_app_num"
-        mock_dict_item = {"applicationNumberText": app_num, "applicationMetaData": {"inventionTitle": "From Dict"}}
-        response_with_dict = PatentDataResponse(count=1, patent_file_wrapper_data_bag=[mock_dict_item]) # type: ignore
-
-        with patch("pyUSPTO.models.patent_data.PatentFileWrapper.from_dict") as mock_from_dict:
-            mock_pfw_instance = PatentFileWrapper(application_number_text=app_num)
-            mock_from_dict.return_value = mock_pfw_instance
-            
-            result = patent_data_client._get_wrapper_from_response(response_with_dict)
-        
-        mock_from_dict.assert_called_once_with(mock_dict_item)
-        assert result is mock_pfw_instance
-
-    def test_get_wrapper_from_response_item_is_invalid_type(
-        self, patent_data_client: PatentDataClient
-    ) -> None:
-        """Test _get_wrapper_from_response returns None if bag item is not a PFW or dict."""
-        response_with_invalid_item = PatentDataResponse(count=1, patent_file_wrapper_data_bag=["just_a_string"]) # type: ignore
-        
-        result = patent_data_client._get_wrapper_from_response(response_with_invalid_item)
-        assert result is None
 
 
 class TestDocumentModels:

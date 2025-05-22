@@ -61,7 +61,7 @@ def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
                 print(f"Warning: Error localizing naive datetime '{datetime_str}': {e}.")
                 if ASSUMED_NAIVE_TIMEZONE == timezone.utc:
                     return dt_obj.replace(tzinfo=timezone.utc)
-                return None
+        return None
     else:
         return dt_obj.astimezone(timezone.utc)
 
@@ -117,7 +117,7 @@ class ActiveIndicator(Enum):
     ACTIVE = "Active"
 
     @classmethod
-    def _missing_(cls, value):
+    def _missing_(cls, value: Any)-> 'ActiveIndicator':
         if isinstance(value, str):
             val_upper = value.upper()
             if val_upper == "Y":
@@ -130,7 +130,7 @@ class ActiveIndicator(Enum):
                 return cls.FALSE
             if val_upper == "ACTIVE":
                 return cls.ACTIVE
-        return super()._missing_(value)
+        return super()._missing_(value=value) # type: ignore[no-any-return]
 
 
 @dataclass(frozen=True)
@@ -873,7 +873,7 @@ class PatentTermAdjustmentHistoryData:
 
     def to_dict(self) -> Dict[str, Any]:
         # More explicit dictionary creation
-        final_dict = {}
+        final_dict: Dict[str, Any] = {}
         if self.event_date is not None:
             final_dict["eventDate"] = serialize_date(self.event_date)
         if self.applicant_day_delay_quantity is not None:
@@ -982,7 +982,7 @@ class DocumentMetaData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        final_dict = {}
+        final_dict:Dict[str, Any] = {}
         if self.zip_file_name is not None:
             final_dict["zipFileName"] = self.zip_file_name
         if self.product_identifier is not None:

@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Initial release of pyUSPTO
-- Support for USPTO Patent Data API
-- Support for USPTO Bulk Data API
+- Object Oriented Support for USPTO Patent Data API
+- Basic Support for USPTO Bulk Data API
 - Full type annotations and docstrings
 - Comprehensive test suite
