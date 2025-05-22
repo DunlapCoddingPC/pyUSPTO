@@ -12,7 +12,6 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pytest
 
-# Assuming pyUSPTO is in the PYTHONPATH or installed
 from pyUSPTO.models.patent_data import (
     ASSUMED_NAIVE_TIMEZONE,
     ASSUMED_NAIVE_TIMEZONE_STR,
@@ -179,202 +178,319 @@ def sample_child_continuity_data() -> Dict[str, Any]:
     }
 
 @pytest.fixture
-def patent_data_sample() -> Dict[str, Any]:
-    """Basic placeholder for the patent_data_sample fixture."""
+def sample_application_meta_data(
+    sample_applicant_data: Dict[str, Any], 
+    sample_inventor_data: Dict[str, Any],   
+    sample_address_data: Dict[str, Any]   
+) -> Dict[str, Any]:
+    """
+    Provides a comprehensive dictionary of data for ApplicationMetaData,
+    suitable for round-trip (from_dict -> to_dict) testing.
+    """
     return {
-        "count": 1,
-        "patentFileWrapperDataBag": [
+        "nationalStageIndicator": True,
+        "entityStatusData": {
+            "smallEntityStatusIndicator": True,
+            "businessEntityStatusCategory": "SMALL",
+        },
+        "publicationDateBag": ["2022-01-15", "2022-02-20"],
+        "publicationSequenceNumberBag": ["1", "2", "3"],
+        "publicationCategoryBag": ["A1", "B2"],
+        "docketNumber": None, 
+        "firstInventorToFileIndicator": "Y", 
+        "firstApplicantName": "Innovate Corp.",
+        "firstInventorName": "Doe, John A.",
+        "applicationConfirmationNumber": "9876",
+        "applicationStatusDate": "2023-03-01", 
+        "applicationStatusDescriptionText": "Non-Final Rejection",
+        "filingDate": "2021-06-10",
+        "effectiveFilingDate": "2021-06-01",
+        "grantDate": "2024-01-05", 
+        "groupArtUnitNumber": "2456",
+        "applicationTypeCode": "UTL",
+        "applicationTypeLabelName": "Utility",
+        "applicationTypeCategory": "Nonprovisional",
+        "inventionTitle": "System and Method for Advanced Data Processing",
+        "patentNumber": "12345678",
+        "applicationStatusCode": 110,
+        "earliestPublicationNumber": "US20220012345A1",
+        "earliestPublicationDate": "2022-01-15", 
+        "pctPublicationNumber": "WO2022012345A1",
+        "pctPublicationDate": "2022-01-20", 
+        "internationalRegistrationPublicationDate": "2022-02-01",
+        "internationalRegistrationNumber": "DM/123456",
+        "examinerNameText": "Smith, Jane E.",
+        "class": "707", 
+        "subclass": "E17",
+        "uspcSymbolText": "707/E17.014",
+        "customerNumber": 98765,
+        "cpcClassificationBag": ["G06F16/24578", "H04L67/10"],
+        "applicantBag": [
+            sample_applicant_data, 
+            { 
+                "firstName": "Global",
+                "lastName": "Solutions Ltd.",
+                "applicantNameText": "Global Solutions Ltd.",
+                "correspondenceAddressBag": [sample_address_data] 
+            }
+        ],
+        "inventorBag": [
+            sample_inventor_data, 
+            { 
+                "firstName": "Alice",
+                "middleName": "B.",
+                "lastName": "Wonder",
+                "inventorNameText": "Wonder, Alice B.",
+                "correspondenceAddressBag": [], 
+                "countryCode": "CA"
+            }
+        ],
+    }
+
+@pytest.fixture
+def patent_data_sample(
+    sample_application_meta_data: Dict[str, Any] # This is the fixture from the canvas
+) -> Dict[str, Any]:
+    """
+    Provides a sample dictionary representing a PatentDataResponse,
+    suitable for testing.
+    """
+    # Create a couple of PatentFileWrapper-like dictionaries
+    # using the comprehensive applicationMetaData from the other fixture.
+    patent_file_wrapper_1 = {
+        "applicationNumberText": "16000001",
+        "applicationMetaData": sample_application_meta_data, # Use the detailed fixture
+        "lastIngestionDateTime": "2023-01-01T10:00:00Z",
+        "pgpubDocumentMetaData": {
+            "zipFileName": "PGPUB_16000001.zip",
+            "productIdentifier": "PGPUB",
+            "fileLocationURI": "s3://uspto-pair/applications/16000001/pgpub.zip",
+            "fileCreateDateTime": "2022-12-15T08:30:00Z",
+            "xmlFileName": "US20220012345A1.xml"
+        },
+        "grantDocumentMetaData": None, # Example where grant data might not exist yet
+        # Add other relevant fields for PatentFileWrapper as needed for your tests
+        "correspondenceAddressBag": [
+            { # Simplified Address data for brevity
+                "nameLineOneText": "Tech Innovations LLC",
+                "addressLineOneText": "456 Innovation Drive",
+                "cityName": "Future City",
+                "geographicRegionCode": "FC",
+                "postalCode": "67890",
+                "countryCode": "US"
+            }
+        ],
+        "assignmentBag": [], # Example of an empty bag
+        "eventDataBag": [
             {
-                "applicationNumberText": "12345678",
-                "applicationMetaData": {
-                    "inventionTitle": "Sample Invention",
-                    "filingDate": "2023-01-01",
-                }
+                "eventCode": "CTNF",
+                "eventDescriptionText": "Non-Final Rejection",
+                "eventDate": "2023-03-01"
+            },
+            {
+                "eventCode": "RESP",
+                "eventDescriptionText": "Response to Non-Final Rejection",
+                "eventDate": "2023-09-01"
             }
         ]
     }
 
+    # You could create another wrapper if you want to test multiple items in the bag
+    # For example, a slightly different one:
+    another_app_meta_data = sample_application_meta_data.copy() # Start with a copy
+    another_app_meta_data["inventionTitle"] = "Another Revolutionary Invention"
+    another_app_meta_data["filingDate"] = "2022-02-02"
+    another_app_meta_data["patentNumber"] = "9999999" # If it were granted
+
+    patent_file_wrapper_2 = {
+        "applicationNumberText": "17000002",
+        "applicationMetaData": another_app_meta_data,
+        "lastIngestionDateTime": "2023-02-15T11:00:00Z",
+        "pgpubDocumentMetaData": None, # Example of no PGPUB data
+        "grantDocumentMetaData": {
+            "zipFileName": "GRANT_17000002.zip",
+            "productIdentifier": "GRANT",
+            "fileLocationURI": "s3://uspto-pair/applications/17000002/grant.zip",
+            "fileCreateDateTime": "2024-01-10T09:00:00Z",
+            "xmlFileName": "US9999999B2.xml"
+        },
+    }
+
+    return {
+        "count": 2, # Number of items in patentFileWrapperDataBag
+        "patentFileWrapperDataBag": [
+            patent_file_wrapper_1,
+            patent_file_wrapper_2
+        ]
+    }
+
+@pytest.fixture
+def sample_assignor_data() -> Dict[str, Any]:
+    """Provides sample data for an Assignor."""
+    return {
+        "assignorName": "Original Tech Holder Inc.",
+        "executionDate": "2022-11-15",  # Date string
+    }
+
+@pytest.fixture
+def sample_assignee_data(sample_address_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Provides sample data for an Assignee."""
+    return {
+        "assigneeNameText": "New Tech Acquirer LLC",
+        "assigneeAddress": sample_address_data,
+    }
+
+@pytest.fixture
+def sample_assignment_data(
+    sample_assignor_data: Dict[str, Any],
+    sample_assignee_data: Dict[str, Any],
+    sample_address_data: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Provides sample data for an Assignment."""
+    return {
+        "reelNumber": "R00123",
+        "frameNumber": "F00456",
+        "reelAndFrameNumber": "R00123/F00456",
+        "assignmentDocumentLocationURI": "https://assignments.uspto.gov/assignments/assignment-R00123-F00456.pdf",
+        "assignmentReceivedDate": "2023-01-10",  # Date string
+        "assignmentRecordedDate": "2023-01-20",  # Date string
+        "assignmentMailedDate": "2023-01-25",    # Date string
+        "conveyanceText": "ASSIGNMENT OF ASSIGNORS INTEREST",
+        "assignorBag": [
+            sample_assignor_data,
+            {
+                "assignorName": "Another Seller Corp.",
+                "executionDate": "2022-12-01",
+            }
+        ],
+        "assigneeBag": [
+            sample_assignee_data,
+            {
+                "assigneeNameText": "Tech Innovators Co.",
+                # Assignee address can be None
+                "assigneeAddress": None
+            }
+        ],
+        "correspondenceAddressBag": [
+            sample_address_data  # Address for correspondence related to the assignment
+        ],
+    }
+
+@pytest.fixture
+def sample_document_download_format_data_for_doc_fixture() -> Dict[str, Any]:
+    """Provides sample data for DocumentDownloadFormat, specifically for the Document fixture."""
+    # Renamed to avoid conflict if a generic one exists
+    return {
+        "mimeTypeIdentifier": "application/pdf",
+        "downloadURI": "https://pair.uspto.gov/docs/12345678/doc1.pdf",
+        "pageTotalQuantity": 15,
+    }
+
+@pytest.fixture
+def sample_document_data(
+    sample_document_download_format_data_for_doc_fixture: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Provides sample data for a Document."""
+    return {
+        "applicationNumberText": "16000001",
+        "officialDate": "2023-03-15T10:30:00Z",  # Datetime string
+        "documentIdentifier": "OFFICE_ACTION_NON_FINAL",
+        "documentCode": "CTNF",
+        "documentCodeDescriptionText": "Non-Final Rejection",
+        "documentDirectionCategory": "OUTGOING", # Value for DirectionCategory Enum
+        "downloadOptionBag": [
+            sample_document_download_format_data_for_doc_fixture,
+            {
+                "mimeTypeIdentifier": "application/xml",
+                "downloadURI": "https://pair.uspto.gov/docs/12345678/doc1.xml",
+                "pageTotalQuantity": None, # Optional field
+            }
+        ],
+    }
+
+@pytest.fixture
+def sample_pta_history_data() -> Dict[str, Any]:
+    """Provides sample data for PatentTermAdjustmentHistoryData."""
+    return {
+        "eventDate": "2022-05-01", # Date string
+        "applicantDayDelayQuantity": 5.0,
+        "eventDescriptionText": "Applicant Delay - Late Response",
+        "eventSequenceNumber": 2.0,
+        "ipOfficeDayDelayQuantity": 0.0,
+        "originatingEventSequenceNumber": 1.0,
+        "ptaPTECode": "APL",
+    }
+
+@pytest.fixture
+def sample_patent_term_adjustment_data(
+    sample_pta_history_data: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Provides sample data for PatentTermAdjustmentData."""
+    return {
+        "aDelayQuantity": 100.0,
+        "adjustmentTotalQuantity": 120.0,
+        "applicantDayDelayQuantity": 10.0,
+        "bDelayQuantity": 30.0,
+        "cDelayQuantity": 0.0,
+        "filingDate": "2020-01-15",     # Date string
+        "grantDate": "2023-11-20",      # Date string
+        "nonOverlappingDayQuantity": 120.0,
+        "overlappingDayQuantity": 20.0, # Example of overlapping delay
+        "ipOfficeDayDelayQuantity": 130.0, # Total IP Office delay before overlap
+        "patentTermAdjustmentHistoryDataBag": [
+            sample_pta_history_data,
+            {
+                "eventDate": "2021-08-10",
+                "applicantDayDelayQuantity": 0.0,
+                "eventDescriptionText": "USPTO Delay - Examination",
+                "eventSequenceNumber": 1.0,
+                "ipOfficeDayDelayQuantity": 15.0,
+                "originatingEventSequenceNumber": 0.0,
+                "ptaPTECode": "PTO",
+            }
+        ],
+    }
+
+@pytest.fixture
+def sample_customer_number_correspondence_data(
+    sample_address_data: Dict[str, Any],
+    sample_telecommunication_data: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Provides sample data for CustomerNumberCorrespondence."""
+    return {
+        "patronIdentifier": 778899,
+        "organizationStandardName": "Major Law Firm LLP",
+        "powerOfAttorneyAddressBag": [sample_address_data],
+        "telecommunicationAddressBag": [sample_telecommunication_data],
+    }
+
+@pytest.fixture
+def sample_record_attorney_data(
+    sample_customer_number_correspondence_data: Dict[str, Any],
+    sample_attorney_data: Dict[str, Any] # Assuming this provides a full Attorney dict
+) -> Dict[str, Any]:
+    """Provides sample data for RecordAttorney."""
+    # Create a slightly different attorney for the bag if needed
+    attorney_2_data = sample_attorney_data.copy()
+    attorney_2_data["registrationNumber"] = "67890"
+    attorney_2_data["firstName"] = "Jane"
+    attorney_2_data["lastName"] = "Practitioner"
+
+
+    return {
+        "customerNumberCorrespondenceData": [
+            sample_customer_number_correspondence_data
+        ],
+        "powerOfAttorneyBag": [
+            sample_attorney_data # Attorney who has POA
+        ],
+        "attorneyBag": [
+            sample_attorney_data, # Could be the same or different attorneys
+            attorney_2_data
+        ],
+    }
+
 # --- Test Classes ---
-
-class TestUtilityFunctions:
-    """Tests for utility functions in models.patent_data.py."""
-
-    def test_timezone_setup_fallback(self):
-        """Test fallback to UTC when timezone not found."""
-        with patch('zoneinfo.ZoneInfo', side_effect=ZoneInfoNotFoundError("Test error")):
-            import pyUSPTO.models.patent_data
-            importlib.reload(pyUSPTO.models.patent_data)
-            ASSUMED_NAIVE_TIMEZONE_STR = "America/New_York2"
-            try:
-                ASSUMED_NAIVE_TIMEZONE = ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR)
-            except ZoneInfoNotFoundError:
-                print(f"Warning: Timezone '{ASSUMED_NAIVE_TIMEZONE_STR}' not found. Naive datetimes will be treated as UTC or may cause errors.")
-                ASSUMED_NAIVE_TIMEZONE = timezone.utc
-            
-            assert ASSUMED_NAIVE_TIMEZONE == timezone.utc
-
-        importlib.reload(module=pyUSPTO.models.patent_data)
-
-
-    def test_parse_to_datetime_utc(self, capsys) -> None: # Added capsys
-        """Test parse_to_datetime_utc utility function comprehensively."""
-        # Test with Z suffix (UTC)
-        dt_utc_z = parse_to_datetime_utc("2023-01-01T10:00:00Z")
-        assert isinstance(dt_utc_z, datetime)
-        assert dt_utc_z.replace(tzinfo=None) == datetime(2023, 1, 1, 10, 0, 0)
-        assert dt_utc_z.tzinfo == timezone.utc
-
-        # Test with timezone offset
-        dt_offset = parse_to_datetime_utc("2023-01-01T05:00:00-05:00")  # EST
-        assert isinstance(dt_offset, datetime)
-        assert dt_offset.replace(tzinfo=None) == datetime(2023, 1, 1, 10, 0, 0) # 5 AM EST is 10 AM UTC
-        assert dt_offset.tzinfo == timezone.utc
-
-        dt_naive_str = "2023-01-01T10:00:00"
-        dt_naive = parse_to_datetime_utc(dt_naive_str)
-        assert isinstance(dt_naive, datetime)
-        # Exact UTC hour depends on ASSUMED_NAIVE_TIMEZONE and DST for that date.
-        # For "America/New_York" on Jan 1st (no DST), 10:00 ET is 15:00 UTC.
-        # We need to ensure the test environment has 'America/New_York' or mock it.
-        # Assuming ZoneInfo('America/New_York') works:
-        try:
-            naive_datetime_instance = datetime(2023,1,1,10,0,0)
-            aware_datetime_instance = naive_datetime_instance.replace(tzinfo=ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR))
-            expected_naive_utc_hour = aware_datetime_instance.astimezone(timezone.utc).hour
-            assert dt_naive.hour == expected_naive_utc_hour
-        except ZoneInfoNotFoundError:
-             # Fallback if ZoneInfo is not available, ASSUMED_NAIVE_TIMEZONE becomes timezone.utc
-            assert dt_naive.hour == 10 # Treated as UTC directly
-        assert dt_naive.tzinfo == timezone.utc
-
-
-        dt_ms = parse_to_datetime_utc("2023-01-01T10:00:00.123Z")
-        assert isinstance(dt_ms, datetime)
-        assert dt_ms.replace(tzinfo=None) == datetime(2023, 1, 1, 10, 0, 0, 123000)
-        assert dt_ms.tzinfo == timezone.utc
-
-        dt_space = parse_to_datetime_utc("2023-01-01 10:00:00") # Common naive format
-        assert isinstance(dt_space, datetime)
-        try:
-            # Create a naive datetime instance
-            naive_dt_for_space = datetime(2023, 1, 1, 10, 0, 0)
-            # Make it aware using the assumed timezone
-            aware_dt_for_space = naive_dt_for_space.replace(tzinfo=ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR))
-            # Convert to UTC and get the hour
-            expected_space_utc_hour = aware_dt_for_space.astimezone(timezone.utc).hour
-            assert dt_space.hour == expected_space_utc_hour
-        except ZoneInfoNotFoundError:
-            assert dt_space.hour == 10
-        assert dt_space.tzinfo == timezone.utc
-
-        assert parse_to_datetime_utc("invalid-datetime") is None
-        captured = capsys.readouterr() # Check warning for invalid-datetime
-        assert "Warning: Could not parse datetime string 'invalid-datetime'" in captured.out
-        assert parse_to_datetime_utc(None) is None
-
-
-    def test_serialize_date(self) -> None:
-        """Test serialize_date utility function."""
-        test_date = date(2023, 1, 1)
-        assert serialize_date(test_date) == "2023-01-01"
-        assert serialize_date(None) is None
-
-    def test_serialize_datetime_as_iso(self) -> None:
-        """Test serialize_datetime_as_iso utility function."""
-        dt_utc = datetime(2023, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
-        assert serialize_datetime_as_iso(dt_utc) == "2023-01-01T10:00:00Z"
-
-        dt_naive = datetime(2023, 1, 1, 10, 0, 0)
-        assert serialize_datetime_as_iso(dt_naive) == "2023-01-01T10:00:00Z"
-
-        minus_five = timezone(timedelta(hours=-5))
-        dt_est = datetime(2023, 1, 1, 10, 0, 0, tzinfo=minus_five) # 10:00 EST is 15:00 UTC
-        assert serialize_datetime_as_iso(dt_est) == "2023-01-01T15:00:00Z"
-
-        assert serialize_datetime_as_iso(None) is None
-
-
-    def test_parse_to_datetime_utc_localization_failure_and_fallback(self, capsys) -> None:
-        """Triggers the except block by making astimezone() raise, and tests fallback path."""
-
-        class FailingTZ(tzinfo):
-            def utcoffset(self, dt): raise Exception("boom")
-
-        dt_str = "2023-01-01T10:00:00"
-
-        # Patch ASSUMED_NAIVE_TIMEZONE to a tzinfo that will break astimezone()
-        with patch("pyUSPTO.models.patent_data.ASSUMED_NAIVE_TIMEZONE", FailingTZ()):
-            result = parse_to_datetime_utc(datetime_str=dt_str)
-
-        # Should not hit fallback: return dt_obj.replace(tzinfo=timezone.utc)
-        assert result is None
-
-        captured = capsys.readouterr()
-        assert "Warning: Error localizing naive datetime" in captured.out
-
-
-
-    def test_parse_to_datetime_utc_fallback_to_utc_replace(self, capsys) -> None:
-        """Triggers fallback to dt_obj.replace(tzinfo=timezone.utc) without touching datetime.*"""
-
-        class FailingButEqualToUTC(tzinfo):
-            def utcoffset(self, dt):
-                raise Exception("boom")
-
-            def __eq__(self, other):
-                return other is timezone.utc
-
-        dt_str = "2023-01-01T10:00:00"
-
-        # Patch ASSUMED_NAIVE_TIMEZONE with a tzinfo that fails, but equals timezone.utc
-        with patch("pyUSPTO.models.patent_data.ASSUMED_NAIVE_TIMEZONE", FailingButEqualToUTC()):
-            result = parse_to_datetime_utc(dt_str)
-
-        assert isinstance(result, datetime)
-        assert result.tzinfo == timezone.utc
-
-        captured = capsys.readouterr()
-        assert "Warning: Error localizing naive datetime" in captured.out
-
-
-
-
-
-
-
-
-    def test_parse_yn_to_bool(self, capsys) -> None: # Added capsys
-        """Test parse_yn_to_bool utility function."""
-        assert parse_yn_to_bool("Y") is True
-        assert parse_yn_to_bool("y") is True
-        assert parse_yn_to_bool("N") is False
-        assert parse_yn_to_bool("n") is False
-        assert parse_yn_to_bool(None) is None
-        assert parse_yn_to_bool("True") is None # Per original model logic
-        captured_true = capsys.readouterr()
-        assert "Warning: Unexpected value for Y/N boolean string: 'True'" in captured_true.out
-
-        assert parse_yn_to_bool("False") is None # Per original model logic
-        captured_false = capsys.readouterr()
-        assert "Warning: Unexpected value for Y/N boolean string: 'False'" in captured_false.out
-
-        assert parse_yn_to_bool("Other") is None
-        captured_other = capsys.readouterr()
-        assert "Warning: Unexpected value for Y/N boolean string: 'Other'" in captured_other.out
-
-        assert parse_yn_to_bool("yes") is None
-        assert parse_yn_to_bool("no") is None
-        assert parse_yn_to_bool("") is None
-        assert parse_yn_to_bool("X") is None
-
-
-    def test_serialize_bool_to_yn(self) -> None:
-        """Test serialize_bool_to_yn utility function."""
-        assert serialize_bool_to_yn(True) == "Y"
-        assert serialize_bool_to_yn(False) == "N"
-        assert serialize_bool_to_yn(None) is None
-
-
 class TestDirectionCategory:
     """Tests for the DirectionCategory enum class."""
     def test_direction_category_enum(self) -> None:
@@ -396,6 +512,7 @@ class TestActiveIndicator:
         assert ActiveIndicator("n") == ActiveIndicator.NO
         assert ActiveIndicator("TRUE") == ActiveIndicator.TRUE
         assert ActiveIndicator("FALSE") == ActiveIndicator.FALSE
+        assert ActiveIndicator("active") == ActiveIndicator.ACTIVE
 
         with pytest.raises(ValueError):
             ActiveIndicator("Invalid")
@@ -435,6 +552,15 @@ class TestDocumentDownloadFormat:
             "pageTotalQuantity": None,
         }
 
+    def test_document_download_format_repr(self):
+        fmt = DocumentDownloadFormat(
+            mime_type_identifier="application/pdf",
+            download_url="http://example.com/doc.pdf",
+            page_total_quantity=3,
+        )
+        expected = "DocumentDownloadFormat(mime_type=application/pdf, pages=3)"
+        assert repr(fmt) == expected
+
 
 class TestDocument:
     """Tests for the Document class."""
@@ -449,6 +575,7 @@ class TestDocument:
             ]
         }
         doc = Document.from_dict(data)
+
         assert doc.document_identifier == "doc123"
         assert doc.document_code == "CODE_X"
         assert doc.official_date == datetime(2023, 3, 15, 10, 30, 0, tzinfo=timezone.utc)
@@ -494,7 +621,35 @@ class TestDocument:
         data = doc.to_dict()
         # The to_dict method filters out None values and empty lists
         assert data == {}
+    def test_document_repr(self):
+        doc = Document(
+            document_identifier="doc123",
+            document_code="CODE_X",
+            official_date=datetime(2023, 3, 15, 10, 30, 0, tzinfo=timezone.utc),
+            direction_category=DirectionCategory.OUTGOING,
+            download_formats=[]
+        )
+        expected = "Document(id=doc123, code=CODE_X, date=2023-03-15)"
+        assert repr(doc) == expected
 
+    def test_document_roundtrip(
+        self,
+        sample_document_data: Dict[str, Any]
+    ) -> None:
+        """
+        Tests the round-trip serialization for the Document class.
+        """
+        # 1. Create an initial Document object from the fixture's dictionary
+        original_document = Document.from_dict(data=sample_document_data)
+
+        # 2. Serialize this object to an intermediate dictionary
+        intermediate_dict = original_document.to_dict()
+
+        # 3. Deserialize the intermediate dictionary back into a new Document object
+        reconstructed_document = Document.from_dict(data=intermediate_dict)
+
+        # 4. Assert that the original object is equal to the reconstructed object
+        assert original_document == reconstructed_document
 
 class TestDocumentBag:
     """Tests for the DocumentBag class."""
@@ -843,6 +998,32 @@ class TestRecordAttorney:
         data = record_attorney.to_dict()
         assert data == {} # All bags are empty, so they are filtered out
 
+    def test_record_attorney_roundtrip(
+        self,
+        sample_record_attorney_data: Dict[str, Any]
+    ) -> None:
+        """
+        Tests the round-trip serialization for the RecordAttorney class.
+        """
+        # RecordAttorney class is expected to be imported at the module level
+        from pyUSPTO.models.patent_data import (
+            RecordAttorney,  # This line will be removed
+        )
+
+        # 1. Create an initial RecordAttorney object from the fixture's dictionary
+        original_record_attorney = RecordAttorney.from_dict(data=sample_record_attorney_data)
+
+        # 2. Serialize this object to an intermediate dictionary
+        intermediate_dict = original_record_attorney.to_dict()
+
+        # 3. Deserialize the intermediate dictionary back into a new RecordAttorney object
+        reconstructed_record_attorney = RecordAttorney.from_dict(data=intermediate_dict)
+
+        # 4. Assert that the original object is equal to the reconstructed object
+        assert original_record_attorney == reconstructed_record_attorney
+
+
+
 
 class TestAssignor:
     """Tests for the Assignor class."""
@@ -942,6 +1123,24 @@ class TestAssignment:
         assert data["assignorBag"] == []
         assert data["assigneeBag"] == []
         assert data["correspondenceAddressBag"] == []
+
+    def test_assignment_roundtrip(
+        self, sample_assignment_data: Dict[str, Any],
+    ) -> None:
+        """
+        Tests the round-trip serialization for the Assignment class.
+        """
+        # 1. Create an initial Assignment object from the fixture's dictionary
+        original_assignment = Assignment.from_dict(data=sample_assignment_data)
+
+        # 2. Serialize this object to an intermediate dictionary
+        intermediate_dict = original_assignment.to_dict()
+
+        # 3. Deserialize the intermediate dictionary back into a new Assignment object
+        reconstructed_assignment = Assignment.from_dict(data=intermediate_dict)
+
+        # 4. Assert that the original object is equal to the reconstructed object
+        assert original_assignment == reconstructed_assignment    
 
 
 class TestForeignPriority:
@@ -1128,6 +1327,24 @@ class TestPatentTermAdjustmentData:
         # The to_dict method for PatentTermAdjustmentData filters out empty lists
         assert "patentTermAdjustmentHistoryDataBag" not in data
 
+    def test_patent_term_adjustment_data_roundtrip(
+        self,
+        sample_patent_term_adjustment_data: Dict[str, Any]
+    ) -> None:
+        """
+        Tests the round-trip serialization for the PatentTermAdjustmentData class.
+        """
+        # 1. Create an initial PTA object from the fixture's dictionary
+        original_pta_data = PatentTermAdjustmentData.from_dict(data=sample_patent_term_adjustment_data)
+
+        # 2. Serialize this object to an intermediate dictionary
+        intermediate_dict = original_pta_data.to_dict()
+
+        # 3. Deserialize the intermediate dictionary back into a new PTA object
+        reconstructed_pta_data = PatentTermAdjustmentData.from_dict(data=intermediate_dict)
+
+        # 4. Assert that the original object is equal to the reconstructed object
+        assert original_pta_data == reconstructed_pta_data
 
 class TestEventData:
     """Tests for the EventData class."""
@@ -1209,7 +1426,7 @@ class TestApplicationMetaData:
         assert app_meta.cpc_classification_bag == ["A01B1/00", None]
 
 
-    def test_application_meta_data_to_dict(self) -> None: # Targets lines 1138, 1150-1151, 1155, 1158
+    def test_application_meta_data_to_dict(self) -> None: 
         app_meta_all_none = ApplicationMetaData() # All fields are None or empty lists
         data_all_none = app_meta_all_none.to_dict()
         assert data_all_none == {} # Should be empty as all values are None or empty lists
@@ -1227,33 +1444,38 @@ class TestApplicationMetaData:
         data_empty_cpc = app_meta_empty_cpc.to_dict()
         assert data_empty_cpc == {"inventionTitle": "Test"} # cpcClassificationBag is empty, so not included
 
-        # Test to ensure is_aia/is_pre_aia are not in the dict (line 1150-1151)
-        # This is implicitly tested as asdict() includes them, but the to_dict filters them.
-        # No specific new test needed if other fields are present.
 
         # Test for line 1155 (complex condition for preserving camelCase)
-        # This line determines if a key like 'firstInventorToFileIndicator' (already camel)
-        # should be re-converted from a hypothetical snake_case version from asdict().
-        # The current asdict() on dataclasses returns snake_case keys.
-        # The to_dict() then converts them.
-        # The condition `if k_snake in [...] or any(...)` is to handle cases where
-        # a key in `d` (which comes from asdict) might already be camelCase due to
-        # specific prior manipulations (e.g. `d["firstInventorToFileIndicator"] = ...`).
-        # To test this line directly, we'd need to ensure `k_snake` matches one of those
-        # explicitly listed camelCase keys.
         app_meta_fitf = ApplicationMetaData(first_inventor_to_file_indicator=True)
-        # asdict(app_meta_fitf) -> {'first_inventor_to_file_indicator': True, ...}
-        # In the loop: k_snake = "first_inventor_to_file_indicator"
-        # to_camel_case(k_snake) -> "firstInventorToFileIndicator"
-        # The condition on line 1155:
-        # `k_snake` (e.g. "first_inventor_to_file_indicator") is NOT in `["firstInventorToFileIndicator", ...]`.
-        # `any(to_camel_case(df) == k_snake for df in date_fields)` would also be false.
-        # So `k_camel` becomes "firstInventorToFileIndicator".
-        # This line seems to be more of a safeguard.
-        # The important part is that the final key is correct.
         data_fitf = app_meta_fitf.to_dict()
         assert "firstInventorToFileIndicator" in data_fitf
         assert data_fitf["firstInventorToFileIndicator"] == "Y"
+
+        # Test serialization of entityStatusData (line 1133)
+        sample_status = {"smallEntityStatusIndicator": True, "businessEntityStatusCategory": "TestCategory"}
+        app_meta_status = ApplicationMetaData(entity_status_data=EntityStatus.from_dict(sample_status))
+        result_status = app_meta_status.to_dict()
+        assert result_status["entityStatusData"] == {"smallEntityStatusIndicator": True, "businessEntityStatusCategory": "TestCategory"}
+
+        app_meta_aia = ApplicationMetaData(first_inventor_to_file_indicator= True)
+        data_aia = app_meta_aia.to_dict()
+
+    def test_application_meta_data_roundtrip_object_comparison(
+        self,
+        sample_application_meta_data: Dict[str, Any] # Fixture providing the initial dict
+    ) -> None:
+        # 1. Create an initial object from the fixture's dictionary
+        original_app_meta = ApplicationMetaData.from_dict(data=sample_application_meta_data)
+        
+        # 2. Serialize this object to a dictionary
+        intermediate_dict = original_app_meta.to_dict()
+        
+        # 3. Deserialize the intermediate dictionary back into a new object
+        reconstructed_app_meta = ApplicationMetaData.from_dict(data=intermediate_dict)
+        
+        # 4. Assert that the original object is equal to the reconstructed object
+        # This uses the dataclass's __eq__ method, which compares attributes.
+        assert original_app_meta == reconstructed_app_meta
 
 
     def test_aia_properties(self):
@@ -1322,6 +1544,43 @@ class TestPatentFileWrapper:
     def test_empty_patent_file_wrapper_to_dict(self):
         wrapper = PatentFileWrapper()
         assert wrapper.to_dict() == {}
+
+    def test_patent_file_wrapper_roundtrip(
+        self,
+        patent_data_sample: Dict[str, Any] # This fixture provides the full response dict
+    ) -> None:
+        """
+        Tests the round-trip serialization (from_dict -> to_dict -> from_dict)
+        for the PatentFileWrapper class.
+        It uses the first wrapper from the patent_data_sample fixture.
+        """
+        # Ensure the fixture has the expected structure
+        assert "patentFileWrapperDataBag" in patent_data_sample
+        assert len(patent_data_sample["patentFileWrapperDataBag"]) > 0
+
+        # Get the dictionary for the first PatentFileWrapper from the sample data
+        wrapper_dict_from_fixture = patent_data_sample["patentFileWrapperDataBag"][0]
+
+        # 1. Create an initial PatentFileWrapper object from the fixture's dictionary
+        original_wrapper = PatentFileWrapper.from_dict(data=wrapper_dict_from_fixture)
+
+        # 2. Serialize this object to an intermediate dictionary
+        intermediate_dict = original_wrapper.to_dict()
+
+        # 3. Deserialize the intermediate dictionary back into a new PatentFileWrapper object
+        reconstructed_wrapper = PatentFileWrapper.from_dict(data=intermediate_dict)
+
+        # 4. Assert that the original object is equal to the reconstructed object
+        # This relies on the dataclass __eq__ method comparing all attributes.
+        assert original_wrapper == reconstructed_wrapper
+
+        # As an additional check, you might want to test the second wrapper if it's different
+        if len(patent_data_sample["patentFileWrapperDataBag"]) > 1:
+            wrapper_dict_2_from_fixture = patent_data_sample["patentFileWrapperDataBag"][1]
+            original_wrapper_2 = PatentFileWrapper.from_dict(data=wrapper_dict_2_from_fixture)
+            intermediate_dict_2 = original_wrapper_2.to_dict()
+            reconstructed_wrapper_2 = PatentFileWrapper.from_dict(data=intermediate_dict_2)
+            assert original_wrapper_2 == reconstructed_wrapper_2
 
 
 class TestPatentDataResponse:
@@ -1574,3 +1833,176 @@ class TestAssociatedDocumentsData:
         assert "grantDocumentMetaData" in data_dict
         assert data_dict["pgpubDocumentMetaData"]["zipFileName"] == sample_document_meta_data_data["zipFileName"]
         assert data_dict["grantDocumentMetaData"] is None
+
+
+class TestUtilityFunctions:
+    """Tests for utility functions in models.patent_data.py."""
+
+    def test_parse_to_datetime_utc(self, capsys) -> None: # Added capsys
+        """Test parse_to_datetime_utc utility function comprehensively."""
+        # Test with Z suffix (UTC)
+        dt_utc_z = parse_to_datetime_utc("2023-01-01T10:00:00Z")
+        assert isinstance(dt_utc_z, datetime)
+        assert dt_utc_z.replace(tzinfo=None) == datetime(2023, 1, 1, 10, 0, 0)
+        assert dt_utc_z.tzinfo == timezone.utc
+
+        # Test with timezone offset
+        dt_offset = parse_to_datetime_utc("2023-01-01T05:00:00-05:00")  # EST
+        assert isinstance(dt_offset, datetime)
+        assert dt_offset.replace(tzinfo=None) == datetime(2023, 1, 1, 10, 0, 0) # 5 AM EST is 10 AM UTC
+        assert dt_offset.tzinfo == timezone.utc
+
+        dt_naive_str = "2023-01-01T10:00:00"
+        dt_naive = parse_to_datetime_utc(dt_naive_str)
+        assert isinstance(dt_naive, datetime)
+        # Exact UTC hour depends on ASSUMED_NAIVE_TIMEZONE and DST for that date.
+        # For "America/New_York" on Jan 1st (no DST), 10:00 ET is 15:00 UTC.
+        # We need to ensure the test environment has 'America/New_York' or mock it.
+        # Assuming ZoneInfo('America/New_York') works:
+        try:
+            naive_datetime_instance = datetime(2023,1,1,10,0,0)
+            aware_datetime_instance = naive_datetime_instance.replace(tzinfo=ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR))
+            expected_naive_utc_hour = aware_datetime_instance.astimezone(timezone.utc).hour
+            assert dt_naive.hour == expected_naive_utc_hour
+        except ZoneInfoNotFoundError:
+             # Fallback if ZoneInfo is not available, ASSUMED_NAIVE_TIMEZONE becomes timezone.utc
+            assert dt_naive.hour == 10 # Treated as UTC directly
+        assert dt_naive.tzinfo == timezone.utc
+
+
+        dt_ms = parse_to_datetime_utc("2023-01-01T10:00:00.123Z")
+        assert isinstance(dt_ms, datetime)
+        assert dt_ms.replace(tzinfo=None) == datetime(2023, 1, 1, 10, 0, 0, 123000)
+        assert dt_ms.tzinfo == timezone.utc
+
+        dt_space = parse_to_datetime_utc("2023-01-01 10:00:00") # Common naive format
+        assert isinstance(dt_space, datetime)
+        try:
+            # Create a naive datetime instance
+            naive_dt_for_space = datetime(2023, 1, 1, 10, 0, 0)
+            # Make it aware using the assumed timezone
+            aware_dt_for_space = naive_dt_for_space.replace(tzinfo=ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR))
+            # Convert to UTC and get the hour
+            expected_space_utc_hour = aware_dt_for_space.astimezone(timezone.utc).hour
+            assert dt_space.hour == expected_space_utc_hour
+        except ZoneInfoNotFoundError:
+            assert dt_space.hour == 10
+        assert dt_space.tzinfo == timezone.utc
+
+        assert parse_to_datetime_utc("invalid-datetime") is None
+        captured = capsys.readouterr() # Check warning for invalid-datetime
+        assert "Warning: Could not parse datetime string 'invalid-datetime'" in captured.out
+        assert parse_to_datetime_utc(None) is None
+
+
+    def test_serialize_date(self) -> None:
+        """Test serialize_date utility function."""
+        test_date = date(2023, 1, 1)
+        assert serialize_date(test_date) == "2023-01-01"
+        assert serialize_date(None) is None
+
+    def test_serialize_datetime_as_iso(self) -> None:
+        """Test serialize_datetime_as_iso utility function."""
+        dt_utc = datetime(2023, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        assert serialize_datetime_as_iso(dt_utc) == "2023-01-01T10:00:00Z"
+
+        dt_naive = datetime(2023, 1, 1, 10, 0, 0)
+        assert serialize_datetime_as_iso(dt_naive) == "2023-01-01T10:00:00Z"
+
+        minus_five = timezone(timedelta(hours=-5))
+        dt_est = datetime(2023, 1, 1, 10, 0, 0, tzinfo=minus_five) # 10:00 EST is 15:00 UTC
+        assert serialize_datetime_as_iso(dt_est) == "2023-01-01T15:00:00Z"
+
+        assert serialize_datetime_as_iso(None) is None
+
+
+    def test_parse_to_datetime_utc_localization_failure_and_fallback(self, capsys) -> None:
+        """Triggers the except block by making astimezone() raise, and tests fallback path."""
+
+        class FailingTZ(tzinfo):
+            def utcoffset(self, dt): raise Exception("boom")
+
+        dt_str = "2023-01-01T10:00:00"
+
+        # Patch ASSUMED_NAIVE_TIMEZONE to a tzinfo that will break astimezone()
+        with patch("pyUSPTO.models.patent_data.ASSUMED_NAIVE_TIMEZONE", FailingTZ()):
+            result = parse_to_datetime_utc(datetime_str=dt_str)
+
+        # Should not hit fallback: return dt_obj.replace(tzinfo=timezone.utc)
+        assert result is None
+
+        captured = capsys.readouterr()
+        assert "Warning: Error localizing naive datetime" in captured.out
+
+
+
+    def test_parse_to_datetime_utc_fallback_to_utc_replace(self, capsys) -> None:
+        """Triggers fallback to dt_obj.replace(tzinfo=timezone.utc) without touching datetime.*"""
+
+        class FailingButEqualToUTC(tzinfo):
+            def utcoffset(self, dt):
+                raise Exception("boom")
+
+            def __eq__(self, other):
+                return other is timezone.utc
+
+        dt_str = "2023-01-01T10:00:00"
+
+        # Patch ASSUMED_NAIVE_TIMEZONE with a tzinfo that fails, but equals timezone.utc
+        with patch("pyUSPTO.models.patent_data.ASSUMED_NAIVE_TIMEZONE", FailingButEqualToUTC()):
+            result = parse_to_datetime_utc(dt_str)
+
+        assert isinstance(result, datetime)
+        assert result.tzinfo == timezone.utc
+
+        captured = capsys.readouterr()
+        assert "Warning: Error localizing naive datetime" in captured.out
+
+
+    def test_parse_yn_to_bool(self, capsys) -> None: # Added capsys
+        """Test parse_yn_to_bool utility function."""
+        assert parse_yn_to_bool("Y") is True
+        assert parse_yn_to_bool("y") is True
+        assert parse_yn_to_bool("N") is False
+        assert parse_yn_to_bool("n") is False
+        assert parse_yn_to_bool(None) is None
+        assert parse_yn_to_bool("True") is None # Per original model logic
+        captured_true = capsys.readouterr()
+        assert "Warning: Unexpected value for Y/N boolean string: 'True'" in captured_true.out
+
+        assert parse_yn_to_bool("False") is None # Per original model logic
+        captured_false = capsys.readouterr()
+        assert "Warning: Unexpected value for Y/N boolean string: 'False'" in captured_false.out
+
+        assert parse_yn_to_bool("Other") is None
+        captured_other = capsys.readouterr()
+        assert "Warning: Unexpected value for Y/N boolean string: 'Other'" in captured_other.out
+
+        assert parse_yn_to_bool("yes") is None
+        assert parse_yn_to_bool("no") is None
+        assert parse_yn_to_bool("") is None
+        assert parse_yn_to_bool("X") is None
+
+
+    def test_serialize_bool_to_yn(self) -> None:
+        """Test serialize_bool_to_yn utility function."""
+        assert serialize_bool_to_yn(True) == "Y"
+        assert serialize_bool_to_yn(False) == "N"
+        assert serialize_bool_to_yn(None) is None
+
+
+    def test_timezone_setup_fallback(self):
+        """Test fallback to UTC when timezone not found."""
+        with patch('zoneinfo.ZoneInfo', side_effect=ZoneInfoNotFoundError("Test error")):
+            import pyUSPTO.models.patent_data
+            importlib.reload(pyUSPTO.models.patent_data)
+            ASSUMED_NAIVE_TIMEZONE_STR = "America/New_York2"
+            try:
+                ASSUMED_NAIVE_TIMEZONE = ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR)
+            except ZoneInfoNotFoundError:
+                print(f"Warning: Timezone '{ASSUMED_NAIVE_TIMEZONE_STR}' not found. Naive datetimes will be treated as UTC or may cause errors.")
+                ASSUMED_NAIVE_TIMEZONE = timezone.utc
+            
+            assert ASSUMED_NAIVE_TIMEZONE == timezone.utc
+
+        importlib.reload(module=pyUSPTO.models.patent_data)

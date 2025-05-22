@@ -109,7 +109,6 @@ class DirectionCategory(Enum):
     INCOMING = "INCOMING"
     OUTGOING = "OUTGOING"
 
-
 class ActiveIndicator(Enum):
     YES = "Y"
     NO = "N"
@@ -129,11 +128,9 @@ class ActiveIndicator(Enum):
                 return cls.TRUE
             if val_upper == "FALSE":
                 return cls.FALSE
-            if value == "Active":
+            if val_upper == "ACTIVE":
                 return cls.ACTIVE
         return super()._missing_(value)
-
-
 
 
 @dataclass(frozen=True)
@@ -875,9 +872,24 @@ class PatentTermAdjustmentHistoryData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        d = asdict(self)
-        d["eventDate"] = serialize_date(self.event_date)
-        return {to_camel_case(k): v for k, v in d.items() if v is not None}
+        # More explicit dictionary creation
+        final_dict = {}
+        if self.event_date is not None:
+            final_dict["eventDate"] = serialize_date(self.event_date)
+        if self.applicant_day_delay_quantity is not None:
+            final_dict["applicantDayDelayQuantity"] = self.applicant_day_delay_quantity
+        if self.event_description_text is not None:
+            final_dict["eventDescriptionText"] = self.event_description_text
+        if self.event_sequence_number is not None:
+            final_dict["eventSequenceNumber"] = self.event_sequence_number
+        if self.ip_office_day_delay_quantity is not None:
+            final_dict["ipOfficeDayDelayQuantity"] = self.ip_office_day_delay_quantity
+        if self.originating_event_sequence_number is not None:
+            final_dict["originatingEventSequenceNumber"] = self.originating_event_sequence_number
+        if self.pta_pte_code is not None:
+            # Ensure this key matches what from_dict expects
+            final_dict["ptaPTECode"] = self.pta_pte_code
+        return final_dict
 
 
 @dataclass(frozen=True)
@@ -970,9 +982,20 @@ class DocumentMetaData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        d = asdict(self)
-        d["fileCreateDateTime"] = serialize_datetime_as_iso(self.file_create_date_time)
-        return {to_camel_case(k): v for k, v in d.items() if v is not None}
+        final_dict = {}
+        if self.zip_file_name is not None:
+            final_dict["zipFileName"] = self.zip_file_name
+        if self.product_identifier is not None:
+            final_dict["productIdentifier"] = self.product_identifier
+        if self.file_location_uri is not None:
+            # Ensure the key matches what from_dict expects
+            final_dict["fileLocationURI"] = self.file_location_uri
+        if self.file_create_date_time is not None:
+            final_dict["fileCreateDateTime"] = serialize_datetime_as_iso(self.file_create_date_time)
+        if self.xml_file_name is not None:
+            final_dict["xmlFileName"] = self.xml_file_name
+        return final_dict
+
 
 
 @dataclass(frozen=True)
@@ -1145,24 +1168,20 @@ class ApplicationMetaData:
             d.pop("inventor_bag")
         if "class_field" in d:
             d["class"] = d.pop("class_field")
-        elif "class" in d and d["class"] is None:
+        if "class" in d and d["class"] is None:
             d.pop("class", None)
         final_data = {}
-        for k_snake, v_obj in d.items():
-            if k_snake.startswith("is_"):
-                continue
-            k_camel = to_camel_case(k_snake)
-            if k_snake == "class_field":
-                k_camel = "class"
+        for key_snake, v_obj in d.items():
+            k_camel = to_camel_case(snake_str=key_snake)
             # Preserve already camelCased keys from specific serializations
-            if k_snake in [
+            if key_snake in [
                 "firstInventorToFileIndicator",
                 "publicationDateBag",
                 "entityStatusData",
                 "applicantBag",
                 "inventorBag",
-            ] or any(to_camel_case(df) == k_snake for df in date_fields):
-                k_camel = k_snake
+            ] or any(to_camel_case(df) == key_snake for df in date_fields):
+                k_camel = key_snake
             if v_obj is not None:
                 if isinstance(v_obj, list) and not v_obj:
                     continue
