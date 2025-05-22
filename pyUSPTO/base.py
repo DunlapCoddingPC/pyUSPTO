@@ -130,30 +130,33 @@ class BaseUSPTOClient(Generic[T]):
             return json_response
 
         except requests.exceptions.HTTPError as http_err:
-            client_operation_message = f"API request to '{url}' failed with HTTPError" # 'url' is from _make_request scope
-            
+            client_operation_message = f"API request to '{url}' failed with HTTPError"  # 'url' is from _make_request scope
+
             # Create APIErrorArgs directly from the HTTPError
             current_error_args = APIErrorArgs.from_http_error(
-                http_error=http_err,
-                client_operation_message=client_operation_message
+                http_error=http_err, client_operation_message=client_operation_message
             )
-            
+
             api_exception_to_raise = get_api_exception(error_args=current_error_args)
             raise api_exception_to_raise from http_err
 
-
-        except requests.exceptions.RequestException as req_err: # Catches non-HTTP errors from requests
-            client_operation_message = f"API request to '{url}' failed" # 'url' is from _make_request scope
+        except (
+            requests.exceptions.RequestException
+        ) as req_err:  # Catches non-HTTP errors from requests
+            client_operation_message = (
+                f"API request to '{url}' failed"  # 'url' is from _make_request scope
+            )
 
             # Create APIErrorArgs from the generic RequestException
             current_error_args = APIErrorArgs.from_request_exception(
                 request_exception=req_err,
-                client_operation_message=client_operation_message # or pass None if you prefer default message
+                client_operation_message=client_operation_message,  # or pass None if you prefer default message
             )
-            
-            api_exception_to_raise = get_api_exception(current_error_args) # Will default to USPTOApiError
-            raise api_exception_to_raise from req_err
 
+            api_exception_to_raise = get_api_exception(
+                current_error_args
+            )  # Will default to USPTOApiError
+            raise api_exception_to_raise from req_err
 
     def paginate_results(
         self, method_name: str, response_container_attr: str, **kwargs: Any

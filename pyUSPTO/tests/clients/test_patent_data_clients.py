@@ -46,15 +46,18 @@ from pyUSPTO.models.patent_data import (
 
 # --- Fixtures ---
 
+
 @pytest.fixture
 def api_key_fixture() -> str:
     """Provides a test API key."""
     return "test_key"
 
+
 @pytest.fixture
 def patent_data_client(api_key_fixture: str) -> PatentDataClient:
     """Provides a PatentDataClient instance initialized with a test API key."""
     return PatentDataClient(api_key=api_key_fixture)
+
 
 @pytest.fixture
 def mock_application_meta_data() -> ApplicationMetaData:
@@ -73,21 +76,22 @@ def mock_application_meta_data() -> ApplicationMetaData:
         cpc_classification_bag=["G06F1/00"],
     )
 
+
 @pytest.fixture
 def mock_assignment() -> Assignment:
     """Provides a mock Assignment instance."""
     return Assignment(reel_number="12345", frame_number="67890")
+
 
 @pytest.fixture
 def mock_record_attorney() -> RecordAttorney:
     """Provides a mock RecordAttorney instance."""
     return RecordAttorney(
         attorney_bag=[
-            Attorney(
-                first_name="James", last_name="Legal", registration_number="12345"
-            )
+            Attorney(first_name="James", last_name="Legal", registration_number="12345")
         ]
     )
+
 
 @pytest.fixture
 def mock_foreign_priority() -> ForeignPriority:
@@ -97,30 +101,35 @@ def mock_foreign_priority() -> ForeignPriority:
         application_number_text="EP12345678",
     )
 
+
 @pytest.fixture
 def mock_parent_continuity() -> ParentContinuity:
     """Provides a mock ParentContinuity instance."""
     return ParentContinuity(parent_application_number_text="11111111")
+
 
 @pytest.fixture
 def mock_child_continuity() -> ChildContinuity:
     """Provides a mock ChildContinuity instance."""
     return ChildContinuity(child_application_number_text="99999999")
 
+
 @pytest.fixture
 def mock_patent_term_adjustment_data() -> PatentTermAdjustmentData:
     """Provides a mock PatentTermAdjustmentData instance."""
     return PatentTermAdjustmentData(adjustment_total_quantity=150.0)
 
+
 @pytest.fixture
 def mock_event_data() -> EventData:
     """Provides a mock EventData instance."""
-    dt = date(2022, 1, 1) # Ensure date object for EventData
+    dt = date(2022, 1, 1)  # Ensure date object for EventData
     return EventData(
         event_code="COMP",
         event_description_text="Application ready for examination",
         event_date=dt,
     )
+
 
 @pytest.fixture
 def mock_pgpub_document_meta_data() -> DocumentMetaData:
@@ -132,6 +141,7 @@ def mock_pgpub_document_meta_data() -> DocumentMetaData:
         file_create_date_time=dt,
     )
 
+
 @pytest.fixture
 def mock_grant_document_meta_data() -> DocumentMetaData:
     """Provides a mock grant DocumentMetaData instance."""
@@ -141,6 +151,7 @@ def mock_grant_document_meta_data() -> DocumentMetaData:
         product_identifier="GRANT",
         file_create_date_time=dt,
     )
+
 
 @pytest.fixture
 def mock_patent_file_wrapper(
@@ -173,6 +184,7 @@ def mock_patent_file_wrapper(
         grant_document_meta_data=mock_grant_document_meta_data,
     )
 
+
 @pytest.fixture
 def mock_patent_file_wrapper_minimal() -> PatentFileWrapper:
     """Provides a minimal mock PatentFileWrapper instance with only applicationNumberText."""
@@ -189,6 +201,7 @@ def mock_patent_data_response_with_data(
     return PatentDataResponse(
         count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
     )
+
 
 @pytest.fixture
 def mock_patent_data_response_empty() -> PatentDataResponse:
@@ -209,6 +222,7 @@ def client_with_mocked_request(
     ) as mock_make_request:
         yield patent_data_client, mock_make_request
 
+
 @pytest.fixture
 def mock_requests_response() -> MagicMock:
     """Provides a mock requests.Response object for download tests."""
@@ -218,9 +232,8 @@ def mock_requests_response() -> MagicMock:
     return response
 
 
-
-
 # --- Test Classes ---
+
 
 class TestPatentDataClientInit:
     """Tests for the initialization of the PatentDataClient."""
@@ -299,7 +312,9 @@ class TestPatentApplicationSearch:
         mock_make_request.return_value = mock_patent_data_response_with_data
         search_request = {
             "q": "Test",
-            "filters": [{"field": "inventionSubjectMatterCategory", "value": "MECHANICAL"}],
+            "filters": [
+                {"field": "inventionSubjectMatterCategory", "value": "MECHANICAL"}
+            ],
             "pagination": {"offset": 0, "limit": 100},
         }
 
@@ -340,18 +355,42 @@ class TestPatentApplicationSearch:
         "search_params, expected_q_part",
         [
             ({"application_number": "app123"}, "applicationNumberText:app123"),
-            ({"inventor_name": "Doe J"}, "applicationMetaData.inventorBag.inventorNameText:Doe J"),
-            ({"applicant_name": "Corp Inc"}, "applicationMetaData.firstApplicantName:Corp Inc"),
-            ({"assignee_name": "Assignee Ltd"}, "assignmentBag.assigneeBag.assigneeNameText:Assignee Ltd"),
-            ({"classification": "H04L"}, "applicationMetaData.cpcClassificationBag:H04L"),
-            ({"filing_date_from": "2021-01-01"}, "applicationMetaData.filingDate:>=2021-01-01"),
-            ({"filing_date_to": "2021-12-31"}, "applicationMetaData.filingDate:<=2021-12-31"),
+            (
+                {"inventor_name": "Doe J"},
+                "applicationMetaData.inventorBag.inventorNameText:Doe J",
+            ),
+            (
+                {"applicant_name": "Corp Inc"},
+                "applicationMetaData.firstApplicantName:Corp Inc",
+            ),
+            (
+                {"assignee_name": "Assignee Ltd"},
+                "assignmentBag.assigneeBag.assigneeNameText:Assignee Ltd",
+            ),
+            (
+                {"classification": "H04L"},
+                "applicationMetaData.cpcClassificationBag:H04L",
+            ),
+            (
+                {"filing_date_from": "2021-01-01"},
+                "applicationMetaData.filingDate:>=2021-01-01",
+            ),
+            (
+                {"filing_date_to": "2021-12-31"},
+                "applicationMetaData.filingDate:<=2021-12-31",
+            ),
             (
                 {"filing_date_from": "2021-01-01", "filing_date_to": "2021-12-31"},
                 "applicationMetaData.filingDate:[2021-01-01 TO 2021-12-31]",
             ),
-            ({"grant_date_from": "2022-01-01"}, "applicationMetaData.grantDate:>=2022-01-01"),
-            ({"grant_date_to": "2022-12-31"}, "applicationMetaData.grantDate:<=2022-12-31"),
+            (
+                {"grant_date_from": "2022-01-01"},
+                "applicationMetaData.grantDate:>=2022-01-01",
+            ),
+            (
+                {"grant_date_to": "2022-12-31"},
+                "applicationMetaData.grantDate:<=2022-12-31",
+            ),
             (
                 {"grant_date_from": "2022-01-01", "grant_date_to": "2022-12-31"},
                 "applicationMetaData.grantDate:[2022-01-01 TO 2022-12-31]",
@@ -368,24 +407,23 @@ class TestPatentApplicationSearch:
         """Test search_patents with various individual filters."""
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = mock_patent_data_response_empty
-        
+
         # Default limit and offset
-        limit = 25 
+        limit = 25
         offset = 0
         final_params = {"limit": limit, "offset": offset, **search_params}
-
 
         client.search_patents(**final_params)
 
         expected_call_params = {"q": expected_q_part, "limit": limit, "offset": offset}
-        
+
         mock_make_request.assert_called_once_with(
             method="GET",
             endpoint="api/v1/patent/applications/search",
             params=expected_call_params,
             response_class=PatentDataResponse,
         )
-    
+
     def test_search_patents_multiple_filters(
         self,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
@@ -426,12 +464,12 @@ class TestPatentApplicationSearch:
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = mock_patent_data_response_empty
 
-        client.search_patents() # Uses default limit=25, offset=0
+        client.search_patents()  # Uses default limit=25, offset=0
 
         mock_make_request.assert_called_once_with(
             method="GET",
             endpoint="api/v1/patent/applications/search",
-            params={"limit": 25, "offset": 0}, # q is None, so not included
+            params={"limit": 25, "offset": 0},  # q is None, so not included
             response_class=PatentDataResponse,
         )
 
@@ -449,7 +487,7 @@ class TestPatentApplicationSearch:
         mock_make_request.assert_called_once_with(
             method="GET",
             endpoint="api/v1/patent/applications/search",
-            params={"q": "test query"}, # Only q should be present
+            params={"q": "test query"},  # Only q should be present
             response_class=PatentDataResponse,
         )
 
@@ -476,11 +514,11 @@ class TestPatentApplicationDetails:
             endpoint=f"api/v1/patent/applications/{app_num}",
             response_class=PatentDataResponse,
         )
-        assert result is mock_patent_file_wrapper # Client extracts this
+        assert result is mock_patent_file_wrapper  # Client extracts this
         assert result is not None
 
         assert result.application_number_text == app_num
-        assert result.application_meta_data.invention_title == "Test Invention" # type: ignore
+        assert result.application_meta_data.invention_title == "Test Invention"  # type: ignore
 
     def test_get_patent_application_details_empty_bag_returns_none(
         self,
@@ -492,18 +530,20 @@ class TestPatentApplicationDetails:
         mock_make_request.return_value = mock_patent_data_response_empty
         app_num_to_request = "nonexistent123"
 
-        result = client.get_patent_application_details(application_number=app_num_to_request)
+        result = client.get_patent_application_details(
+            application_number=app_num_to_request
+        )
         assert result is None
 
 
 class TestPatentApplicationPagination:
     """Tests for patent application result pagination."""
 
-    def test_paginate_patents(
-        self, patent_data_client: PatentDataClient
-    ) -> None:
+    def test_paginate_patents(self, patent_data_client: PatentDataClient) -> None:
         """Test paginate_patents method correctly calls paginate_results."""
-        with patch.object(patent_data_client, "paginate_results", autospec=True) as mock_paginate_results:
+        with patch.object(
+            patent_data_client, "paginate_results", autospec=True
+        ) as mock_paginate_results:
             patent1 = PatentFileWrapper(application_number_text="123")
             patent2 = PatentFileWrapper(application_number_text="456")
             mock_paginate_results.return_value = iter([patent1, patent2])
@@ -536,11 +576,15 @@ class TestPatentApplicationDocumentListing:
                     "documentIdentifier": "DOC1",
                     "documentCode": "IDS",
                     "officialDate": "2023-01-01T00:00:00Z",
-                    "downloadOptionBag": [{"mimeTypeIdentifier": "PDF", "downloadURI": "/doc1.pdf"}],
+                    "downloadOptionBag": [
+                        {"mimeTypeIdentifier": "PDF", "downloadURI": "/doc1.pdf"}
+                    ],
                 }
             ]
         }
-        mock_make_request.return_value = mock_response_dict # This endpoint returns dict directly
+        mock_make_request.return_value = (
+            mock_response_dict  # This endpoint returns dict directly
+        )
 
         result = client.get_application_documents(application_number=app_num)
 
@@ -575,8 +619,14 @@ class TestPatentApplicationAssociatedDocuments:
             response_class=PatentDataResponse,
         )
         assert isinstance(result, AssociatedDocumentsData)
-        assert result.pgpub_document_meta_data is mock_patent_file_wrapper.pgpub_document_meta_data
-        assert result.grant_document_meta_data is mock_patent_file_wrapper.grant_document_meta_data
+        assert (
+            result.pgpub_document_meta_data
+            is mock_patent_file_wrapper.pgpub_document_meta_data
+        )
+        assert (
+            result.grant_document_meta_data
+            is mock_patent_file_wrapper.grant_document_meta_data
+        )
 
 
 class TestPatentDocumentDownload:
@@ -595,16 +645,18 @@ class TestPatentDocumentDownload:
     ) -> None:
         """Test document download with Content-Disposition header."""
         client, mock_make_request = client_with_mocked_request
-        mock_exists.return_value = False # Ensure makedirs is called
-        
+        mock_exists.return_value = False  # Ensure makedirs is called
+
         filename_from_header = "test_document.pdf"
-        mock_requests_response.headers = {"Content-Disposition": f'filename="{filename_from_header}"'}
+        mock_requests_response.headers = {
+            "Content-Disposition": f'filename="{filename_from_header}"'
+        }
         mock_make_request.return_value = mock_requests_response
 
         app_num = "appDL123"
-        doc_id = "orig_doc_id.zip" # Original ID, filename comes from header
+        doc_id = "orig_doc_id.zip"  # Original ID, filename comes from header
         dest_dir = "/tmp/downloads"
-        
+
         expected_path = os.path.join(dest_dir, filename_from_header)
 
         result_path = client.download_document_file(
@@ -630,11 +682,11 @@ class TestPatentDocumentDownload:
         mock_makedirs: MagicMock,
         mock_file_open: MagicMock,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_requests_response: MagicMock, # headers will be empty by default
+        mock_requests_response: MagicMock,  # headers will be empty by default
     ) -> None:
         """Test document download when Content-Disposition is missing, uses document_id as filename."""
         client, mock_make_request = client_with_mocked_request
-        mock_exists.return_value = True # makedirs might not be called if dir exists
+        mock_exists.return_value = True  # makedirs might not be called if dir exists
         mock_make_request.return_value = mock_requests_response
 
         app_num = "appDL456"
@@ -645,7 +697,7 @@ class TestPatentDocumentDownload:
         result_path = client.download_document_file(
             application_number=app_num, document_id=doc_id, destination_dir=dest_dir
         )
-        
+
         mock_make_request.assert_called_once_with(
             method="GET",
             endpoint=f"api/v1/download/applications/{app_num}/{doc_id}",
@@ -653,16 +705,17 @@ class TestPatentDocumentDownload:
         )
         mock_file_open.assert_called_once_with(file=expected_path, mode="wb")
         assert result_path == expected_path
-        
+
     def test_download_document_file_missing_params(
         self,
-        client_with_mocked_request: tuple[PatentDataClient, MagicMock], # Use mocked client
-        mock_requests_response: MagicMock # For the mocked network call
+        client_with_mocked_request: tuple[
+            PatentDataClient, MagicMock
+        ],  # Use mocked client
+        mock_requests_response: MagicMock,  # For the mocked network call
     ) -> None:
-
         """Test download_document_file raises TypeError for missing or invalid parameters."""
         client, mock_make_request = client_with_mocked_request
-        
+
         # Scenario 1: destination_dir is None (causes TypeError inside os.path functions)
         # Mock _make_request to return a valid response to allow execution to reach os.path
         mock_make_request.return_value = mock_requests_response
@@ -670,19 +723,20 @@ class TestPatentDocumentDownload:
             client.download_document_file(
                 application_number="123",
                 document_id="doc.pdf",
-                destination_dir=None # type: ignore
+                destination_dir=None,  # type: ignore
             )
-        mock_make_request.reset_mock() # Reset for next calls if needed
+        mock_make_request.reset_mock()  # Reset for next calls if needed
 
         # Scenario 2: Missing required arguments (causes TypeError from method signature)
         with pytest.raises(TypeError):
-            client.download_document_file(application_number="123", document_id="doc.pdf") # type: ignore
+            client.download_document_file(application_number="123", document_id="doc.pdf")  # type: ignore
 
         with pytest.raises(TypeError):
-            client.download_document_file(application_number="123", destination_dir="/tmp") # type: ignore
-            
+            client.download_document_file(application_number="123", destination_dir="/tmp")  # type: ignore
+
         with pytest.raises(TypeError):
-            client.download_document_file(document_id="doc.pdf", destination_dir="/tmp") # type: ignore
+            client.download_document_file(document_id="doc.pdf", destination_dir="/tmp")  # type: ignore
+
 
 class TestPatentApplicationBulkDownload:
     """Tests for bulk downloading of patent application search results."""
@@ -697,14 +751,19 @@ class TestPatentApplicationBulkDownload:
         """Test GET bulk download with various formats."""
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = mock_patent_data_response_empty
-        params = {"q": "bulk test", "format": format_type} # format in params overrides format_type arg
+        params = {
+            "q": "bulk test",
+            "format": format_type,
+        }  # format in params overrides format_type arg
 
-        result = client.download_patent_applications_get(params=params) # format_type arg will be overridden
+        result = client.download_patent_applications_get(
+            params=params
+        )  # format_type arg will be overridden
 
         mock_make_request.assert_called_once_with(
             method="GET",
             endpoint="api/v1/patent/applications/search/download",
-            params=params, # The format from params is used
+            params=params,  # The format from params is used
             response_class=PatentDataResponse,
         )
         assert result is mock_patent_data_response_empty
@@ -717,13 +776,15 @@ class TestPatentApplicationBulkDownload:
         """Test GET bulk download uses default format 'json' if not specified."""
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = mock_patent_data_response_empty
-        
-        client.download_patent_applications_get(params={"q": "test"}) # No format in params or arg
+
+        client.download_patent_applications_get(
+            params={"q": "test"}
+        )  # No format in params or arg
 
         mock_make_request.assert_called_once_with(
             method="GET",
             endpoint="api/v1/patent/applications/search/download",
-            params={"q": "test", "format": "json"}, # Default format added
+            params={"q": "test", "format": "json"},  # Default format added
             response_class=PatentDataResponse,
         )
 
@@ -735,9 +796,15 @@ class TestPatentApplicationBulkDownload:
         """Test POST bulk download."""
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = mock_patent_data_response_with_data
-        download_request = {"q": "Test POST", "format": "xml", "fields": ["patentNumber"]}
+        download_request = {
+            "q": "Test POST",
+            "format": "xml",
+            "fields": ["patentNumber"],
+        }
 
-        result = client.download_patent_applications_post(download_request=download_request)
+        result = client.download_patent_applications_post(
+            download_request=download_request
+        )
 
         mock_make_request.assert_called_once_with(
             method="POST",
@@ -748,26 +815,26 @@ class TestPatentApplicationBulkDownload:
         assert result is mock_patent_data_response_with_data
 
     def test_download_patent_applications_get_default_params_when_none(
-            self,
-            client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-            mock_patent_data_response_empty: PatentDataResponse,
-        ) -> None:
-            """Test GET bulk download correctly initializes params if None and uses default format."""
-            client, mock_make_request = client_with_mocked_request
-            mock_make_request.return_value = mock_patent_data_response_empty
-            
-            # Call download_patent_applications_get without the 'params' argument
-            # so it defaults to None internally.
-            result = client.download_patent_applications_get() 
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_data_response_empty: PatentDataResponse,
+    ) -> None:
+        """Test GET bulk download correctly initializes params if None and uses default format."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = mock_patent_data_response_empty
 
-            # Verify that params was initialized to {} and then 'format': 'json' was added.
-            mock_make_request.assert_called_once_with(
-                method="GET",
-                endpoint="api/v1/patent/applications/search/download",
-                params={"format": "json"}, 
-                response_class=PatentDataResponse,
-            )
-            assert result is mock_patent_data_response_empty
+        # Call download_patent_applications_get without the 'params' argument
+        # so it defaults to None internally.
+        result = client.download_patent_applications_get()
+
+        # Verify that params was initialized to {} and then 'format': 'json' was added.
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint="api/v1/patent/applications/search/download",
+            params={"format": "json"},
+            response_class=PatentDataResponse,
+        )
+        assert result is mock_patent_data_response_empty
 
 
 class TestApplicationSpecificDataRetrieval:
@@ -783,7 +850,7 @@ class TestApplicationSpecificDataRetrieval:
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = mock_patent_data_response_with_data
         app_num = mock_patent_file_wrapper.application_number_text
-        
+
         assert app_num is not None
 
         result = client.get_application_metadata(application_number=app_num)
@@ -848,8 +915,13 @@ class TestApplicationSpecificDataRetrieval:
 
         result = client.get_application_continuity(application_number=app_num)
         assert isinstance(result, ApplicationContinuityData)
-        assert result.parent_continuity_bag is mock_patent_file_wrapper.parent_continuity_bag
-        assert result.child_continuity_bag is mock_patent_file_wrapper.child_continuity_bag
+        assert (
+            result.parent_continuity_bag
+            is mock_patent_file_wrapper.parent_continuity_bag
+        )
+        assert (
+            result.child_continuity_bag is mock_patent_file_wrapper.child_continuity_bag
+        )
 
     def test_get_application_foreign_priority(
         self,
@@ -891,20 +963,28 @@ class TestPatentStatusCodesEndpoints:
         """Test get_patent_status_codes method."""
         client, mock_make_request = client_with_mocked_request
         mock_api_response = {
-            "count": 1, "statusCodeBag": [{"applicationStatusCode": 100, "applicationStatusDescriptionText": "Active"}]
+            "count": 1,
+            "statusCodeBag": [
+                {
+                    "applicationStatusCode": 100,
+                    "applicationStatusDescriptionText": "Active",
+                }
+            ],
         }
-        mock_make_request.return_value = mock_api_response # Returns dict for this endpoint
+        mock_make_request.return_value = (
+            mock_api_response  # Returns dict for this endpoint
+        )
 
-        result = client.get_patent_status_codes(params={"limit":1})
+        result = client.get_patent_status_codes(params={"limit": 1})
 
         mock_make_request.assert_called_once_with(
             method="GET",
             endpoint="api/v1/patent/status-codes",
-            params={"limit":1},
+            params={"limit": 1},
         )
         assert isinstance(result, StatusCodeSearchResponse)
         assert result.count == 1
-        assert result.status_code_bag[0].code == 100 
+        assert result.status_code_bag[0].code == 100
 
     def test_search_patent_status_codes_post(
         self, client_with_mocked_request: tuple[PatentDataClient, MagicMock]
@@ -912,9 +992,15 @@ class TestPatentStatusCodesEndpoints:
         """Test search_patent_status_codes_post method."""
         client, mock_make_request = client_with_mocked_request
         mock_api_response = {
-            "count": 1, "statusCodeBag": [{"applicationStatusCode": 150, "applicationStatusDescriptionText": "Pending"}]
+            "count": 1,
+            "statusCodeBag": [
+                {
+                    "applicationStatusCode": 150,
+                    "applicationStatusDescriptionText": "Pending",
+                }
+            ],
         }
-        mock_make_request.return_value = mock_api_response # Returns dict
+        mock_make_request.return_value = mock_api_response  # Returns dict
         search_request = {"q": "Pending"}
 
         result = client.search_patent_status_codes_post(search_request=search_request)
@@ -940,7 +1026,10 @@ class TestStatusCodeModels:
 
     def test_status_code_from_dict(self) -> None:
         """Test StatusCode.from_dict functionality."""
-        data = {"applicationStatusCode": 150, "applicationStatusDescriptionText": "Abandoned"}
+        data = {
+            "applicationStatusCode": 150,
+            "applicationStatusDescriptionText": "Abandoned",
+        }
         status = StatusCode.from_dict(data)
         assert status.code == 150
         assert status.description == "Abandoned"
@@ -967,7 +1056,12 @@ class TestStatusCodeModels:
         """Test StatusCodeSearchResponse.from_dict functionality."""
         data = {
             "count": 1,
-            "statusCodeBag": [{"applicationStatusCode": 100, "applicationStatusDescriptionText": "Test"}],
+            "statusCodeBag": [
+                {
+                    "applicationStatusCode": 100,
+                    "applicationStatusDescriptionText": "Test",
+                }
+            ],
             "requestIdentifier": "req-123",
         }
         response_obj = StatusCodeSearchResponse.from_dict(data)
@@ -984,14 +1078,16 @@ class TestSpecificDataReturnTypes:
     def client_for_return_type_tests(
         self,
         patent_data_client: PatentDataClient,
-        mock_patent_data_response_with_data: PatentDataResponse
+        mock_patent_data_response_with_data: PatentDataResponse,
     ) -> PatentDataClient:
         """Provides a client with _make_request patched to return a full mock response."""
-        patent_data_client._make_request = MagicMock(return_value=mock_patent_data_response_with_data) # type: ignore
+        patent_data_client._make_request = MagicMock(return_value=mock_patent_data_response_with_data)  # type: ignore
         return patent_data_client
 
     def test_get_application_metadata_type(
-        self, client_for_return_type_tests: PatentDataClient, mock_patent_file_wrapper: PatentFileWrapper
+        self,
+        client_for_return_type_tests: PatentDataClient,
+        mock_patent_file_wrapper: PatentFileWrapper,
     ) -> None:
         """Ensure get_application_metadata returns ApplicationMetaData."""
         result = client_for_return_type_tests.get_application_metadata("123")
@@ -1007,12 +1103,19 @@ class TestSpecificDataReturnTypes:
     # get_application_associated_documents -> AssociatedDocumentsData
 
     def test_get_application_associated_documents_type(
-        self, client_for_return_type_tests: PatentDataClient, mock_patent_file_wrapper: PatentFileWrapper
+        self,
+        client_for_return_type_tests: PatentDataClient,
+        mock_patent_file_wrapper: PatentFileWrapper,
     ) -> None:
         """Ensure get_application_associated_documents returns AssociatedDocumentsData."""
-        result = client_for_return_type_tests.get_application_associated_documents("123")
+        result = client_for_return_type_tests.get_application_associated_documents(
+            "123"
+        )
         assert isinstance(result, AssociatedDocumentsData)
-        assert result.pgpub_document_meta_data is mock_patent_file_wrapper.pgpub_document_meta_data
+        assert (
+            result.pgpub_document_meta_data
+            is mock_patent_file_wrapper.pgpub_document_meta_data
+        )
 
 
 class TestReturnTypesEdgeCases:
@@ -1022,21 +1125,23 @@ class TestReturnTypesEdgeCases:
     def client_with_empty_response_for_return_types(
         self,
         patent_data_client: PatentDataClient,
-        mock_patent_data_response_empty: PatentDataResponse
+        mock_patent_data_response_empty: PatentDataResponse,
     ) -> PatentDataClient:
         """Client whose _make_request returns an empty PatentDataResponse."""
-        patent_data_client._make_request = MagicMock(return_value=mock_patent_data_response_empty) # type: ignore
+        patent_data_client._make_request = MagicMock(return_value=mock_patent_data_response_empty)  # type: ignore
         return patent_data_client
 
     @pytest.fixture
     def client_with_minimal_wrapper_for_return_types(
         self,
         patent_data_client: PatentDataClient,
-        mock_patent_file_wrapper_minimal: PatentFileWrapper
+        mock_patent_file_wrapper_minimal: PatentFileWrapper,
     ) -> PatentDataClient:
         """Client whose _make_request returns a response with a minimal wrapper (only app number)."""
-        response = PatentDataResponse(count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper_minimal])
-        patent_data_client._make_request = MagicMock(return_value=response) # type: ignore
+        response = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper_minimal]
+        )
+        patent_data_client._make_request = MagicMock(return_value=response)  # type: ignore
         return patent_data_client
 
     def test_specific_getters_return_none_on_empty_response(
@@ -1047,11 +1152,13 @@ class TestReturnTypesEdgeCases:
         app_num = "any_app_num"
         assert client.get_application_metadata(app_num) is None
         assert client.get_application_adjustment(app_num) is None
-        assert client.get_application_assignment(app_num) is None # Or [] depending on impl. Client returns wrapper.assignment_bag
+        assert (
+            client.get_application_assignment(app_num) is None
+        )  # Or [] depending on impl. Client returns wrapper.assignment_bag
         assert client.get_application_attorney(app_num) is None
         assert client.get_application_continuity(app_num) is None
-        assert client.get_application_foreign_priority(app_num) is None # Or []
-        assert client.get_application_transactions(app_num) is None # Or []
+        assert client.get_application_foreign_priority(app_num) is None  # Or []
+        assert client.get_application_transactions(app_num) is None  # Or []
         assert client.get_application_associated_documents(app_num) is None
 
     def test_specific_getters_handle_missing_fields_in_wrapper(
@@ -1059,14 +1166,18 @@ class TestReturnTypesEdgeCases:
     ) -> None:
         """Test specific getters return None or empty list when wrapper exists but fields are missing."""
         client = client_with_minimal_wrapper_for_return_types
-        app_num = "12345678" # Matches minimal wrapper
+        app_num = "12345678"  # Matches minimal wrapper
         assert client.get_application_metadata(app_num) is None
         assert client.get_application_adjustment(app_num) is None
-        assert client.get_application_assignment(app_num) == [] # Default empty list from Pydantic model
+        assert (
+            client.get_application_assignment(app_num) == []
+        )  # Default empty list from Pydantic model
         assert client.get_application_attorney(app_num) is None
-        
+
         continuity_result = client.get_application_continuity(app_num)
-        assert isinstance(continuity_result, ApplicationContinuityData) # Object is created
+        assert isinstance(
+            continuity_result, ApplicationContinuityData
+        )  # Object is created
         assert continuity_result.parent_continuity_bag == []
         assert continuity_result.child_continuity_bag == []
 
@@ -1084,23 +1195,27 @@ class TestGeneralEdgeCasesAndErrors:
     def test_get_patent_application_details_app_num_mismatch_in_bag(
         self,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_patent_file_wrapper: PatentFileWrapper, # This wrapper has app_num "12345678"
+        mock_patent_file_wrapper: PatentFileWrapper,  # This wrapper has app_num "12345678"
     ) -> None:
         """Test get_patent_application_details when requested app_num differs from the one in the returned bag."""
         client, mock_make_request = client_with_mocked_request
         requested_app_num = "DIFFERENT_APP_NUM_999"
-        
+
         # API returns a wrapper for "12345678"
-        response_with_original_wrapper = PatentDataResponse(count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper])
+        response_with_original_wrapper = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
         mock_make_request.return_value = response_with_original_wrapper
 
         # Client._get_wrapper_from_response logs a warning but returns the first wrapper.
-        with patch("builtins.print") as mock_print: # To check for warning
-            result = client.get_patent_application_details(application_number=requested_app_num)
-        
-        assert result is mock_patent_file_wrapper # Returns the wrapper it found
+        with patch("builtins.print") as mock_print:  # To check for warning
+            result = client.get_patent_application_details(
+                application_number=requested_app_num
+            )
+
+        assert result is mock_patent_file_wrapper  # Returns the wrapper it found
         assert result is not None
-        assert result.application_number_text == "12345678" # Not the requested one
+        assert result.application_number_text == "12345678"  # Not the requested one
         mock_print.assert_any_call(
             "Warning: Fetched wrapper application number '12345678' "
             f"does not match requested '{requested_app_num}'."
@@ -1113,7 +1228,9 @@ class TestGeneralEdgeCasesAndErrors:
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = ["not", "a", "PatentDataResponse"]
 
-        with pytest.raises(AssertionError): # Client asserts isinstance(response_data, PatentDataResponse)
+        with pytest.raises(
+            AssertionError
+        ):  # Client asserts isinstance(response_data, PatentDataResponse)
             client.get_patent_application_details(application_number="123")
 
     def test_download_document_file_non_requests_response(
@@ -1125,13 +1242,15 @@ class TestGeneralEdgeCasesAndErrors:
 
         with pytest.raises(TypeError, match="Expected a requests.Response object"):
             client.download_document_file("app", "doc", "/tmp")
-            
+
     def test_api_error_handling(
         self, client_with_mocked_request: tuple[PatentDataClient, MagicMock]
     ) -> None:
         """Test that API errors from _make_request are propagated."""
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.side_effect = USPTOApiBadRequestError("Mocked API Bad Request")
+        mock_make_request.side_effect = USPTOApiBadRequestError(
+            "Mocked API Bad Request"
+        )
 
         with pytest.raises(USPTOApiBadRequestError, match="Mocked API Bad Request"):
             client.get_patent_applications(params={"q": "test"})
@@ -1151,12 +1270,15 @@ class TestInternalHelpersEdgeCases:
     """Tests for edge cases in internal helper methods like _get_wrapper_from_response."""
 
     def test_get_wrapper_from_response_empty_bag(
-        self, patent_data_client: PatentDataClient, mock_patent_data_response_empty: PatentDataResponse
+        self,
+        patent_data_client: PatentDataClient,
+        mock_patent_data_response_empty: PatentDataResponse,
     ) -> None:
         """Test _get_wrapper_from_response returns None if bag is empty."""
-        result = patent_data_client._get_wrapper_from_response(mock_patent_data_response_empty)
+        result = patent_data_client._get_wrapper_from_response(
+            mock_patent_data_response_empty
+        )
         assert result is None
-
 
 
 class TestDocumentModels:
@@ -1173,7 +1295,7 @@ class TestDocumentModels:
             direction_category=DirectionCategory.INCOMING,
         )
         assert doc.document_identifier == "DOC123"
-        assert "2023-01-01" in str(doc) # Model's __str__ formats date
+        assert "2023-01-01" in str(doc)  # Model's __str__ formats date
         assert "IDS" in str(doc)
 
     def test_document_download_format_model(self) -> None:
@@ -1189,11 +1311,18 @@ class TestDocumentModels:
 
     def test_document_bag_model(self) -> None:
         """Test DocumentBag model iteration and length."""
-        doc1 = Document(document_identifier="D1", official_date=datetime.now(timezone.utc), document_code="C1")
-        doc2 = Document(document_identifier="D2", official_date=datetime.now(timezone.utc), document_code="C2")
+        doc1 = Document(
+            document_identifier="D1",
+            official_date=datetime.now(timezone.utc),
+            document_code="C1",
+        )
+        doc2 = Document(
+            document_identifier="D2",
+            official_date=datetime.now(timezone.utc),
+            document_code="C2",
+        )
         bag = DocumentBag(documents=[doc1, doc2])
         assert len(bag) == 2
         assert list(bag) == [doc1, doc2]
         docs_from_iter = [d for d in bag]
         assert docs_from_iter == [doc1, doc2]
-

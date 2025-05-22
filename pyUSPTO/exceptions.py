@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Optional, Type, Union
 if TYPE_CHECKING:
     import requests  # requests.exceptions.HTTPError
 
+
 # --- Exception Classes (largely unchanged) ---
 class USPTOApiError(Exception):
     """Base exception for USPTO API errors.
@@ -26,10 +27,14 @@ class USPTOApiError(Exception):
 
     def __init__(
         self,
-        message: str, # Primary client-facing message for the exception context
+        message: str,  # Primary client-facing message for the exception context
         status_code: Optional[int] = None,
-        api_short_error: Optional[str] = None, # From API 'error' or 'message' (for 413) field
-        error_details: Optional[Union[str, dict]] = None,   # From API 'errorDetails' or 'detailedMessage' field
+        api_short_error: Optional[
+            str
+        ] = None,  # From API 'error' or 'message' (for 413) field
+        error_details: Optional[
+            Union[str, dict]
+        ] = None,  # From API 'errorDetails' or 'detailedMessage' field
         request_identifier: Optional[str] = None,
     ):
         """
@@ -82,38 +87,47 @@ class USPTOApiError(Exception):
 
 class USPTOApiBadRequestError(USPTOApiError):
     """Bad Request error (HTTP 400)."""
+
     pass
 
 
 class USPTOApiAuthError(USPTOApiError):
     """Authentication/Authorization error (HTTP 401/403)."""
+
     pass
 
 
 class USPTOApiRateLimitError(USPTOApiError):
     """Rate limit exceeded error (HTTP 429)."""
+
     pass
 
 
 class USPTOApiNotFoundError(USPTOApiError):
     """Resource not found error (HTTP 404)."""
+
     pass
 
 
 class USPTOApiPayloadTooLargeError(USPTOApiError):
     """Payload Too Large error (HTTP 413)."""
+
     pass
 
 
 class USPTOApiServerError(USPTOApiError):
     """Internal Server Error (HTTP 500 series)."""
+
     pass
 
+
 # --- Helper Structures and Functions ---
+
 
 @dataclass
 class APIErrorArgs:
     """Data structure to hold arguments for API exception constructors."""
+
     message: str
     status_code: Optional[int] = None
     api_short_error: Optional[str] = None
@@ -123,9 +137,9 @@ class APIErrorArgs:
     @classmethod
     def from_http_error(
         cls,
-        http_error: 'requests.exceptions.HTTPError', # String literal for type hint
-        client_operation_message: str
-    ) -> 'APIErrorArgs':
+        http_error: "requests.exceptions.HTTPError",  # String literal for type hint
+        client_operation_message: str,
+    ) -> "APIErrorArgs":
         """
         Creates an APIErrorArgs instance by parsing a requests.exceptions.HTTPError.
 
@@ -137,7 +151,7 @@ class APIErrorArgs:
             An instance of APIErrorArgs populated with details from the HTTPError.
         """
         status_code = http_error.response.status_code
-        
+
         api_short_error_from_response = None
         error_details_from_response = None
         request_identifier_from_response = None
@@ -151,40 +165,44 @@ class APIErrorArgs:
                 api_short_error_from_response = error_data.get("error")
                 error_details_from_response = error_data.get("errorDetails")
             request_identifier_from_response = error_data.get("requestIdentifier")
-        except ValueError: # If response.json() fails (e.g., not JSON)
-            pass # Values remain None
+        except ValueError:  # If response.json() fails (e.g., not JSON)
+            pass  # Values remain None
 
         # Fallback for api_short_error if not found in JSON response
         if not api_short_error_from_response and http_error.response.reason:
             api_short_error_from_response = http_error.response.reason
-        
+
         # Fallback for error_details if not found in JSON and response text is available
         if not error_details_from_response and http_error.response.text:
             # Avoid setting very long HTML pages as error_details if JSON parsing failed
-            if "content-type" in http_error.response.headers and \
-               "application/json" not in http_error.response.headers.get("content-type", "").lower():
-                if len(http_error.response.text) > 500: # Heuristic for "too long"
-                     error_details_from_response = f"Non-JSON error response (status {status_code}). Check response text."
+            if (
+                "content-type" in http_error.response.headers
+                and "application/json"
+                not in http_error.response.headers.get("content-type", "").lower()
+            ):
+                if len(http_error.response.text) > 500:  # Heuristic for "too long"
+                    error_details_from_response = f"Non-JSON error response (status {status_code}). Check response text."
                 else:
                     error_details_from_response = http_error.response.text
-            elif http_error.response.text: # If it might have been JSON but parsing failed
-                 error_details_from_response = http_error.response.text
-
+            elif (
+                http_error.response.text
+            ):  # If it might have been JSON but parsing failed
+                error_details_from_response = http_error.response.text
 
         return cls(
             message=client_operation_message,
             status_code=status_code,
             api_short_error=api_short_error_from_response,
             error_details=error_details_from_response,
-            request_identifier=request_identifier_from_response
+            request_identifier=request_identifier_from_response,
         )
 
     @classmethod
     def from_request_exception(
         cls,
-        request_exception: 'requests.exceptions.RequestException', # String for type hint
-        client_operation_message: Optional[str] = None
-    ) -> 'APIErrorArgs':
+        request_exception: "requests.exceptions.RequestException",  # String for type hint
+        client_operation_message: Optional[str] = None,
+    ) -> "APIErrorArgs":
         """
         Creates an APIErrorArgs instance from a generic requests.exceptions.RequestException
         (e.g., ConnectionError, Timeout) that is not an HTTPError.
@@ -224,8 +242,9 @@ def get_api_exception(error_args: APIErrorArgs) -> USPTOApiError:
             exception_class = USPTOApiRateLimitError
         case _ if status_code is not None and status_code >= 500:
             exception_class = USPTOApiServerError
-        case _: # Default for other errors or if status_code is None (e.g. network error)
+        case (
+            _
+        ):  # Default for other errors or if status_code is None (e.g. network error)
             exception_class = USPTOApiError
-    
-    return exception_class(**asdict(error_args))
 
+    return exception_class(**asdict(error_args))

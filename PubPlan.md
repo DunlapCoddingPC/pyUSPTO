@@ -94,6 +94,10 @@ Before publishing, ensure you have the following:
      ```bash
      mypy pyUSPTO > ./notes/mypy_results.txt
      ```
+   - Run Formatter
+      ```bash
+      black .\pyUSPTO\
+      ```
 
 ### Pre-Publication Checklist
 

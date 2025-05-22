@@ -58,7 +58,9 @@ def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
                 aware_dt = dt_obj.replace(tzinfo=ASSUMED_NAIVE_TIMEZONE)
                 return aware_dt.astimezone(timezone.utc)
             except Exception as e:
-                print(f"Warning: Error localizing naive datetime '{datetime_str}': {e}.")
+                print(
+                    f"Warning: Error localizing naive datetime '{datetime_str}': {e}."
+                )
                 if ASSUMED_NAIVE_TIMEZONE == timezone.utc:
                     return dt_obj.replace(tzinfo=timezone.utc)
         return None
@@ -99,15 +101,18 @@ def serialize_bool_to_yn(value: Optional[bool]) -> Optional[str]:
         return None
     return "Y" if value else "N"
 
+
 # --- Data Models ---
 def to_camel_case(snake_str: str) -> str:
     parts = snake_str.split("_")
     return parts[0] + "".join(x.title() for x in parts[1:])
 
+
 # --- Enums for Categorical Data ---
 class DirectionCategory(Enum):
     INCOMING = "INCOMING"
     OUTGOING = "OUTGOING"
+
 
 class ActiveIndicator(Enum):
     YES = "Y"
@@ -117,7 +122,7 @@ class ActiveIndicator(Enum):
     ACTIVE = "Active"
 
     @classmethod
-    def _missing_(cls, value: Any)-> 'ActiveIndicator':
+    def _missing_(cls, value: Any) -> "ActiveIndicator":
         if isinstance(value, str):
             val_upper = value.upper()
             if val_upper == "Y":
@@ -130,7 +135,7 @@ class ActiveIndicator(Enum):
                 return cls.FALSE
             if val_upper == "ACTIVE":
                 return cls.ACTIVE
-        return super()._missing_(value=value) # type: ignore[no-any-return]
+        return super()._missing_(value=value)  # type: ignore[no-any-return]
 
 
 @dataclass(frozen=True)
@@ -885,7 +890,9 @@ class PatentTermAdjustmentHistoryData:
         if self.ip_office_day_delay_quantity is not None:
             final_dict["ipOfficeDayDelayQuantity"] = self.ip_office_day_delay_quantity
         if self.originating_event_sequence_number is not None:
-            final_dict["originatingEventSequenceNumber"] = self.originating_event_sequence_number
+            final_dict["originatingEventSequenceNumber"] = (
+                self.originating_event_sequence_number
+            )
         if self.pta_pte_code is not None:
             # Ensure this key matches what from_dict expects
             final_dict["ptaPTECode"] = self.pta_pte_code
@@ -982,7 +989,7 @@ class DocumentMetaData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        final_dict:Dict[str, Any] = {}
+        final_dict: Dict[str, Any] = {}
         if self.zip_file_name is not None:
             final_dict["zipFileName"] = self.zip_file_name
         if self.product_identifier is not None:
@@ -991,11 +998,12 @@ class DocumentMetaData:
             # Ensure the key matches what from_dict expects
             final_dict["fileLocationURI"] = self.file_location_uri
         if self.file_create_date_time is not None:
-            final_dict["fileCreateDateTime"] = serialize_datetime_as_iso(self.file_create_date_time)
+            final_dict["fileCreateDateTime"] = serialize_datetime_as_iso(
+                self.file_create_date_time
+            )
         if self.xml_file_name is not None:
             final_dict["xmlFileName"] = self.xml_file_name
         return final_dict
-
 
 
 @dataclass(frozen=True)
