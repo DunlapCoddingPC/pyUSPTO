@@ -605,8 +605,8 @@ class TestPatentDataIntegration:
                 pytest.skip(
                     f"No downloadable document found for {self.KNOWN_APP_NUM_WITH_DOCS}"
                 )
-            assert doc_to_download is Document
-            assert doc_to_download.document_identifier is str
+            assert doc_to_download is Document  # type: ignore[union-attr]
+            assert doc_to_download.document_identifier is str  # type: ignore[union-attr]
             file_path = patent_data_client.download_document_file(
                 application_number=self.KNOWN_APP_NUM_WITH_DOCS,
                 document_id=doc_to_download.document_identifier,
