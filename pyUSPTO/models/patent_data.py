@@ -1396,7 +1396,7 @@ class StatusCodeCollection:
         return self._status_codes[index]
 
     def __str__(self) -> str:
-        return f"StatusCodeCollection with {len(self)} status codes"
+        return f"StatusCodeCollection with {len(self)} status codes."
 
     def __repr__(self) -> str:
         if not self._status_codes:

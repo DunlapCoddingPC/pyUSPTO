@@ -1659,6 +1659,8 @@ class TestStatusCodeCollection:
             {"applicationStatusCode": 101, "applicationStatusDescriptionText": "Status 1"},
             {"applicationStatusCode": 102, "applicationStatusDescriptionText": "Status 2"},
         ]
+        str_collection = str(collection)
+        assert str_collection == "StatusCodeCollection with 2 status codes."
 
     def test_status_code_collection_find_by_code(self) -> None:
         code1 = StatusCode(code=101, description="Status 1")
