@@ -67,4 +67,4 @@ jobs:
 
       - name: Type check with mypy
         run: |
-          mypy pyUSPTO
+          mypy pyUSPTO -v

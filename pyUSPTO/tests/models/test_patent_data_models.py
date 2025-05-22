@@ -11,8 +11,6 @@ from unittest.mock import MagicMock, patch
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pytest
-from _pytest.capture import CaptureFixture
-from click import Option
 
 from pyUSPTO.models.patent_data import (
     ASSUMED_NAIVE_TIMEZONE,
@@ -654,7 +652,9 @@ class TestDocument:
         assert data["downloadOptionBag"][0]["mimeTypeIdentifier"] == "image/tiff"
         assert data["downloadOptionBag"][0]["pageTotalQuantity"] == 5
 
-    def test_document_from_dict_unknown_enum(self, capsys: CaptureFixture) -> None:
+    def test_document_from_dict_unknown_enum(
+        self, capsys: pytest.CaptureFixture
+    ) -> None:
         """Test Document.from_dict with an unknown direction category."""
         data = {"documentDirectionCategory": "UNKNOWN_DIRECTION"}
         doc = Document.from_dict(data)
@@ -2263,7 +2263,7 @@ class TestAssociatedDocumentsData:
 class TestUtilityFunctions:
     """Tests for utility functions in models.patent_data.py."""
 
-    def test_parse_to_datetime_utc(self, capsys: CaptureFixture) -> None:
+    def test_parse_to_datetime_utc(self, capsys: pytest.CaptureFixture) -> None:
         """Test parse_to_datetime_utc utility function comprehensively."""
         # Test with Z suffix (UTC)
         dt_utc_z = parse_to_datetime_utc("2023-01-01T10:00:00Z")
@@ -2352,7 +2352,7 @@ class TestUtilityFunctions:
         assert serialize_datetime_as_iso(None) is None
 
     def test_parse_to_datetime_utc_localization_failure_and_fallback(
-        self, capsys: CaptureFixture
+        self, capsys: pytest.CaptureFixture
     ) -> None:
         """Triggers the except block by making astimezone() raise, and tests fallback path."""
 
@@ -2379,7 +2379,7 @@ class TestUtilityFunctions:
         assert "Warning: Error localizing naive datetime" in captured.out
 
     def test_parse_to_datetime_utc_fallback_to_utc_replace(
-        self, capsys: CaptureFixture
+        self, capsys: pytest.CaptureFixture
     ) -> None:
         """Triggers fallback to dt_obj.replace(tzinfo=timezone.utc) without touching datetime.*"""
 
@@ -2410,7 +2410,9 @@ class TestUtilityFunctions:
         captured = capsys.readouterr()
         assert "Warning: Error localizing naive datetime" in captured.out
 
-    def test_parse_yn_to_bool(self, capsys: CaptureFixture) -> None:  # Added capsys
+    def test_parse_yn_to_bool(
+        self, capsys: pytest.CaptureFixture
+    ) -> None:  # Added capsys
         """Test parse_yn_to_bool utility function."""
         assert parse_yn_to_bool("Y") is True
         assert parse_yn_to_bool("y") is True

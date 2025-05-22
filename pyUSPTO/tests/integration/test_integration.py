@@ -124,7 +124,6 @@ def patent_data_client(config: USPTOConfig) -> PatentDataClient:
 def sample_application_number(patent_data_client: PatentDataClient) -> str:
     """Provides a sample application number for tests."""
     try:
-        # Query for a utility application to increase chances of having diverse data
         response = patent_data_client.get_patent_applications(
             params={
                 "limit": 1,
@@ -135,15 +134,18 @@ def sample_application_number(patent_data_client: PatentDataClient) -> str:
             app_num = response.patent_file_wrapper_data_bag[0].application_number_text
             if app_num:
                 return app_num
-    except USPTOApiError as e:  # Catch specific API errors
+
+        # If we get here, no valid application number was found
+        pytest.skip(
+            "Could not retrieve a sample application number. Ensure API is reachable and query is valid."
+        )
+
+    except USPTOApiError as e:
         pytest.skip(f"Could not fetch sample application number due to API error: {e}")
-    except Exception as e:  # Catch other potential errors during setup
+    except Exception as e:
         pytest.skip(
             f"Could not fetch sample application number due to unexpected error: {e}"
         )
-    pytest.skip(
-        "Could not retrieve a sample application number. Ensure API is reachable and query is valid."
-    )
 
 
 class TestBulkDataIntegration:
@@ -521,7 +523,7 @@ class TestPatentDataIntegration:
             if documents_bag is None:
                 pytest.skip(
                     f"No document bag returned for {self.KNOWN_APP_NUM_WITH_DOCS}"
-                )
+                )  # type: ignore[unreachable]
 
             assert isinstance(documents_bag, DocumentBag)
             assert documents_bag.documents is not None  # documents is a tuple
@@ -603,9 +605,10 @@ class TestPatentDataIntegration:
                     f"No downloadable document found for {self.KNOWN_APP_NUM_WITH_DOCS}"
                 )
 
+            assert doc_to_download.document_identifier is str
             file_path = patent_data_client.download_document_file(
                 application_number=self.KNOWN_APP_NUM_WITH_DOCS,
-                document_id=doc_to_download.document_identifier,  # Ensured not None above
+                document_id=doc_to_download.document_identifier,
                 destination_dir=TEST_DOWNLOAD_DIR,
             )
 
