@@ -14,7 +14,7 @@ from pyUSPTO.config import USPTOConfig
 # Method 1: Initialize the client with direct API key
 # This approach is simple but less flexible
 print("Method 1: Initialize with direct API key")
-api_key = "tgfcazeuwmuiopipzyjnhrsbcqrymh"  # Replace with your actual API key
+api_key = "USPTO_API_KEY"  # Replace with your actual API key
 USPTO = PatentDataClient(api_key=api_key)
 
 # Method 2: Initialize the client with USPTOConfig
