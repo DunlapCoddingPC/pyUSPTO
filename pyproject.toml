@@ -35,19 +35,25 @@ issues = "https://github.com/DunlapCoddingPC/pyUSPTO/issues"
 
 [tool.setuptools_scm]
 
+[tool.setuptools.packages.find] 
+where = ["src"]
+
 [tool.isort]
 multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
 line_length = 88
 profile = "black"
+src_paths = ["src"]
+known_first_party = ["pyUSPTO"]
+
 
 [tool.pytest.ini_options]
-testpaths = ["pyUSPTO/tests"]
+testpaths = ["tests"]
+pythonpath = ["src"]
 
 [tool.coverage.run]
-source = ["pyUSPTO"]
-omit = ["*/tests/*"]
+source = ["src/pyUSPTO"]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -65,6 +71,7 @@ exclude_lines = [
 ]
 
 [tool.mypy]
+mypy_path = "src"
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
@@ -85,7 +92,7 @@ disallow_untyped_defs = true
 
 # Less strict for tests - allow untyped test functions
 [[tool.mypy.overrides]]
-module = "pyUSPTO.tests.*"
+module = "tests.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 disallow_untyped_decorators = false

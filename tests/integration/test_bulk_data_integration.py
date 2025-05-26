@@ -17,7 +17,7 @@ from pyUSPTO.exceptions import USPTOApiError
 from pyUSPTO.models.bulk_data import BulkDataProduct, BulkDataResponse
 
 # Import shared fixtures
-from pyUSPTO.tests.integration.conftest import TEST_DOWNLOAD_DIR
+from tests.integration.conftest import TEST_DOWNLOAD_DIR
 
 # Skip all tests in this module unless ENABLE_INTEGRATION_TESTS is set to 'true'
 pytestmark = pytest.mark.skipif(
