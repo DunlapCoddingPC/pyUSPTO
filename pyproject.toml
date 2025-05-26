@@ -54,6 +54,7 @@ pythonpath = ["src"]
 
 [tool.coverage.run]
 source = ["src/pyUSPTO"]
+omit = ["src/pyUSPTO/_version.py"]
 
 [tool.coverage.report]
 exclude_lines = [
