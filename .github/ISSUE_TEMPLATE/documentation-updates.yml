@@ -22,7 +22,7 @@ body:
     validations:
       required: false
   - type: dropdown
-    id: issue-type
+    id: issue-location
     attributes:
       label: Where is the documentation issue located?
       multiple: true
