@@ -6,24 +6,71 @@ This module contains tests for import paths, version handling, and import error 
 
 import importlib
 import sys
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 from unittest.mock import patch
 
 import pyUSPTO
 
 
-def test_version_fallback() -> None:
-    """Test the fallback version when _version is not available."""
-    # Store the original version
-    original_version = pyUSPTO.__version__
+def test_version() -> None:
+    """Test the version."""
+    # Test case 1: Package is installed and version is available
+    # This tests the normal case where pyUSPTO is properly installed
+    if hasattr(pyUSPTO, "__version__"):
+        # If version is set, it should be a string
+        assert isinstance(pyUSPTO.__version__, str)
+        assert len(pyUSPTO.__version__) > 0
 
-    # Patch the __version__ attribute to simulate fallback behavior
-    with patch.object(pyUSPTO, "__version__", "0.0.0.dev0"):
-        # Verify the fallback version can be accessed
-        assert pyUSPTO.__version__ == "0.0.0.dev0"
+    # Test case 2: Simulate package not found scenario by reloading module
+    with patch("importlib.metadata.version") as mock_version:
+        mock_version.side_effect = PackageNotFoundError("pyUSPTO")
 
-    # Verify version is restored after the patch
-    assert pyUSPTO.__version__ == original_version
+        # Save original modules
+        original_modules = sys.modules.copy()
+
+        try:
+            # Remove pyUSPTO from sys.modules to force reimport
+            for key in list(sys.modules.keys()):
+                if key.startswith("pyUSPTO"):
+                    del sys.modules[key]
+
+            # Import pyUSPTO with mocked version function
+            import pyUSPTO as test_module
+
+            # The module should import successfully without raising an exception
+            # __version__ should not be set when PackageNotFoundError occurs
+            assert not hasattr(test_module, "__version__")
+
+        finally:
+            # Restore original modules
+            sys.modules.clear()
+            sys.modules.update(original_modules)
+
+    # Test case 3: Simulate successful version retrieval by reloading module
+    with patch("importlib.metadata.version") as mock_version:
+        mock_version.return_value = "1.2.3"
+
+        # Save original modules
+        original_modules = sys.modules.copy()
+
+        try:
+            # Remove pyUSPTO from sys.modules to force reimport
+            for key in list(sys.modules.keys()):
+                if key.startswith("pyUSPTO"):
+                    del sys.modules[key]
+
+            # Import pyUSPTO with mocked version function
+            import pyUSPTO as test_module
+
+            # Version should be set to our mocked value
+            assert hasattr(test_module, "__version__")
+            assert test_module.__version__ == "1.2.3"
+
+        finally:
+            # Restore original modules
+            sys.modules.clear()
+            sys.modules.update(original_modules)
 
 
 def test_all_exports() -> None:
@@ -41,9 +88,6 @@ def test_all_exports() -> None:
 
 def test_import_backward_compatibility() -> None:
     """Test the backward compatibility imports."""
-    # Test imports from base module
-    assert pyUSPTO.BaseUSPTOClient is not None
-
     # Test imports from exceptions
     assert pyUSPTO.USPTOApiError is not None
     assert pyUSPTO.USPTOApiAuthError is not None
@@ -64,58 +108,3 @@ def test_import_backward_compatibility() -> None:
     # Test model imports from patent_data
     assert pyUSPTO.PatentDataResponse is not None
     assert pyUSPTO.PatentFileWrapper is not None
-
-
-def test_direct_import_of_init_with_import_error() -> None:
-    """Test importing the __init__ module directly when _version raises ImportError."""
-    # Save original modules
-    original_modules = sys.modules.copy()
-
-    try:
-        # Make sure pyUSPTO isn't already imported
-        for key in list(sys.modules.keys()):
-            if key.startswith("pyUSPTO"):
-                del sys.modules[key]
-
-        # Create mock module that raises ImportError when accessed
-        class RaisingImportError:
-            def __getattr__(self, name: str) -> Any:
-                raise ImportError(f"Mock ImportError for {name}")
-
-        # Apply the mock directly to sys.modules
-        with patch.dict("sys.modules", {"pyUSPTO._version": RaisingImportError()}):
-            # Force a fresh import of pyUSPTO
-            import pyUSPTO
-
-            # Verify the fallback version was used
-            assert pyUSPTO.__version__ == "0.0.0.dev0"
-
-    finally:
-        # Restore the original modules
-        sys.modules.clear()
-        sys.modules.update(original_modules)
-
-
-def test_import_with_version_module_missing() -> None:
-    """Test importing when the _version module is missing entirely."""
-    # Save original modules
-    original_modules = sys.modules.copy()
-
-    try:
-        # Remove all pyUSPTO modules from sys.modules
-        for key in list(sys.modules.keys()):
-            if key.startswith("pyUSPTO"):
-                del sys.modules[key]
-
-        # Set _version to None, simulating it doesn't exist
-        with patch.dict("sys.modules", {"pyUSPTO._version": None}):
-            # Import pyUSPTO
-            import pyUSPTO
-
-            # Verify the fallback version was used
-            assert pyUSPTO.__version__ == "0.0.0.dev0"
-
-    finally:
-        # Restore the original modules
-        sys.modules.clear()
-        sys.modules.update(original_modules)
