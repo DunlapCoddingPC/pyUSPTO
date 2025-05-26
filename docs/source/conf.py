@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath("../.."))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "pyUSPTO"
-copyright = "2025, Andrew Piechocki"
+copyright = "2025, Dunlap Codding, PC"
 author = "Andrew Piechocki"
 
 # The full version, including alpha/beta/rc tags

@@ -10,3 +10,4 @@ PubPlan.md
 notes/*
 info/ODP-API-Query-Spec.pdf
 .coverage
+pyUSPTO/_version.py
