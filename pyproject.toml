@@ -1,18 +1,22 @@
 [build-system]
-requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=64", "wheel", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyUSPTO"
-description = "Python client for accessing USPTO APIs"
+description = "Python client for accessing USPTO OPD APIs"
 authors = [
     {name = "Andrew Piechocki", email = "apiechocki@dunlapcodding.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Development Status :: 4 - Beta",
@@ -20,21 +24,17 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
-keywords = ["uspto", "patent", "api", "client", "bulk data", "patent data"]
+keywords = ["uspto", "patent", "odp", "client", "bulk data", "patent data"]
 dependencies = [
     "requests>=2.25.0",
 ]
 dynamic = ["version"]
 
 [project.urls]
-Homepage = "https://github.com/DunlapCoddingPC/pyUSPTO"
-"Bug Tracker" = "https://github.com/DunlapCoddingPC/pyUSPTO/issues"
+GitHub = "https://github.com/DunlapCoddingPC/pyUSPTO"
+issues = "https://github.com/DunlapCoddingPC/pyUSPTO/issues"
 
 [tool.setuptools_scm]
-write_to = "pyUSPTO/_version.py"
-
-[tool.mypy]
-config_file = "mypy.ini"
 
 [tool.isort]
 multi_line_output = 3
@@ -64,3 +64,37 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "pass",
 ]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+# Per-module configs for production code
+[[tool.mypy.overrides]]
+module= "pyUSPTO.*"
+disallow_untyped_defs = true
+
+# Less strict for tests - allow untyped test functions
+[[tool.mypy.overrides]]
+module = "pyUSPTO.tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+check_untyped_defs = false
+warn_unused_ignores = false
+warn_unreachable = false
+
+# Ignore missing stubs for third-party packages
+[[tool.mypy.overrides]]
+module = ["pytest.*","pytest", "requests.*", "urllib3.*"]
+ignore_missing_imports = true

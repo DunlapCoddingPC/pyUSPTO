@@ -18,10 +18,11 @@ author = "Andrew Piechocki"
 
 # The full version, including alpha/beta/rc tags
 # Use setuptools_scm to get the version
-try:
-    from pyUSPTO import __version__ as release
-except ImportError:
-    release = "0.0.0"
+from importlib.metadata import version as get_version
+
+release: str = get_version(distribution_name="pyUSPTO")
+# for example take major/minor
+version: str = ".".join(release.split('.')[:2])
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
