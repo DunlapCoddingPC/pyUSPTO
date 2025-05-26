@@ -1,7 +1,7 @@
 name: 🐞 Bug Report
 description: File a bug report.
-title: "[Bug]: <title>"
-labels: ["Bug"]
+title: "[Bug]: "
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
@@ -18,7 +18,7 @@ body:
   - type: textarea
     id: what-happened
     attributes:
-      label: What happened?
+      label: What Happened?
       description: A clear and concise description of what the bug is. Also tell us, what step can reproduce the bug?
       placeholder: Tell us what you see!
       value: "A bug happened!"
@@ -35,9 +35,11 @@ body:
   - type: textarea
     id: mre
     attributes:
-      label: mre
-      description: Please provide a minimal reproducible example of code causing the error. This will be automatically formatted into code, so no need for backticks.
-      render: shell
+      label: Minimal Reproducible Code
+      description: | 
+        Please provide a minimal reproducible example of code causing the error. 
+        NOTE: This input will be automatically formatted into code, so no need for backticks.
+      render: python
       placeholder: "from pyUSPTO import PatentDataClient"
     validations:
       required: false

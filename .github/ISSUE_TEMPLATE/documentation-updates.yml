@@ -1,8 +1,7 @@
-name: Documentation Update
+name: 📝 Documentation Update
 description: Suggest improvements to documentation
-title: "[DOCS] <title>"
-labels: ["Documentation"]
-
+title: "[DOCS] "
+labels: ["documentation"]
 body:
   - type: markdown
     attributes:
