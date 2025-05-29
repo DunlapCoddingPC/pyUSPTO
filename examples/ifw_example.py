@@ -6,14 +6,16 @@ It shows how to retrieve IFW based on various identifying values.
 """
 
 import os
+from multiprocessing import Value
 
 from pyUSPTO.clients.patent_data import PatentDataClient
 
 api_key = os.environ.get("USPTO_API_KEY", "YOUR_API_KEY_HERE")
 if api_key == "YOUR_API_KEY_HERE":
-    print(
+    raise ValueError(
         "WARNING: API key is not set. Please replace 'YOUR_API_KEY_HERE' or set USPTO_API_KEY environment variable."
     )
+
 client = PatentDataClient(api_key=api_key)
 
 
