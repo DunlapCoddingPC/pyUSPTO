@@ -518,7 +518,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         self,
         document_format: DocumentFormat,
         file_name: Optional[str] = None,
-        file_path: Optional[str] = None,
+        destination_path: Optional[str] = None,
         overwrite: bool = False,
         stream: bool = True,
     ) -> str:
@@ -527,7 +527,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         Args:
             document_format: DocumentFormat object containing download URL and metadata
             file_name: Optional filename. If not provided, extracted from URL
-            file_path: Optional file path (directory or full path). If not provided, uses current directory
+            destination_path: Optional path - can be a directory OR a complete file path
             overwrite: Whether to overwrite existing files. Default False
             stream: Whether to stream the download. Default True for large files
 
@@ -538,41 +538,39 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             ValueError: If document_format has no download URL
             FileExistsError: If file exists and overwrite=False
         """
-        if not document_format.download_url:
+        # Validate we have a download URL
+        if document_format.download_url is None:
             raise ValueError("DocumentFormat must have a download_url")
 
-        # Determine filename
-        if not file_name:
-            url_path = document_format.download_url.split("/")[-1]
-            if "." in url_path:
-                file_name = url_path
+        # Get filename - either provided or extract from URL
+        if file_name is None:
+            url_filename = document_format.download_url.split("/")[-1]
+            if "." in url_filename:
+                file_name = url_filename
             else:
-                # Fallback: use mime type extension
-                ext = (
+                extension = (
                     document_format.mime_type_identifier.lower()
                     if document_format.mime_type_identifier
                     else "pdf"
                 )
-                file_name = f"document.{ext}"
+                file_name = f"document.{extension}"
 
-        # Determine full file path
-        if file_path:
-            p_file = Path(file_path)
-            if p_file.is_dir() or file_path.endswith("/") or file_path.endswith("\\"):
-                full_path = p_file / file_name
-            else:
-                full_path = p_file
-                full_path.parent.mkdir(parents=True, exist_ok=True)
+        # Determine final file path
+        if destination_path is None:
+            final_file_path = Path(file_name)
         else:
-            full_path = Path(file_name)
+            # destination_path is ALWAYS treated as a directory path
+            destination_dir = Path(destination_path)
+            destination_dir.mkdir(parents=True, exist_ok=True)
+            final_file_path = destination_dir / file_name
 
-        # Check if file exists
-        if Path(full_path).exists() and not overwrite:
+        # Check for existing file
+        if final_file_path.exists() and overwrite is False:
             raise FileExistsError(
-                f"File already exists: {full_path}. Use overwrite=True to replace."
+                f"File already exists: {final_file_path}. Use overwrite=True to replace."
             )
 
-        # Download and save file
+        # Download the file
         return self._download_file(
-            url=document_format.download_url, file_path=full_path.as_posix()
+            url=document_format.download_url, file_path=final_file_path.as_posix()
         )

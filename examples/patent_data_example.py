@@ -158,7 +158,6 @@ try:
     patent_wrapper_detail = client.get_application_by_number(
         application_number=app_no_to_fetch
     )
-
     if patent_wrapper_detail:
         print(
             f"Successfully retrieved: {patent_wrapper_detail.application_number_text}"
@@ -172,7 +171,6 @@ try:
         documents_bag = client.get_application_documents(
             application_number=app_no_to_fetch
         )
-
         print(f"Found {len(documents_bag)} documents for application {app_no_to_fetch}")
 
         if documents_bag.documents:
@@ -186,19 +184,16 @@ try:
             print(f"  Direction: {document_to_download.direction_category}")
 
             if (
-                document_to_download.download_formats
+                document_to_download.document_formats
                 and document_to_download.document_identifier
             ):
                 print("\nAttempting to download first document...")
-                if not os.path.exists(
-                    "./downloads_example"
-                ):  # Create a specific dir for example
-                    os.makedirs("./downloads_example")
-                print(document_to_download.download_formats)
-                downloaded_path = client.download_application_document(
-                    application_number=app_no_to_fetch,
-                    document_id=document_to_download.document_identifier,
-                    destination_dir="./downloads_example",
+                download_path = "./download-example"
+                print(document_to_download.to_dict())
+                downloaded_path = client.download_document(
+                    document_format=document_to_download.document_formats[0],
+                    destination_path=download_path,
+                    overwrite=True,
                 )
                 print(f"Downloaded document to: {downloaded_path}")
             else:

@@ -770,7 +770,7 @@ class TestPatentDocumentDownload:
         )
 
         result_path = client.download_document(
-            document_format=sample_document_format, file_path="/tmp/downloads/"
+            document_format=sample_document_format, destination_path="/tmp/downloads/"
         )
 
         mock_download_file.assert_called_once_with(
@@ -799,44 +799,13 @@ class TestPatentDocumentDownload:
         result_path = client.download_document(
             document_format=sample_document_format,
             file_name=custom_filename,
-            file_path="/tmp/downloads",
+            destination_path="/tmp/downloads",
         )
 
         mock_download_file.assert_called_once_with(
             url=sample_document_format.download_url, file_path=expected_path
         )
         assert result_path == expected_path
-
-    @patch("pathlib.Path.mkdir")
-    @patch("pathlib.Path.is_dir")
-    @patch("pathlib.Path.exists")
-    def test_download_document_full_file_path(
-        self,
-        mock_exists: MagicMock,
-        mock_is_dir: MagicMock,
-        mock_mkdir: MagicMock,
-        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
-        sample_document_format: DocumentFormat,
-    ) -> None:
-        """Test document download with full file path specification."""
-        client, mock_download_file = client_with_mocked_download
-        mock_exists.return_value = False
-        mock_is_dir.return_value = False  # This should be False to trigger mkdir
-
-        full_path = "/tmp/downloads/specific_name.pdf"
-        mock_download_file.return_value = (
-            full_path  # Set expected return from _download_file
-        )
-
-        result_path = client.download_document(
-            document_format=sample_document_format, file_path=full_path
-        )
-
-        mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
-        mock_download_file.assert_called_once_with(
-            url=sample_document_format.download_url, file_path=full_path
-        )
-        assert result_path == full_path
 
     @patch("pathlib.Path.is_dir")
     @patch("pathlib.Path.exists")
@@ -860,7 +829,7 @@ class TestPatentDocumentDownload:
         expected_path = "/tmp/downloads/document.pdf"  # Falls back to mime type
         mock_download_file.return_value = expected_path
         result_path = client.download_document(
-            document_format=document_format, file_path="/tmp/downloads"
+            document_format=document_format, destination_path="/tmp/downloads"
         )
 
         mock_download_file.assert_called_once_with(
@@ -887,7 +856,8 @@ class TestPatentDocumentDownload:
             FileExistsError, match="File already exists.*Use overwrite=True"
         ):
             client.download_document(
-                document_format=sample_document_format, file_path="/tmp/downloads/"
+                document_format=sample_document_format,
+                destination_path="/tmp/downloads/",
             )
 
         mock_download_file.assert_not_called()
@@ -911,7 +881,7 @@ class TestPatentDocumentDownload:
 
         result_path = client.download_document(
             document_format=sample_document_format,
-            file_path="/tmp/downloads",
+            destination_path="/tmp/downloads",
             overwrite=True,
         )
 

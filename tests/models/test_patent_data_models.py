@@ -154,7 +154,7 @@ def sample_attorney_data(
 def sample_document_download_format_data() -> Dict[str, Any]:
     return {
         "mimeTypeIdentifier": "application/pdf",
-        "downloadURI": "https://example.com/doc.pdf",
+        "downloadUrl": "https://example.com/doc.pdf",
         "pageTotalQuantity": 10,
     }
 
@@ -555,7 +555,7 @@ class TestDocumentDownloadFormat:
             fmt.mime_type_identifier
             == sample_document_download_format_data["mimeTypeIdentifier"]
         )
-        assert fmt.download_url == sample_document_download_format_data["downloadURI"]
+        assert fmt.download_url == sample_document_download_format_data["downloadUrl"]
         assert (
             fmt.page_total_quantity
             == sample_document_download_format_data["pageTotalQuantity"]
@@ -568,7 +568,7 @@ class TestDocumentDownloadFormat:
             mime_type_identifier=sample_document_download_format_data[
                 "mimeTypeIdentifier"
             ],
-            download_url=sample_document_download_format_data["downloadURI"],
+            download_url=sample_document_download_format_data["downloadUrl"],
             page_total_quantity=sample_document_download_format_data[
                 "pageTotalQuantity"
             ],
@@ -587,7 +587,7 @@ class TestDocumentDownloadFormat:
         fmt = DocumentFormat()
         assert fmt.to_dict() == {
             "mimeTypeIdentifier": None,
-            "downloadURI": None,
+            "downloadUrl": None,
             "pageTotalQuantity": None,
         }
 

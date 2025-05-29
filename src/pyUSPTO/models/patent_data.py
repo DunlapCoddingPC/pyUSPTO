@@ -171,14 +171,14 @@ class DocumentFormat:
     def from_dict(cls, data: Dict[str, Any]) -> "DocumentFormat":
         return cls(
             mime_type_identifier=data.get("mimeTypeIdentifier"),
-            download_url=data.get("downloadURI"),
+            download_url=data.get("downloadUrl"),
             page_total_quantity=data.get("pageTotalQuantity"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "mimeTypeIdentifier": self.mime_type_identifier,
-            "downloadURI": self.download_url,
+            "downloadUrl": self.download_url,
             "pageTotalQuantity": self.page_total_quantity,
         }
 
