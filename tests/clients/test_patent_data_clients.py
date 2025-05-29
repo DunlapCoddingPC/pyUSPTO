@@ -1236,8 +1236,10 @@ class TestDownloadArchive:
         assert result == expected_path
 
     @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.mkdir")
     def test_download_archive_custom_filename(
         self,
+        mock_mkdir: MagicMock,
         mock_exists: MagicMock,
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
         sample_printed_metadata: PrintedMetaData,
