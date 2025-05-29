@@ -1223,11 +1223,11 @@ class TestDownloadArchive:
         client, mock_download_file = client_with_mocked_download
         mock_exists.return_value = False
 
-        expected_path = "/archives/patent_12345.xml"
+        expected_path = "/printedmeta/patent_12345.xml"
         mock_download_file.return_value = expected_path
 
         result = client.download_archive(
-            printed_metadata=sample_printed_metadata, destination_path="/archives"
+            printed_metadata=sample_printed_metadata, destination_path="/printedmeta"
         )
 
         mock_download_file.assert_called_once_with(
@@ -1247,13 +1247,13 @@ class TestDownloadArchive:
         mock_exists.return_value = False
 
         custom_name = "my_patent.xml"
-        expected_path = "/archives/my_patent.xml"
+        expected_path = "/printedmeta/my_patent.xml"
         mock_download_file.return_value = expected_path
 
         result = client.download_archive(
             printed_metadata=sample_printed_metadata,
             file_name=custom_name,
-            destination_path="/archives",
+            destination_path="/printedmeta",
         )
 
         mock_download_file.assert_called_once_with(
