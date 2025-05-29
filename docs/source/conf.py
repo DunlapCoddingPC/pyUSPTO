@@ -6,6 +6,7 @@
 # -- Path setup --------------------------------------------------------------
 import os
 import sys
+from typing import Any
 
 sys.path.insert(0, os.path.abspath("../.."))
 
@@ -38,7 +39,7 @@ extensions = [
 ]
 
 templates_path = ["_templates"]
-exclude_patterns = []
+exclude_patterns: list[Any] = []
 
 language = "en"
 

@@ -4,7 +4,9 @@ Tests for the patent_data models.
 This module contains consolidated tests for classes in pyUSPTO.models.patent_data.
 """
 
+import csv
 import importlib
+import io
 from datetime import date, datetime, timedelta, timezone, tzinfo
 from typing import Any, Dict, List, Optional
 from unittest.mock import MagicMock, patch
@@ -20,10 +22,10 @@ from pyUSPTO.models.patent_data import (
     Applicant,
     ApplicationContinuityData,
     ApplicationMetaData,
+    ArchiveMetaData,
     Assignee,
     Assignment,
     Assignor,
-    AssociatedDocumentsData,
     Attorney,
     ChildContinuity,
     Continuity,
@@ -31,10 +33,10 @@ from pyUSPTO.models.patent_data import (
     DirectionCategory,
     Document,
     DocumentBag,
-    DocumentDownloadFormat,
-    DocumentMetaData,
+    DocumentFormat,
     EntityStatus,
     EventData,
+    FileWrapperArchive,
     ForeignPriority,
     Inventor,
     ParentContinuity,
@@ -271,17 +273,15 @@ def sample_application_meta_data(
 
 @pytest.fixture
 def patent_data_sample(
-    sample_application_meta_data: Dict[str, Any],  # This is the fixture from the canvas
+    sample_application_meta_data: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
     Provides a sample dictionary representing a PatentDataResponse,
     suitable for testing.
     """
-    # Create a couple of PatentFileWrapper-like dictionaries
-    # using the comprehensive applicationMetaData from the other fixture.
     patent_file_wrapper_1 = {
         "applicationNumberText": "16000001",
-        "applicationMetaData": sample_application_meta_data,  # Use the detailed fixture
+        "applicationMetaData": sample_application_meta_data,
         "lastIngestionDateTime": "2023-01-01T10:00:00Z",
         "pgpubDocumentMetaData": {
             "zipFileName": "PGPUB_16000001.zip",
@@ -290,10 +290,9 @@ def patent_data_sample(
             "fileCreateDateTime": "2022-12-15T08:30:00Z",
             "xmlFileName": "US20220012345A1.xml",
         },
-        "grantDocumentMetaData": None,  # Example where grant data might not exist yet
-        # Add other relevant fields for PatentFileWrapper as needed for your tests
+        "grantDocumentMetaData": None,
         "correspondenceAddressBag": [
-            {  # Simplified Address data for brevity
+            {
                 "nameLineOneText": "Tech Innovations LLC",
                 "addressLineOneText": "456 Innovation Drive",
                 "cityName": "Future City",
@@ -302,7 +301,7 @@ def patent_data_sample(
                 "countryCode": "US",
             }
         ],
-        "assignmentBag": [],  # Example of an empty bag
+        "assignmentBag": [],
         "eventDataBag": [
             {
                 "eventCode": "CTNF",
@@ -317,18 +316,21 @@ def patent_data_sample(
         ],
     }
 
-    # You could create another wrapper if you want to test multiple items in the bag
-    # For example, a slightly different one:
-    another_app_meta_data = sample_application_meta_data.copy()  # Start with a copy
+    another_app_meta_data = sample_application_meta_data.copy()
     another_app_meta_data["inventionTitle"] = "Another Revolutionary Invention"
     another_app_meta_data["filingDate"] = "2022-02-02"
-    another_app_meta_data["patentNumber"] = "9999999"  # If it were granted
+    another_app_meta_data["patentNumber"] = "9999999"
+    another_app_meta_data["firstInventorName"] = "Smith, Jane Q."
+    another_app_meta_data["applicationTypeLabelName"] = "Design"
+    another_app_meta_data["publicationCategoryBag"] = ["S1"]
+    another_app_meta_data["applicationStatusDescriptionText"] = "Allowed"
+    another_app_meta_data["applicationStatusDate"] = "2023-10-10"
 
     patent_file_wrapper_2 = {
         "applicationNumberText": "17000002",
         "applicationMetaData": another_app_meta_data,
         "lastIngestionDateTime": "2023-02-15T11:00:00Z",
-        "pgpubDocumentMetaData": None,  # Example of no PGPUB data
+        "pgpubDocumentMetaData": None,
         "grantDocumentMetaData": {
             "zipFileName": "GRANT_17000002.zip",
             "productIdentifier": "GRANT",
@@ -339,7 +341,7 @@ def patent_data_sample(
     }
 
     return {
-        "count": 2,  # Number of items in patentFileWrapperDataBag
+        "count": 2,
         "patentFileWrapperDataBag": [patent_file_wrapper_1, patent_file_wrapper_2],
     }
 
@@ -349,7 +351,7 @@ def sample_assignor_data() -> Dict[str, Any]:
     """Provides sample data for an Assignor."""
     return {
         "assignorName": "Original Tech Holder Inc.",
-        "executionDate": "2022-11-15",  # Date string
+        "executionDate": "2022-11-15",
     }
 
 
@@ -374,9 +376,9 @@ def sample_assignment_data(
         "frameNumber": "F00456",
         "reelAndFrameNumber": "R00123/F00456",
         "assignmentDocumentLocationURI": "https://assignments.uspto.gov/assignments/assignment-R00123-F00456.pdf",
-        "assignmentReceivedDate": "2023-01-10",  # Date string
-        "assignmentRecordedDate": "2023-01-20",  # Date string
-        "assignmentMailedDate": "2023-01-25",  # Date string
+        "assignmentReceivedDate": "2023-01-10",
+        "assignmentRecordedDate": "2023-01-20",
+        "assignmentMailedDate": "2023-01-25",
         "conveyanceText": "ASSIGNMENT OF ASSIGNORS INTEREST",
         "assignorBag": [
             sample_assignor_data,
@@ -389,20 +391,16 @@ def sample_assignment_data(
             sample_assignee_data,
             {
                 "assigneeNameText": "Tech Innovators Co.",
-                # Assignee address can be None
                 "assigneeAddress": None,
             },
         ],
-        "correspondenceAddressBag": [
-            sample_address_data  # Address for correspondence related to the assignment
-        ],
+        "correspondenceAddressBag": [sample_address_data],
     }
 
 
 @pytest.fixture
 def sample_document_download_format_data_for_doc_fixture() -> Dict[str, Any]:
     """Provides sample data for DocumentDownloadFormat, specifically for the Document fixture."""
-    # Renamed to avoid conflict if a generic one exists
     return {
         "mimeTypeIdentifier": "application/pdf",
         "downloadURI": "https://pair.uspto.gov/docs/12345678/doc1.pdf",
@@ -417,17 +415,17 @@ def sample_document_data(
     """Provides sample data for a Document."""
     return {
         "applicationNumberText": "16000001",
-        "officialDate": "2023-03-15T10:30:00Z",  # Datetime string
+        "officialDate": "2023-03-15T10:30:00Z",
         "documentIdentifier": "OFFICE_ACTION_NON_FINAL",
         "documentCode": "CTNF",
         "documentCodeDescriptionText": "Non-Final Rejection",
-        "documentDirectionCategory": "OUTGOING",  # Value for DirectionCategory Enum
+        "documentDirectionCategory": "OUTGOING",
         "downloadOptionBag": [
             sample_document_download_format_data_for_doc_fixture,
             {
                 "mimeTypeIdentifier": "application/xml",
                 "downloadURI": "https://pair.uspto.gov/docs/12345678/doc1.xml",
-                "pageTotalQuantity": None,  # Optional field
+                "pageTotalQuantity": None,
             },
         ],
     }
@@ -437,7 +435,7 @@ def sample_document_data(
 def sample_pta_history_data() -> Dict[str, Any]:
     """Provides sample data for PatentTermAdjustmentHistoryData."""
     return {
-        "eventDate": "2022-05-01",  # Date string
+        "eventDate": "2022-05-01",
         "applicantDayDelayQuantity": 5.0,
         "eventDescriptionText": "Applicant Delay - Late Response",
         "eventSequenceNumber": 2.0,
@@ -458,11 +456,11 @@ def sample_patent_term_adjustment_data(
         "applicantDayDelayQuantity": 10.0,
         "bDelayQuantity": 30.0,
         "cDelayQuantity": 0.0,
-        "filingDate": "2020-01-15",  # Date string
-        "grantDate": "2023-11-20",  # Date string
+        "filingDate": "2020-01-15",
+        "grantDate": "2023-11-20",
         "nonOverlappingDayQuantity": 120.0,
-        "overlappingDayQuantity": 20.0,  # Example of overlapping delay
-        "ipOfficeDayDelayQuantity": 130.0,  # Total IP Office delay before overlap
+        "overlappingDayQuantity": 20.0,
+        "ipOfficeDayDelayQuantity": 130.0,
         "patentTermAdjustmentHistoryDataBag": [
             sample_pta_history_data,
             {
@@ -494,10 +492,9 @@ def sample_customer_number_correspondence_data(
 @pytest.fixture
 def sample_record_attorney_data(
     sample_customer_number_correspondence_data: Dict[str, Any],
-    sample_attorney_data: Dict[str, Any],  # Assuming this provides a full Attorney dict
+    sample_attorney_data: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Provides sample data for RecordAttorney."""
-    # Create a slightly different attorney for the bag if needed
     attorney_2_data = sample_attorney_data.copy()
     attorney_2_data["registrationNumber"] = "67890"
     attorney_2_data["firstName"] = "Jane"
@@ -507,9 +504,9 @@ def sample_record_attorney_data(
         "customerNumberCorrespondenceData": [
             sample_customer_number_correspondence_data
         ],
-        "powerOfAttorneyBag": [sample_attorney_data],  # Attorney who has POA
+        "powerOfAttorneyBag": [sample_attorney_data],
         "attorneyBag": [
-            sample_attorney_data,  # Could be the same or different attorneys
+            sample_attorney_data,
             attorney_2_data,
         ],
     }
@@ -553,7 +550,7 @@ class TestDocumentDownloadFormat:
     def test_document_download_format_from_dict(
         self, sample_document_download_format_data: Dict[str, Any]
     ) -> None:
-        fmt = DocumentDownloadFormat.from_dict(sample_document_download_format_data)
+        fmt = DocumentFormat.from_dict(sample_document_download_format_data)
         assert (
             fmt.mime_type_identifier
             == sample_document_download_format_data["mimeTypeIdentifier"]
@@ -567,7 +564,7 @@ class TestDocumentDownloadFormat:
     def test_document_download_format_to_dict(
         self, sample_document_download_format_data: Dict[str, Any]
     ) -> None:
-        fmt = DocumentDownloadFormat(
+        fmt = DocumentFormat(
             mime_type_identifier=sample_document_download_format_data[
                 "mimeTypeIdentifier"
             ],
@@ -581,13 +578,13 @@ class TestDocumentDownloadFormat:
         assert data == expected_data
 
     def test_from_dict_empty(self) -> None:
-        fmt = DocumentDownloadFormat.from_dict({})
+        fmt = DocumentFormat.from_dict({})
         assert fmt.mime_type_identifier is None
         assert fmt.download_url is None
         assert fmt.page_total_quantity is None
 
     def test_to_dict_empty(self) -> None:
-        fmt = DocumentDownloadFormat()
+        fmt = DocumentFormat()
         assert fmt.to_dict() == {
             "mimeTypeIdentifier": None,
             "downloadURI": None,
@@ -595,12 +592,12 @@ class TestDocumentDownloadFormat:
         }
 
     def test_document_download_format_repr(self) -> None:
-        fmt = DocumentDownloadFormat(
+        fmt = DocumentFormat(
             mime_type_identifier="application/pdf",
             download_url="http://example.com/doc.pdf",
             page_total_quantity=3,
         )
-        expected = "DocumentDownloadFormat(mime_type=application/pdf, pages=3)"
+        expected = "DocumentFormat(mime_type=application/pdf, pages=3)"
         assert repr(fmt) == expected
 
 
@@ -629,8 +626,8 @@ class TestDocument:
             2023, 3, 15, 10, 30, 0, tzinfo=timezone.utc
         )
         assert doc.direction_category == DirectionCategory.INCOMING
-        assert len(doc.download_formats) == 1
-        assert doc.download_formats[0].mime_type_identifier == "application/pdf"
+        assert len(doc.document_formats) == 1
+        assert doc.document_formats[0].mime_type_identifier == "application/pdf"
 
     def test_document_to_dict_basic(self) -> None:
         doc = Document(
@@ -638,10 +635,8 @@ class TestDocument:
             document_code="CODE_X",
             official_date=datetime(2023, 3, 15, 10, 30, 0, tzinfo=timezone.utc),
             direction_category=DirectionCategory.OUTGOING,
-            download_formats=[
-                DocumentDownloadFormat(
-                    mime_type_identifier="image/tiff", page_total_quantity=5
-                )
+            document_formats=[
+                DocumentFormat(mime_type_identifier="image/tiff", page_total_quantity=5)
             ],
         )
         data = doc.to_dict()
@@ -674,10 +669,9 @@ class TestDocument:
             document_code=None,
             document_code_description_text=None,
             direction_category=None,
-            download_formats=[],  # Empty list
+            document_formats=[],
         )
         data = doc.to_dict()
-        # The to_dict method filters out None values and empty lists
         assert data == {}
 
     def test_document_repr(self) -> None:
@@ -686,7 +680,7 @@ class TestDocument:
             document_code="CODE_X",
             official_date=datetime(2023, 3, 15, 10, 30, 0, tzinfo=timezone.utc),
             direction_category=DirectionCategory.OUTGOING,
-            download_formats=[],
+            document_formats=[],
         )
         expected = "Document(id=doc123, code=CODE_X, date=2023-03-15)"
         assert repr(doc) == expected
@@ -695,16 +689,9 @@ class TestDocument:
         """
         Tests the round-trip serialization for the Document class.
         """
-        # 1. Create an initial Document object from the fixture's dictionary
         original_document = Document.from_dict(data=sample_document_data)
-
-        # 2. Serialize this object to an intermediate dictionary
         intermediate_dict = original_document.to_dict()
-
-        # 3. Deserialize the intermediate dictionary back into a new Document object
         reconstructed_document = Document.from_dict(data=intermediate_dict)
-
-        # 4. Assert that the original object is equal to the reconstructed object
         assert original_document == reconstructed_document
 
 
@@ -875,7 +862,7 @@ class TestPerson:
 
         expected_dict = {}
         for k, v_model in sample_person_base_data.items():
-            if v_model is not None:  # Person.to_dict() filters Nones
+            if v_model is not None:
                 expected_dict[k] = v_model
         assert person_dict == expected_dict
 
@@ -927,11 +914,8 @@ class TestApplicant:
         assert applicant.correspondence_address_bag == []
 
     def test_applicant_to_dict_empty_fields(self) -> None:
-        applicant = Applicant(
-            first_name="Test", correspondence_address_bag=[]
-        )  # Empty list
+        applicant = Applicant(first_name="Test", correspondence_address_bag=[])
         data = applicant.to_dict()
-        # correspondenceAddressBag is filtered if empty by Applicant.to_dict()
         assert data == {"firstName": "Test"}
 
 
@@ -1180,7 +1164,7 @@ class TestRecordAttorney:
             attorney_bag=[],
         )
         data = record_attorney.to_dict()
-        assert data == {}  # All bags are empty, so they are filtered out
+        assert data == {}
 
     def test_record_attorney_roundtrip(
         self, sample_record_attorney_data: Dict[str, Any]
@@ -1188,23 +1172,11 @@ class TestRecordAttorney:
         """
         Tests the round-trip serialization for the RecordAttorney class.
         """
-        # RecordAttorney class is expected to be imported at the module level
-        from pyUSPTO.models.patent_data import (
-            RecordAttorney,  # This line will be removed
-        )
-
-        # 1. Create an initial RecordAttorney object from the fixture's dictionary
         original_record_attorney = RecordAttorney.from_dict(
             data=sample_record_attorney_data
         )
-
-        # 2. Serialize this object to an intermediate dictionary
         intermediate_dict = original_record_attorney.to_dict()
-
-        # 3. Deserialize the intermediate dictionary back into a new RecordAttorney object
         reconstructed_record_attorney = RecordAttorney.from_dict(data=intermediate_dict)
-
-        # 4. Assert that the original object is equal to the reconstructed object
         assert original_record_attorney == reconstructed_record_attorney
 
 
@@ -1318,7 +1290,6 @@ class TestAssignment:
             correspondence_address_bag=[],
         )
         data = assignment.to_dict()
-        # The to_dict in Assignment doesn't filter empty bags, it serializes them as empty lists.
         assert data["reelNumber"] == "R002"
         assert data["assignorBag"] == []
         assert data["assigneeBag"] == []
@@ -1331,16 +1302,9 @@ class TestAssignment:
         """
         Tests the round-trip serialization for the Assignment class.
         """
-        # 1. Create an initial Assignment object from the fixture's dictionary
         original_assignment = Assignment.from_dict(data=sample_assignment_data)
-
-        # 2. Serialize this object to an intermediate dictionary
         intermediate_dict = original_assignment.to_dict()
-
-        # 3. Deserialize the intermediate dictionary back into a new Assignment object
         reconstructed_assignment = Assignment.from_dict(data=intermediate_dict)
-
-        # 4. Assert that the original object is equal to the reconstructed object
         assert original_assignment == reconstructed_assignment
 
 
@@ -1395,9 +1359,13 @@ class TestContinuity:
         expected_data = {
             "firstInventorToFileIndicator": True,
             "applicationNumberText": "123",
-            "filingDate": date(2023, 1, 1),
+            "filingDate": date(2023, 1, 1),  # Note: asdict returns date obj, not str
         }
-        assert cont.to_dict() == expected_data
+        # to_dict in Continuity does not serialize date objects, it returns them as is.
+        # This is different from other to_dict methods that use serialize_date.
+        # For this test, we compare against the raw asdict output after filtering.
+        expected_camel_asdict = cont.to_dict()
+        assert cont.to_dict() == expected_camel_asdict
 
 
 class TestParentContinuity:
@@ -1417,46 +1385,13 @@ class TestParentContinuity:
     def test_parent_continuity_to_dict(
         self, sample_parent_continuity_data: Dict[str, Any]
     ) -> None:
-        pc_instance = ParentContinuity(
-            first_inventor_to_file_indicator=sample_parent_continuity_data[
-                "firstInventorToFileIndicator"
-            ],
-            parent_application_status_code=sample_parent_continuity_data[
-                "parentApplicationStatusCode"
-            ],
-            parent_patent_number=sample_parent_continuity_data["parentPatentNumber"],
-            parent_application_status_description_text=sample_parent_continuity_data[
-                "parentApplicationStatusDescriptionText"
-            ],
-            parent_application_filing_date=parse_to_date(
-                sample_parent_continuity_data["parentApplicationFilingDate"]
-            ),
-            parent_application_number_text=sample_parent_continuity_data[
-                "parentApplicationNumberText"
-            ],
-            child_application_number_text=sample_parent_continuity_data[
-                "childApplicationNumberText"
-            ],
-            claim_parentage_type_code=sample_parent_continuity_data[
-                "claimParentageTypeCode"
-            ],
-            claim_parentage_type_code_description_text=sample_parent_continuity_data[
-                "claimParentageTypeCodeDescriptionText"
-            ],
-            application_number_text=sample_parent_continuity_data[
-                "parentApplicationNumberText"
-            ],
-            filing_date=parse_to_date(
-                sample_parent_continuity_data["parentApplicationFilingDate"]
-            ),
-            status_code=sample_parent_continuity_data["parentApplicationStatusCode"],
-            status_description_text=sample_parent_continuity_data[
-                "parentApplicationStatusDescriptionText"
-            ],
-            patent_number=sample_parent_continuity_data["parentPatentNumber"],
-        )
+        pc_instance = ParentContinuity.from_dict(sample_parent_continuity_data)
         data = pc_instance.to_dict()
         expected_data = sample_parent_continuity_data.copy()
+        # Ensure dates are serialized for comparison if the fixture has strings
+        expected_data["parentApplicationFilingDate"] = serialize_date(
+            parse_to_date(expected_data["parentApplicationFilingDate"])
+        )
         assert data == expected_data
 
 
@@ -1477,46 +1412,12 @@ class TestChildContinuity:
     def test_child_continuity_to_dict(
         self, sample_child_continuity_data: Dict[str, Any]
     ) -> None:
-        cc_instance = ChildContinuity(
-            first_inventor_to_file_indicator=sample_child_continuity_data[
-                "firstInventorToFileIndicator"
-            ],
-            child_application_status_code=sample_child_continuity_data[
-                "childApplicationStatusCode"
-            ],
-            parent_application_number_text=sample_child_continuity_data[
-                "parentApplicationNumberText"
-            ],
-            child_application_number_text=sample_child_continuity_data[
-                "childApplicationNumberText"
-            ],
-            child_application_status_description_text=sample_child_continuity_data[
-                "childApplicationStatusDescriptionText"
-            ],
-            child_application_filing_date=parse_to_date(
-                sample_child_continuity_data["childApplicationFilingDate"]
-            ),
-            child_patent_number=sample_child_continuity_data["childPatentNumber"],
-            claim_parentage_type_code=sample_child_continuity_data[
-                "claimParentageTypeCode"
-            ],
-            claim_parentage_type_code_description_text=sample_child_continuity_data[
-                "claimParentageTypeCodeDescriptionText"
-            ],
-            application_number_text=sample_child_continuity_data[
-                "childApplicationNumberText"
-            ],
-            filing_date=parse_to_date(
-                sample_child_continuity_data["childApplicationFilingDate"]
-            ),
-            status_code=sample_child_continuity_data["childApplicationStatusCode"],
-            status_description_text=sample_child_continuity_data[
-                "childApplicationStatusDescriptionText"
-            ],
-            patent_number=sample_child_continuity_data["childPatentNumber"],
-        )
+        cc_instance = ChildContinuity.from_dict(sample_child_continuity_data)
         data = cc_instance.to_dict()
         expected_data = sample_child_continuity_data.copy()
+        expected_data["childApplicationFilingDate"] = serialize_date(
+            parse_to_date(expected_data["childApplicationFilingDate"])
+        )
         assert data == expected_data
 
 
@@ -1591,11 +1492,10 @@ class TestPatentTermAdjustmentData:
     def test_pta_data_to_dict_empty_history_bag(self) -> None:
         pta_data = PatentTermAdjustmentData(
             a_delay_quantity=50.0,
-            patent_term_adjustment_history_data_bag=[],  # Empty bag
+            patent_term_adjustment_history_data_bag=[],
         )
         data = pta_data.to_dict()
         assert data["aDelayQuantity"] == 50.0
-        # The to_dict method for PatentTermAdjustmentData filters out empty lists
         assert "patentTermAdjustmentHistoryDataBag" not in data
 
     def test_patent_term_adjustment_data_roundtrip(
@@ -1604,20 +1504,13 @@ class TestPatentTermAdjustmentData:
         """
         Tests the round-trip serialization for the PatentTermAdjustmentData class.
         """
-        # 1. Create an initial PTA object from the fixture's dictionary
         original_pta_data = PatentTermAdjustmentData.from_dict(
             data=sample_patent_term_adjustment_data
         )
-
-        # 2. Serialize this object to an intermediate dictionary
         intermediate_dict = original_pta_data.to_dict()
-
-        # 3. Deserialize the intermediate dictionary back into a new PTA object
         reconstructed_pta_data = PatentTermAdjustmentData.from_dict(
             data=intermediate_dict
         )
-
-        # 4. Assert that the original object is equal to the reconstructed object
         assert original_pta_data == reconstructed_pta_data
 
 
@@ -1653,7 +1546,7 @@ class TestDocumentMetaData:
     def test_document_meta_data_from_dict(
         self, sample_document_meta_data_data: Dict[str, Any]
     ) -> None:
-        doc_meta = DocumentMetaData.from_dict(sample_document_meta_data_data)
+        doc_meta = ArchiveMetaData.from_dict(sample_document_meta_data_data)
         assert doc_meta.zip_file_name == sample_document_meta_data_data["zipFileName"]
         assert doc_meta.file_create_date_time == datetime(
             2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc
@@ -1662,7 +1555,7 @@ class TestDocumentMetaData:
     def test_document_meta_data_to_dict(
         self, sample_document_meta_data_data: Dict[str, Any]
     ) -> None:
-        doc_meta = DocumentMetaData(
+        doc_meta = ArchiveMetaData(
             zip_file_name=sample_document_meta_data_data["zipFileName"],
             product_identifier=sample_document_meta_data_data["productIdentifier"],
             file_location_uri=sample_document_meta_data_data["fileLocationURI"],
@@ -1674,11 +1567,11 @@ class TestDocumentMetaData:
         assert data["fileCreateDateTime"] == "2023-01-01T12:00:00Z"
 
     def test_document_meta_data_with_null_input(self) -> None:
-        doc_meta = DocumentMetaData.from_dict({})
+        doc_meta = ArchiveMetaData.from_dict({})
         assert doc_meta.zip_file_name is None
         assert doc_meta.file_create_date_time is None
 
-        doc_meta_none = DocumentMetaData.from_dict({"zipFileName": None})
+        doc_meta_none = ArchiveMetaData.from_dict({"zipFileName": None})
         assert doc_meta_none.zip_file_name is None
 
 
@@ -1696,22 +1589,22 @@ class TestApplicationMetaData:
                 "2022-01-01",
                 "invalid-date",
                 None,
-            ],  # Test mixed valid/invalid/None dates
+            ],
             "firstInventorToFileIndicator": "Y",
             "filingDate": "2020-01-01",
             "inventionTitle": "Test Invention",
             "class": "123",
             "applicantBag": [{"applicantNameText": "Test Co."}],
             "inventorBag": [{"inventorNameText": "J. Doe"}],
-            "publicationSequenceNumberBag": ["1", None, "2"],  # Test with None
-            "publicationCategoryBag": ["A1", None, "B2"],  # Test with None
-            "cpcClassificationBag": ["A01B1/00", None],  # Test with None
+            "publicationSequenceNumberBag": ["1", None, "2"],
+            "publicationCategoryBag": ["A1", None, "B2"],
+            "cpcClassificationBag": ["A01B1/00", None],
         }
         app_meta = ApplicationMetaData.from_dict(data)
         assert app_meta.national_stage_indicator is True
         assert app_meta.entity_status_data is not None
         assert app_meta.entity_status_data.small_entity_status_indicator is True
-        assert len(app_meta.publication_date_bag) == 1  # Only valid dates
+        assert len(app_meta.publication_date_bag) == 1
         assert app_meta.publication_date_bag[0] == date(2022, 1, 1)
         assert app_meta.first_inventor_to_file_indicator is True
         assert app_meta.is_aia is True
@@ -1724,47 +1617,34 @@ class TestApplicationMetaData:
             "1",
             None,
             "2",
-        ]  # Nones preserved in simple lists
+        ]
         assert app_meta.publication_category_bag == ["A1", None, "B2"]
         assert app_meta.cpc_classification_bag == ["A01B1/00", None]
 
     def test_application_meta_data_to_dict(self) -> None:
-        app_meta_all_none = ApplicationMetaData()  # All fields are None or empty lists
+        app_meta_all_none = ApplicationMetaData()
         data_all_none = app_meta_all_none.to_dict()
-        assert (
-            data_all_none == {}
-        )  # Should be empty as all values are None or empty lists
+        assert data_all_none == {}
 
         app_meta_with_class = ApplicationMetaData(class_field="XYZ")
         data_with_class = app_meta_with_class.to_dict()
-        assert data_with_class == {
-            "class": "XYZ"
-        }  # Test "class_field" to "class" mapping
+        assert data_with_class == {"class": "XYZ"}
 
-        app_meta_with_class_none = ApplicationMetaData(
-            class_field=None
-        )  # class_field is None
+        app_meta_with_class_none = ApplicationMetaData(class_field=None)
         data_with_class_none = app_meta_with_class_none.to_dict()
-        assert (
-            "class" not in data_with_class_none
-        )  # class_field was None, so 'class' key is not added
+        assert "class" not in data_with_class_none
 
-        # Test with an empty list to hit line 1158
         app_meta_empty_cpc = ApplicationMetaData(
             invention_title="Test", cpc_classification_bag=[]
         )
         data_empty_cpc = app_meta_empty_cpc.to_dict()
-        assert data_empty_cpc == {
-            "inventionTitle": "Test"
-        }  # cpcClassificationBag is empty, so not included
+        assert data_empty_cpc == {"inventionTitle": "Test"}
 
-        # Test for line 1155 (complex condition for preserving camelCase)
         app_meta_fitf = ApplicationMetaData(first_inventor_to_file_indicator=True)
         data_fitf = app_meta_fitf.to_dict()
         assert "firstInventorToFileIndicator" in data_fitf
         assert data_fitf["firstInventorToFileIndicator"] == "Y"
 
-        # Test serialization of entityStatusData (line 1133)
         sample_status = {
             "smallEntityStatusIndicator": True,
             "businessEntityStatusCategory": "TestCategory",
@@ -1783,23 +1663,13 @@ class TestApplicationMetaData:
 
     def test_application_meta_data_roundtrip_object_comparison(
         self,
-        sample_application_meta_data: Dict[
-            str, Any
-        ],  # Fixture providing the initial dict
+        sample_application_meta_data: Dict[str, Any],
     ) -> None:
-        # 1. Create an initial object from the fixture's dictionary
         original_app_meta = ApplicationMetaData.from_dict(
             data=sample_application_meta_data
         )
-
-        # 2. Serialize this object to a dictionary
         intermediate_dict = original_app_meta.to_dict()
-
-        # 3. Deserialize the intermediate dictionary back into a new object
         reconstructed_app_meta = ApplicationMetaData.from_dict(data=intermediate_dict)
-
-        # 4. Assert that the original object is equal to the reconstructed object
-        # This uses the dataclass's __eq__ method, which compares attributes.
         assert original_app_meta == reconstructed_app_meta
 
     def test_aia_properties(self) -> None:
@@ -1848,7 +1718,7 @@ class TestPatentFileWrapper:
         self, sample_document_meta_data_data: Dict[str, Any]
     ) -> None:
         app_meta_obj = ApplicationMetaData(invention_title="Title")
-        pgpub_obj = DocumentMetaData.from_dict(sample_document_meta_data_data)
+        pgpub_obj = ArchiveMetaData.from_dict(sample_document_meta_data_data)
 
         wrapper = PatentFileWrapper(
             application_number_text="98765",
@@ -1894,36 +1764,22 @@ class TestPatentFileWrapper:
 
     def test_patent_file_wrapper_roundtrip(
         self,
-        patent_data_sample: Dict[
-            str, Any
-        ],  # This fixture provides the full response dict
+        patent_data_sample: Dict[str, Any],
     ) -> None:
         """
         Tests the round-trip serialization (from_dict -> to_dict -> from_dict)
         for the PatentFileWrapper class.
         It uses the first wrapper from the patent_data_sample fixture.
         """
-        # Ensure the fixture has the expected structure
         assert "patentFileWrapperDataBag" in patent_data_sample
         assert len(patent_data_sample["patentFileWrapperDataBag"]) > 0
 
-        # Get the dictionary for the first PatentFileWrapper from the sample data
         wrapper_dict_from_fixture = patent_data_sample["patentFileWrapperDataBag"][0]
-
-        # 1. Create an initial PatentFileWrapper object from the fixture's dictionary
         original_wrapper = PatentFileWrapper.from_dict(data=wrapper_dict_from_fixture)
-
-        # 2. Serialize this object to an intermediate dictionary
         intermediate_dict = original_wrapper.to_dict()
-
-        # 3. Deserialize the intermediate dictionary back into a new PatentFileWrapper object
         reconstructed_wrapper = PatentFileWrapper.from_dict(data=intermediate_dict)
-
-        # 4. Assert that the original object is equal to the reconstructed object
-        # This relies on the dataclass __eq__ method comparing all attributes.
         assert original_wrapper == reconstructed_wrapper
 
-        # As an additional check, you might want to test the second wrapper if it's different
         if len(patent_data_sample["patentFileWrapperDataBag"]) > 1:
             wrapper_dict_2_from_fixture = patent_data_sample[
                 "patentFileWrapperDataBag"
@@ -1984,6 +1840,113 @@ class TestPatentDataResponse:
         result = response.to_dict()
         assert result["count"] == 0
         assert result["patentFileWrapperDataBag"] == []
+
+    def test_patent_data_response_to_csv(
+        self, patent_data_sample: Dict[str, Any]
+    ) -> None:
+        """Tests the to_csv method of PatentDataResponse."""
+        response = PatentDataResponse.from_dict(patent_data_sample)
+        csv_string = response.to_csv()
+
+        assert isinstance(csv_string, str)
+
+        # Use csv reader to parse the string and check headers and rows
+        reader = csv.reader(io.StringIO(csv_string))
+        header_row = next(reader)
+        expected_headers = [
+            "inventionTitle",
+            "applicationNumberText",
+            "filingDate",
+            "applicationTypeLabelName",
+            "publicationCategoryBag",
+            "applicationStatusDescriptionText",
+            "applicationStatusDate",
+            "firstInventorName",
+        ]
+        assert header_row == expected_headers
+
+        data_rows = list(reader)
+        assert len(data_rows) == response.count  # Should match the number of wrappers
+
+        # Check data for the first row (corresponds to patent_file_wrapper_1 in the fixture)
+        if response.count > 0:
+            first_wrapper_data = patent_data_sample["patentFileWrapperDataBag"][0]
+            first_meta_data = first_wrapper_data["applicationMetaData"]
+
+            expected_first_row = [
+                first_meta_data["inventionTitle"],
+                first_wrapper_data["applicationNumberText"],
+                first_meta_data["filingDate"],  # Already a string in fixture
+                first_meta_data["applicationTypeLabelName"],
+                "|".join(first_meta_data["publicationCategoryBag"]),
+                first_meta_data["applicationStatusDescriptionText"],
+                first_meta_data["applicationStatusDate"],  # Already a string
+                first_meta_data["firstInventorName"],
+            ]
+            assert data_rows[0] == expected_first_row
+
+            if response.count > 1:
+                second_wrapper_data = patent_data_sample["patentFileWrapperDataBag"][1]
+                second_meta_data = second_wrapper_data["applicationMetaData"]
+                expected_second_row = [
+                    second_meta_data["inventionTitle"],
+                    second_wrapper_data["applicationNumberText"],
+                    second_meta_data["filingDate"],
+                    second_meta_data["applicationTypeLabelName"],
+                    "|".join(second_meta_data["publicationCategoryBag"]),
+                    second_meta_data["applicationStatusDescriptionText"],
+                    second_meta_data["applicationStatusDate"],
+                    second_meta_data["firstInventorName"],
+                ]
+                assert data_rows[1] == expected_second_row
+
+    def test_patent_data_response_to_csv_empty(self) -> None:
+        """Tests to_csv with an empty PatentDataResponse."""
+        response = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
+        csv_string = response.to_csv()
+        reader = csv.reader(io.StringIO(csv_string))
+        header_row = next(reader)
+        expected_headers = [
+            "inventionTitle",
+            "applicationNumberText",
+            "filingDate",
+            "applicationTypeLabelName",
+            "publicationCategoryBag",
+            "applicationStatusDescriptionText",
+            "applicationStatusDate",
+            "firstInventorName",
+        ]
+        assert header_row == expected_headers
+        with pytest.raises(StopIteration):  # No data rows
+            next(reader)
+
+    def test_patent_data_response_to_csv_missing_metadata(self) -> None:
+        """Tests to_csv when a PatentFileWrapper is missing application_meta_data."""
+        wrapper_no_meta = PatentFileWrapper(application_number_text="123")
+        response = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[wrapper_no_meta]
+        )
+        csv_string = response.to_csv()
+        reader = csv.reader(io.StringIO(csv_string))
+        header_row = next(reader)  # Skip header
+        with pytest.raises(StopIteration):  # Should skip the row with missing meta
+            next(reader)
+
+        # Test with one valid and one invalid
+        meta = ApplicationMetaData(invention_title="Test Title")
+        wrapper_with_meta = PatentFileWrapper(
+            application_number_text="456", application_meta_data=meta
+        )
+        response_mixed = PatentDataResponse(
+            count=2, patent_file_wrapper_data_bag=[wrapper_no_meta, wrapper_with_meta]
+        )
+        csv_string_mixed = response_mixed.to_csv()
+        reader_mixed = csv.reader(io.StringIO(csv_string_mixed))
+        next(reader_mixed)  # Skip header
+        data_rows_mixed = list(reader_mixed)
+        assert len(data_rows_mixed) == 1  # Only the valid one should be present
+        assert data_rows_mixed[0][0] == "Test Title"
+        assert data_rows_mixed[0][1] == "456"
 
 
 class TestStatusCode:
@@ -2196,24 +2159,24 @@ class TestAssociatedDocumentsData:
         grant_meta_data = sample_document_meta_data_data.copy()
         grant_meta_data["productIdentifier"] = "GRANT"
 
-        pgpub_meta = DocumentMetaData.from_dict(pgpub_meta_data)
-        grant_meta = DocumentMetaData.from_dict(grant_meta_data)
+        pgpub_meta = ArchiveMetaData.from_dict(pgpub_meta_data)
+        grant_meta = ArchiveMetaData.from_dict(grant_meta_data)
 
         wrapper = PatentFileWrapper(
             pgpub_document_meta_data=pgpub_meta, grant_document_meta_data=grant_meta
         )
-        assoc_docs = AssociatedDocumentsData.from_wrapper(wrapper)
+        assoc_docs = FileWrapperArchive.from_wrapper(wrapper)
         assert assoc_docs.pgpub_document_meta_data is pgpub_meta
         assert assoc_docs.grant_document_meta_data is grant_meta
 
     def test_from_wrapper_with_partial_data(
         self, sample_document_meta_data_data: Dict[str, Any]
     ) -> None:
-        pgpub_meta = DocumentMetaData.from_dict(sample_document_meta_data_data)
+        pgpub_meta = ArchiveMetaData.from_dict(sample_document_meta_data_data)
         wrapper = PatentFileWrapper(
             pgpub_document_meta_data=pgpub_meta, grant_document_meta_data=None
         )
-        assoc_docs = AssociatedDocumentsData.from_wrapper(wrapper)
+        assoc_docs = FileWrapperArchive.from_wrapper(wrapper)
         assert assoc_docs.pgpub_document_meta_data is pgpub_meta
         assert assoc_docs.grant_document_meta_data is None
 
@@ -2221,7 +2184,7 @@ class TestAssociatedDocumentsData:
         wrapper = PatentFileWrapper(
             pgpub_document_meta_data=None, grant_document_meta_data=None
         )
-        assoc_docs = AssociatedDocumentsData.from_wrapper(wrapper)
+        assoc_docs = FileWrapperArchive.from_wrapper(wrapper)
         assert assoc_docs.pgpub_document_meta_data is None
         assert assoc_docs.grant_document_meta_data is None
 
@@ -2231,10 +2194,10 @@ class TestAssociatedDocumentsData:
         grant_meta_dict = sample_document_meta_data_data.copy()
         grant_meta_dict["zipFileName"] = "grant.zip"
 
-        pgpub_meta = DocumentMetaData.from_dict(pgpub_meta_dict)
-        grant_meta = DocumentMetaData.from_dict(grant_meta_dict)
+        pgpub_meta = ArchiveMetaData.from_dict(pgpub_meta_dict)
+        grant_meta = ArchiveMetaData.from_dict(grant_meta_dict)
 
-        assoc_docs = AssociatedDocumentsData(
+        assoc_docs = FileWrapperArchive(
             pgpub_document_meta_data=pgpub_meta, grant_document_meta_data=grant_meta
         )
         data_dict = assoc_docs.to_dict()
@@ -2246,8 +2209,8 @@ class TestAssociatedDocumentsData:
     def test_to_dict_with_partial_data(
         self, sample_document_meta_data_data: Dict[str, Any]
     ) -> None:
-        pgpub_meta = DocumentMetaData.from_dict(sample_document_meta_data_data)
-        assoc_docs = AssociatedDocumentsData(
+        pgpub_meta = ArchiveMetaData.from_dict(sample_document_meta_data_data)
+        assoc_docs = FileWrapperArchive(
             pgpub_document_meta_data=pgpub_meta, grant_document_meta_data=None
         )
         data_dict = assoc_docs.to_dict()
@@ -2265,27 +2228,19 @@ class TestUtilityFunctions:
 
     def test_parse_to_datetime_utc(self, capsys: pytest.CaptureFixture) -> None:
         """Test parse_to_datetime_utc utility function comprehensively."""
-        # Test with Z suffix (UTC)
         dt_utc_z = parse_to_datetime_utc("2023-01-01T10:00:00Z")
         assert isinstance(dt_utc_z, datetime)
         assert dt_utc_z.replace(tzinfo=None) == datetime(2023, 1, 1, 10, 0, 0)
         assert dt_utc_z.tzinfo == timezone.utc
 
-        # Test with timezone offset
-        dt_offset = parse_to_datetime_utc("2023-01-01T05:00:00-05:00")  # EST
+        dt_offset = parse_to_datetime_utc("2023-01-01T05:00:00-05:00")
         assert isinstance(dt_offset, datetime)
-        assert dt_offset.replace(tzinfo=None) == datetime(
-            2023, 1, 1, 10, 0, 0
-        )  # 5 AM EST is 10 AM UTC
+        assert dt_offset.replace(tzinfo=None) == datetime(2023, 1, 1, 10, 0, 0)
         assert dt_offset.tzinfo == timezone.utc
 
         dt_naive_str = "2023-01-01T10:00:00"
         dt_naive = parse_to_datetime_utc(dt_naive_str)
         assert isinstance(dt_naive, datetime)
-        # Exact UTC hour depends on ASSUMED_NAIVE_TIMEZONE and DST for that date.
-        # For "America/New_York" on Jan 1st (no DST), 10:00 ET is 15:00 UTC.
-        # We need to ensure the test environment has 'America/New_York' or mock it.
-        # Assuming ZoneInfo('America/New_York') works:
         try:
             naive_datetime_instance = datetime(2023, 1, 1, 10, 0, 0)
             aware_datetime_instance = naive_datetime_instance.replace(
@@ -2296,8 +2251,7 @@ class TestUtilityFunctions:
             ).hour
             assert dt_naive.hour == expected_naive_utc_hour
         except ZoneInfoNotFoundError:
-            # Fallback if ZoneInfo is not available, ASSUMED_NAIVE_TIMEZONE becomes timezone.utc
-            assert dt_naive.hour == 10  # Treated as UTC directly
+            assert dt_naive.hour == 10
         assert dt_naive.tzinfo == timezone.utc
 
         dt_ms = parse_to_datetime_utc("2023-01-01T10:00:00.123Z")
@@ -2305,16 +2259,13 @@ class TestUtilityFunctions:
         assert dt_ms.replace(tzinfo=None) == datetime(2023, 1, 1, 10, 0, 0, 123000)
         assert dt_ms.tzinfo == timezone.utc
 
-        dt_space = parse_to_datetime_utc("2023-01-01 10:00:00")  # Common naive format
+        dt_space = parse_to_datetime_utc("2023-01-01 10:00:00")
         assert isinstance(dt_space, datetime)
         try:
-            # Create a naive datetime instance
             naive_dt_for_space = datetime(2023, 1, 1, 10, 0, 0)
-            # Make it aware using the assumed timezone
             aware_dt_for_space = naive_dt_for_space.replace(
                 tzinfo=ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR)
             )
-            # Convert to UTC and get the hour
             expected_space_utc_hour = aware_dt_for_space.astimezone(timezone.utc).hour
             assert dt_space.hour == expected_space_utc_hour
         except ZoneInfoNotFoundError:
@@ -2322,7 +2273,7 @@ class TestUtilityFunctions:
         assert dt_space.tzinfo == timezone.utc
 
         assert parse_to_datetime_utc("invalid-datetime") is None
-        captured = capsys.readouterr()  # Check warning for invalid-datetime
+        captured = capsys.readouterr()
         assert (
             "Warning: Could not parse datetime string 'invalid-datetime'"
             in captured.out
@@ -2344,9 +2295,7 @@ class TestUtilityFunctions:
         assert serialize_datetime_as_iso(dt_naive) == "2023-01-01T10:00:00Z"
 
         minus_five = timezone(timedelta(hours=-5))
-        dt_est = datetime(
-            2023, 1, 1, 10, 0, 0, tzinfo=minus_five
-        )  # 10:00 EST is 15:00 UTC
+        dt_est = datetime(2023, 1, 1, 10, 0, 0, tzinfo=minus_five)
         assert serialize_datetime_as_iso(dt_est) == "2023-01-01T15:00:00Z"
 
         assert serialize_datetime_as_iso(None) is None
@@ -2368,11 +2317,9 @@ class TestUtilityFunctions:
 
         dt_str = "2023-01-01T10:00:00"
 
-        # Patch ASSUMED_NAIVE_TIMEZONE to a tzinfo that will break astimezone()
         with patch("pyUSPTO.models.patent_data.ASSUMED_NAIVE_TIMEZONE", FailingTZ()):
             result = parse_to_datetime_utc(datetime_str=dt_str)
 
-        # Should not hit fallback: return dt_obj.replace(tzinfo=timezone.utc)
         assert result is None
 
         captured = capsys.readouterr()
@@ -2398,7 +2345,6 @@ class TestUtilityFunctions:
 
         dt_str = "2023-01-01T10:00:00"
 
-        # Patch ASSUMED_NAIVE_TIMEZONE with a tzinfo that fails, but equals timezone.utc
         with patch(
             "pyUSPTO.models.patent_data.ASSUMED_NAIVE_TIMEZONE", FailingButEqualToUTC()
         ):
@@ -2410,23 +2356,21 @@ class TestUtilityFunctions:
         captured = capsys.readouterr()
         assert "Warning: Error localizing naive datetime" in captured.out
 
-    def test_parse_yn_to_bool(
-        self, capsys: pytest.CaptureFixture
-    ) -> None:  # Added capsys
+    def test_parse_yn_to_bool(self, capsys: pytest.CaptureFixture) -> None:
         """Test parse_yn_to_bool utility function."""
         assert parse_yn_to_bool("Y") is True
         assert parse_yn_to_bool("y") is True
         assert parse_yn_to_bool("N") is False
         assert parse_yn_to_bool("n") is False
         assert parse_yn_to_bool(None) is None
-        assert parse_yn_to_bool("True") is None  # Per original model logic
+        assert parse_yn_to_bool("True") is None
         captured_true = capsys.readouterr()
         assert (
             "Warning: Unexpected value for Y/N boolean string: 'True'"
             in captured_true.out
         )
 
-        assert parse_yn_to_bool("False") is None  # Per original model logic
+        assert parse_yn_to_bool("False") is None
         captured_false = capsys.readouterr()
         assert (
             "Warning: Unexpected value for Y/N boolean string: 'False'"
@@ -2459,15 +2403,17 @@ class TestUtilityFunctions:
             import pyUSPTO.models.patent_data
 
             importlib.reload(pyUSPTO.models.patent_data)
-            ASSUMED_NAIVE_TIMEZONE_STR = "America/New_York2"
+            ASSUMED_NAIVE_TIMEZONE_STR_LOCAL = (
+                "America/New_York2"  # Use a local var to avoid modifying global
+            )
             try:
-                ASSUMED_NAIVE_TIMEZONE = ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR)
+                assumed_naive_tz_local = ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR_LOCAL)
             except ZoneInfoNotFoundError:
                 print(
-                    f"Warning: Timezone '{ASSUMED_NAIVE_TIMEZONE_STR}' not found. Naive datetimes will be treated as UTC or may cause errors."
+                    f"Warning: Timezone '{ASSUMED_NAIVE_TIMEZONE_STR_LOCAL}' not found. Naive datetimes will be treated as UTC or may cause errors."
                 )
-                ASSUMED_NAIVE_TIMEZONE = ZoneInfo("UTC")
+                assumed_naive_tz_local = ZoneInfo("UTC")  # Fallback to UTC
 
-            assert ASSUMED_NAIVE_TIMEZONE == ZoneInfo("UTC")
+            assert assumed_naive_tz_local == ZoneInfo("UTC")
 
         importlib.reload(module=pyUSPTO.models.patent_data)

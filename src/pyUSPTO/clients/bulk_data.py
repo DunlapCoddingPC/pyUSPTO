@@ -9,7 +9,7 @@ import os
 from typing import Any, Dict, Iterator, List, Optional
 from urllib.parse import urlparse
 
-from pyUSPTO.base import BaseUSPTOClient
+from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.bulk_data import BulkDataProduct, BulkDataResponse, FileData
 

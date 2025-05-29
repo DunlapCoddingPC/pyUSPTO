@@ -4,6 +4,7 @@ base - Base client class for USPTO API clients
 This module provides a base client class with common functionality for all USPTO API clients.
 """
 
+from pathlib import Path
 from typing import (
     Any,
     Dict,
@@ -81,8 +82,9 @@ class BaseUSPTOClient(Generic[T]):
         json_data: Optional[Dict[str, Any]] = None,
         stream: bool = False,
         response_class: Optional[Type[T]] = None,
+        custom_url: Optional[str] = None,
         custom_base_url: Optional[str] = None,
-    ) -> Union[Dict[str, Any], T, requests.Response]:
+    ) -> Dict[str, Any] | T | requests.Response:
         """
         Make an HTTP request to the USPTO API.
 
@@ -101,8 +103,12 @@ class BaseUSPTOClient(Generic[T]):
             - If response_class is provided: Instance of response_class
             - Otherwise: Dict[str, Any] containing the JSON response
         """
-        base = custom_base_url if custom_base_url else self.base_url
-        url = f"{base}/{endpoint.lstrip('/')}"
+        url: str = ""
+        if custom_url:
+            url = custom_url
+        else:
+            base = custom_base_url if custom_base_url else self.base_url
+            url = f"{base}/{endpoint.lstrip('/')}"
 
         try:
             if method.upper() == "GET":
@@ -118,6 +124,7 @@ class BaseUSPTOClient(Generic[T]):
 
             # Return the raw response for streaming requests
             if stream:
+                # TODO: Handle Content-Disposition
                 return response
 
             # Parse the response based on the specified class
@@ -193,3 +200,33 @@ class BaseUSPTOClient(Generic[T]):
                 break
 
             offset += limit
+
+    def _download_file(self, url: str, file_path: str) -> str:
+        """Download a file directly to disk.
+
+        Args:
+            url: URL to download from
+            file_path: Local path where file should be saved
+
+        Raises:
+            HTTPError: If download request fails
+        """
+        # Always stream for file downloads (internal implementation detail)
+        response = self._make_request(
+            method="GET",
+            endpoint="",  # Not used when custom_url is provided
+            stream=True,
+            custom_url=url,
+        )
+
+        if not isinstance(response, requests.Response):
+            raise TypeError(
+                f"Expected requests.Response for streaming download, got {type(response)}"
+            )
+
+        # Save to disk with streaming
+        with open(file=file_path, mode="wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:  # Filter out keep-alive chunks
+                    f.write(chunk)
+        return file_path

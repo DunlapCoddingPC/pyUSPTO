@@ -11,7 +11,8 @@ import pytest
 import requests
 from requests.adapters import HTTPAdapter
 
-from pyUSPTO.base import BaseUSPTOClient, FromDictProtocol
+import pyUSPTO.models.base as BaseModels
+from pyUSPTO.clients.base import BaseUSPTOClient, FromDictProtocol
 from pyUSPTO.exceptions import (
     USPTOApiAuthError,
     USPTOApiBadRequestError,
@@ -21,6 +22,55 @@ from pyUSPTO.exceptions import (
     USPTOApiRateLimitError,
     USPTOApiServerError,
 )
+
+
+class TestModelsBase:
+    """Test classes from models.base."""
+
+    def test_base_model_initialization(self) -> None:
+        """Tests BaseModel initialization with raw_data and kwargs."""
+        raw_input = {"key1": "value1"}
+        kwarg_input = {"attr1": "hello", "attr2": 123}
+
+        # Test with only raw_data
+        model1 = BaseModels.BaseModel(raw_data=raw_input)
+        assert model1.raw_data == raw_input
+        assert not hasattr(
+            model1, "key1"
+        )  # raw_data keys are not automatically attributes
+        assert not hasattr(model1, "attr1")
+
+        # Test with only kwargs
+        model2 = BaseModels.BaseModel(**kwarg_input)
+        assert model2.raw_data is None
+        assert model2.attr1 == "hello"  # type: ignore  # Attribute set by kwarg
+        assert model2.attr2 == 123  # type: ignore  # Attribute set by kwarg
+        assert not hasattr(model2, "key1")
+
+        # Test with both raw_data and kwargs
+        model3 = BaseModels.BaseModel(raw_data=raw_input, **kwarg_input)
+        assert model3.raw_data == raw_input
+        assert model3.attr1 == "hello"  # type: ignore  # Attribute set by kwarg
+        assert model3.attr2 == 123  # type: ignore  # Attribute set by kwarg
+        assert not hasattr(
+            model3, "key1"
+        )  # Ensure raw_data keys don't conflict unless also in kwargs
+
+        # Test with kwargs that might overlap with raw_data keys (kwargs should win for attributes)
+        model4 = BaseModels.BaseModel(
+            raw_data=raw_input, key1="kwarg_value_for_key1", attr1="another_val"
+        )
+        assert model4.raw_data == raw_input
+        assert (
+            model4.key1 == "kwarg_value_for_key1"  # type: ignore
+        )  # Attribute set by kwarg
+        assert model4.attr1 == "another_val"  # type: ignore
+
+        # Test with no parameters
+        model5 = BaseModels.BaseModel()
+        assert model5.raw_data is None
+        # Check no unexpected attributes were set
+        assert len(model5.__dict__) == 1  # Should only have raw_data
 
 
 class TestResponseClass:
@@ -166,12 +216,12 @@ class TestBaseUSPTOClient:
         result = client._make_request(
             method="GET",
             endpoint="test",
-            custom_base_url="https://custom.api.test.com",
+            custom_url="https://custom.api.test.com",
         )
 
         # Verify
         mock_session.get.assert_called_once_with(
-            url="https://custom.api.test.com/test", params=None, stream=False
+            url="https://custom.api.test.com", params=None, stream=False
         )
         assert result == {"key": "value"}
 

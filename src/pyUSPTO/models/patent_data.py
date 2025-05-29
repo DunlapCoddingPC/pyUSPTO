@@ -3,9 +3,12 @@ models.patent_data - Data models for USPTO patent data API
 
 This module provides data models for the USPTO Patent Data API,
 enhanced with more Pythonic features like immutability, Enums,
-and native date/datetime objects using zoneinfo.
+and native date/datetime objects.
 """
 
+import csv
+import io
+import json
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timezone, tzinfo
 from enum import Enum
@@ -110,11 +113,15 @@ def to_camel_case(snake_str: str) -> str:
 
 # --- Enums for Categorical Data ---
 class DirectionCategory(Enum):
+    """Represents the direction of a document relative to the USPTO (e.g., INCOMING, OUTGOING)."""
+
     INCOMING = "INCOMING"
     OUTGOING = "OUTGOING"
 
 
 class ActiveIndicator(Enum):
+    """Represents an active or inactive status, often used for practitioners or entities."""
+
     YES = "Y"
     NO = "N"
     TRUE = "true"
@@ -139,7 +146,15 @@ class ActiveIndicator(Enum):
 
 
 @dataclass(frozen=True)
-class DocumentDownloadFormat:
+class DocumentFormat:
+    """Represents an available download format for a specific document.
+
+    Attributes:
+        mime_type_identifier: The MIME type of the downloadable file (e.g., "PDF").
+        download_url: The URL from which the document format can be downloaded.
+        page_total_quantity: The total number of pages in this document format.
+    """
+
     mime_type_identifier: Optional[str] = None
     download_url: Optional[str] = None
     page_total_quantity: Optional[int] = None
@@ -150,10 +165,10 @@ class DocumentDownloadFormat:
         )
 
     def __repr__(self) -> str:
-        return f"DocumentDownloadFormat(mime_type={self.mime_type_identifier}, pages={self.page_total_quantity})"
+        return f"DocumentFormat(mime_type={self.mime_type_identifier}, pages={self.page_total_quantity})"
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DocumentDownloadFormat":
+    def from_dict(cls, data: Dict[str, Any]) -> "DocumentFormat":
         return cls(
             mime_type_identifier=data.get("mimeTypeIdentifier"),
             download_url=data.get("downloadURI"),
@@ -170,13 +185,19 @@ class DocumentDownloadFormat:
 
 @dataclass(frozen=True)
 class Document:
+    """Represents a single document associated with a patent application.
+
+    This includes metadata such as its identifier, official date, code, description,
+    direction (incoming/outgoing), and available download formats.
+    """
+
     application_number_text: Optional[str] = None
     official_date: Optional[datetime] = None
     document_identifier: Optional[str] = None
     document_code: Optional[str] = None
     document_code_description_text: Optional[str] = None
     direction_category: Optional[DirectionCategory] = None
-    download_formats: List[DocumentDownloadFormat] = field(default_factory=list)
+    document_formats: List[DocumentFormat] = field(default_factory=list)
 
     def __str__(self) -> str:
         date_str = (
@@ -190,7 +211,7 @@ class Document:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Document":
         dl_formats = [
-            DocumentDownloadFormat.from_dict(f)
+            DocumentFormat.from_dict(f)
             for f in data.get("downloadOptionBag", [])
             if isinstance(f, dict)
         ]
@@ -208,7 +229,7 @@ class Document:
             document_code=data.get("documentCode"),
             document_code_description_text=data.get("documentCodeDescriptionText"),
             direction_category=dir_cat,
-            download_formats=dl_formats,
+            document_formats=dl_formats,
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -221,7 +242,7 @@ class Document:
             "documentDirectionCategory": (
                 self.direction_category.value if self.direction_category else None
             ),
-            "downloadOptionBag": [df.to_dict() for df in self.download_formats],
+            "downloadOptionBag": [df.to_dict() for df in self.document_formats],
         }
         return {
             k: v
@@ -231,6 +252,11 @@ class Document:
 
 
 class DocumentBag:
+    """A collection of Document objects associated with a patent application.
+
+    Provides iterable access to the documents.
+    """
+
     def __init__(self, documents: List[Document]):
         self._documents = tuple(documents)
 
@@ -263,6 +289,11 @@ class DocumentBag:
 
 @dataclass(frozen=True)
 class Address:
+    """Represents a postal address with fields for street, city, region, country, and postal code.
+
+    It can be used for various entities like applicants, inventors, or correspondence.
+    """
+
     name_line_one_text: Optional[str] = None
     name_line_two_text: Optional[str] = None
     address_line_one_text: Optional[str] = None
@@ -298,7 +329,6 @@ class Address:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        # Preserving explicit camelCase keys for clarity with ODP schema
         return {
             "nameLineOneText": self.name_line_one_text,
             "nameLineTwoText": self.name_line_two_text,
@@ -319,6 +349,14 @@ class Address:
 
 @dataclass(frozen=True)
 class Telecommunication:
+    """Represents telecommunication details, such as phone or fax numbers.
+
+    Attributes:
+        telecommunication_number: The main number (e.g., phone number).
+        extension_number: Any extension associated with the number.
+        telecom_type_code: A code indicating the type of telecommunication (e.g., "TEL", "FAX").
+    """
+
     telecommunication_number: Optional[str] = None
     extension_number: Optional[str] = None
     telecom_type_code: Optional[str] = None
@@ -341,6 +379,11 @@ class Telecommunication:
 
 @dataclass(frozen=True)
 class Person:
+    """A base data class representing a person with common name and country attributes.
+
+    This class is typically inherited by more specific types like Applicant, Inventor, or Attorney.
+    """
+
     first_name: Optional[str] = None
     middle_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -367,6 +410,11 @@ class Person:
 
 @dataclass(frozen=True)
 class Applicant(Person):
+    """Represents an applicant for a patent, inheriting from Person.
+
+    Includes applicant-specific name text and a list of correspondence addresses.
+    """
+
     applicant_name_text: Optional[str] = None
     correspondence_address_bag: List[Address] = field(default_factory=list)
 
@@ -403,6 +451,11 @@ class Applicant(Person):
 
 @dataclass(frozen=True)
 class Inventor(Person):
+    """Represents an inventor for a patent application, inheriting from Person.
+
+    Includes inventor-specific name text and a list of correspondence addresses.
+    """
+
     inventor_name_text: Optional[str] = None
     correspondence_address_bag: List[Address] = field(default_factory=list)
 
@@ -439,8 +492,13 @@ class Inventor(Person):
 
 @dataclass(frozen=True)
 class Attorney(Person):
+    """Represents an attorney or agent associated with a patent application, inheriting from Person.
+
+    Includes registration number, active status, practitioner category, addresses, and telecommunication details.
+    """
+
     registration_number: Optional[str] = None
-    active_indicator: Optional[str] = None  # TODO: Consider ActiveIndicator Enum
+    active_indicator: Optional[str] = None
     registered_practitioner_category: Optional[str] = None
     attorney_address_bag: List[Address] = field(default_factory=list)
     telecommunication_address_bag: List[Telecommunication] = field(default_factory=list)
@@ -489,6 +547,13 @@ class Attorney(Person):
 
 @dataclass(frozen=True)
 class EntityStatus:
+    """Represents the entity status of an applicant (e.g., small entity status).
+
+    Attributes:
+        small_entity_status_indicator: Boolean indicating if the applicant qualifies for small entity status.
+        business_entity_status_category: String category of the business entity status (e.g., "Undiscounted").
+    """
+
     small_entity_status_indicator: Optional[bool] = None
     business_entity_status_category: Optional[str] = None
 
@@ -508,6 +573,11 @@ class EntityStatus:
 
 @dataclass(frozen=True)
 class CustomerNumberCorrespondence:
+    """Represents correspondence data associated with a USPTO customer number.
+
+    Includes patron identifier, organization name, power of attorney addresses, and telecommunication details.
+    """
+
     patron_identifier: Optional[int] = None
     organization_standard_name: Optional[str] = None
     power_of_attorney_address_bag: List[Address] = field(default_factory=list)
@@ -552,6 +622,11 @@ class CustomerNumberCorrespondence:
 
 @dataclass(frozen=True)
 class RecordAttorney:
+    """Represents information about the attorney(s) of record for a patent application.
+
+    Contains customer number correspondence data, power of attorney information, and listed attorneys.
+    """
+
     customer_number_correspondence_data: List[CustomerNumberCorrespondence] = field(
         default_factory=list
     )
@@ -598,6 +673,13 @@ class RecordAttorney:
 
 @dataclass(frozen=True)
 class Assignor:
+    """Represents an assignor in a patent assignment.
+
+    Attributes:
+        assignor_name: The name of the assigning party.
+        execution_date: The date the assignment was executed.
+    """
+
     assignor_name: Optional[str] = None
     execution_date: Optional[date] = None
 
@@ -617,6 +699,13 @@ class Assignor:
 
 @dataclass(frozen=True)
 class Assignee:
+    """Represents an assignee in a patent assignment.
+
+    Attributes:
+        assignee_name_text: The name of the party receiving the assignment.
+        assignee_address: The address of the assignee.
+    """
+
     assignee_name_text: Optional[str] = None
     assignee_address: Optional[Address] = None
 
@@ -640,6 +729,12 @@ class Assignee:
 
 @dataclass(frozen=True)
 class Assignment:
+    """Represents a patent assignment, detailing the transfer of rights.
+
+    Includes information about the reel and frame, document location, dates, conveyance text,
+    and bags of assignors, assignees, and correspondence addresses.
+    """
+
     reel_number: Optional[str] = None
     frame_number: Optional[str] = None
     reel_and_frame_number: Optional[str] = None
@@ -703,6 +798,14 @@ class Assignment:
 
 @dataclass(frozen=True)
 class ForeignPriority:
+    """Represents a foreign priority claim for a patent application.
+
+    Attributes:
+        ip_office_name: The name of the intellectual property office of the priority application.
+        filing_date: The filing date of the priority application.
+        application_number_text: The application number of the priority application.
+    """
+
     ip_office_name: Optional[str] = None
     filing_date: Optional[date] = None
     application_number_text: Optional[str] = None
@@ -725,6 +828,12 @@ class ForeignPriority:
 
 @dataclass(frozen=True)
 class Continuity:
+    """Base class representing continuity data for a patent application.
+
+    This includes details about the application's relationship to other applications (parent/child),
+    its filing status under AIA (America Invents Act), and key identifiers.
+    """
+
     first_inventor_to_file_indicator: Optional[bool] = None
     application_number_text: Optional[str] = None
     filing_date: Optional[date] = None
@@ -745,8 +854,6 @@ class Continuity:
         return not self.first_inventor_to_file_indicator
 
     def to_dict(self) -> Dict[str, Any]:
-        # Base to_dict for Continuity might not be directly used if subclasses serialize the full ODP structure.
-        # This version excludes properties and converts keys.
         return {
             to_camel_case(k): v
             for k, v in asdict(self).items()
@@ -756,6 +863,11 @@ class Continuity:
 
 @dataclass(frozen=True)
 class ParentContinuity(Continuity):
+    """Represents a parent application in a patent application's continuity chain.
+
+    Inherits from Continuity and adds specific fields for parent application details.
+    """
+
     parent_application_status_code: Optional[int] = None
     parent_patent_number: Optional[str] = None
     parent_application_status_description_text: Optional[str] = None
@@ -805,6 +917,11 @@ class ParentContinuity(Continuity):
 
 @dataclass(frozen=True)
 class ChildContinuity(Continuity):
+    """Represents a child application in a patent application's continuity chain.
+
+    Inherits from Continuity and adds specific fields for child application details.
+    """
+
     child_application_status_code: Optional[int] = None
     parent_application_number_text: Optional[str] = None
     child_application_number_text: Optional[str] = None
@@ -854,6 +971,11 @@ class ChildContinuity(Continuity):
 
 @dataclass(frozen=True)
 class PatentTermAdjustmentHistoryData:
+    """Represents a single entry in the patent term adjustment (PTA) history for an application.
+
+    Details specific events, dates, and day quantities affecting the patent term.
+    """
+
     event_date: Optional[date] = None
     applicant_day_delay_quantity: Optional[float] = None
     event_description_text: Optional[str] = None
@@ -877,7 +999,6 @@ class PatentTermAdjustmentHistoryData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        # More explicit dictionary creation
         final_dict: Dict[str, Any] = {}
         if self.event_date is not None:
             final_dict["eventDate"] = serialize_date(self.event_date)
@@ -894,13 +1015,18 @@ class PatentTermAdjustmentHistoryData:
                 self.originating_event_sequence_number
             )
         if self.pta_pte_code is not None:
-            # Ensure this key matches what from_dict expects
             final_dict["ptaPTECode"] = self.pta_pte_code
         return final_dict
 
 
 @dataclass(frozen=True)
 class PatentTermAdjustmentData:
+    """Represents the overall patent term adjustment (PTA) data for an application.
+
+    Includes various delay quantities (A, B, C, applicant, IP office), total adjustment,
+    and a history of PTA events.
+    """
+
     a_delay_quantity: Optional[float] = None
     adjustment_total_quantity: Optional[float] = None
     applicant_day_delay_quantity: Optional[float] = None
@@ -952,6 +1078,14 @@ class PatentTermAdjustmentData:
 
 @dataclass(frozen=True)
 class EventData:
+    """Represents a single event in the transaction history of a patent application.
+
+    Attributes:
+        event_code: A code identifying the type of event.
+        event_description_text: A textual description of the event.
+        event_date: The date the event was recorded.
+    """
+
     event_code: Optional[str] = None
     event_description_text: Optional[str] = None
     event_date: Optional[date] = None
@@ -971,7 +1105,17 @@ class EventData:
 
 
 @dataclass(frozen=True)
-class DocumentMetaData:
+class ArchiveMetaData:
+    """Represents metadata for a specific archive file, such as a PGPUB or Grant XML file.
+
+    Attributes:
+        zip_file_name: The name of the ZIP archive.
+        product_identifier: An identifier for the data product (e.g., "APPXML", "PTGRXML").
+        file_location_uri: The URI where the document file can be accessed.
+        file_create_date_time: The creation timestamp of the document file.
+        xml_file_name: The name of the XML file within the ZIP archive.
+    """
+
     zip_file_name: Optional[str] = None
     product_identifier: Optional[str] = None
     file_location_uri: Optional[str] = None
@@ -979,7 +1123,7 @@ class DocumentMetaData:
     xml_file_name: Optional[str] = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DocumentMetaData":
+    def from_dict(cls, data: Dict[str, Any]) -> "ArchiveMetaData":
         return cls(
             zip_file_name=data.get("zipFileName"),
             product_identifier=data.get("productIdentifier"),
@@ -995,7 +1139,6 @@ class DocumentMetaData:
         if self.product_identifier is not None:
             final_dict["productIdentifier"] = self.product_identifier
         if self.file_location_uri is not None:
-            # Ensure the key matches what from_dict expects
             final_dict["fileLocationURI"] = self.file_location_uri
         if self.file_create_date_time is not None:
             final_dict["fileCreateDateTime"] = serialize_datetime_as_iso(
@@ -1008,6 +1151,13 @@ class DocumentMetaData:
 
 @dataclass(frozen=True)
 class ApplicationMetaData:
+    """Represents the comprehensive metadata associated with a patent application.
+
+    This class holds a wide range of information including application status,
+    dates (filing, grant, publication), applicant and inventor details,
+    classification data, and other identifying information.
+    """
+
     national_stage_indicator: Optional[bool] = None
     entity_status_data: Optional[EntityStatus] = None
     publication_date_bag: List[date] = field(default_factory=list)
@@ -1044,6 +1194,7 @@ class ApplicationMetaData:
     cpc_classification_bag: List[str] = field(default_factory=list)
     applicant_bag: List[Applicant] = field(default_factory=list)
     inventor_bag: List[Inventor] = field(default_factory=list)
+    raw_data: Optional[str] = field(default=None, compare=False)
 
     @property
     def is_aia(self) -> Optional[bool]:
@@ -1127,10 +1278,12 @@ class ApplicationMetaData:
             cpc_classification_bag=data.get("cpcClassificationBag", []),
             applicant_bag=app_bag,
             inventor_bag=inv_bag,
+            raw_data=json.dumps(data),
         )
 
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)
+        d.pop("raw_data", None)
         d.pop("is_aia", None)
         d.pop("is_pre_aia", None)
         date_fields = [
@@ -1181,7 +1334,6 @@ class ApplicationMetaData:
         final_data = {}
         for key_snake, v_obj in d.items():
             k_camel = to_camel_case(snake_str=key_snake)
-            # Preserve already camelCased keys from specific serializations
             if key_snake in [
                 "firstInventorToFileIndicator",
                 "publicationDateBag",
@@ -1199,6 +1351,13 @@ class ApplicationMetaData:
 
 @dataclass(frozen=True)
 class PatentFileWrapper:
+    """Represents the complete file wrapper for a single patent application.
+
+    This is a top-level object containing all data sections related to an application,
+    such as metadata, addresses, assignments, attorney information, continuity data,
+    PTA data, transaction events, and associated document metadata.
+    """
+
     application_number_text: Optional[str] = None
     application_meta_data: Optional[ApplicationMetaData] = None
     correspondence_address_bag: List[Address] = field(default_factory=list)
@@ -1209,8 +1368,8 @@ class PatentFileWrapper:
     child_continuity_bag: List[ChildContinuity] = field(default_factory=list)
     patent_term_adjustment_data: Optional[PatentTermAdjustmentData] = None
     event_data_bag: List[EventData] = field(default_factory=list)
-    pgpub_document_meta_data: Optional[DocumentMetaData] = None
-    grant_document_meta_data: Optional[DocumentMetaData] = None
+    pgpub_document_meta_data: Optional[ArchiveMetaData] = None
+    grant_document_meta_data: Optional[ArchiveMetaData] = None
     last_ingestion_date_time: Optional[datetime] = None
 
     @classmethod
@@ -1265,13 +1424,13 @@ class PatentFileWrapper:
         ]
         pgpub_json = data.get("pgpubDocumentMetaData")
         pgpub = (
-            DocumentMetaData.from_dict(pgpub_json)
+            ArchiveMetaData.from_dict(pgpub_json)
             if isinstance(pgpub_json, dict)
             else None
         )
         grant_json = data.get("grantDocumentMetaData")
         grant = (
-            DocumentMetaData.from_dict(grant_json)
+            ArchiveMetaData.from_dict(grant_json)
             if isinstance(grant_json, dict)
             else None
         )
@@ -1340,8 +1499,15 @@ class PatentFileWrapper:
 
 @dataclass(frozen=True)
 class PatentDataResponse:
+    """Represents the overall response from a patent data API request.
+
+    It typically includes a count of the results and a list of PatentFileWrapper objects,
+    each containing detailed data for a patent application.
+    """
+
     count: int
     patent_file_wrapper_data_bag: List[PatentFileWrapper] = field(default_factory=list)
+    # TODO: raw as response in json
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PatentDataResponse":
@@ -1360,9 +1526,78 @@ class PatentDataResponse:
             ],
         }
 
+    def to_csv(self) -> str:
+        """
+        Converts the patent data in this response to a CSV formatted string.
+
+        The CSV will contain the following headers:
+        - inventionTitle
+        - applicationNumberText
+        - filingDate
+        - applicationTypeLabelName
+        - publicationCategoryBag (pipe-separated if multiple)
+        - applicationStatusDescriptionText
+        - applicationStatusDate
+        - firstInventorName
+
+        Returns:
+            A string containing the data in CSV format.
+        """
+        headers = [
+            "inventionTitle",
+            "applicationNumberText",
+            "filingDate",
+            "applicationTypeLabelName",
+            "publicationCategoryBag",
+            "applicationStatusDescriptionText",
+            "applicationStatusDate",
+            "firstInventorName",
+        ]
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        writer.writerow(headers)
+
+        if not self.patent_file_wrapper_data_bag:
+            return output.getvalue()
+
+        for wrapper in self.patent_file_wrapper_data_bag:
+            if not wrapper.application_meta_data:
+                continue
+
+            meta = wrapper.application_meta_data
+
+            pub_category_str = (
+                "|".join(meta.publication_category_bag)
+                if meta.publication_category_bag
+                else ""
+            )
+
+            row_data = [
+                meta.invention_title or "",
+                wrapper.application_number_text or "",
+                serialize_date(meta.filing_date) or "",
+                meta.application_type_label_name or "",
+                pub_category_str,
+                meta.application_status_description_text or "",
+                serialize_date(meta.application_status_date) or "",
+                meta.first_inventor_name or "",
+            ]
+            writer.writerow(row_data)
+
+        return output.getvalue()
+
 
 @dataclass(frozen=True)
 class StatusCode:
+    """Represents a USPTO application status code and its textual description.
+
+    Attributes:
+        code: The numeric status code.
+        description: The textual description of the status code.
+    """
+
     code: Optional[int] = None
     description: Optional[str] = None
 
@@ -1371,7 +1606,6 @@ class StatusCode:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "StatusCode":
-        # Support both formats - the direct format used in tests and the application format
         if "code" in data:
             return cls(
                 code=data.get("code"),
@@ -1391,6 +1625,11 @@ class StatusCode:
 
 
 class StatusCodeCollection:
+    """A collection of StatusCode objects.
+
+    Provides iterable access and helper methods to find or filter status codes.
+    """
+
     def __init__(self, status_codes: List[StatusCode]):
         self._status_codes: tuple[StatusCode, ...] = tuple(status_codes)
 
@@ -1437,6 +1676,14 @@ class StatusCodeCollection:
 
 @dataclass(frozen=True)
 class StatusCodeSearchResponse:
+    """Represents the response from a search query for patent application status codes.
+
+    Attributes:
+        count: The total number of status codes found matching the query.
+        status_code_bag: A collection of the StatusCode objects returned.
+        request_identifier: An identifier for the API request.
+    """
+
     count: int
     status_code_bag: StatusCodeCollection
     request_identifier: Optional[str] = None
@@ -1471,7 +1718,11 @@ class StatusCodeSearchResponse:
 
 @dataclass(frozen=True)
 class ApplicationContinuityData:
-    """Holds parent and child continuity data for an application."""
+    """Holds parent and child continuity application data for a specific patent application.
+
+    This class consolidates lists of ParentContinuity and ChildContinuity objects,
+    representing the lineage of an application.
+    """
 
     parent_continuity_bag: List[ParentContinuity] = field(default_factory=list)
     child_continuity_bag: List[ChildContinuity] = field(default_factory=list)
@@ -1485,7 +1736,7 @@ class ApplicationContinuityData:
 
     def to_dict(
         self,
-    ) -> Dict[str, Any]:  # For consistency, though client might not use this directly
+    ) -> Dict[str, Any]:
         return {
             "parentContinuityBag": [pc.to_dict() for pc in self.parent_continuity_bag],
             "childContinuityBag": [cc.to_dict() for cc in self.child_continuity_bag],
@@ -1493,20 +1744,22 @@ class ApplicationContinuityData:
 
 
 @dataclass(frozen=True)
-class AssociatedDocumentsData:
-    """Holds PGPUB and Grant document metadata for an application."""
+class FileWrapperArchive:
+    """Holds metadata for associated documents like Pre-Grant Publications (PGPUB)
+    and Grant documents for a specific patent application.
+    """
 
-    pgpub_document_meta_data: Optional[DocumentMetaData] = None
-    grant_document_meta_data: Optional[DocumentMetaData] = None
+    pgpub_document_meta_data: Optional[ArchiveMetaData] = None
+    grant_document_meta_data: Optional[ArchiveMetaData] = None
 
     @classmethod
-    def from_wrapper(cls, wrapper: PatentFileWrapper) -> "AssociatedDocumentsData":
+    def from_wrapper(cls, wrapper: PatentFileWrapper) -> "FileWrapperArchive":
         return cls(
             pgpub_document_meta_data=wrapper.pgpub_document_meta_data,
             grant_document_meta_data=wrapper.grant_document_meta_data,
         )
 
-    def to_dict(self) -> Dict[str, Any]:  # For consistency
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "pgpubDocumentMetaData": (
                 self.pgpub_document_meta_data.to_dict()
