@@ -21,16 +21,16 @@ from pyUSPTO.exceptions import USPTOApiError, USPTOApiNotFoundError
 from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
     ApplicationMetaData,
-    ArchiveMetaData,
     Assignment,
     Document,
     DocumentBag,
     EventData,
-    FileWrapperArchive,
     ForeignPriority,
     PatentDataResponse,
     PatentFileWrapper,
     PatentTermAdjustmentData,
+    PrintedMetaData,
+    PrintedPublication,
     RecordAttorney,
     StatusCode,
     StatusCodeCollection,
@@ -432,7 +432,7 @@ class TestPatentDataIntegration:
                     f"No associated documents data for {sample_application_number}"
                 )
 
-            assert isinstance(assoc_docs_data, ArchiveMetaData)
+            assert isinstance(assoc_docs_data, PrintedMetaData)
             assert (
                 assoc_docs_data.pgpub_document_meta_data is not None
                 or assoc_docs_data.grant_document_meta_data is not None

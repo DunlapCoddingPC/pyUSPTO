@@ -1105,7 +1105,7 @@ class EventData:
 
 
 @dataclass(frozen=True)
-class ArchiveMetaData:
+class PrintedMetaData:
     """Represents metadata for a specific archive file, such as a PGPUB or Grant XML file.
 
     Attributes:
@@ -1123,7 +1123,7 @@ class ArchiveMetaData:
     xml_file_name: Optional[str] = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ArchiveMetaData":
+    def from_dict(cls, data: Dict[str, Any]) -> "PrintedMetaData":
         return cls(
             zip_file_name=data.get("zipFileName"),
             product_identifier=data.get("productIdentifier"),
@@ -1368,8 +1368,8 @@ class PatentFileWrapper:
     child_continuity_bag: List[ChildContinuity] = field(default_factory=list)
     patent_term_adjustment_data: Optional[PatentTermAdjustmentData] = None
     event_data_bag: List[EventData] = field(default_factory=list)
-    pgpub_document_meta_data: Optional[ArchiveMetaData] = None
-    grant_document_meta_data: Optional[ArchiveMetaData] = None
+    pgpub_document_meta_data: Optional[PrintedMetaData] = None
+    grant_document_meta_data: Optional[PrintedMetaData] = None
     last_ingestion_date_time: Optional[datetime] = None
 
     @classmethod
@@ -1424,13 +1424,13 @@ class PatentFileWrapper:
         ]
         pgpub_json = data.get("pgpubDocumentMetaData")
         pgpub = (
-            ArchiveMetaData.from_dict(pgpub_json)
+            PrintedMetaData.from_dict(pgpub_json)
             if isinstance(pgpub_json, dict)
             else None
         )
         grant_json = data.get("grantDocumentMetaData")
         grant = (
-            ArchiveMetaData.from_dict(grant_json)
+            PrintedMetaData.from_dict(grant_json)
             if isinstance(grant_json, dict)
             else None
         )
@@ -1744,16 +1744,16 @@ class ApplicationContinuityData:
 
 
 @dataclass(frozen=True)
-class FileWrapperArchive:
+class PrintedPublication:
     """Holds metadata for associated documents like Pre-Grant Publications (PGPUB)
     and Grant documents for a specific patent application.
     """
 
-    pgpub_document_meta_data: Optional[ArchiveMetaData] = None
-    grant_document_meta_data: Optional[ArchiveMetaData] = None
+    pgpub_document_meta_data: Optional[PrintedMetaData] = None
+    grant_document_meta_data: Optional[PrintedMetaData] = None
 
     @classmethod
-    def from_wrapper(cls, wrapper: PatentFileWrapper) -> "FileWrapperArchive":
+    def from_wrapper(cls, wrapper: PatentFileWrapper) -> "PrintedPublication":
         return cls(
             pgpub_document_meta_data=wrapper.pgpub_document_meta_data,
             grant_document_meta_data=wrapper.grant_document_meta_data,

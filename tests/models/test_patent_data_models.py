@@ -22,7 +22,6 @@ from pyUSPTO.models.patent_data import (
     Applicant,
     ApplicationContinuityData,
     ApplicationMetaData,
-    ArchiveMetaData,
     Assignee,
     Assignment,
     Assignor,
@@ -36,7 +35,6 @@ from pyUSPTO.models.patent_data import (
     DocumentFormat,
     EntityStatus,
     EventData,
-    FileWrapperArchive,
     ForeignPriority,
     Inventor,
     ParentContinuity,
@@ -45,6 +43,8 @@ from pyUSPTO.models.patent_data import (
     PatentTermAdjustmentData,
     PatentTermAdjustmentHistoryData,
     Person,
+    PrintedMetaData,
+    PrintedPublication,
     RecordAttorney,
     StatusCode,
     StatusCodeCollection,
@@ -1546,7 +1546,7 @@ class TestDocumentMetaData:
     def test_document_meta_data_from_dict(
         self, sample_document_meta_data_data: Dict[str, Any]
     ) -> None:
-        doc_meta = ArchiveMetaData.from_dict(sample_document_meta_data_data)
+        doc_meta = PrintedMetaData.from_dict(sample_document_meta_data_data)
         assert doc_meta.zip_file_name == sample_document_meta_data_data["zipFileName"]
         assert doc_meta.file_create_date_time == datetime(
             2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc
@@ -1555,7 +1555,7 @@ class TestDocumentMetaData:
     def test_document_meta_data_to_dict(
         self, sample_document_meta_data_data: Dict[str, Any]
     ) -> None:
-        doc_meta = ArchiveMetaData(
+        doc_meta = PrintedMetaData(
             zip_file_name=sample_document_meta_data_data["zipFileName"],
             product_identifier=sample_document_meta_data_data["productIdentifier"],
             file_location_uri=sample_document_meta_data_data["fileLocationURI"],
@@ -1567,11 +1567,11 @@ class TestDocumentMetaData:
         assert data["fileCreateDateTime"] == "2023-01-01T12:00:00Z"
 
     def test_document_meta_data_with_null_input(self) -> None:
-        doc_meta = ArchiveMetaData.from_dict({})
+        doc_meta = PrintedMetaData.from_dict({})
         assert doc_meta.zip_file_name is None
         assert doc_meta.file_create_date_time is None
 
-        doc_meta_none = ArchiveMetaData.from_dict({"zipFileName": None})
+        doc_meta_none = PrintedMetaData.from_dict({"zipFileName": None})
         assert doc_meta_none.zip_file_name is None
 
 
@@ -1718,7 +1718,7 @@ class TestPatentFileWrapper:
         self, sample_document_meta_data_data: Dict[str, Any]
     ) -> None:
         app_meta_obj = ApplicationMetaData(invention_title="Title")
-        pgpub_obj = ArchiveMetaData.from_dict(sample_document_meta_data_data)
+        pgpub_obj = PrintedMetaData.from_dict(sample_document_meta_data_data)
 
         wrapper = PatentFileWrapper(
             application_number_text="98765",
@@ -2159,24 +2159,24 @@ class TestAssociatedDocumentsData:
         grant_meta_data = sample_document_meta_data_data.copy()
         grant_meta_data["productIdentifier"] = "GRANT"
 
-        pgpub_meta = ArchiveMetaData.from_dict(pgpub_meta_data)
-        grant_meta = ArchiveMetaData.from_dict(grant_meta_data)
+        pgpub_meta = PrintedMetaData.from_dict(pgpub_meta_data)
+        grant_meta = PrintedMetaData.from_dict(grant_meta_data)
 
         wrapper = PatentFileWrapper(
             pgpub_document_meta_data=pgpub_meta, grant_document_meta_data=grant_meta
         )
-        assoc_docs = FileWrapperArchive.from_wrapper(wrapper)
+        assoc_docs = PrintedPublication.from_wrapper(wrapper)
         assert assoc_docs.pgpub_document_meta_data is pgpub_meta
         assert assoc_docs.grant_document_meta_data is grant_meta
 
     def test_from_wrapper_with_partial_data(
         self, sample_document_meta_data_data: Dict[str, Any]
     ) -> None:
-        pgpub_meta = ArchiveMetaData.from_dict(sample_document_meta_data_data)
+        pgpub_meta = PrintedMetaData.from_dict(sample_document_meta_data_data)
         wrapper = PatentFileWrapper(
             pgpub_document_meta_data=pgpub_meta, grant_document_meta_data=None
         )
-        assoc_docs = FileWrapperArchive.from_wrapper(wrapper)
+        assoc_docs = PrintedPublication.from_wrapper(wrapper)
         assert assoc_docs.pgpub_document_meta_data is pgpub_meta
         assert assoc_docs.grant_document_meta_data is None
 
@@ -2184,7 +2184,7 @@ class TestAssociatedDocumentsData:
         wrapper = PatentFileWrapper(
             pgpub_document_meta_data=None, grant_document_meta_data=None
         )
-        assoc_docs = FileWrapperArchive.from_wrapper(wrapper)
+        assoc_docs = PrintedPublication.from_wrapper(wrapper)
         assert assoc_docs.pgpub_document_meta_data is None
         assert assoc_docs.grant_document_meta_data is None
 
@@ -2194,10 +2194,10 @@ class TestAssociatedDocumentsData:
         grant_meta_dict = sample_document_meta_data_data.copy()
         grant_meta_dict["zipFileName"] = "grant.zip"
 
-        pgpub_meta = ArchiveMetaData.from_dict(pgpub_meta_dict)
-        grant_meta = ArchiveMetaData.from_dict(grant_meta_dict)
+        pgpub_meta = PrintedMetaData.from_dict(pgpub_meta_dict)
+        grant_meta = PrintedMetaData.from_dict(grant_meta_dict)
 
-        assoc_docs = FileWrapperArchive(
+        assoc_docs = PrintedPublication(
             pgpub_document_meta_data=pgpub_meta, grant_document_meta_data=grant_meta
         )
         data_dict = assoc_docs.to_dict()
@@ -2209,8 +2209,8 @@ class TestAssociatedDocumentsData:
     def test_to_dict_with_partial_data(
         self, sample_document_meta_data_data: Dict[str, Any]
     ) -> None:
-        pgpub_meta = ArchiveMetaData.from_dict(sample_document_meta_data_data)
-        assoc_docs = FileWrapperArchive(
+        pgpub_meta = PrintedMetaData.from_dict(sample_document_meta_data_data)
+        assoc_docs = PrintedPublication(
             pgpub_document_meta_data=pgpub_meta, grant_document_meta_data=None
         )
         data_dict = assoc_docs.to_dict()

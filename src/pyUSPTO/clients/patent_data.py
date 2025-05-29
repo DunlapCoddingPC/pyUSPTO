@@ -10,7 +10,9 @@ import io
 import os
 import re
 from pathlib import Path
+from turtle import pd
 from typing import Any, Dict, Iterator, List, Optional, Tuple
+from urllib import response
 from urllib.parse import urljoin, urlparse
 
 from pyUSPTO.clients.base import BaseUSPTOClient
@@ -18,18 +20,18 @@ from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
     ApplicationMetaData,
-    ArchiveMetaData,
     Assignment,
     ChildContinuity,
     DocumentBag,
     DocumentFormat,
     EventData,
-    FileWrapperArchive,
     ForeignPriority,
     ParentContinuity,
     PatentDataResponse,
     PatentFileWrapper,
     PatentTermAdjustmentData,
+    PrintedMetaData,
+    PrintedPublication,
     RecordAttorney,
     StatusCodeCollection,
     StatusCodeSearchResponse,
@@ -113,6 +115,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         grant_date_from_q: Optional[str] = None,
         grant_date_to_q: Optional[str] = None,
         classification_q: Optional[str] = None,
+        earliestPublicationNumber_q: Optional[str] = None,
+        pctPublicationNumber_q: Optional[str] = None,
         additional_query_params: Optional[Dict[str, Any]] = None,
     ) -> PatentDataResponse:
         """
@@ -158,7 +162,14 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                     q_parts.append(
                         f"applicationMetaData.cpcClassificationBag:{classification_q}"
                     )
-
+                if earliestPublicationNumber_q:
+                    q_parts.append(
+                        f"applicationMetaData.earliestPublicationNumber:*{earliestPublicationNumber_q}*"
+                    )
+                if pctPublicationNumber_q:
+                    q_parts.append(
+                        f"applicationMetaData.pctPublicationNumber:*{pctPublicationNumber_q}*"
+                    )
                 if filing_date_from_q and filing_date_to_q:
                     q_parts.append(
                         f"applicationMetaData.filingDate:[{filing_date_from_q} TO {filing_date_to_q}]"
@@ -205,7 +216,6 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
             if additional_query_params:
                 params.update(additional_query_params)
-
             result = self._make_request(
                 method="GET",
                 endpoint=endpoint,
@@ -352,7 +362,10 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
         assert isinstance(response_data, PatentDataResponse)
-        return self._get_wrapper_from_response(response_data, application_number)
+        return self._get_wrapper_from_response(
+            response_data=response_data,
+            application_number_for_validation=application_number,
+        )
 
     def get_application_metadata(
         self, application_number: str
@@ -463,7 +476,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_application_associated_documents(
         self, application_number: str
-    ) -> Optional[FileWrapperArchive]:
+    ) -> Optional[PrintedPublication]:
         """Retrieves associated documents data for a specific application."""
         endpoint = self.ENDPOINTS["get_application_associated_documents"].format(
             application_number=application_number
@@ -473,7 +486,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         )
         assert isinstance(response_data, PatentDataResponse)
         wrapper = self._get_wrapper_from_response(response_data, application_number)
-        return FileWrapperArchive.from_wrapper(wrapper) if wrapper else None
+        return PrintedPublication.from_wrapper(wrapper) if wrapper else None
 
     def paginate_applications(self, **kwargs: Any) -> Iterator[PatentFileWrapper]:
         """
@@ -573,4 +586,93 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         # Download the file
         return self._download_file(
             url=document_format.download_url, file_path=final_file_path.as_posix()
+        )
+
+    def get_IFW(
+        self,
+        application_number: Optional[str] = None,
+        publication_number: Optional[str] = None,
+        patent_number: Optional[str] = None,
+        PCT_app_number: Optional[str] = None,
+        PCT_pub_number: Optional[str] = None,
+    ) -> Optional[PatentFileWrapper]:
+        if application_number:
+            return self.get_application_by_number(application_number=application_number)
+        if patent_number:
+            pdr = self.search_applications(patent_number_q=patent_number, limit=1)
+            if pdr.patent_file_wrapper_data_bag:
+                return pdr.patent_file_wrapper_data_bag[0]
+        if publication_number:
+            pdr = self.search_applications(
+                earliestPublicationNumber_q=publication_number, limit=1
+            )
+            if pdr.patent_file_wrapper_data_bag:
+                return pdr.patent_file_wrapper_data_bag[0]
+        if PCT_app_number:
+            return self.get_application_by_number(application_number=PCT_app_number)
+        if PCT_pub_number:
+            pdr = self.search_applications(
+                pctPublicationNumber_q=PCT_pub_number, limit=1
+            )
+            if pdr.patent_file_wrapper_data_bag:
+                return pdr.patent_file_wrapper_data_bag[0]
+        return None
+
+    def download_archive(
+        self,
+        printed_metadata: PrintedMetaData,
+        file_name: Optional[str] = None,
+        destination_path: Optional[str] = None,
+        overwrite: bool = False,
+    ) -> str:
+        """Downloads Printed Metadata (XML data). These are XML files of the patent as printed.
+
+        Args:
+            printed_metadata: ArchiveMetaData object containing download URL and metadata
+            file_name: Optional filename. If not provided, uses zip_file_name from metadata
+            destination_path: Optional directory path to save the archive
+            overwrite: Whether to overwrite existing files. Default False
+
+        Returns:
+            str: Path to the downloaded archive file
+
+        Raises:
+            ValueError: If archive_metadata has no download URL
+            FileExistsError: If file exists and overwrite=False
+        """
+        # Validate we have a download URL
+        if printed_metadata.file_location_uri is None:
+            raise ValueError("ArchiveMetaData must have a file_location_uri")
+
+        # Get filename - either provided or from metadata
+        if file_name is None:
+            if printed_metadata.xml_file_name:
+                file_name = printed_metadata.xml_file_name
+            else:
+                # Fallback: extract from URL
+                url_filename = printed_metadata.file_location_uri.split("/")[-1]
+                if "." in url_filename:
+                    file_name = url_filename
+                else:
+                    # Last resort: use product identifier
+                    product_id = printed_metadata.product_identifier or "patent_text"
+                    file_name = f"{product_id}.xml"
+
+        # Determine final file path
+        if destination_path is None:
+            final_file_path = Path(file_name)
+        else:
+            destination_dir = Path(destination_path)
+            destination_dir.mkdir(parents=True, exist_ok=True)
+            final_file_path = destination_dir / file_name
+
+        # Check for existing file
+        if final_file_path.exists() and overwrite is False:
+            raise FileExistsError(
+                f"File already exists: {final_file_path}. Use overwrite=True to replace."
+            )
+
+        # Download the Printed Metadata
+        return self._download_file(
+            url=printed_metadata.file_location_uri, file_path=final_file_path.as_posix()
         )

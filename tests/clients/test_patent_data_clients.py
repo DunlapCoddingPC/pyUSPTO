@@ -26,7 +26,6 @@ from pyUSPTO.exceptions import USPTOApiBadRequestError, USPTOApiError
 from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
     ApplicationMetaData,
-    ArchiveMetaData,
     Assignment,
     Attorney,
     ChildContinuity,
@@ -35,13 +34,14 @@ from pyUSPTO.models.patent_data import (
     DocumentBag,
     DocumentFormat,
     EventData,
-    FileWrapperArchive,
     ForeignPriority,
     Inventor,
     ParentContinuity,
     PatentDataResponse,
     PatentFileWrapper,
     PatentTermAdjustmentData,
+    PrintedMetaData,
+    PrintedPublication,
     RecordAttorney,
     StatusCode,
     StatusCodeCollection,
@@ -139,10 +139,10 @@ def mock_event_data() -> EventData:
 
 
 @pytest.fixture
-def mock_pgpub_document_meta_data() -> ArchiveMetaData:
+def mock_pgpub_document_meta_data() -> PrintedMetaData:
     """Provides a mock pgpub DocumentMetaData instance."""
     dt = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-    return ArchiveMetaData(
+    return PrintedMetaData(
         zip_file_name="pgpub.zip",
         product_identifier="PGPUB",
         file_create_date_time=dt,
@@ -150,10 +150,10 @@ def mock_pgpub_document_meta_data() -> ArchiveMetaData:
 
 
 @pytest.fixture
-def mock_grant_document_meta_data() -> ArchiveMetaData:
+def mock_grant_document_meta_data() -> PrintedMetaData:
     """Provides a mock grant DocumentMetaData instance."""
     dt = datetime(2023, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
-    return ArchiveMetaData(
+    return PrintedMetaData(
         zip_file_name="grant.zip",
         product_identifier="GRANT",
         file_create_date_time=dt,
@@ -170,8 +170,8 @@ def mock_patent_file_wrapper(
     mock_child_continuity: ChildContinuity,
     mock_patent_term_adjustment_data: PatentTermAdjustmentData,
     mock_event_data: EventData,
-    mock_pgpub_document_meta_data: ArchiveMetaData,
-    mock_grant_document_meta_data: ArchiveMetaData,
+    mock_pgpub_document_meta_data: PrintedMetaData,
+    mock_grant_document_meta_data: PrintedMetaData,
 ) -> PatentFileWrapper:
     """
     Provides a comprehensive mock PatentFileWrapper instance.
@@ -381,6 +381,14 @@ class TestPatentApplicationSearch:
             (
                 {"classification_q": "H04L"},
                 "applicationMetaData.cpcClassificationBag:H04L",
+            ),
+            (
+                {"earliestPublicationNumber_q": "12345678"},
+                "applicationMetaData.earliestPublicationNumber:*12345678*",
+            ),
+            (
+                {"pctPublicationNumber_q": "PCTUS202501234567"},
+                "applicationMetaData.pctPublicationNumber:*PCTUS202501234567*",
             ),
             (
                 {"filing_date_from_q": "2021-01-01"},
@@ -719,7 +727,7 @@ class TestPatentApplicationAssociatedDocuments:
             endpoint=f"api/v1/patent/applications/{app_num}/associated-documents",
             response_class=PatentDataResponse,
         )
-        assert isinstance(result, FileWrapperArchive)
+        assert isinstance(result, PrintedPublication)
         assert (
             result.pgpub_document_meta_data
             is mock_patent_file_wrapper.pgpub_document_meta_data
@@ -1005,6 +1013,382 @@ class TestDownloadFile:
             [mock.call(b"data"), mock.call(b"more")]
         )
         assert mock_file_open().write.call_count == 2
+
+
+class TestGetIFW:
+    """Tests for the get_IFW convenience method."""
+
+    def test_get_ifw_by_application_number(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test get_IFW with application_number calls get_application_by_number."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        app_num = "12345678"
+        result = client.get_IFW(application_number=app_num)
+
+        # Should call get_application_by_number
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint=f"api/v1/patent/applications/{app_num}",
+            response_class=PatentDataResponse,
+        )
+        assert result is mock_patent_file_wrapper
+
+    def test_get_ifw_by_patent_number(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test get_IFW with patent_number calls search_applications."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        patent_num = "10000000"
+        result = client.get_IFW(patent_number=patent_num)
+
+        # Should call search_applications with patent_number_q
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint="api/v1/patent/applications/search",
+            params={
+                "q": f"applicationMetaData.patentNumber:{patent_num}",
+                "limit": 1,
+                "offset": 0,
+            },
+            response_class=PatentDataResponse,
+        )
+        assert result is mock_patent_file_wrapper
+
+    def test_get_ifw_by_publication_number(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test get_IFW with publication_number calls search_applications."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        pub_num = "US20240123456A1"
+        result = client.get_IFW(publication_number=pub_num)
+
+        # Should call search_applications with earliestPublicationNumber_q
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint="api/v1/patent/applications/search",
+            params={
+                "q": f"applicationMetaData.earliestPublicationNumber:*{pub_num}*",
+                "limit": 1,
+                "offset": 0,
+            },
+            response_class=PatentDataResponse,
+        )
+        assert result is mock_patent_file_wrapper
+
+    def test_get_ifw_by_pct_app_number(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test get_IFW with PCT_app_number calls get_application_by_number."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        pct_app = "PCT/US2024/012345"
+        result = client.get_IFW(PCT_app_number=pct_app)
+
+        # Should call get_application_by_number
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint=f"api/v1/patent/applications/{pct_app}",
+            response_class=PatentDataResponse,
+        )
+        assert result is mock_patent_file_wrapper
+
+    def test_get_ifw_by_pct_pub_number(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test get_IFW with PCT_pub_number calls search_applications."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        pct_pub = "WO2024012345A1"
+        result = client.get_IFW(PCT_pub_number=pct_pub)
+
+        # Should call search_applications with pctPublicationNumber_q
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint="api/v1/patent/applications/search",
+            params={
+                "q": f"applicationMetaData.pctPublicationNumber:*{pct_pub}*",
+                "limit": 1,
+                "offset": 0,
+            },
+            response_class=PatentDataResponse,
+        )
+        assert result is mock_patent_file_wrapper
+
+    def test_get_ifw_no_parameters_returns_none(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test get_IFW with no parameters returns None."""
+        result = patent_data_client.get_IFW()
+        assert result is None
+
+    def test_get_ifw_empty_search_results_returns_none(
+        self, client_with_mocked_request: tuple[PatentDataClient, MagicMock]
+    ) -> None:
+        """Test get_IFW returns None when search returns empty results."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=0, patent_file_wrapper_data_bag=[]
+        )
+
+        result = client.get_IFW(patent_number="nonexistent")
+        assert result is None
+
+    def test_get_ifw_prioritizes_first_parameter(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test get_IFW uses application_number when multiple parameters provided."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        app_num = "12345678"
+        # Provide multiple parameters - should use application_number
+        result = client.get_IFW(
+            application_number=app_num,
+            patent_number="10000000",
+            publication_number="US20240123456A1",
+        )
+
+        # Should only call get_application_by_number, not search
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint=f"api/v1/patent/applications/{app_num}",
+            response_class=PatentDataResponse,
+        )
+        assert result is mock_patent_file_wrapper
+
+
+class TestDownloadArchive:
+    """Tests for downloading archive files."""
+
+    @pytest.fixture
+    def sample_printed_metadata(self) -> PrintedMetaData:
+        """Sample PrintedMetaData object for testing."""
+        return PrintedMetaData(
+            xml_file_name="patent_12345.xml",
+            product_identifier="PTGRXML",
+            file_location_uri="https://bulkdata.uspto.gov/data/patent/grant/redbook/fulltext/2024/patent_12345.xml",
+        )
+
+    @pytest.fixture
+    def client_with_mocked_download(self) -> tuple[PatentDataClient, MagicMock]:
+        """Client with mocked _download_file method."""
+        client = PatentDataClient()
+        mock_download_file = MagicMock()
+        client._download_file = mock_download_file
+        return client, mock_download_file
+
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.mkdir")
+    def test_download_archive_basic(
+        self,
+        mock_mkdir: MagicMock,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test basic archive download."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = False
+
+        expected_path = "/archives/patent_12345.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_archive(
+            printed_metadata=sample_printed_metadata, destination_path="/archives"
+        )
+
+        mock_download_file.assert_called_once_with(
+            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+        )
+        assert result == expected_path
+
+    @patch("pathlib.Path.exists")
+    def test_download_archive_custom_filename(
+        self,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test archive download with custom filename."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = False
+
+        custom_name = "my_patent.xml"
+        expected_path = "/archives/my_patent.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_archive(
+            printed_metadata=sample_printed_metadata,
+            file_name=custom_name,
+            destination_path="/archives",
+        )
+
+        mock_download_file.assert_called_once_with(
+            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+        )
+        assert result == expected_path
+
+    @patch("pathlib.Path.exists")
+    def test_download_archive_no_destination_path(
+        self,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test archive download with no destination path (current directory)."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = False
+
+        expected_path = "patent_12345.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_archive(printed_metadata=sample_printed_metadata)
+
+        mock_download_file.assert_called_once_with(
+            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+        )
+        assert result == expected_path
+
+    def test_download_archive_missing_url(
+        self, client_with_mocked_download: tuple[PatentDataClient, MagicMock]
+    ) -> None:
+        """Test download_archive raises ValueError when no download URL."""
+        client, mock_download_file = client_with_mocked_download
+
+        metadata_no_url = PrintedMetaData(
+            xml_file_name="test.xml", file_location_uri=None
+        )
+
+        with pytest.raises(
+            ValueError, match="ArchiveMetaData must have a file_location_uri"
+        ):
+            client.download_archive(printed_metadata=metadata_no_url)
+
+        mock_download_file.assert_not_called()
+
+    @patch("pathlib.Path.exists")
+    def test_download_archive_file_exists_no_overwrite(
+        self,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test download_archive raises FileExistsError when file exists."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = True
+
+        with pytest.raises(
+            FileExistsError, match="File already exists.*Use overwrite=True"
+        ):
+            client.download_archive(printed_metadata=sample_printed_metadata)
+
+        mock_download_file.assert_not_called()
+
+    @patch("pathlib.Path.exists")
+    def test_download_archive_overwrite_existing(
+        self,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test download_archive overwrites when overwrite=True."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = True
+
+        expected_path = "patent_12345.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_archive(
+            printed_metadata=sample_printed_metadata, overwrite=True
+        )
+
+        mock_download_file.assert_called_once()
+        assert result == expected_path
+
+    @patch("pathlib.Path.exists")
+    def test_download_archive_fallback_filename_from_url(
+        self,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """Test filename fallback when xml_file_name is None."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = False
+
+        metadata = PrintedMetaData(
+            xml_file_name=None,
+            file_location_uri="https://example.com/data/file123.xml",
+            product_identifier="PTGRXML",
+        )
+
+        expected_path = "file123.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_archive(printed_metadata=metadata)
+
+        mock_download_file.assert_called_once_with(
+            url=metadata.file_location_uri, file_path=expected_path
+        )
+        assert result == expected_path
+
+    @patch("pathlib.Path.exists")
+    def test_download_archive_last_resort_filename(
+        self,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """Test last resort filename when no xml_file_name and URL has no extension."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = False
+
+        metadata = PrintedMetaData(
+            xml_file_name=None,
+            file_location_uri="https://example.com/data/someidentifier",
+            product_identifier="PTGRXML",
+        )
+
+        expected_path = "PTGRXML.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_archive(printed_metadata=metadata)
+
+        mock_download_file.assert_called_once_with(
+            url=metadata.file_location_uri, file_path=expected_path
+        )
+        assert result == expected_path
 
 
 class TestPatentApplicationDataRetrieval:
@@ -1438,7 +1822,7 @@ class TestSpecificDataReturnTypes:
         result = client_for_return_type_tests.get_application_associated_documents(
             "12345678"
         )
-        assert isinstance(result, FileWrapperArchive)
+        assert isinstance(result, PrintedPublication)
         assert (
             result.pgpub_document_meta_data
             is mock_patent_file_wrapper.pgpub_document_meta_data
@@ -1483,7 +1867,7 @@ class TestReturnTypesEdgeCases:
         assert client.get_application_transactions(app_num) == []
 
         assoc_docs_result = client.get_application_associated_documents(app_num)
-        assert isinstance(assoc_docs_result, FileWrapperArchive)
+        assert isinstance(assoc_docs_result, PrintedPublication)
         assert assoc_docs_result.pgpub_document_meta_data is None
 
 
