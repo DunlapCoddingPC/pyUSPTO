@@ -164,11 +164,11 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                     )
                 if earliestPublicationNumber_q:
                     q_parts.append(
-                        f"applicationMetaData.earliestPublicationNumber:*{earliestPublicationNumber_q}*"
+                        f"applicationMetaData.earliestPublicationNumber:{earliestPublicationNumber_q}"
                     )
                 if pctPublicationNumber_q:
                     q_parts.append(
-                        f"applicationMetaData.pctPublicationNumber:*{pctPublicationNumber_q}*"
+                        f"applicationMetaData.pctPublicationNumber:{pctPublicationNumber_q}"
                     )
                 if filing_date_from_q and filing_date_to_q:
                     q_parts.append(

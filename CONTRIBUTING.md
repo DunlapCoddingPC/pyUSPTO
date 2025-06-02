@@ -50,11 +50,16 @@ git checkout -b feature/your-feature-name
 
 ```bash
 # Run the test suite
-pytest
+python -m pytest tests/ --cov=pyUSPTO --cov-report=term --cov-report=term-missing -vv
 
 # Run linting and type checking
-flake8
-mypy pyUSPTO
+flake8 src/pyUSPTO --count --select=E9,F63,F7,F82,D100,D101,D102,D103 --show-source --statistics
+mypy ./src/
+
+# Correct Formatting 
+black .
+
+
 ```
 
 ### Submit a Pull Request
@@ -108,6 +113,57 @@ Types include:
 3. The PR should work for Python 3.10 and above
 4. PRs require approval from at least one maintainer
 5. Once approved, a maintainer will merge your PR
+
+## Testing
+
+The library includes unit and integration tests using pytest.
+
+### Running Tests
+
+1. **Run all tests (excluding integration tests)**:
+
+   ```bash
+   python -m pytest pyUSPTO/tests/
+   ```
+
+2. **Run tests with verbose output**:
+
+   ```bash
+   python -m pytest pyUSPTO/tests/ -v
+   ```
+
+3. **Run specific test files**:
+
+   ```bash
+   python -m pytest pyUSPTO/tests/test_base_client.py
+   python -m pytest pyUSPTO/tests/test_bulk_data.py
+   python -m pytest pyUSPTO/tests/test_patent_data.py
+   ```
+
+4. **Run specific test classes or methods**:
+
+   ```bash
+   python -m pytest pyUSPTO/tests/test_bulk_data.py::TestBulkDataClient
+   python -m pytest pyUSPTO/tests/test_bulk_data.py::TestBulkDataClient::test_download_file
+   ```
+
+5. **Run integration tests** (these are skipped by default):
+
+   ```bash
+   # On Windows
+   set ENABLE_INTEGRATION_TESTS=true
+   python -m pytest pyUSPTO/tests/test_integration.py -v
+
+   # On Unix/Linux/macOS
+   ENABLE_INTEGRATION_TESTS=true python -m pytest pyUSPTO/tests/test_integration.py -v
+   ```
+
+6. **Run tests with coverage report**:
+   ```bash
+   python -m pytest pyUSPTO/tests/ --cov=pyUSPTO
+   ```
+
+The tests are designed to use mocking to avoid making real API calls, making them fast and reliable. The integration tests are optional and will make real API calls to the USPTO API if enabled.
 
 ## Versioning
 

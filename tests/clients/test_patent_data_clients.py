@@ -383,12 +383,12 @@ class TestPatentApplicationSearch:
                 "applicationMetaData.cpcClassificationBag:H04L",
             ),
             (
-                {"earliestPublicationNumber_q": "12345678"},
+                {"earliestPublicationNumber_q": "*12345678*"},
                 "applicationMetaData.earliestPublicationNumber:*12345678*",
             ),
             (
                 {"pctPublicationNumber_q": "PCTUS202501234567"},
-                "applicationMetaData.pctPublicationNumber:*PCTUS202501234567*",
+                "applicationMetaData.pctPublicationNumber:PCTUS202501234567",
             ),
             (
                 {"filing_date_from_q": "2021-01-01"},
@@ -1086,7 +1086,7 @@ class TestGetIFW:
             method="GET",
             endpoint="api/v1/patent/applications/search",
             params={
-                "q": f"applicationMetaData.earliestPublicationNumber:*{pub_num}*",
+                "q": f"applicationMetaData.earliestPublicationNumber:{pub_num}",
                 "limit": 1,
                 "offset": 0,
             },
@@ -1135,7 +1135,7 @@ class TestGetIFW:
             method="GET",
             endpoint="api/v1/patent/applications/search",
             params={
-                "q": f"applicationMetaData.pctPublicationNumber:*{pct_pub}*",
+                "q": f"applicationMetaData.pctPublicationNumber:{pct_pub}",
                 "limit": 1,
                 "offset": 0,
             },

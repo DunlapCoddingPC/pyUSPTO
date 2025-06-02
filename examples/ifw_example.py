@@ -36,7 +36,7 @@ if pat_no_ifw and pat_no_ifw.application_meta_data:
 
 
 print("\nGet IFW Based on Publication Number ->")
-pub_no_ifw = client.get_IFW(publication_number="20150157873")
+pub_no_ifw = client.get_IFW(publication_number="*20150157873*")
 if pub_no_ifw and pub_no_ifw.application_meta_data:
     print(pub_no_ifw.application_meta_data.invention_title)
     print(" - IFW Found based on Pub No")
@@ -50,7 +50,7 @@ if pct_app_no_ifw and pct_app_no_ifw.application_meta_data:
 
 
 print("\nGet IFW Based on PCT Pub Number ->")
-pct_pub_no_ifw = client.get_IFW(PCT_pub_number="2009064413")
+pct_pub_no_ifw = client.get_IFW(PCT_pub_number="*2009064413*")
 if pct_pub_no_ifw and pct_pub_no_ifw.application_meta_data:
     print(pct_pub_no_ifw.application_meta_data.invention_title)
     print(" - IFW Found based on PCT Pub No")
@@ -59,18 +59,18 @@ print("Now let's download the Patent Publication Text -->")
 if app_no_ifw and app_no_ifw.pgpub_document_meta_data:
     pgpub_archive = app_no_ifw.pgpub_document_meta_data
     print(pgpub_archive)
-    print(app_no_ifw.grant_document_meta_data)
     download_path = "./download-example"
     file_path = client.download_archive(
         printed_metadata=pgpub_archive, destination_path=download_path, overwrite=True
     )
-    print(f"Downloaded document to: {file_path}")
+    print(f"-Downloaded document to: {file_path}")
 
 print("Now let's download the Patent Grant Text -->")
 if app_no_ifw and app_no_ifw.grant_document_meta_data:
     grant_archive = app_no_ifw.grant_document_meta_data
+    print(grant_archive)
     download_path = "./download-example"
     file_path = client.download_archive(
         printed_metadata=grant_archive, destination_path=download_path, overwrite=True
     )
-    print(f"Downloaded document to: {file_path}")
+    print(f"-Downloaded document to: {file_path}")
