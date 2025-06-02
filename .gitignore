@@ -14,3 +14,4 @@ info/ODP-API-Query-Spec.pdf
 .pytest_cache/
 src/pyUSPTO/_version.py
 download-example/*
+dist/
