@@ -5,7 +5,7 @@
 
 A Python client library for interacting with the USPTO APIs.
 
-This package provides clients for interacting with both the USPTO Bulk Data API and the USPTO Patent Data API. It features comprehensive type hints and docstrings for improved developer experience.
+This package provides clients for interacting with both the USPTO Bulk Data API and the USPTO Patent Data API.
 
 ## Quick Start
 
@@ -64,13 +64,12 @@ print(f"Found {inventor_search.count} applications with 'Smith' as inventor")
 ## Features
 
 - Access to both USPTO Bulk Data API and Patent Data API
-- Search for products and patents using various filters
+- Search for patent applications using various filters
 - Download files and documents from the APIs
-
 
 ## Data Models
 
-The library uses Python dataclasses to represent API responses. All data models include proper type annotations for attributes and methods, making them fully compatible with static type checkers.
+The library uses Python dataclasses to represent API responses. All data models include  type annotations for attributes and methods, making them fully compatible with static type checkers.
 
 ### Bulk Data API
 
