@@ -98,7 +98,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.
-
----
-
-**For badges**: You'll need to add these to the top of your README after the title:
