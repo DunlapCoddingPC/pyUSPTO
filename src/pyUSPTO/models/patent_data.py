@@ -179,7 +179,7 @@ def serialize_bool_to_yn(value: Optional[bool]) -> Optional[str]:
         Optional[str]: "Y" if `value` is True, "N" if `value` is False.
             Returns None if `value` is None.
     """
-    
+
     if value is None:
         return None
     return "Y" if value else "N"
@@ -544,7 +544,7 @@ class Address:
         Returns:
             Dict[str, Any]: A dictionary representation of the address.
         """
-        
+
         return {
             "nameLineOneText": self.name_line_one_text,
             "nameLineTwoText": self.name_line_two_text,
