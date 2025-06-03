@@ -1,9 +1,12 @@
 """
 models.patent_data - Data models for USPTO patent data API
 
-This module provides data models for the USPTO Patent Data API,
-enhanced with more Pythonic features like immutability, Enums,
-and native date/datetime objects.
+This module provides Pydantic-style data models, primarily using frozen
+dataclasses, for representing responses from the USPTO Patent Data API.
+It aims to offer more Pythonic representations (e.g., Enums, native
+date/datetime objects) of the API's JSON data. Models cover aspects like
+application metadata, party information (applicants, inventors, attorneys),
+document details, continuity, assignments, and more.
 """
 
 import csv
@@ -27,6 +30,19 @@ except ZoneInfoNotFoundError:
 
 
 def parse_to_date(date_str: Optional[str], fmt: str = "%Y-%m-%d") -> Optional[date]:
+    """Parses a string representation of a date into a date object.
+
+    Args:
+        date_str (Optional[str]): The string to parse as a date.
+        fmt (str, optional): The expected strptime format string for parsing
+            the date. Defaults to "%Y-%m-%d".
+
+    Returns:
+        Optional[date]: A date object if parsing is successful and `date_str`
+            is not None. Returns None if `date_str` is None or if parsing fails,
+            printing a warning in case of failure.
+    """
+
     if not date_str:
         return None
     try:
@@ -37,6 +53,24 @@ def parse_to_date(date_str: Optional[str], fmt: str = "%Y-%m-%d") -> Optional[da
 
 
 def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
+    """Parses a string representation of a datetime into a UTC datetime object.
+
+    Attempts to parse ISO format strings. If the input string contains timezone
+    information, it's used. If the string is a naive datetime (no timezone),
+    it's assumed to be in the `ASSUMED_NAIVE_TIMEZONE` (e.g., "America/New_York")
+    and then converted to UTC.
+
+    Args:
+        datetime_str (Optional[str]): The string to parse as a datetime.
+            Supports ISO 8601 format, including those ending with "Z".
+
+    Returns:
+        Optional[datetime]: A timezone-aware datetime object in UTC if parsing
+            is successful and `datetime_str` is not None. Returns None if
+            `datetime_str` is None or if parsing/conversion fails (in which
+            case warnings may be printed).
+    """
+
     if not datetime_str:
         return None
     dt_obj: Optional[datetime] = None
@@ -72,10 +106,36 @@ def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
 
 
 def serialize_date(d: Optional[date]) -> Optional[str]:
+    """Serializes a date object into an ISO 8601 string (YYYY-MM-DD).
+
+    Args:
+        d (Optional[date]): The date object to serialize.
+
+    Returns:
+        Optional[str]: The date as an ISO 8601 formatted string, or None
+            if the input is None.
+    """
     return d.isoformat() if d else None
 
 
 def serialize_datetime_as_iso(dt: Optional[datetime]) -> Optional[str]:
+    """Serializes a datetime object to an ISO 8601 string in UTC, using 'Z'.
+
+    If the input datetime object is timezone-aware, it is converted to UTC.
+    If it is naive (lacks timezone information), it is assumed to be UTC.
+    The resulting UTC datetime is then formatted as an ISO 8601 string,
+    with the UTC timezone explicitly indicated by 'Z'.
+
+    Args:
+        dt (Optional[datetime]): The datetime object to serialize.
+            Can be naive or timezone-aware.
+
+    Returns:
+        Optional[str]: The datetime as a UTC ISO 8601 formatted string
+            (e.g., "YYYY-MM-DDTHH:MM:SS.ffffffZ" or "YYYY-MM-DDTHH:MM:SSZ"),
+            or None if the input `dt` is None.
+    """
+
     if not dt:
         return None
     dt_utc = (
@@ -85,7 +145,18 @@ def serialize_datetime_as_iso(dt: Optional[datetime]) -> Optional[str]:
 
 
 def parse_yn_to_bool(value: Optional[str]) -> Optional[bool]:
-    """Converts 'Y'/'N' (case-insensitive) string to boolean. Returns None if input is None or not Y/N."""
+    """Converts a 'Y'/'N' (case-insensitive) string to a boolean.
+
+    Args:
+        value (Optional[str]): The string value to convert. Expected to be
+            'Y', 'y', 'N', or 'n'.
+
+    Returns:
+        Optional[bool]: True if `value` is 'Y' or 'y', False if `value` is
+            'N' or 'n'. Returns None if `value` is None or any other string
+            (in which case a warning is printed for unexpected strings).
+    """
+
     if value is None:
         return None
     if value.upper() == "Y":
@@ -99,14 +170,32 @@ def parse_yn_to_bool(value: Optional[str]) -> Optional[bool]:
 
 
 def serialize_bool_to_yn(value: Optional[bool]) -> Optional[str]:
-    """Converts boolean to 'Y'/'N' string. Returns None if input is None."""
+    """Converts a boolean value to its 'Y'/'N' string representation.
+
+    Args:
+        value (Optional[bool]): The boolean value to convert.
+
+    Returns:
+        Optional[str]: "Y" if `value` is True, "N" if `value` is False.
+            Returns None if `value` is None.
+    """
+    
     if value is None:
         return None
     return "Y" if value else "N"
 
 
-# --- Data Models ---
 def to_camel_case(snake_str: str) -> str:
+    """Converts a snake_case string to lowerCamelCase.
+
+    For example, "example_snake_string" becomes "exampleSnakeString".
+
+    Args:
+        snake_str (str): The input string in snake_case.
+
+    Returns:
+        str: The converted string in lowerCamelCase.
+    """
     parts = snake_str.split("_")
     return parts[0] + "".join(x.title() for x in parts[1:])
 
@@ -120,7 +209,12 @@ class DirectionCategory(Enum):
 
 
 class ActiveIndicator(Enum):
-    """Represents an active or inactive status, often used for practitioners or entities."""
+    """Represents an active or inactive status, often used for practitioners or entities.
+
+    This Enum is designed to flexibly parse common string representations of
+    active/inactive or true/false states (e.g., "Y", "N", "true", "false", "Active")
+    into standardized Enum members.
+    """
 
     YES = "Y"
     NO = "N"
@@ -145,6 +239,7 @@ class ActiveIndicator(Enum):
         return super()._missing_(value=value)  # type: ignore[no-any-return]
 
 
+# --- Data Models ---
 @dataclass(frozen=True)
 class DocumentFormat:
     """Represents an available download format for a specific document.
@@ -169,6 +264,22 @@ class DocumentFormat:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DocumentFormat":
+        """Creates a `DocumentFormat` instance from a dictionary representation.
+
+        This factory method is typically used to construct `DocumentFormat`
+        objects from data parsed from an API JSON response. It maps
+        dictionary keys (expected in camelCase) to the class attributes.
+
+        Args:
+            data (Dict[str, Any]): A dictionary containing the data for a
+                `DocumentFormat`. Expected keys from the API are
+                "mimeTypeIdentifier", "downloadUrl", and "pageTotalQuantity".
+
+        Returns:
+            DocumentFormat: An instance of `DocumentFormat` initialized with
+                data from the input dictionary.
+        """
+
         return cls(
             mime_type_identifier=data.get("mimeTypeIdentifier"),
             download_url=data.get("downloadUrl"),
@@ -176,6 +287,18 @@ class DocumentFormat:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `DocumentFormat` instance to a dictionary.
+
+        This method serializes the `DocumentFormat` object into a dictionary,
+        mapping the instance's attributes to camelCase keys. This is typically
+        useful for generating JSON representations compatible with API expectations.
+
+        Returns:
+            Dict[str, Any]: A dictionary representation of the `DocumentFormat`
+                instance with keys "mimeTypeIdentifier", "downloadUrl", and
+                "pageTotalQuantity".
+        """
+
         return {
             "mimeTypeIdentifier": self.mime_type_identifier,
             "downloadUrl": self.download_url,
@@ -189,6 +312,15 @@ class Document:
 
     This includes metadata such as its identifier, official date, code, description,
     direction (incoming/outgoing), and available download formats.
+
+    Attributes:
+        application_number_text: The application number this document belongs to.
+        official_date: The official date of the document.
+        document_identifier: A unique identifier for this document.
+        document_code: A code representing the type of document.
+        document_code_description_text: A textual description of the document code.
+        direction_category: The direction of the document (e.g., INCOMING, OUTGOING).
+        document_formats: A list of available download formats for this document.
     """
 
     application_number_text: Optional[str] = None
@@ -210,6 +342,19 @@ class Document:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Document":
+        """Creates a `Document` instance from a dictionary representation.
+
+        Maps API JSON keys (camelCase) to class attributes, parsing nested
+        objects like `DocumentFormat` and `DirectionCategory`.
+
+        Args:
+            data (Dict[str, Any]): A dictionary containing document data,
+                typically from an API response.
+
+        Returns:
+            Document: An instance of `Document`.
+        """
+
         dl_formats = [
             DocumentFormat.from_dict(f)
             for f in data.get("downloadOptionBag", [])
@@ -233,6 +378,15 @@ class Document:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `Document` instance to a dictionary for API compatibility.
+
+        Serializes attributes to camelCase keys and handles nested objects.
+        Omits keys with None values or empty lists.
+
+        Returns:
+            Dict[str, Any]: A dictionary representation of the `Document`.
+        """
+
         d = {
             "applicationNumberText": self.application_number_text,
             "officialDate": serialize_datetime_as_iso(self.official_date),
@@ -254,14 +408,24 @@ class Document:
 class DocumentBag:
     """A collection of Document objects associated with a patent application.
 
-    Provides iterable access to the documents.
+    Provides iterable access and standard collection methods like `len` and `getitem`.
+    This class is immutable by convention after initialization.
+
+    Attributes:
+        documents (tuple[Document, ...]): An immutable tuple of `Document` objects.
     """
 
     def __init__(self, documents: List[Document]):
+        """Initializes the DocumentBag with a list of documents.
+
+        Args:
+            documents (List[Document]): A list of `Document` instances.
+        """
         self._documents = tuple(documents)
 
     @property
     def documents(self) -> tuple[Document, ...]:
+        """Provides access to the tuple of documents."""
         return self._documents
 
     def __iter__(self) -> Iterator[Document]:
@@ -275,6 +439,18 @@ class DocumentBag:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DocumentBag":
+        """Creates a `DocumentBag` instance from a dictionary representation.
+
+        Expects a dictionary with a "documentBag" key containing a list of
+        document data dictionaries.
+
+        Args:
+            data (Dict[str, Any]): A dictionary, typically from an API response,
+                containing the document bag.
+
+        Returns:
+            DocumentBag: An instance of `DocumentBag`.
+        """
         docs_data = data.get("documentBag", [])
         docs = (
             [Document.from_dict(dd) for dd in docs_data if isinstance(dd, dict)]
@@ -284,6 +460,14 @@ class DocumentBag:
         return cls(documents=docs)
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `DocumentBag` instance to a dictionary.
+
+        Serializes the collection into a dictionary with a "documentBag" key,
+        containing a list of `Document` dictionaries.
+
+        Returns:
+            Dict[str, Any]: A dictionary representation of the `DocumentBag`.
+        """
         return {"documentBag": [doc.to_dict() for doc in self._documents]}
 
 
@@ -292,6 +476,22 @@ class Address:
     """Represents a postal address with fields for street, city, region, country, and postal code.
 
     It can be used for various entities like applicants, inventors, or correspondence.
+
+    Attributes:
+        name_line_one_text: First line of the name (e.g., company name).
+        name_line_two_text: Second line of the name.
+        address_line_one_text: First line of the street address.
+        address_line_two_text: Second line of the street address.
+        address_line_three_text: Third line of the street address.
+        address_line_four_text: Fourth line of the street address.
+        geographic_region_name: Name of the geographic region (e.g., state, province).
+        geographic_region_code: Code for the geographic region.
+        postal_code: Postal or ZIP code.
+        city_name: Name of the city.
+        country_code: Two-letter country code (e.g., "US").
+        country_name: Full name of the country (e.g., "United States").
+        postal_address_category: Category of the address (e.g., "MAILING_ADDRESS").
+        correspondent_name_text: Name of the correspondent at this address.
     """
 
     name_line_one_text: Optional[str] = None
@@ -311,6 +511,16 @@ class Address:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Address":
+        """Creates an `Address` instance from a dictionary representation.
+
+        Maps camelCase keys from API data to class attributes.
+
+        Args:
+            data (Dict[str, Any]): Dictionary containing address data.
+
+        Returns:
+            Address: An instance of `Address`.
+        """
         return cls(
             name_line_one_text=data.get("nameLineOneText"),
             name_line_two_text=data.get("nameLineTwoText"),
@@ -329,6 +539,12 @@ class Address:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `Address` instance to a dictionary with camelCase keys.
+
+        Returns:
+            Dict[str, Any]: A dictionary representation of the address.
+        """
+        
         return {
             "nameLineOneText": self.name_line_one_text,
             "nameLineTwoText": self.name_line_two_text,
@@ -363,6 +579,14 @@ class Telecommunication:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Telecommunication":
+        """Creates a `Telecommunication` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with telecommunication data.
+
+        Returns:
+            Telecommunication: An instance of `Telecommunication`.
+        """
         return cls(
             telecommunication_number=data.get("telecommunicationNumber"),
             extension_number=data.get("extensionNumber"),
@@ -370,6 +594,11 @@ class Telecommunication:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `Telecommunication` instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation with camelCase keys.
+        """
         return {
             "telecommunicationNumber": self.telecommunication_number,
             "extensionNumber": self.extension_number,
@@ -382,6 +611,15 @@ class Person:
     """A base data class representing a person with common name and country attributes.
 
     This class is typically inherited by more specific types like Applicant, Inventor, or Attorney.
+
+    Attributes:
+        first_name: The first name of the person.
+        middle_name: The middle name or initial of the person.
+        last_name: The last name or surname of the person.
+        name_prefix: A prefix for the name (e.g., "Dr.", "Mr.").
+        name_suffix: A suffix for the name (e.g., "Jr.", "PhD").
+        preferred_name: The person's preferred name, if different.
+        country_code: The country code associated with the person (e.g., citizenship).
     """
 
     first_name: Optional[str] = None
@@ -405,6 +643,13 @@ class Person:
         }
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `Person` instance to a dictionary with camelCase keys.
+
+        Omits attributes that are None.
+
+        Returns:
+            Dict[str, Any]: A dictionary representation of the person.
+        """
         return {to_camel_case(k): v for k, v in asdict(self).items() if v is not None}
 
 
@@ -413,6 +658,10 @@ class Applicant(Person):
     """Represents an applicant for a patent, inheriting from Person.
 
     Includes applicant-specific name text and a list of correspondence addresses.
+
+    Attributes:
+        applicant_name_text: The full name of the applicant as a single string.
+        correspondence_address_bag: A list of `Address` objects for the applicant.
     """
 
     applicant_name_text: Optional[str] = None
@@ -420,6 +669,16 @@ class Applicant(Person):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Applicant":
+        """Creates an `Applicant` instance from a dictionary.
+
+        Inherits person fields and adds applicant-specific fields.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with applicant data.
+
+        Returns:
+            Applicant: An instance of `Applicant`.
+        """
         pf = Person._extract_person_fields(data)
         addrs = [
             Address.from_dict(a)
@@ -433,6 +692,14 @@ class Applicant(Person):
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `Applicant` instance to a dictionary.
+
+        Includes inherited person fields and applicant-specific fields,
+        using camelCase keys and omitting None values or empty lists.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation of the applicant.
+        """
         d = super().to_dict()
         d.update(
             {
@@ -454,6 +721,10 @@ class Inventor(Person):
     """Represents an inventor for a patent application, inheriting from Person.
 
     Includes inventor-specific name text and a list of correspondence addresses.
+
+    Attributes:
+        inventor_name_text: The full name of the inventor as a single string.
+        correspondence_address_bag: A list of `Address` objects for the inventor.
     """
 
     inventor_name_text: Optional[str] = None
@@ -461,6 +732,16 @@ class Inventor(Person):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Inventor":
+        """Creates an `Inventor` instance from a dictionary.
+
+        Inherits person fields and adds inventor-specific fields.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with inventor data.
+
+        Returns:
+            Inventor: An instance of `Inventor`.
+        """
         pf = Person._extract_person_fields(data)
         addrs = [
             Address.from_dict(a)
@@ -474,6 +755,14 @@ class Inventor(Person):
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `Inventor` instance to a dictionary.
+
+        Includes inherited person fields and inventor-specific fields,
+        using camelCase keys and omitting None values or empty lists.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation of the inventor.
+        """
         d = super().to_dict()
         d.update(
             {
@@ -495,6 +784,13 @@ class Attorney(Person):
     """Represents an attorney or agent associated with a patent application, inheriting from Person.
 
     Includes registration number, active status, practitioner category, addresses, and telecommunication details.
+
+    Attributes:
+        registration_number: The attorney's USPTO registration number.
+        active_indicator: Indicates if the attorney is currently active (e.g., "Y", "N").
+        registered_practitioner_category: Category of the practitioner (e.g., "ATTORNEY", "AGENT").
+        attorney_address_bag: List of `Address` objects for the attorney.
+        telecommunication_address_bag: List of `Telecommunication` objects for the attorney.
     """
 
     registration_number: Optional[str] = None
@@ -505,6 +801,16 @@ class Attorney(Person):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Attorney":
+        """Creates an `Attorney` instance from a dictionary.
+
+        Inherits person fields and adds attorney-specific details.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with attorney data.
+
+        Returns:
+            Attorney: An instance of `Attorney`.
+        """
         pf = Person._extract_person_fields(data)
         addrs = [
             Address.from_dict(a)
@@ -526,6 +832,14 @@ class Attorney(Person):
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `Attorney` instance to a dictionary.
+
+        Includes inherited person fields and attorney-specific fields,
+        using camelCase keys and omitting None values or empty lists.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation of the attorney.
+        """
         d = super().to_dict()
         d.update(
             {
@@ -559,12 +873,25 @@ class EntityStatus:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "EntityStatus":
+        """Creates an `EntityStatus` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with entity status data.
+
+        Returns:
+            EntityStatus: An instance of `EntityStatus`.
+        """
         return cls(
             small_entity_status_indicator=data.get("smallEntityStatusIndicator"),
             business_entity_status_category=data.get("businessEntityStatusCategory"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `EntityStatus` instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation with camelCase keys.
+        """
         return {
             "smallEntityStatusIndicator": self.small_entity_status_indicator,
             "businessEntityStatusCategory": self.business_entity_status_category,
@@ -576,6 +903,12 @@ class CustomerNumberCorrespondence:
     """Represents correspondence data associated with a USPTO customer number.
 
     Includes patron identifier, organization name, power of attorney addresses, and telecommunication details.
+
+    Attributes:
+        patron_identifier: The USPTO customer number.
+        organization_standard_name: The name of the organization associated with the customer number.
+        power_of_attorney_address_bag: List of `Address` objects for power of attorney.
+        telecommunication_address_bag: List of `Telecommunication` objects.
     """
 
     patron_identifier: Optional[int] = None
@@ -585,6 +918,14 @@ class CustomerNumberCorrespondence:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CustomerNumberCorrespondence":
+        """Creates a `CustomerNumberCorrespondence` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with customer number correspondence data.
+
+        Returns:
+            CustomerNumberCorrespondence: An instance of `CustomerNumberCorrespondence`.
+        """
         addrs = [
             Address.from_dict(a)
             for a in data.get("powerOfAttorneyAddressBag", [])
@@ -603,6 +944,13 @@ class CustomerNumberCorrespondence:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `CustomerNumberCorrespondence` instance to a dictionary.
+
+        Omits keys with None values or empty lists.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation.
+        """
         d = {
             "patronIdentifier": self.patron_identifier,
             "organizationStandardName": self.organization_standard_name,
@@ -625,6 +973,11 @@ class RecordAttorney:
     """Represents information about the attorney(s) of record for a patent application.
 
     Contains customer number correspondence data, power of attorney information, and listed attorneys.
+
+    Attributes:
+        customer_number_correspondence_data: List of `CustomerNumberCorrespondence` objects.
+        power_of_attorney_bag: List of `Attorney` objects named in a power of attorney.
+        attorney_bag: List of `Attorney` objects listed as attorneys of record.
     """
 
     customer_number_correspondence_data: List[CustomerNumberCorrespondence] = field(
@@ -635,6 +988,14 @@ class RecordAttorney:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "RecordAttorney":
+        """Creates a `RecordAttorney` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with record attorney data.
+
+        Returns:
+            RecordAttorney: An instance of `RecordAttorney`.
+        """
         cust_corr = [
             CustomerNumberCorrespondence.from_dict(c)
             for c in data.get("customerNumberCorrespondenceData", [])
@@ -657,6 +1018,13 @@ class RecordAttorney:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `RecordAttorney` instance to a dictionary.
+
+        Omits keys with None values or empty lists.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation.
+        """
         d = {
             "customerNumberCorrespondenceData": [
                 c.to_dict() for c in self.customer_number_correspondence_data
@@ -685,12 +1053,25 @@ class Assignor:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Assignor":
+        """Creates an `Assignor` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with assignor data.
+
+        Returns:
+            Assignor: An instance of `Assignor`.
+        """
         return cls(
             assignor_name=data.get("assignorName"),
             execution_date=parse_to_date(data.get("executionDate")),
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `Assignor` instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation with camelCase keys.
+        """
         return {
             "assignorName": self.assignor_name,
             "executionDate": serialize_date(self.execution_date),
@@ -703,7 +1084,7 @@ class Assignee:
 
     Attributes:
         assignee_name_text: The name of the party receiving the assignment.
-        assignee_address: The address of the assignee.
+        assignee_address: The `Address` of the assignee.
     """
 
     assignee_name_text: Optional[str] = None
@@ -711,6 +1092,14 @@ class Assignee:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Assignee":
+        """Creates an `Assignee` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with assignee data.
+
+        Returns:
+            Assignee: An instance of `Assignee`.
+        """
         addr_data = data.get("assigneeAddress")
         addr = Address.from_dict(addr_data) if isinstance(addr_data, dict) else None
         return cls(
@@ -718,6 +1107,13 @@ class Assignee:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `Assignee` instance to a dictionary.
+
+        Omits keys with None values.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation.
+        """
         d = {
             "assigneeNameText": self.assignee_name_text,
             "assigneeAddress": (
@@ -733,6 +1129,19 @@ class Assignment:
 
     Includes information about the reel and frame, document location, dates, conveyance text,
     and bags of assignors, assignees, and correspondence addresses.
+
+    Attributes:
+        reel_number: Reel number for the assignment record.
+        frame_number: Frame number for the assignment record.
+        reel_and_frame_number: Combined reel and frame number.
+        assignment_document_location_uri: URI for the assignment document.
+        assignment_received_date: Date the assignment was received by USPTO.
+        assignment_recorded_date: Date the assignment was recorded by USPTO.
+        assignment_mailed_date: Date the assignment notification was mailed.
+        conveyance_text: Text describing the nature of the conveyance.
+        assignor_bag: List of `Assignor` objects.
+        assignee_bag: List of `Assignee` objects.
+        correspondence_address_bag: List of `Address` objects for correspondence.
     """
 
     reel_number: Optional[str] = None
@@ -749,6 +1158,14 @@ class Assignment:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Assignment":
+        """Creates an `Assignment` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with assignment data.
+
+        Returns:
+            Assignment: An instance of `Assignment`.
+        """
         assignors = [
             Assignor.from_dict(a)
             for a in data.get("assignorBag", [])
@@ -779,6 +1196,11 @@ class Assignment:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `Assignment` instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation with camelCase keys.
+        """
         return {
             "reelNumber": self.reel_number,
             "frameNumber": self.frame_number,
@@ -812,6 +1234,14 @@ class ForeignPriority:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ForeignPriority":
+        """Creates a `ForeignPriority` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with foreign priority data.
+
+        Returns:
+            ForeignPriority: An instance of `ForeignPriority`.
+        """
         return cls(
             ip_office_name=data.get("ipOfficeName"),
             filing_date=parse_to_date(data.get("filingDate")),
@@ -819,6 +1249,11 @@ class ForeignPriority:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `ForeignPriority` instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation with camelCase keys.
+        """
         return {
             "ipOfficeName": self.ip_office_name,
             "filingDate": serialize_date(self.filing_date),
@@ -832,6 +1267,16 @@ class Continuity:
 
     This includes details about the application's relationship to other applications (parent/child),
     its filing status under AIA (America Invents Act), and key identifiers.
+
+    Attributes:
+        first_inventor_to_file_indicator: Boolean indicating if the application is under First-Inventor-to-File provisions.
+        application_number_text: The application number of the related (parent or child) application.
+        filing_date: The filing date of the related application.
+        status_code: The status code of the related application.
+        status_description_text: The status description of the related application.
+        patent_number: The patent number if the related application is granted.
+        claim_parentage_type_code: Code indicating the type of continuity claim (e.g., "CON", "DIV").
+        claim_parentage_type_code_description_text: Description of the continuity claim type.
     """
 
     first_inventor_to_file_indicator: Optional[bool] = None
@@ -845,15 +1290,25 @@ class Continuity:
 
     @property
     def is_aia(self) -> Optional[bool]:
+        """Returns True if the application is AIA, False if pre-AIA, None if unknown."""
         return self.first_inventor_to_file_indicator
 
     @property
     def is_pre_aia(self) -> Optional[bool]:
+        """Returns True if the application is pre-AIA, False if AIA, None if unknown."""
         if self.first_inventor_to_file_indicator is None:
             return None
         return not self.first_inventor_to_file_indicator
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `Continuity` instance to a dictionary.
+
+        Omits attributes that are None and property-derived fields.
+        Keys are converted to camelCase.
+
+        Returns:
+            Dict[str, Any]: A dictionary representation of the continuity data.
+        """
         return {
             to_camel_case(k): v
             for k, v in asdict(self).items()
@@ -866,6 +1321,14 @@ class ParentContinuity(Continuity):
     """Represents a parent application in a patent application's continuity chain.
 
     Inherits from Continuity and adds specific fields for parent application details.
+
+    Attributes:
+        parent_application_status_code: Status code of the parent application.
+        parent_patent_number: Patent number of the parent application, if granted.
+        parent_application_status_description_text: Status description of the parent application.
+        parent_application_filing_date: Filing date of the parent application.
+        parent_application_number_text: Application number of the parent application.
+        child_application_number_text: Application number of the child (current) application.
     """
 
     parent_application_status_code: Optional[int] = None
@@ -877,6 +1340,14 @@ class ParentContinuity(Continuity):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ParentContinuity":
+        """Creates a `ParentContinuity` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with parent continuity data.
+
+        Returns:
+            ParentContinuity: An instance of `ParentContinuity`.
+        """
         p_filing_date = parse_to_date(data.get("parentApplicationFilingDate"))
         return cls(
             first_inventor_to_file_indicator=data.get("firstInventorToFileIndicator"),
@@ -900,6 +1371,13 @@ class ParentContinuity(Continuity):
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `ParentContinuity` instance to a dictionary.
+
+        Maps attributes to specific camelCase keys expected by the API for parent continuity.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation.
+        """
         return {
             "firstInventorToFileIndicator": self.first_inventor_to_file_indicator,
             "parentApplicationStatusCode": self.parent_application_status_code,
@@ -920,6 +1398,14 @@ class ChildContinuity(Continuity):
     """Represents a child application in a patent application's continuity chain.
 
     Inherits from Continuity and adds specific fields for child application details.
+
+    Attributes:
+        child_application_status_code: Status code of the child application.
+        parent_application_number_text: Application number of the parent (current) application.
+        child_application_number_text: Application number of the child application.
+        child_application_status_description_text: Status description of the child application.
+        child_application_filing_date: Filing date of the child application.
+        child_patent_number: Patent number of the child application, if granted.
     """
 
     child_application_status_code: Optional[int] = None
@@ -931,6 +1417,14 @@ class ChildContinuity(Continuity):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ChildContinuity":
+        """Creates a `ChildContinuity` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with child continuity data.
+
+        Returns:
+            ChildContinuity: An instance of `ChildContinuity`.
+        """
         c_filing_date = parse_to_date(data.get("childApplicationFilingDate"))
         return cls(
             first_inventor_to_file_indicator=data.get("firstInventorToFileIndicator"),
@@ -954,6 +1448,13 @@ class ChildContinuity(Continuity):
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `ChildContinuity` instance to a dictionary.
+
+        Maps attributes to specific camelCase keys expected by the API for child continuity.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation.
+        """
         return {
             "childApplicationStatusCode": self.child_application_status_code,
             "parentApplicationNumberText": self.parent_application_number_text,
@@ -974,6 +1475,15 @@ class PatentTermAdjustmentHistoryData:
     """Represents a single entry in the patent term adjustment (PTA) history for an application.
 
     Details specific events, dates, and day quantities affecting the patent term.
+
+    Attributes:
+        event_date: Date of the PTA event.
+        applicant_day_delay_quantity: Number of days of delay attributable to the applicant for this event.
+        event_description_text: Textual description of the PTA event.
+        event_sequence_number: Sequence number of this event in the PTA history.
+        ip_office_day_delay_quantity: Number of days of delay attributable to the IP office for this event.
+        originating_event_sequence_number: Sequence number of an event that originated this event.
+        pta_pte_code: Code indicating if the event relates to PTA or Patent Term Extension (PTE).
     """
 
     event_date: Optional[date] = None
@@ -986,6 +1496,14 @@ class PatentTermAdjustmentHistoryData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PatentTermAdjustmentHistoryData":
+        """Creates a `PatentTermAdjustmentHistoryData` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with PTA history event data.
+
+        Returns:
+            PatentTermAdjustmentHistoryData: An instance of `PatentTermAdjustmentHistoryData`.
+        """
         return cls(
             event_date=parse_to_date(data.get("eventDate")),
             applicant_day_delay_quantity=data.get("applicantDayDelayQuantity"),
@@ -999,6 +1517,13 @@ class PatentTermAdjustmentHistoryData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `PatentTermAdjustmentHistoryData` instance to a dictionary.
+
+        Omits keys with None values.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation with camelCase keys.
+        """
         final_dict: Dict[str, Any] = {}
         if self.event_date is not None:
             final_dict["eventDate"] = serialize_date(self.event_date)
@@ -1025,6 +1550,19 @@ class PatentTermAdjustmentData:
 
     Includes various delay quantities (A, B, C, applicant, IP office), total adjustment,
     and a history of PTA events.
+
+    Attributes:
+        a_delay_quantity: Number of days of 'A' delay.
+        adjustment_total_quantity: Total calculated PTA in days.
+        applicant_day_delay_quantity: Total days of delay attributable to the applicant.
+        b_delay_quantity: Number of days of 'B' delay.
+        c_delay_quantity: Number of days of 'C' delay.
+        filing_date: The filing date of the application.
+        grant_date: The grant date of the patent.
+        non_overlapping_day_quantity: Number of non-overlapping delay days.
+        overlapping_day_quantity: Number of overlapping delay days.
+        ip_office_day_delay_quantity: Total days of delay attributable to the IP office.
+        patent_term_adjustment_history_data_bag: List of `PatentTermAdjustmentHistoryData` events.
     """
 
     a_delay_quantity: Optional[float] = None
@@ -1043,6 +1581,14 @@ class PatentTermAdjustmentData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PatentTermAdjustmentData":
+        """Creates a `PatentTermAdjustmentData` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with PTA data.
+
+        Returns:
+            PatentTermAdjustmentData: An instance of `PatentTermAdjustmentData`.
+        """
         history = [
             PatentTermAdjustmentHistoryData.from_dict(h)
             for h in data.get("patentTermAdjustmentHistoryDataBag", [])
@@ -1063,6 +1609,13 @@ class PatentTermAdjustmentData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `PatentTermAdjustmentData` instance to a dictionary.
+
+        Omits keys with None values or empty lists, and converts field names to camelCase.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation.
+        """
         d = asdict(self)
         d["filingDate"] = serialize_date(self.filing_date)
         d["grantDate"] = serialize_date(self.grant_date)
@@ -1092,6 +1645,14 @@ class EventData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "EventData":
+        """Creates an `EventData` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with event data.
+
+        Returns:
+            EventData: An instance of `EventData`.
+        """
         return cls(
             event_code=data.get("eventCode"),
             event_description_text=data.get("eventDescriptionText"),
@@ -1099,6 +1660,13 @@ class EventData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `EventData` instance to a dictionary.
+
+        Omits keys with None values and converts field names to camelCase.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation.
+        """
         d = asdict(self)
         d["eventDate"] = serialize_date(self.event_date)
         return {to_camel_case(k): v for k, v in d.items() if v is not None}
@@ -1112,7 +1680,7 @@ class PrintedMetaData:
         zip_file_name: The name of the ZIP archive.
         product_identifier: An identifier for the data product (e.g., "APPXML", "PTGRXML").
         file_location_uri: The URI where the document file can be accessed.
-        file_create_date_time: The creation timestamp of the document file.
+        file_create_date_time: The creation timestamp of the document file (UTC).
         xml_file_name: The name of the XML file within the ZIP archive.
     """
 
@@ -1124,6 +1692,14 @@ class PrintedMetaData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PrintedMetaData":
+        """Creates a `PrintedMetaData` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with printed metadata.
+
+        Returns:
+            PrintedMetaData: An instance of `PrintedMetaData`.
+        """
         return cls(
             zip_file_name=data.get("zipFileName"),
             product_identifier=data.get("productIdentifier"),
@@ -1133,6 +1709,13 @@ class PrintedMetaData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `PrintedMetaData` instance to a dictionary.
+
+        Omits keys with None values. Serializes datetime to ISO format with 'Z'.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation with camelCase keys.
+        """
         final_dict: Dict[str, Any] = {}
         if self.zip_file_name is not None:
             final_dict["zipFileName"] = self.zip_file_name
@@ -1156,6 +1739,45 @@ class ApplicationMetaData:
     This class holds a wide range of information including application status,
     dates (filing, grant, publication), applicant and inventor details,
     classification data, and other identifying information.
+
+    Attributes:
+        national_stage_indicator: Indicates if the application is a national stage entry.
+        entity_status_data: `EntityStatus` object detailing applicant's entity status.
+        publication_date_bag: List of publication dates.
+        publication_sequence_number_bag: List of publication sequence numbers.
+        publication_category_bag: List of publication categories.
+        docket_number: Applicant's or attorney's docket number.
+        first_inventor_to_file_indicator: Boolean indicating if under First-Inventor-to-File.
+        first_applicant_name: Name of the first listed applicant.
+        first_inventor_name: Name of the first listed inventor.
+        application_confirmation_number: USPTO confirmation number for the application.
+        application_status_date: Date the current application status was set.
+        application_status_description_text: Textual description of the current application status.
+        filing_date: Official filing date of the application.
+        effective_filing_date: Effective filing date, considering priority claims.
+        grant_date: Date the patent was granted, if applicable.
+        group_art_unit_number: USPTO Group Art Unit number.
+        application_type_code: Code for the application type.
+        application_type_label_name: Label for the application type (e.g., "Utility").
+        application_type_category: Category of the application type.
+        invention_title: Title of the invention.
+        patent_number: USPTO patent number, if granted.
+        application_status_code: Numeric code for the application status.
+        earliest_publication_number: Number of the earliest pre-grant publication.
+        earliest_publication_date: Date of the earliest pre-grant publication.
+        pct_publication_number: PCT publication number, if applicable.
+        pct_publication_date: PCT publication date, if applicable.
+        international_registration_publication_date: Date of international registration publication.
+        international_registration_number: International registration number.
+        examiner_name_text: Name of the patent examiner.
+        class_field: USPC main classification. (Named `class_field` to avoid keyword clash).
+        subclass: USPC subclass.
+        uspc_symbol_text: Full USPC classification symbol.
+        customer_number: USPTO customer number associated with the application.
+        cpc_classification_bag: List of CPC classification symbols.
+        applicant_bag: List of `Applicant` objects.
+        inventor_bag: List of `Inventor` objects.
+        raw_data: Raw JSON string of the data used to create this instance (for debugging).
     """
 
     national_stage_indicator: Optional[bool] = None
@@ -1198,16 +1820,26 @@ class ApplicationMetaData:
 
     @property
     def is_aia(self) -> Optional[bool]:
+        """Returns True if the application is AIA, False if pre-AIA, None if unknown."""
         return self.first_inventor_to_file_indicator
 
     @property
     def is_pre_aia(self) -> Optional[bool]:
+        """Returns True if the application is pre-AIA, False if AIA, None if unknown."""
         if self.first_inventor_to_file_indicator is None:
             return None
         return not self.first_inventor_to_file_indicator
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ApplicationMetaData":
+        """Creates an `ApplicationMetaData` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with application metadata.
+
+        Returns:
+            ApplicationMetaData: An instance of `ApplicationMetaData`.
+        """
         entity = (
             EntityStatus.from_dict(data["entityStatusData"])
             if isinstance(data.get("entityStatusData"), dict)
@@ -1282,6 +1914,14 @@ class ApplicationMetaData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `ApplicationMetaData` instance to a dictionary.
+
+        Serializes attributes to camelCase keys suitable for API interaction or storage.
+        Omits keys with None values or empty lists. Handles date and boolean serialization.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation of the application metadata.
+        """
         d = asdict(self)
         d.pop("raw_data", None)
         d.pop("is_aia", None)
@@ -1356,6 +1996,21 @@ class PatentFileWrapper:
     This is a top-level object containing all data sections related to an application,
     such as metadata, addresses, assignments, attorney information, continuity data,
     PTA data, transaction events, and associated document metadata.
+
+    Attributes:
+        application_number_text: The primary application number.
+        application_meta_data: Comprehensive `ApplicationMetaData`.
+        correspondence_address_bag: List of `Address` objects for correspondence.
+        assignment_bag: List of `Assignment` records.
+        record_attorney: Information about the `RecordAttorney`.
+        foreign_priority_bag: List of `ForeignPriority` claims.
+        parent_continuity_bag: List of `ParentContinuity` records.
+        child_continuity_bag: List of `ChildContinuity` records.
+        patent_term_adjustment_data: `PatentTermAdjustmentData` details.
+        event_data_bag: List of `EventData` (transaction history).
+        pgpub_document_meta_data: `PrintedMetaData` for Pre-Grant Publication.
+        grant_document_meta_data: `PrintedMetaData` for the granted patent.
+        last_ingestion_date_time: Timestamp of when this data was last ingested by the API (UTC).
     """
 
     application_number_text: Optional[str] = None
@@ -1374,6 +2029,14 @@ class PatentFileWrapper:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PatentFileWrapper":
+        """Creates a `PatentFileWrapper` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with patent file wrapper data.
+
+        Returns:
+            PatentFileWrapper: An instance of `PatentFileWrapper`.
+        """
         amd_json = data.get("applicationMetaData")
         amd = (
             ApplicationMetaData.from_dict(amd_json)
@@ -1453,6 +2116,13 @@ class PatentFileWrapper:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `PatentFileWrapper` instance to a dictionary.
+
+        Omits keys with None values or empty lists. Serializes nested objects.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation.
+        """
         _dict = {
             "applicationNumberText": self.application_number_text,
             "applicationMetaData": (
@@ -1503,6 +2173,10 @@ class PatentDataResponse:
 
     It typically includes a count of the results and a list of PatentFileWrapper objects,
     each containing detailed data for a patent application.
+
+    Attributes:
+        count: The total number of patent applications found matching the query.
+        patent_file_wrapper_data_bag: A list of `PatentFileWrapper` objects.
     """
 
     count: int
@@ -1511,6 +2185,14 @@ class PatentDataResponse:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PatentDataResponse":
+        """Creates a `PatentDataResponse` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with API response data.
+
+        Returns:
+            PatentDataResponse: An instance of `PatentDataResponse`.
+        """
         wrappers = [
             PatentFileWrapper.from_dict(w)
             for w in data.get("patentFileWrapperDataBag", [])
@@ -1519,6 +2201,11 @@ class PatentDataResponse:
         return cls(count=data.get("count", 0), patent_file_wrapper_data_bag=wrappers)
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `PatentDataResponse` instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation.
+        """
         return {
             "count": self.count,
             "patentFileWrapperDataBag": [
@@ -1527,21 +2214,13 @@ class PatentDataResponse:
         }
 
     def to_csv(self) -> str:
-        """
-        Converts the patent data in this response to a CSV formatted string.
+        """Converts the patent data in this response to a CSV formatted string.
 
-        The CSV will contain the following headers:
-        - inventionTitle
-        - applicationNumberText
-        - filingDate
-        - applicationTypeLabelName
-        - publicationCategoryBag (pipe-separated if multiple)
-        - applicationStatusDescriptionText
-        - applicationStatusDate
-        - firstInventorName
+        The CSV will contain key metadata fields for each application,
+        such as invention title, application number, filing date, status, etc.
 
         Returns:
-            A string containing the data in CSV format.
+            str: A string containing the data in CSV format.
         """
         headers = [
             "inventionTitle",
@@ -1602,10 +2281,21 @@ class StatusCode:
     description: Optional[str] = None
 
     def __str__(self) -> str:
+        """Returns a user-friendly string representation of the status code."""
         return f"{self.code}: {self.description}"
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "StatusCode":
+        """Creates a `StatusCode` instance from a dictionary.
+
+        Handles two possible key sets from the API for status information.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with status code data.
+
+        Returns:
+            StatusCode: An instance of `StatusCode`.
+        """
         if "code" in data:
             return cls(
                 code=data.get("code"),
@@ -1618,6 +2308,14 @@ class StatusCode:
             )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `StatusCode` instance to a dictionary.
+
+        Uses keys "applicationStatusCode" and "applicationStatusDescriptionText"
+        for consistency with some API response parts.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation.
+        """
         return {
             "applicationStatusCode": self.code,
             "applicationStatusDescriptionText": self.description,
@@ -1628,9 +2326,18 @@ class StatusCodeCollection:
     """A collection of StatusCode objects.
 
     Provides iterable access and helper methods to find or filter status codes.
+    This class is immutable by convention after initialization.
+
+    Attributes:
+        status_codes (tuple[StatusCode, ...]): An immutable tuple of `StatusCode` objects.
     """
 
     def __init__(self, status_codes: List[StatusCode]):
+        """Initializes the StatusCodeCollection with a list of status codes.
+
+        Args:
+            status_codes (List[StatusCode]): A list of `StatusCode` instances.
+        """
         self._status_codes: tuple[StatusCode, ...] = tuple(status_codes)
 
     def __iter__(self) -> Iterator[StatusCode]:
@@ -1657,12 +2364,28 @@ class StatusCodeCollection:
             return f"StatusCodeCollection({len(self)} status codes: {first_codes}, ...)"
 
     def find_by_code(self, code_to_find: int) -> Optional[StatusCode]:
+        """Finds a status code by its numeric code.
+
+        Args:
+            code_to_find (int): The numeric status code to search for.
+
+        Returns:
+            Optional[StatusCode]: The `StatusCode` object if found, otherwise None.
+        """
         for status in self._status_codes:
             if status.code == code_to_find:
                 return status
         return None
 
     def search_by_description(self, text: str) -> "StatusCodeCollection":
+        """Searches for status codes by a case-insensitive text match in their description.
+
+        Args:
+            text (str): The text to search for within status code descriptions.
+
+        Returns:
+            StatusCodeCollection: A new collection containing matching status codes.
+        """
         matching = [
             s
             for s in self._status_codes
@@ -1671,6 +2394,12 @@ class StatusCodeCollection:
         return StatusCodeCollection(status_codes=matching)
 
     def to_dict(self) -> List[Dict[str, Any]]:
+        """Converts the collection of status codes to a list of dictionaries.
+
+        Returns:
+            List[Dict[str, Any]]: A list where each item is the dictionary
+                representation of a `StatusCode`.
+        """
         return [sc.to_dict() for sc in self._status_codes]
 
 
@@ -1680,8 +2409,8 @@ class StatusCodeSearchResponse:
 
     Attributes:
         count: The total number of status codes found matching the query.
-        status_code_bag: A collection of the StatusCode objects returned.
-        request_identifier: An identifier for the API request.
+        status_code_bag: A `StatusCodeCollection` of the `StatusCode` objects returned.
+        request_identifier: An identifier for the API request, if provided.
     """
 
     count: int
@@ -1690,6 +2419,14 @@ class StatusCodeSearchResponse:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "StatusCodeSearchResponse":
+        """Creates a `StatusCodeSearchResponse` instance from a dictionary.
+
+        Args:
+            data (Dict[str, Any]): Dictionary with API response data for status codes.
+
+        Returns:
+            StatusCodeSearchResponse: An instance of `StatusCodeSearchResponse`.
+        """
         codes_json = data.get("statusCodeBag", [])
         parsed_codes = (
             [StatusCode.from_dict(cd) for cd in codes_json if isinstance(cd, dict)]
@@ -1704,6 +2441,13 @@ class StatusCodeSearchResponse:
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `StatusCodeSearchResponse` instance to a dictionary.
+
+        Omits keys with None values or empty lists.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation.
+        """
         _dict = {
             "count": self.count,
             "statusCodeBag": self.status_code_bag.to_dict(),
@@ -1722,6 +2466,10 @@ class ApplicationContinuityData:
 
     This class consolidates lists of ParentContinuity and ChildContinuity objects,
     representing the lineage of an application.
+
+    Attributes:
+        parent_continuity_bag: List of `ParentContinuity` objects.
+        child_continuity_bag: List of `ChildContinuity` objects.
     """
 
     parent_continuity_bag: List[ParentContinuity] = field(default_factory=list)
@@ -1729,6 +2477,16 @@ class ApplicationContinuityData:
 
     @classmethod
     def from_wrapper(cls, wrapper: PatentFileWrapper) -> "ApplicationContinuityData":
+        """Creates an `ApplicationContinuityData` instance from a `PatentFileWrapper`.
+
+        Extracts parent and child continuity bags from the wrapper.
+
+        Args:
+            wrapper (PatentFileWrapper): The patent file wrapper containing continuity data.
+
+        Returns:
+            ApplicationContinuityData: An instance of `ApplicationContinuityData`.
+        """
         return cls(
             parent_continuity_bag=wrapper.parent_continuity_bag,
             child_continuity_bag=wrapper.child_continuity_bag,
@@ -1737,6 +2495,12 @@ class ApplicationContinuityData:
     def to_dict(
         self,
     ) -> Dict[str, Any]:
+        """Converts the `ApplicationContinuityData` instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation with "parentContinuityBag"
+                and "childContinuityBag" keys.
+        """
         return {
             "parentContinuityBag": [pc.to_dict() for pc in self.parent_continuity_bag],
             "childContinuityBag": [cc.to_dict() for cc in self.child_continuity_bag],
@@ -1747,6 +2511,10 @@ class ApplicationContinuityData:
 class PrintedPublication:
     """Holds metadata for associated documents like Pre-Grant Publications (PGPUB)
     and Grant documents for a specific patent application.
+
+    Attributes:
+        pgpub_document_meta_data: `PrintedMetaData` for the Pre-Grant Publication, if any.
+        grant_document_meta_data: `PrintedMetaData` for the Grant document, if any.
     """
 
     pgpub_document_meta_data: Optional[PrintedMetaData] = None
@@ -1754,12 +2522,29 @@ class PrintedPublication:
 
     @classmethod
     def from_wrapper(cls, wrapper: PatentFileWrapper) -> "PrintedPublication":
+        """Creates a `PrintedPublication` instance from a `PatentFileWrapper`.
+
+        Extracts PGPUB and Grant document metadata from the wrapper.
+
+        Args:
+            wrapper (PatentFileWrapper): The patent file wrapper.
+
+        Returns:
+            PrintedPublication: An instance of `PrintedPublication`.
+        """
         return cls(
             pgpub_document_meta_data=wrapper.pgpub_document_meta_data,
             grant_document_meta_data=wrapper.grant_document_meta_data,
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Converts the `PrintedPublication` instance to a dictionary.
+
+        Omits keys if their corresponding metadata is None.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation.
+        """
         return {
             "pgpubDocumentMetaData": (
                 self.pgpub_document_meta_data.to_dict()
