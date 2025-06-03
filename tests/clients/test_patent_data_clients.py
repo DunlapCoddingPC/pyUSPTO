@@ -1030,7 +1030,7 @@ class TestGetIFW:
         )
 
         app_num = "12345678"
-        result = client.get_IFW(application_number=app_num)
+        result = client.get_IFW_metadata(application_number=app_num)
 
         # Should call get_application_by_number
         mock_make_request.assert_called_once_with(
@@ -1052,7 +1052,7 @@ class TestGetIFW:
         )
 
         patent_num = "10000000"
-        result = client.get_IFW(patent_number=patent_num)
+        result = client.get_IFW_metadata(patent_number=patent_num)
 
         # Should call search_applications with patent_number_q
         mock_make_request.assert_called_once_with(
@@ -1079,7 +1079,7 @@ class TestGetIFW:
         )
 
         pub_num = "US20240123456A1"
-        result = client.get_IFW(publication_number=pub_num)
+        result = client.get_IFW_metadata(publication_number=pub_num)
 
         # Should call search_applications with earliestPublicationNumber_q
         mock_make_request.assert_called_once_with(
@@ -1106,7 +1106,7 @@ class TestGetIFW:
         )
 
         pct_app = "PCT/US2024/012345"
-        result = client.get_IFW(PCT_app_number=pct_app)
+        result = client.get_IFW_metadata(PCT_app_number=pct_app)
 
         # Should call get_application_by_number
         mock_make_request.assert_called_once_with(
@@ -1128,7 +1128,7 @@ class TestGetIFW:
         )
 
         pct_pub = "WO2024012345A1"
-        result = client.get_IFW(PCT_pub_number=pct_pub)
+        result = client.get_IFW_metadata(PCT_pub_number=pct_pub)
 
         # Should call search_applications with pctPublicationNumber_q
         mock_make_request.assert_called_once_with(
@@ -1147,7 +1147,7 @@ class TestGetIFW:
         self, patent_data_client: PatentDataClient
     ) -> None:
         """Test get_IFW with no parameters returns None."""
-        result = patent_data_client.get_IFW()
+        result = patent_data_client.get_IFW_metadata()
         assert result is None
 
     def test_get_ifw_empty_search_results_returns_none(
@@ -1159,7 +1159,7 @@ class TestGetIFW:
             count=0, patent_file_wrapper_data_bag=[]
         )
 
-        result = client.get_IFW(patent_number="nonexistent")
+        result = client.get_IFW_metadata(patent_number="nonexistent")
         assert result is None
 
     def test_get_ifw_prioritizes_first_parameter(
@@ -1175,7 +1175,7 @@ class TestGetIFW:
 
         app_num = "12345678"
         # Provide multiple parameters - should use application_number
-        result = client.get_IFW(
+        result = client.get_IFW_metadata(
             application_number=app_num,
             patent_number="10000000",
             publication_number="US20240123456A1",

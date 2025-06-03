@@ -588,7 +588,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             url=document_format.download_url, file_path=final_file_path.as_posix()
         )
 
-    def get_IFW(
+    def get_IFW_metadata(
         self,
         application_number: Optional[str] = None,
         publication_number: Optional[str] = None,
