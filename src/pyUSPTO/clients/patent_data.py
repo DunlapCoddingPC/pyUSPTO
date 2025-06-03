@@ -122,7 +122,6 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         """
         Searches for patent applications.
         Can perform a GET request based on OpenAPI query parameters or a POST request if post_body is specified.
-        Legacy _q parameters are used to construct the 'q' query parameter if 'query' is not directly provided.
         """
         endpoint = self.ENDPOINTS["search_applications"]
 
@@ -251,7 +250,6 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         Fetches a dataset of patent applications based on search criteria, always requesting JSON format.
         For GET, parameters align with OpenAPI for /api/v1/patent/applications/search/download.
         For POST, post_body should conform to PatentDownloadRequest schema.
-        Legacy _q parameters are used to construct the 'q' query parameter for GET if 'query' is not directly provided.
         """
         endpoint = self.ENDPOINTS["get_search_results"]
 
@@ -354,7 +352,24 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def get_application_by_number(
         self, application_number: str
     ) -> Optional[PatentFileWrapper]:
-        """Retrieves the full details for a specific patent application by its number."""
+        """Retrieves the full details for a specific patent application by its number.
+
+        This method fetches comprehensive information for a single patent application
+        identified by its unique application number.
+
+        Args:
+            application_number (str): The USPTO application number for the patent
+                application (e.g., "16123456").
+
+        Returns:
+            Optional[PatentFileWrapper]: A `PatentFileWrapper` object representing
+                the complete file wrapper for the application if found. This object
+                contains all data sections related to the application, such as
+                metadata, addresses, assignments, attorney/agent data, continuity
+                data, PTA/PTE data, transactions, and associated documents.
+                Returns None if the application cannot be found or if the response
+                does not contain the expected data.
+        """
         endpoint = self.ENDPOINTS["get_application_by_number"].format(
             application_number=application_number
         )
@@ -370,7 +385,24 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def get_application_metadata(
         self, application_number: str
     ) -> Optional[ApplicationMetaData]:
-        """Retrieves metadata for a specific patent application."""
+        """Retrieves key metadata for a specific patent application.
+
+        This method fetches the `ApplicationMetaData` component from the full
+        patent file wrapper. The metadata includes a wide range of information
+        such as application status, important dates (filing, grant, publication),
+        applicant and inventor details, classification data, and other core
+        identifying information for the application.
+
+        Args:
+            application_number (str): The USPTO application number for which
+                metadata is being requested (e.g., "16123456").
+
+        Returns:
+            Optional[ApplicationMetaData]: An `ApplicationMetaData` object
+                containing the core details of the patent application if found.
+                Returns None if the application cannot be found or if metadata
+                is not available in the response.
+        """
         endpoint = self.ENDPOINTS["get_application_metadata"].format(
             application_number=application_number
         )
@@ -384,7 +416,24 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def get_application_adjustment(
         self, application_number: str
     ) -> Optional[PatentTermAdjustmentData]:
-        """Retrieves patent term adjustment data for a specific application."""
+        """Retrieves patent term adjustment (PTA) data for a specific application.
+
+        This method fetches the `PatentTermAdjustmentData` component from the
+        full patent file wrapper. This data includes details on various delay
+        quantities (e.g., A, B, C delays, applicant delays), the total
+        calculated adjustment, and a history of PTA events that influenced the
+        term.
+
+        Args:
+            application_number (str): The USPTO application number for which PTA
+                data is being requested (e.g., "16123456").
+
+        Returns:
+            Optional[PatentTermAdjustmentData]: A `PatentTermAdjustmentData`
+                object containing the PTA details if the application is found
+                and has such data. Returns None if the application cannot be
+                found or if PTA data is not available in the response.
+        """
         endpoint = self.ENDPOINTS["get_application_adjustment"].format(
             application_number=application_number
         )
@@ -398,7 +447,25 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def get_application_assignment(
         self, application_number: str
     ) -> Optional[List[Assignment]]:
-        """Retrieves assignment data for a specific application."""
+        """Retrieves a list of patent assignments for a specific application.
+
+        This method fetches the `assignment_bag` from the patent file wrapper,
+        which contains a list of `Assignment` objects. Each `Assignment` object
+        details an assignment including information such as reel and frame numbers,
+        recording dates, conveyance text, and details about the assignors and assignees.
+
+        Args:
+            application_number (str): The USPTO application number for which
+                assignment data is being requested (e.g., "16123456").
+
+        Returns:
+            Optional[List[Assignment]]: A list of `Assignment` objects, each
+                representing a recorded assignment for the application. Returns
+                None if the application cannot be found, or if no assignment
+                data is available in the response. An empty list may be
+                returned if the application is found but has no recorded
+                assignments.
+        """
         endpoint = self.ENDPOINTS["get_application_assignment"].format(
             application_number=application_number
         )
@@ -412,7 +479,23 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def get_application_attorney(
         self, application_number: str
     ) -> Optional[RecordAttorney]:
-        """Retrieves attorney data for a specific application."""
+        """Retrieves data for the attorney(s) of record for a specific application.
+
+        This method fetches the `RecordAttorney` object associated with the
+        patent application. This object contains details about the attorney(s)
+        of record, including customer number correspondence data, power of attorney
+        information, and a list of listed attorneys.
+
+        Args:
+            application_number (str): The USPTO application number for which
+                attorney data is being requested (e.g., "16123456").
+
+        Returns:
+            Optional[RecordAttorney]: A `RecordAttorney` object with details
+                about the attorney(s) of record if the application is found
+                and such data exists. Returns None if the application cannot
+                be found or if no attorney data is available in the response.
+        """
         endpoint = self.ENDPOINTS["get_application_attorney"].format(
             application_number=application_number
         )
@@ -426,7 +509,26 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def get_application_continuity(
         self, application_number: str
     ) -> Optional[ApplicationContinuityData]:
-        """Retrieves continuity data (parent/child applications) for a specific application."""
+        """Retrieves continuity data (parent/child applications) for a specific application.
+
+        This method fetches the lineage of the specified application, returning an
+        `ApplicationContinuityData` object. This object consolidates lists of
+        `ParentContinuity` (applications to which the current one claims priority)
+        and `ChildContinuity` (applications claiming priority to the current one)
+        objects, each detailing the related application's key identifiers and status.
+
+        Args:
+            application_number (str): The USPTO application number for which
+                continuity data is being requested (e.g., "16123456").
+
+        Returns:
+            Optional[ApplicationContinuityData]: An `ApplicationContinuityData`
+                object containing lists of parent and child continuity relationships.
+                Returns None if the application cannot be found or if the underlying
+                data to construct continuity is not available. The lists within
+                the returned object may be empty if no parent or child continuity
+                links exist.
+        """
         endpoint = self.ENDPOINTS["get_application_continuity"].format(
             application_number=application_number
         )
@@ -440,7 +542,25 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def get_application_foreign_priority(
         self, application_number: str
     ) -> Optional[List[ForeignPriority]]:
-        """Retrieves foreign priority data for a specific application."""
+        """Retrieves a list of foreign priority claims for a specific application.
+
+        This method fetches the `foreign_priority_bag` from the patent file
+        wrapper. This bag contains a list of `ForeignPriority` objects, each
+        representing a claim to a foreign patent application's priority date.
+        Details include the IP office name, filing date, and application number
+        of the foreign priority application.
+
+        Args:
+            application_number (str): The USPTO application number for which
+                foreign priority data is being requested (e.g., "16123456").
+
+        Returns:
+            Optional[List[ForeignPriority]]: A list of `ForeignPriority` objects,
+                each detailing a claimed foreign priority. Returns None if the
+                application cannot be found or if no foreign priority data is
+                available. An empty list may be returned if the application
+                is found but has no foreign priority claims.
+        """
         endpoint = self.ENDPOINTS["get_application_foreign_priority"].format(
             application_number=application_number
         )
@@ -454,7 +574,25 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def get_application_transactions(
         self, application_number: str
     ) -> Optional[List[EventData]]:
-        """Retrieves transaction history (events) for a specific application."""
+        """Retrieves the transaction history (events) for a specific application.
+
+        This method fetches the `event_data_bag` from the patent file wrapper.
+        This bag contains a list of `EventData` objects, each representing a
+        single recorded event in the prosecution history of the patent application.
+        Events include details like an event code, a textual description, and
+        the date the event was recorded.
+
+        Args:
+            application_number (str): The USPTO application number for which
+                transaction history is being requested (e.g., "16123456").
+
+        Returns:
+            Optional[List[EventData]]: A list of `EventData` objects, each
+                detailing a transaction or event in the application's history.
+                Returns None if the application cannot be found or if no
+                transaction data is available. An empty list may be returned if
+                the application is found but has no recorded transaction events.
+        """
         endpoint = self.ENDPOINTS["get_application_transactions"].format(
             application_number=application_number
         )
@@ -466,7 +604,26 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         return wrapper.event_data_bag if wrapper else None
 
     def get_application_documents(self, application_number: str) -> DocumentBag:
-        """Retrieves a list of documents associated with a specific application."""
+        """Retrieves metadata for documents associated with a specific application.
+
+        This method fetches a collection of document metadata related to the given
+        patent application. The result is a `DocumentBag` object, which is an
+        iterable collection of `Document` instances. Each `Document` object
+        contains metadata such as its identifier, official date, document code
+        and description, direction (incoming/outgoing), and available download
+        formats.
+
+        Args:
+            application_number (str): The USPTO application number for which
+                document metadata is being requested (e.g., "16123456").
+
+        Returns:
+            DocumentBag: A `DocumentBag` object containing metadata for all
+                publicly available documents associated with the application.
+                The bag will be empty if no documents are found or if the
+                API response indicates no documents. It does not return None
+                for "not found" cases; an empty collection is returned instead.
+        """
         endpoint = self.ENDPOINTS["get_application_documents"].format(
             application_number=application_number
         )
@@ -477,7 +634,30 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def get_application_associated_documents(
         self, application_number: str
     ) -> Optional[PrintedPublication]:
-        """Retrieves associated documents data for a specific application."""
+        """Retrieves metadata for Pre-Grant Publication and Grant documents.
+
+        This method fetches metadata specifically for published documents associated
+        with the patent application, such as Pre-Grant Publications (PGPUBs)
+        and granted patent documents. It does not retrieve the prosecution
+        history documents (see `get_application_documents` for that).
+        The result is a `PrintedPublication` object, which holds
+        `PrintedMetaData` including file URIs and names. Download with download_archive.
+
+        Args:
+            application_number (str): The USPTO application number for which
+                associated PGPUB/Grant document metadata is being requested
+                (e.g., "16123456").
+
+        Returns:
+            Optional[PrintedPublication]: A `PrintedPublication` object
+                containing `PrintedMetaData` for the Pre-Grant Publication
+                and/or the Grant document, if available. Returns None if the
+                application cannot be found or if no such associated document
+                metadata is available. The fields within the returned object
+                (`pgpub_document_meta_data`, `grant_document_meta_data`)
+                may themselves be None if a particular type of document
+                (e.g., PGPUB) does not exist for the application.
+        """
         endpoint = self.ENDPOINTS["get_application_associated_documents"].format(
             application_number=application_number
         )
@@ -489,9 +669,34 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         return PrintedPublication.from_wrapper(wrapper) if wrapper else None
 
     def paginate_applications(self, **kwargs: Any) -> Iterator[PatentFileWrapper]:
-        """
-        Paginates through application search results using GET requests.
-        Passes keyword arguments to search_applications for query construction.
+        """Provides an iterator to easily paginate through patent application search results.
+
+        This method simplifies the process of fetching all patent applications
+        that match a given search query by automatically handling pagination.
+        It internally calls the `search_applications` method for GET requests,
+        batching results and yielding them one by one.
+
+        All keyword arguments provided to this method (`**kwargs`) are passed
+        directly to the `search_applications` method to define the search
+        criteria. See the `search_applications` method for more details
+        on available parameters.
+        The `offset` and `limit` parameters are managed by the pagination logic;
+        setting them directly in `kwargs` might lead to unexpected behavior.
+
+        Args:
+            **kwargs (Any): Keyword arguments to be passed to the
+                `search_applications` method for constructing the search query.
+                These define the criteria for the patent applications to be
+                retrieved. Do not include `post_body`.
+
+        Returns:
+            Iterator[PatentFileWrapper]: An iterator that yields `PatentFileWrapper`
+                objects, allowing iteration over all matching patent applications
+                across multiple pages of results.
+
+        Raises:
+            ValueError: If `post_body` is included in `kwargs`, as this
+                method only supports GET request parameters for pagination.
         """
         if "post_body" in kwargs:
             raise ValueError(
@@ -508,7 +713,25 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def get_status_codes(
         self, params: Optional[Dict[str, Any]] = None
     ) -> StatusCodeSearchResponse:
-        """Retrieves patent status codes using a GET request."""
+        """Retrieves USPTO patent application status codes and their descriptions.
+
+        This method fetches a list of defined USPTO patent application status codes
+        (e.g., codes for "Pending," "Abandoned," "Issued") using a GET request.
+        The request can be customized with query parameters to filter or paginate
+        the results if supported by the API endpoint.
+
+        Args:
+            params (Optional[Dict[str, Any]], optional): A dictionary of query
+                parameters to be sent with the GET request. These parameters can
+                be used to filter or control the output of the status codes
+                list. Defaults to None, which typically retrieves all available
+                status codes or the API's default set.
+
+        Returns:
+            StatusCodeSearchResponse: An object containing a count of matching
+                status codes, a `StatusCodeCollection` of the `StatusCode`
+                objects (code and description), and a request identifier.
+        """
         result_dict = self._make_request(
             method="GET", endpoint=self.ENDPOINTS["status_codes"], params=params
         )
@@ -518,7 +741,24 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def search_status_codes(
         self, search_request: Dict[str, Any]
     ) -> StatusCodeSearchResponse:
-        """Searches patent status codes using a POST request."""
+        """Searches USPTO patent application status codes using POST criteria.
+
+        Performs targeted searches for USPTO patent application status codes
+        (e.g., for "Pending," "Abandoned," "Issued") by sending a POST request
+        with a JSON body containing the `search_request` criteria. This method
+        is suited for more complex queries than the GET-based `get_status_codes`.
+
+        Args:
+            search_request (Dict[str, Any]): A dictionary with search criteria,
+                sent as the JSON POST body. The structure must conform to USPTO
+                API requirements for this endpoint (e.g., for searching by code
+                or description keywords).
+
+        Returns:
+            StatusCodeSearchResponse: An object containing a count of matching
+                status codes, a `StatusCodeCollection` of the `StatusCode`
+                objects (code and description), and a request identifier.
+        """
         result_dict = self._make_request(
             method="POST",
             endpoint=self.ENDPOINTS["status_codes"],
@@ -596,6 +836,31 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         PCT_app_number: Optional[str] = None,
         PCT_pub_number: Optional[str] = None,
     ) -> Optional[PatentFileWrapper]:
+        """Retrieves complete patent file wrapper data using common identifiers.
+
+        This utility fetches the `PatentFileWrapper`, which contains comprehensive
+        IFW metadata, application details, and more. Provide only one
+        identifier if possible. If multiple are given, they are processed in the
+        order listed in the arguments, and the first successful match is returned.
+
+        Args:
+            application_number (Optional[str], optional): USPTO application number
+                (e.g., "16123456"). Checked first (direct lookup).
+            patent_number (Optional[str], optional): USPTO patent number
+                (e.g., "11000000"). Checked second (uses search).
+            publication_number (Optional[str], optional): USPTO pre-grant
+                publication number (e.g., "20230123456"). Checked third (uses search).
+            PCT_app_number (Optional[str], optional): PCT application number.
+                Checked fourth (direct lookup, treated as USPTO app#).
+            PCT_pub_number (Optional[str], optional): PCT publication number
+                (e.g., "2023012345"). Checked fifth (uses search).
+
+        Returns:
+            Optional[PatentFileWrapper]: A `PatentFileWrapper` object with
+                comprehensive data if found using one of the identifiers,
+                otherwise None.
+        """
+
         if application_number:
             return self.get_application_by_number(application_number=application_number)
         if patent_number:
