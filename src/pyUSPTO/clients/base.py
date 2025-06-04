@@ -61,7 +61,7 @@ class BaseUSPTOClient(Generic[T]):
 
         if api_key:
             self.session.headers.update(
-                {"X-API-KEY": api_key, "content-type": "application/json"}
+                {"X-API-KEY": api_key, "Content-Type": "application/json", "accept": "application/json"}
             )
 
         # Configure retries
