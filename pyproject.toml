@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyUSPTO"
-description = "Python client for accessing USPTO OPD APIs"
+description = "A Modern Python client for accessing United Stated Patent and Trademark Office (USPTO) Open Data Portal (ODP) APIs."
 authors = [
     {name = "Andrew Piechocki", email = "apiechocki@dunlapcodding.com"}
 ]
