@@ -98,6 +98,7 @@ def test_import_backward_compatibility() -> None:
     assert pyUSPTO.BulkDataClient is not None
     assert pyUSPTO.PatentDataClient is not None
     assert pyUSPTO.USPTOConfig is not None
+    assert pyUSPTO.PetitionDecisionsClient is not None
 
     # Test model imports from bulk_data
     assert pyUSPTO.BulkDataProduct is not None
@@ -108,3 +109,5 @@ def test_import_backward_compatibility() -> None:
     # Test model imports from patent_data
     assert pyUSPTO.PatentDataResponse is not None
     assert pyUSPTO.PatentFileWrapper is not None
+    assert pyUSPTO.PetitionDecisionsResponse is not None
+    assert pyUSPTO.PetitionDecision is not None

@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from pyUSPTO.clients import BulkDataClient, PatentDataClient
+from pyUSPTO.clients.petition_decisions import PetitionDecisionsClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.patent_data import (
     PatentDataResponse,
@@ -29,6 +30,7 @@ def uspto_config() -> USPTOConfig:
         api_key="test_api_key",
         bulk_data_base_url="https://api.uspto.gov/api/v1/datasets",
         patent_data_base_url="https://api.uspto.gov/api/v1/patent",
+        petition_decisions_base_url="https://api.uspto.gov",
     )
 
 
@@ -233,6 +235,40 @@ def patent_data_sample() -> Dict[str, Any]:
 
 
 @pytest.fixture
+def petition_decisions_sample() -> Dict[str, Any]:
+    """Provide a sample petition decisions API response."""
+    return {
+        "count": 1,
+        "requestIdentifier": "test-request",
+        "petitionDecisionDataBag": [
+            {
+                "actionTakenByCourtName": "None",
+                "applicationNumberText": "17765301",
+                "businessEntityStatusCategory": "Regular Undiscounted",
+                "courtActionIndicator": False,
+                "customerNumber": 12345,
+                "decisionDate": "2024-01-01",
+                "decisionPetitionTypeCode": 652,
+                "decisionTypeCode": "C",
+                "decisionTypeCodeDescriptionText": "DENIED",
+                "finalDecidingOfficeName": "OFFICE OF PETITIONS",
+                "firstApplicantName": "Example Corp",
+                "firstInventorToFileIndicator": True,
+                "groupArtUnitNumber": "1774",
+                "inventionTitle": "Sample Title",
+                "inventorBag": ["John Doe"],
+                "lastIngestionDateTime": "2024-05-05T15:31:39",
+                "petitionDecisionRecordIdentifier": "abc123",
+                "petitionIssueConsideredTextBag": ["Make special"],
+                "petitionMailDate": "2023-12-01",
+                "ruleBag": ["37 CFR 1.102(a)"],
+                "technologyCenter": "1700",
+            }
+        ],
+    }
+
+
+@pytest.fixture
 def mock_bulk_data_client(
     mock_session: MagicMock, uspto_config: USPTOConfig
 ) -> BulkDataClient:
@@ -266,5 +302,15 @@ def mock_patent_data_client(
         PatentDataClient: A client with a mocked session
     """
     client = PatentDataClient(config=uspto_config)
+    client.session = mock_session
+    return client
+
+
+@pytest.fixture
+def mock_petition_decisions_client(
+    mock_session: MagicMock, uspto_config: USPTOConfig
+) -> PetitionDecisionsClient:
+    """Create a PetitionDecisionsClient with a mocked session."""
+    client = PetitionDecisionsClient(config=uspto_config)
     client.session = mock_session
     return client
