@@ -6,8 +6,7 @@
 
 A Python client library for interacting with the United Stated Patent and Trademark Office (USPTO) [Open Data Portal](https://data.uspto.gov/home) APIs.
 
-This package provides clients for interacting with both the USPTO Bulk Data API and the USPTO Patent Data API.
-The client for the Final Petition Decisions API is currently being developed. 
+This package provides clients for interacting with the USPTO Bulk Data API, the USPTO Patent Data API, and the Final Petition Decisions API.
 
 > [!IMPORTANT]
 > The USPTO is in the process of moving their API. This package is only concerned with the new API. The [old API](https://developer.uspto.gov/) will be retired at the end of 2025.
@@ -72,7 +71,7 @@ print(f"Found {inventor_search.count} applications with 'Smith' as inventor")
 
 ## Features
 
-- Access to both USPTO Bulk Data API and Patent Data API
+- Access to the USPTO Bulk Data API, Patent Data API, and Final Petition Decisions API
 - Search for patent applications using various filters
 - Download files and documents from the APIs
 

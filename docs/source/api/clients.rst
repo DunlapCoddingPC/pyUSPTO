@@ -10,3 +10,8 @@ Clients
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. automodule:: pyUSPTO.clients.petition_decisions
+   :members:
+   :undoc-members:
+   :show-inheritance:
