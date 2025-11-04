@@ -223,7 +223,7 @@ def sample_application_meta_data(
         "firstInventorToFileIndicator": "Y",
         "firstApplicantName": "Innovate Corp.",
         "firstInventorName": "Doe, John A.",
-        "applicationConfirmationNumber": "9876",
+        "applicationConfirmationNumber": 9876,
         "applicationStatusDate": "2023-03-01",
         "applicationStatusDescriptionText": "Non-Final Rejection",
         "filingDate": "2021-06-10",
@@ -1229,9 +1229,10 @@ class TestAssignment:
 
     def test_assignment_from_dict(self, sample_address_data: Dict[str, Any]) -> None:
         data = {
-            "reelNumber": "12345",
-            "frameNumber": "67890",
+            "reelNumber": 12345,
+            "frameNumber": 67890,
             "reelAndFrameNumber": "12345/67890",
+            "pageTotalQuantity": 3,
             "assignmentDocumentLocationURI": "https://example.com/assignment.pdf",
             "assignmentReceivedDate": "2023-01-01",
             "assignmentRecordedDate": "2023-01-15",
@@ -1249,7 +1250,9 @@ class TestAssignment:
             "correspondenceAddressBag": [sample_address_data],
         }
         assignment = Assignment.from_dict(data)
-        assert assignment.reel_number == "12345"
+        assert assignment.reel_number == 12345
+        assert assignment.frame_number == 67890
+        assert assignment.page_total_quantity == 3
         assert assignment.assignment_received_date == date(2023, 1, 1)
         assert len(assignment.assignor_bag) == 1
         assert assignment.assignor_bag[0].assignor_name == "John Smith"
@@ -1269,14 +1272,18 @@ class TestAssignment:
         )
 
         assignment = Assignment(
-            reel_number="R001",
+            reel_number=1001,
+            frame_number=2002,
+            page_total_quantity=5,
             assignment_received_date=date(2023, 2, 1),
             assignor_bag=[assignor_obj],
             assignee_bag=[assignee_obj],
             correspondence_address_bag=[address_obj],
         )
         data = assignment.to_dict()
-        assert data["reelNumber"] == "R001"
+        assert data["reelNumber"] == 1001
+        assert data["frameNumber"] == 2002
+        assert data["pageTotalQuantity"] == 5
         assert data["assignmentReceivedDate"] == "2023-02-01"
         assert len(data["assignorBag"]) == 1
         assert len(data["assigneeBag"]) == 1
@@ -1284,13 +1291,13 @@ class TestAssignment:
 
     def test_assignment_to_dict_empty_bags(self) -> None:
         assignment = Assignment(
-            reel_number="R002",
+            reel_number=2002,
             assignor_bag=[],
             assignee_bag=[],
             correspondence_address_bag=[],
         )
         data = assignment.to_dict()
-        assert data["reelNumber"] == "R002"
+        assert data["reelNumber"] == 2002
         assert data["assignorBag"] == []
         assert data["assigneeBag"] == []
         assert data["correspondenceAddressBag"] == []

@@ -15,3 +15,4 @@ info/ODP-API-Query-Spec.pdf
 src/pyUSPTO/_version.py
 download-example/*
 dist/
+.claude/settings.local.json

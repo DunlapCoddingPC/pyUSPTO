@@ -1134,6 +1134,7 @@ class Assignment:
         reel_number: Reel number for the assignment record.
         frame_number: Frame number for the assignment record.
         reel_and_frame_number: Combined reel and frame number.
+        page_total_quantity: Total number of pages in the assignment document.
         assignment_document_location_uri: URI for the assignment document.
         assignment_received_date: Date the assignment was received by USPTO.
         assignment_recorded_date: Date the assignment was recorded by USPTO.
@@ -1144,9 +1145,10 @@ class Assignment:
         correspondence_address_bag: List of `Address` objects for correspondence.
     """
 
-    reel_number: Optional[str] = None
-    frame_number: Optional[str] = None
+    reel_number: Optional[int] = None
+    frame_number: Optional[int] = None
     reel_and_frame_number: Optional[str] = None
+    page_total_quantity: Optional[int] = None
     assignment_document_location_uri: Optional[str] = None
     assignment_received_date: Optional[date] = None
     assignment_recorded_date: Optional[date] = None
@@ -1185,6 +1187,7 @@ class Assignment:
             reel_number=data.get("reelNumber"),
             frame_number=data.get("frameNumber"),
             reel_and_frame_number=data.get("reelAndFrameNumber"),
+            page_total_quantity=data.get("pageTotalQuantity"),
             assignment_document_location_uri=data.get("assignmentDocumentLocationURI"),
             assignment_received_date=parse_to_date(data.get("assignmentReceivedDate")),
             assignment_recorded_date=parse_to_date(data.get("assignmentRecordedDate")),
@@ -1205,6 +1208,7 @@ class Assignment:
             "reelNumber": self.reel_number,
             "frameNumber": self.frame_number,
             "reelAndFrameNumber": self.reel_and_frame_number,
+            "pageTotalQuantity": self.page_total_quantity,
             "assignmentDocumentLocationURI": self.assignment_document_location_uri,
             "assignmentReceivedDate": serialize_date(self.assignment_received_date),
             "assignmentRecordedDate": serialize_date(self.assignment_recorded_date),
@@ -1789,7 +1793,7 @@ class ApplicationMetaData:
     first_inventor_to_file_indicator: Optional[bool] = None
     first_applicant_name: Optional[str] = None
     first_inventor_name: Optional[str] = None
-    application_confirmation_number: Optional[str] = None
+    application_confirmation_number: Optional[int] = None
     application_status_date: Optional[date] = None
     application_status_description_text: Optional[str] = None
     filing_date: Optional[date] = None
