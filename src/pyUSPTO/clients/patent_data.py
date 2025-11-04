@@ -5,14 +5,8 @@ This module provides a client for interacting with the USPTO Patent Data API.
 It allows you to search for and retrieve patent application data.
 """
 
-import csv
-import io
-import os
-import re
 from pathlib import Path
-from turtle import pd
-from typing import Any, Dict, Iterator, List, Optional, Tuple
-from urllib import response
+from typing import Any, Dict, Iterator, List, Optional
 from urllib.parse import urljoin, urlparse
 
 from pyUSPTO.clients.base import BaseUSPTOClient

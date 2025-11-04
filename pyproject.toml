@@ -18,6 +18,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
@@ -26,7 +27,7 @@ classifiers = [
 ]
 keywords = ["uspto", "patent", "odp", "client", "bulk data", "patent data"]
 dependencies = [
-    "requests>=2.25.0",
+    "requests>=2.32.5",
 ]
 dynamic = ["version"]
 

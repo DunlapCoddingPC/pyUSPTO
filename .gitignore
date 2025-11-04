@@ -16,3 +16,5 @@ src/pyUSPTO/_version.py
 download-example/*
 dist/
 .claude/settings.local.json
+.tox/
+Python/
