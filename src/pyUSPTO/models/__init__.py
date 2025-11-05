@@ -11,6 +11,13 @@ from pyUSPTO.models.bulk_data import (
     FileData,
     ProductFileBag,
 )
+from pyUSPTO.models.petition_decisions import (
+    DocumentDownloadOption,
+    PetitionDecision,
+    PetitionDecisionDocument,
+    PetitionDecisionDownloadResponse,
+    PetitionDecisionResponse,
+)
 
 __all__ = [
     "FromDictProtocol",
@@ -18,4 +25,9 @@ __all__ = [
     "ProductFileBag",
     "BulkDataProduct",
     "BulkDataResponse",
+    "PetitionDecision",
+    "PetitionDecisionDocument",
+    "PetitionDecisionResponse",
+    "PetitionDecisionDownloadResponse",
+    "DocumentDownloadOption",
 ]

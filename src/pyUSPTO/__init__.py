@@ -14,6 +14,7 @@ except PackageNotFoundError:
 
 from pyUSPTO.clients.bulk_data import BulkDataClient
 from pyUSPTO.clients.patent_data import PatentDataClient
+from pyUSPTO.clients.petition_decisions import FinalPetitionDecisionsClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import (
     USPTOApiAuthError,
@@ -30,6 +31,11 @@ from pyUSPTO.models.bulk_data import (
     ProductFileBag,
 )
 from pyUSPTO.models.patent_data import PatentDataResponse, PatentFileWrapper
+from pyUSPTO.models.petition_decisions import (
+    PetitionDecision,
+    PetitionDecisionDocument,
+    PetitionDecisionResponse,
+)
 
 __all__ = [
     # Base classes
@@ -48,4 +54,9 @@ __all__ = [
     "PatentDataClient",
     "PatentDataResponse",
     "PatentFileWrapper",
+    # Final Petition Decisions API
+    "FinalPetitionDecisionsClient",
+    "PetitionDecisionResponse",
+    "PetitionDecision",
+    "PetitionDecisionDocument",
 ]
