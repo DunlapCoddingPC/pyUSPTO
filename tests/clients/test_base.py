@@ -508,3 +508,15 @@ class TestBaseUSPTOClient:
 
             # Verify empty results works
             assert results == []
+
+    def test_save_response_to_file(self, mock_session: MagicMock) -> None:
+        """Test _save_response_to_file raises FileExistsError."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+        mock_response = MagicMock()
+        path = "tests/clients/test_file.txt"
+
+        # Pretend Path.exists() returns True
+        with patch("pyUSPTO.clients.base.Path.exists", return_value=True):
+            with pytest.raises(FileExistsError):
+                client._save_response_to_file(mock_response, path, overwrite=False)

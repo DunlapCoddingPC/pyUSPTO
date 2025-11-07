@@ -24,25 +24,26 @@ from pyUSPTO.models.patent_data import (
 class DecisionTypeCode(Enum):
     """Represents the type of decision made on a petition.
 
-    Common values include GRANTED, DENIED, DISMISSED, etc.
+    The only current value possible is "c" which indicates DENIED.
+    Hopefully the USPTO will give access to others in the future.
     """
 
-    GRANTED = "GRANTED"
+    # GRANTED = "GRANTED"
     DENIED = "DENIED"
-    DISMISSED = "DISMISSED"
-    C = "C"  # Often represents "DENIED" in API responses
+    # DISMISSED = "DISMISSED"
+    C = DENIED
 
     @classmethod
     def _missing_(cls, value: Any) -> "DecisionTypeCode":
         """Handle case-insensitive lookup and common aliases."""
         if isinstance(value, str):
             val_upper = value.upper()
-            if val_upper == "GRANTED":
-                return cls.GRANTED
+            # if val_upper == "GRANTED":
+            #     return cls.GRANTED
             if val_upper in ("DENIED", "C"):
                 return cls.DENIED
-            if val_upper == "DISMISSED":
-                return cls.DISMISSED
+            # if val_upper == "DISMISSED":
+            #     return cls.DISMISSED
         return super()._missing_(value=value)  # type: ignore[no-any-return]
 
 
@@ -295,14 +296,18 @@ class PetitionDecision:
         first_inventor_name = inventor_bag[0] if inventor_bag else None
 
         return cls(
-            petition_decision_record_identifier=data.get("petitionDecisionRecordIdentifier"),
+            petition_decision_record_identifier=data.get(
+                "petitionDecisionRecordIdentifier"
+            ),
             application_number_text=data.get("applicationNumberText"),
             patent_number=data.get("patentNumber"),
             decision_date=parse_to_date(data.get("decisionDate")),
             petition_mail_date=parse_to_date(data.get("petitionMailDate")),
             decision_petition_type_code=data.get("decisionPetitionTypeCode"),
             decision_type_code=data.get("decisionTypeCode"),
-            decision_type_code_description_text=data.get("decisionTypeCodeDescriptionText"),
+            decision_type_code_description_text=data.get(
+                "decisionTypeCodeDescriptionText"
+            ),
             final_deciding_office_name=data.get("finalDecidingOfficeName"),
             first_applicant_name=data.get("firstApplicantName"),
             first_inventor_name=first_inventor_name,
@@ -313,7 +318,9 @@ class PetitionDecision:
             group_art_unit_number=data.get("groupArtUnitNumber"),
             technology_center=data.get("technologyCenter"),
             prosecution_status_code=data.get("prosecutionStatusCode"),
-            prosecution_status_code_description_text=data.get("prosecutionStatusCodeDescriptionText"),
+            prosecution_status_code_description_text=data.get(
+                "prosecutionStatusCodeDescriptionText"
+            ),
             action_taken_by_court_name=data.get("actionTakenByCourtName"),
             court_action_indicator=data.get("courtActionIndicator"),
             inventor_bag=inventor_bag,
@@ -321,7 +328,9 @@ class PetitionDecision:
             statute_bag=statute_bag,
             rule_bag=rule_bag,
             document_bag=documents,
-            last_ingestion_datetime=parse_to_datetime_utc(data.get("lastIngestionDateTime")),
+            last_ingestion_datetime=parse_to_datetime_utc(
+                data.get("lastIngestionDateTime")
+            ),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -356,7 +365,9 @@ class PetitionDecision:
             "statuteBag": self.statute_bag,
             "ruleBag": self.rule_bag,
             "documentBag": [doc.to_dict() for doc in self.document_bag],
-            "lastIngestionDateTime": serialize_datetime_as_iso(self.last_ingestion_datetime),
+            "lastIngestionDateTime": serialize_datetime_as_iso(
+                self.last_ingestion_datetime
+            ),
         }
         return {
             k: v

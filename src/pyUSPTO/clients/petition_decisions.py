@@ -320,7 +320,11 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         decision_date_from_q: Optional[str] = None,
         decision_date_to_q: Optional[str] = None,
         additional_query_params: Optional[Dict[str, Any]] = None,
-    ) -> Union[PetitionDecisionDownloadResponse, requests.Response]:
+        # File save options (for CSV format)
+        file_name: Optional[str] = None,
+        destination_path: Optional[str] = None,
+        overwrite: bool = False,
+    ) -> Union[PetitionDecisionDownloadResponse, requests.Response, str]:
         """Downloads petition decisions data in the specified format.
 
         This endpoint is designed for bulk downloads of petition decisions data.
@@ -342,11 +346,18 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             decision_date_from_q: Filter decisions from this date (YYYY-MM-DD).
             decision_date_to_q: Filter decisions to this date (YYYY-MM-DD).
             additional_query_params: Additional custom query parameters.
+            file_name: Optional filename for CSV downloads. Defaults to "petition_decisions.csv".
+            destination_path: Optional directory path to save CSV file. If None, returns Response.
+            overwrite: Whether to overwrite existing files. Default False.
 
         Returns:
-            Union[PetitionDecisionDownloadResponse, requests.Response]:
+            Union[PetitionDecisionDownloadResponse, requests.Response, str]:
                 - If format="json": Returns PetitionDecisionDownloadResponse
-                - If format="csv": Returns streaming Response for CSV data
+                - If format="csv" and destination_path is None: Returns streaming Response
+                - If format="csv" and destination_path is set: Returns str path to saved file
+
+        Raises:
+            FileExistsError: If CSV file exists and overwrite=False
 
         Examples:
             # Download as JSON
@@ -358,7 +369,15 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             >>> for decision in download.petition_decision_data:
             ...     print(decision.application_number_text)
 
-            # Download as CSV and save to file
+            # Download CSV and save to file
+            >>> file_path = client.download_decisions(
+            ...     format="csv",
+            ...     decision_date_from_q="2023-01-01",
+            ...     destination_path="./downloads"
+            ... )
+            >>> print(f"Saved to: {file_path}")
+
+            # Download CSV as streaming response (advanced usage)
             >>> response = client.download_decisions(format="csv")
             >>> with open("decisions.csv", "wb") as f:
             ...     for chunk in response.iter_content(chunk_size=8192):
@@ -419,12 +438,32 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             assert isinstance(result_dict, dict)
             return PetitionDecisionDownloadResponse.from_dict(result_dict)
         else:
-            # For CSV or other formats, return streaming response
+            # For CSV or other formats, get streaming response
             result = self._make_request(
                 method="GET", endpoint=endpoint, params=params, stream=True
             )
             assert isinstance(result, requests.Response)
-            return result
+
+            if destination_path is not None:
+                # Save to file using the base class helper
+                from pathlib import Path
+
+                # Determine filename
+                if file_name is None:
+                    file_name = "petition_decisions.csv"
+
+                # Build full file path
+                destination_dir = Path(destination_path)
+                destination_dir.mkdir(parents=True, exist_ok=True)
+                final_file_path = destination_dir / file_name
+
+                # Save streaming response to file (overwrite check handled by base class)
+                return self._save_response_to_file(
+                    response=result, file_path=str(final_file_path), overwrite=overwrite
+                )
+            else:
+                # Return streaming response for manual handling
+                return result
 
     def paginate_decisions(self, **kwargs: Any) -> Iterator[PetitionDecision]:
         """Provides an iterator to paginate through petition decision search results.

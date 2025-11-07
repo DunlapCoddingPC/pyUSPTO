@@ -201,15 +201,52 @@ class BaseUSPTOClient(Generic[T]):
 
             offset += limit
 
-    def _download_file(self, url: str, file_path: str) -> str:
+    def _save_response_to_file(
+        self, response: requests.Response, file_path: str, overwrite: bool = False
+    ) -> str:
+        """Save a streaming response to a file on disk.
+
+        Args:
+            response: Streaming response object from requests
+            file_path: Local path where file should be saved
+            overwrite: Whether to overwrite existing files. Default False
+
+        Returns:
+            str: Path to the saved file
+
+        Raises:
+            FileExistsError: If file exists and overwrite=False
+        """
+        # Check for existing file
+        from pathlib import Path
+
+        path = Path(file_path)
+        if path.exists() and not overwrite:
+            raise FileExistsError(
+                f"File already exists: {file_path}. Set overwrite=True to replace."
+            )
+
+        # Save to disk with streaming
+        with open(file=file_path, mode="wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:  # Filter out keep-alive chunks
+                    f.write(chunk)
+        return file_path
+
+    def _download_file(self, url: str, file_path: str, overwrite: bool = False) -> str:
         """Download a file directly to disk.
 
         Args:
             url: URL to download from
             file_path: Local path where file should be saved
+            overwrite: Whether to overwrite existing files. Default False
+
+        Returns:
+            str: Path to the downloaded file
 
         Raises:
             HTTPError: If download request fails
+            FileExistsError: If file exists and overwrite=False
         """
         # Always stream for file downloads (internal implementation detail)
         response = self._make_request(
@@ -224,9 +261,6 @@ class BaseUSPTOClient(Generic[T]):
                 f"Expected requests.Response for streaming download, got {type(response)}"
             )
 
-        # Save to disk with streaming
-        with open(file=file_path, mode="wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:  # Filter out keep-alive chunks
-                    f.write(chunk)
-        return file_path
+        return self._save_response_to_file(
+            response=response, file_path=file_path, overwrite=overwrite
+        )

@@ -782,7 +782,9 @@ class TestPatentDocumentDownload:
         )
 
         mock_download_file.assert_called_once_with(
-            url=sample_document_format.download_url, file_path=expected_path
+            url=sample_document_format.download_url,
+            file_path=expected_path,
+            overwrite=False,
         )
         assert result_path == expected_path
 
@@ -811,7 +813,9 @@ class TestPatentDocumentDownload:
         )
 
         mock_download_file.assert_called_once_with(
-            url=sample_document_format.download_url, file_path=expected_path
+            url=sample_document_format.download_url,
+            file_path=expected_path,
+            overwrite=False,
         )
         assert result_path == expected_path
 
@@ -841,34 +845,36 @@ class TestPatentDocumentDownload:
         )
 
         mock_download_file.assert_called_once_with(
-            url=document_format.download_url, file_path=expected_path
+            url=document_format.download_url,
+            file_path=expected_path,
+            overwrite=False,
         )
 
         assert result_path == expected_path
 
     @patch("pathlib.Path.is_dir")
-    @patch("pathlib.Path.exists")
     def test_download_document_file_exists_no_overwrite(
         self,
-        mock_exists: MagicMock,
         mock_is_dir: MagicMock,
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
         sample_document_format: DocumentFormat,
     ) -> None:
         """Test document download raises FileExistsError when file exists and overwrite=False."""
         client, mock_download_file = client_with_mocked_download
-        mock_exists.return_value = True  # Simulate file exists
         mock_is_dir.return_value = True
 
+        # Mock _download_file to raise FileExistsError (as it will call _save_response_to_file)
+        mock_download_file.side_effect = FileExistsError(
+            "File already exists: /tmp/downloads/LDXBTPQ7XBLUEX3.pdf. Set overwrite=True to replace."
+        )
+
         with pytest.raises(
-            FileExistsError, match="File already exists.*Use overwrite=True"
+            FileExistsError, match="File already exists.*overwrite=True"
         ):
             client.download_document(
                 document_format=sample_document_format,
                 destination_path="/tmp/downloads/",
             )
-
-        mock_download_file.assert_not_called()
 
     @patch("pathlib.Path.is_dir")
     @patch("pathlib.Path.exists")
@@ -895,7 +901,9 @@ class TestPatentDocumentDownload:
 
         expected_path = "/tmp/downloads/LDXBTPQ7XBLUEX3.pdf"
         mock_download_file.assert_called_once_with(
-            url=sample_document_format.download_url, file_path=expected_path
+            url=sample_document_format.download_url,
+            file_path=expected_path,
+            overwrite=True,
         )
         assert result_path == expected_path
 
@@ -935,7 +943,9 @@ class TestPatentDocumentDownload:
         result_path = client.download_document(document_format=sample_document_format)
 
         mock_download_file.assert_called_once_with(
-            url=sample_document_format.download_url, file_path=expected_path
+            url=sample_document_format.download_url,
+            file_path=expected_path,
+            overwrite=False,
         )
         assert result_path == expected_path
 

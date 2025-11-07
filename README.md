@@ -6,8 +6,7 @@
 
 A Python client library for interacting with the United Stated Patent and Trademark Office (USPTO) [Open Data Portal](https://data.uspto.gov/home) APIs.
 
-This package provides clients for interacting with both the USPTO Bulk Data API and the USPTO Patent Data API.
-The client for the Final Petition Decisions API is currently being developed. 
+This package provides clients for interacting with the USPTO Bulk Data API, the USPTO Patent Data API, and the USPTO Final Petition Decisions API. 
 
 > [!IMPORTANT]
 > The USPTO is in the process of moving their API. This package is only concerned with the new API. The [old API](https://developer.uspto.gov/) will be retired at the end of 2025.
@@ -40,41 +39,64 @@ There are multiple ways to configure the USPTO API clients:
 
 
 ```python
-from pyUSPTO import PatentDataClient
+from pyUSPTO import PatentDataClient, FinalPetitionDecisionsClient
 
 # Method 1: Direct API key initialization
-client1 = PatentDataClient(api_key="your_api_key_here")
+patent_client = PatentDataClient(api_key="your_api_key_here")
+petition_client = FinalPetitionDecisionsClient(api_key="your_api_key_here")
 
 # Method 2: Using USPTOConfig with explicit parameters
 from pyUSPTO.config import USPTOConfig
 config = USPTOConfig(
     api_key="your_api_key_here",
-    bulk_data_base_url="https://api.uspto.gov/api/v1/datasets",
-    patent_data_base_url="https://api.uspto.gov/api/v1/patent"
+    bulk_data_base_url="https://api.uspto.gov",
+    patent_data_base_url="https://api.uspto.gov",
+    petition_decisions_base_url="https://api.uspto.gov"
 )
-client2 = PatentDataClient(config=config)
+patent_client = PatentDataClient(config=config)
+petition_client = FinalPetitionDecisionsClient(config=config)
 
 # Method 3: Using environment variables (recommended for production)
 import os
 os.environ["USPTO_API_KEY"] = "your_api_key_here"
 config_from_env = USPTOConfig.from_env()
-client3 = PatentDataClient(config=config_from_env)
+patent_client = PatentDataClient(config=config_from_env)
+petition_client = FinalPetitionDecisionsClient(config=config_from_env)
 ```
 
 ### Patent Data API
 
 ```python
 # Search for applications by inventor name
-inventor_search = client1.search_applications(inventor_name_q="Smith")
+inventor_search = patent_client.search_applications(inventor_name_q="Smith")
 print(f"Found {inventor_search.count} applications with 'Smith' as inventor")
 # > Found 104926 applications with 'Smith' as inventor.
 ```
 
+### Final Petition Decisions API
+
+```python
+# Search for petition decisions by date range
+decisions = petition_client.search_decisions(
+    decision_date_from_q="2023-01-01",
+    limit=10
+)
+print(f"Found {decisions.count} petition decisions since 2023")
+
+# Get a specific decision by ID
+decision = petition_client.get_decision_by_id("decision_id_here")
+print(f"Decision Type: {decision.decision_type_code}")
+print(f"Application: {decision.application_number_text}")
+```
+
 ## Features
 
-- Access to both USPTO Bulk Data API and Patent Data API
+- Access to USPTO Bulk Data API, Patent Data API, and Final Petition Decisions API
 - Search for patent applications using various filters
-- Download files and documents from the APIs
+- Search and retrieve petition decisions with detailed information
+- Download files, documents, and petition decision documents from the APIs
+- Pagination support for large result sets
+- Full type annotations and comprehensive test coverage
 
 ## Documentation
 
@@ -102,6 +124,15 @@ The library uses Python dataclasses to represent API responses. All data models 
 - `Continuity`, `ParentContinuity`, `ChildContinuity`: Continuity-related data classes
 - `PatentTermAdjustmentData`: Patent term adjustment information
 - And many more specialized classes for different aspects of patent data
+
+#### Final Petition Decisions API
+
+- `PetitionDecisionResponse`: Top-level response from the API
+- `PetitionDecision`: Complete information about a petition decision
+- `PetitionDecisionDocument`: Document associated with a petition decision
+- `DocumentDownloadOption`: Download options for petition documents
+- `DecisionTypeCode`: Enum for petition decision types
+- `DocumentDirectionCategory`: Enum for document direction categories
 
 ## License
 

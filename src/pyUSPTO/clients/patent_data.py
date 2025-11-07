@@ -811,15 +811,11 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             destination_dir.mkdir(parents=True, exist_ok=True)
             final_file_path = destination_dir / file_name
 
-        # Check for existing file
-        if final_file_path.exists() and overwrite is False:
-            raise FileExistsError(
-                f"File already exists: {final_file_path}. Use overwrite=True to replace."
-            )
-
-        # Download the file
+        # Download the file (overwrite check handled by base class)
         return self._download_file(
-            url=document_format.download_url, file_path=final_file_path.as_posix()
+            url=document_format.download_url,
+            file_path=final_file_path.as_posix(),
+            overwrite=overwrite,
         )
 
     def get_IFW_metadata(
