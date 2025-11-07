@@ -53,7 +53,9 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         self.config = config or USPTOConfig(api_key=api_key)
         api_key_to_use = api_key or self.config.api_key
         effective_base_url = (
-            base_url or self.config.petition_decisions_base_url or "https://api.uspto.gov"
+            base_url
+            or self.config.petition_decisions_base_url
+            or "https://api.uspto.gov"
         )
         super().__init__(api_key=api_key_to_use, base_url=effective_base_url)
 
@@ -198,7 +200,9 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
                 if technology_center_q:
                     q_parts.append(f"technologyCenter:{technology_center_q}")
                 if final_deciding_office_name_q:
-                    q_parts.append(f"finalDecidingOfficeName:{final_deciding_office_name_q}")
+                    q_parts.append(
+                        f"finalDecidingOfficeName:{final_deciding_office_name_q}"
+                    )
 
                 # Handle decision date range
                 if decision_date_from_q and decision_date_to_q:
@@ -434,7 +438,9 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
 
         if format.lower() == "json":
             # For JSON, parse the response
-            result_dict = self._make_request(method="GET", endpoint=endpoint, params=params)
+            result_dict = self._make_request(
+                method="GET", endpoint=endpoint, params=params
+            )
             assert isinstance(result_dict, dict)
             return PetitionDecisionDownloadResponse.from_dict(result_dict)
         else:
