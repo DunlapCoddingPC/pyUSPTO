@@ -21,6 +21,8 @@ from pyUSPTO.exceptions import (
     USPTOApiPayloadTooLargeError,
     USPTOApiRateLimitError,
     USPTOApiServerError,
+    USPTOConnectionError,
+    USPTOTimeout,
 )
 
 
@@ -387,19 +389,55 @@ class TestBaseUSPTOClient:
             assert "This is an error less than 500 chars." in str(excinfo.value)
             assert excinfo.value.request_identifier is None
 
-    def test_make_request_request_exception(self, mock_session: MagicMock) -> None:
-        """Test _make_request method with request exception."""
+    def test_make_request_connection_error(self, mock_session: MagicMock) -> None:
+        """Test _make_request method with connection error."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.session = mock_session
-        url_for_message = "https://api.test.com/test"  # Define for clarity in assertion
 
-        # Test request exception
+        # Test connection error
         mock_session.get.side_effect = requests.exceptions.ConnectionError(
             "Connection refused"
         )
-        # Updated match pattern to be more flexible and correct
-        expected_message_pattern = f"API request to 'https://api.test.com/test' failed due to a network or request issue: Connection refused"
+
+        with pytest.raises(USPTOConnectionError) as excinfo:
+            client._make_request(method="GET", endpoint="test")
+
+        # Verify error details
+        assert "Failed to connect to" in str(excinfo.value)
+        assert "https://api.test.com/test" in str(excinfo.value)
+        assert excinfo.value.api_short_error == "Connection Error"
+
+    def test_make_request_timeout_error(self, mock_session: MagicMock) -> None:
+        """Test _make_request method with timeout error."""
+        # Setup
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
+        # Test timeout error
+        mock_session.get.side_effect = requests.exceptions.Timeout("Request timed out")
+
+        with pytest.raises(USPTOTimeout) as excinfo:
+            client._make_request(method="GET", endpoint="test")
+
+        # Verify error details
+        assert "timed out" in str(excinfo.value)
+        assert "https://api.test.com/test" in str(excinfo.value)
+        assert excinfo.value.api_short_error == "Timeout"
+
+    def test_make_request_generic_request_exception(self, mock_session: MagicMock) -> None:
+        """Test _make_request method with generic request exception."""
+        # Setup
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
+        # Test generic RequestException (not Timeout or ConnectionError)
+        mock_session.get.side_effect = requests.exceptions.RequestException(
+            "Some other network issue"
+        )
+
+        # Should fall back to generic USPTOApiError
+        expected_message_pattern = "API request to 'https://api.test.com/test' failed due to a network or request issue"
         with pytest.raises(USPTOApiError, match=expected_message_pattern):
             client._make_request(method="GET", endpoint="test")
 

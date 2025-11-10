@@ -23,7 +23,13 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from pyUSPTO.exceptions import APIErrorArgs, USPTOApiError, get_api_exception
+from pyUSPTO.exceptions import (
+    APIErrorArgs,
+    USPTOApiError,
+    USPTOConnectionError,
+    USPTOTimeout,
+    get_api_exception,
+)
 
 
 @runtime_checkable
@@ -147,9 +153,25 @@ class BaseUSPTOClient(Generic[T]):
             api_exception_to_raise = get_api_exception(error_args=current_error_args)
             raise api_exception_to_raise from http_err
 
+        except requests.exceptions.Timeout as timeout_err:
+            # Specific handling for timeout errors
+            raise USPTOTimeout(
+                message=f"Request to '{url}' timed out",
+                api_short_error="Timeout",
+                error_details=str(timeout_err),
+            ) from timeout_err
+
+        except requests.exceptions.ConnectionError as conn_err:
+            # Specific handling for connection errors (DNS, refused connection, etc.)
+            raise USPTOConnectionError(
+                message=f"Failed to connect to '{url}'",
+                api_short_error="Connection Error",
+                error_details=str(conn_err),
+            ) from conn_err
+
         except (
             requests.exceptions.RequestException
-        ) as req_err:  # Catches non-HTTP errors from requests
+        ) as req_err:  # Catches other non-HTTP errors from requests
             client_operation_message = (
                 f"API request to '{url}' failed"  # 'url' is from _make_request scope
             )

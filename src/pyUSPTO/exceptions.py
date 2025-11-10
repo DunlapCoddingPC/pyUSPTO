@@ -121,6 +121,18 @@ class USPTOApiServerError(USPTOApiError):
     pass
 
 
+class USPTOConnectionError(USPTOApiError):
+    """Network-level connection error (DNS failure, refused connection, etc.)."""
+
+    pass
+
+
+class USPTOTimeout(USPTOApiError):
+    """Request to USPTO API timed out."""
+
+    pass
+
+
 # --- Helper Structures and Functions ---
 
 
