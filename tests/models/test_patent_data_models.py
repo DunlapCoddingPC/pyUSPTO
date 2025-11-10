@@ -2324,7 +2324,7 @@ class TestUtilityFunctions:
 
         dt_str = "2023-01-01T10:00:00"
 
-        with patch("pyUSPTO.models.patent_data.ASSUMED_NAIVE_TIMEZONE", FailingTZ()):
+        with patch("pyUSPTO.models.utils.ASSUMED_NAIVE_TIMEZONE", FailingTZ()):
             result = parse_to_datetime_utc(datetime_str=dt_str)
 
         assert result is None
@@ -2353,7 +2353,7 @@ class TestUtilityFunctions:
         dt_str = "2023-01-01T10:00:00"
 
         with patch(
-            "pyUSPTO.models.patent_data.ASSUMED_NAIVE_TIMEZONE", FailingButEqualToUTC()
+            "pyUSPTO.models.utils.ASSUMED_NAIVE_TIMEZONE", FailingButEqualToUTC()
         ):
             result = parse_to_datetime_utc(dt_str)
 
