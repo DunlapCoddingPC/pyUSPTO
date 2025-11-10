@@ -87,7 +87,7 @@ def mock_application_meta_data() -> ApplicationMetaData:
 @pytest.fixture
 def mock_assignment() -> Assignment:
     """Provides a mock Assignment instance."""
-    return Assignment(reel_number="12345", frame_number="67890")
+    return Assignment(reel_number=12345, frame_number=67890)
 
 
 @pytest.fixture
@@ -698,7 +698,9 @@ class TestPatentApplicationDocumentListing:
         result = client.get_application_documents(application_number=app_num)
 
         mock_make_request.assert_called_once_with(
-            method="GET", endpoint=f"api/v1/patent/applications/{app_num}/documents", params=None
+            method="GET",
+            endpoint=f"api/v1/patent/applications/{app_num}/documents",
+            params=None,
         )
         assert isinstance(result, DocumentBag)
         assert len(result.documents) == 1

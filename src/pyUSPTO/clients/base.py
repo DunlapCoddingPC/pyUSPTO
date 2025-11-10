@@ -23,6 +23,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import (
     APIErrorArgs,
     USPTOApiError,
@@ -30,6 +31,7 @@ from pyUSPTO.exceptions import (
     USPTOTimeout,
     get_api_exception,
 )
+from pyUSPTO.http_config import HTTPConfig
 
 
 @runtime_checkable
@@ -53,32 +55,68 @@ class BaseUSPTOClient(Generic[T]):
         self,
         api_key: Optional[str] = None,
         base_url: str = "",
+        config: Optional[USPTOConfig] = None,
     ):
-        """
-        Initialize the BaseUSPTOClient.
+        """Initialize the BaseUSPTOClient.
 
         Args:
             api_key: API key for authentication
             base_url: The base URL of the API
+            config: Optional USPTOConfig instance
         """
-        self.base_url = base_url.rstrip("/")
-        self.api_key = api_key
-        self.session = requests.Session()
+        # Handle config if provided
+        if config:
+            self.config = config
+            self.api_key = api_key or config.api_key
+        else:
+            # Backward compatibility: create minimal config
+            self.config = USPTOConfig(api_key=api_key)
+            self.api_key = api_key
 
-        if api_key:
-            self.session.headers.update(
-                {"X-API-KEY": api_key, "content-type": "application/json"}
+        self.base_url = base_url.rstrip("/")
+
+        # Extract HTTP config for session creation
+        self.http_config = self.config.http_config
+
+        # Create session with HTTP config settings
+        self.session = self._create_session()
+
+    def _create_session(self) -> requests.Session:
+        """Create configured HTTP session from HTTPConfig settings.
+
+        Returns:
+            Configured requests.Session instance
+        """
+        session = requests.Session()
+
+        # Set API key and default headers
+        if self.api_key:
+            session.headers.update(
+                {"X-API-KEY": self.api_key, "content-type": "application/json"}
             )
 
-        # Configure retries
+        # Apply custom headers from HTTP config
+        if self.http_config.custom_headers:
+            session.headers.update(self.http_config.custom_headers)
+
+        # Configure retry strategy from HTTP config
         retry_strategy = Retry(
-            total=3,
-            backoff_factor=1,
-            status_forcelist=[429, 500, 502, 503, 504],
+            total=self.http_config.max_retries,
+            backoff_factor=self.http_config.backoff_factor,
+            status_forcelist=self.http_config.retry_status_codes,
         )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        self.session.mount("http://", adapter)
-        self.session.mount("https://", adapter)
+
+        # Create adapter with retry and connection pool settings
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=self.http_config.pool_connections,
+            pool_maxsize=self.http_config.pool_maxsize,
+        )
+
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+
+        return session
 
     def _make_request(
         self,
@@ -116,12 +154,21 @@ class BaseUSPTOClient(Generic[T]):
             base = custom_base_url if custom_base_url else self.base_url
             url = f"{base}/{endpoint.lstrip('/')}"
 
+        # Get timeout from HTTP config
+        timeout = self.http_config.get_timeout_tuple()
+
         try:
             if method.upper() == "GET":
-                response = self.session.get(url=url, params=params, stream=stream)
+                response = self.session.get(
+                    url=url, params=params, stream=stream, timeout=timeout
+                )
             elif method.upper() == "POST":
                 response = self.session.post(
-                    url=url, params=params, json=json_data, stream=stream
+                    url=url,
+                    params=params,
+                    json=json_data,
+                    stream=stream,
+                    timeout=timeout,
                 )
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")

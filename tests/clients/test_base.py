@@ -152,7 +152,10 @@ class TestBaseUSPTOClient:
 
         # Verify
         mock_session.get.assert_called_once_with(
-            url="https://api.test.com/test", params={"param": "value"}, stream=False
+            url="https://api.test.com/test",
+            params={"param": "value"},
+            stream=False,
+            timeout=(10.0, 30.0),  # Default HTTPConfig timeout
         )
         assert result == {"key": "value"}
 
@@ -180,6 +183,7 @@ class TestBaseUSPTOClient:
             params={"param": "value"},
             json={"data": "value"},
             stream=False,
+            timeout=(10.0, 30.0),  # Default HTTPConfig timeout
         )
         assert result == {"key": "value"}
 
@@ -223,7 +227,10 @@ class TestBaseUSPTOClient:
 
         # Verify
         mock_session.get.assert_called_once_with(
-            url="https://custom.api.test.com", params=None, stream=False
+            url="https://custom.api.test.com",
+            params=None,
+            stream=False,
+            timeout=(10.0, 30.0),  # Default HTTPConfig timeout
         )
         assert result == {"key": "value"}
 
@@ -241,7 +248,10 @@ class TestBaseUSPTOClient:
 
         # Verify
         mock_session.get.assert_called_once_with(
-            url="https://api.test.com/test", params=None, stream=True
+            url="https://api.test.com/test",
+            params=None,
+            stream=True,
+            timeout=(10.0, 30.0),  # Default HTTPConfig timeout
         )
         assert result == mock_response
         mock_response.json.assert_not_called()
@@ -425,7 +435,9 @@ class TestBaseUSPTOClient:
         assert "https://api.test.com/test" in str(excinfo.value)
         assert excinfo.value.api_short_error == "Timeout"
 
-    def test_make_request_generic_request_exception(self, mock_session: MagicMock) -> None:
+    def test_make_request_generic_request_exception(
+        self, mock_session: MagicMock
+    ) -> None:
         """Test _make_request method with generic request exception."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
@@ -558,3 +570,96 @@ class TestBaseUSPTOClient:
         with patch("pyUSPTO.clients.base.Path.exists", return_value=True):
             with pytest.raises(FileExistsError):
                 client._save_response_to_file(mock_response, path, overwrite=False)
+
+    def test_base_client_with_http_config(self) -> None:
+        """Test BaseUSPTOClient applies HTTPConfig settings"""
+        from pyUSPTO.http_config import HTTPConfig
+        from pyUSPTO.config import USPTOConfig
+
+        http_cfg = HTTPConfig(
+            max_retries=7,
+            backoff_factor=2.5,
+            pool_connections=15,
+            pool_maxsize=20,
+            custom_headers={"User-Agent": "TestApp"},
+        )
+        config = USPTOConfig(api_key="test", http_config=http_cfg)
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=config, base_url="https://test.com"
+        )
+
+        # Verify HTTP config is stored
+        assert client.http_config is http_cfg
+        assert client.http_config.max_retries == 7
+        assert client.http_config.backoff_factor == 2.5
+
+        # Verify custom headers applied
+        assert client.session.headers.get("User-Agent") == "TestApp"
+
+        # Verify retry configuration (check adapter)
+        adapter = client.session.get_adapter("https://test.com")
+        assert isinstance(adapter, HTTPAdapter)
+        assert adapter.max_retries.total == 7  # type: ignore
+        assert adapter.max_retries.backoff_factor == 2.5  # type: ignore
+
+    def test_base_client_backward_compatibility(self) -> None:
+        """Test client works without HTTPConfig (backward compatibility)"""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Should create default HTTPConfig automatically
+        assert client.http_config is not None
+        assert client.http_config.timeout == 30.0
+        assert client.http_config.max_retries == 3
+
+    def test_base_client_timeout_applied(self, mock_session: MagicMock) -> None:
+        """Test that timeout is passed to requests"""
+        from pyUSPTO.http_config import HTTPConfig
+        from pyUSPTO.config import USPTOConfig
+
+        http_cfg = HTTPConfig(timeout=45.0, connect_timeout=8.0)
+        config = USPTOConfig(api_key="test", http_config=http_cfg)
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=config, base_url="https://api.test.com"
+        )
+        client.session = mock_session
+
+        mock_session.get.return_value.status_code = 200
+        mock_session.get.return_value.json.return_value = {"test": "data"}
+
+        # Make request
+        client._make_request(method="GET", endpoint="test")
+
+        # Verify timeout was passed
+        mock_session.get.assert_called_once()
+        call_kwargs = mock_session.get.call_args[1]
+        assert "timeout" in call_kwargs
+        assert call_kwargs["timeout"] == (8.0, 45.0)  # (connect, read)
+
+    def test_base_client_with_config_object(self) -> None:
+        """Test BaseUSPTOClient accepts USPTOConfig"""
+        from pyUSPTO.config import USPTOConfig
+
+        config = USPTOConfig(api_key="config_key")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=config, base_url="https://test.com"
+        )
+
+        # API key should come from config
+        assert client.api_key == "config_key"
+        assert client.config is config
+
+    def test_base_client_api_key_priority(self) -> None:
+        """Test API key priority: explicit > config"""
+        from pyUSPTO.config import USPTOConfig
+
+        config = USPTOConfig(api_key="config_key")
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="explicit_key", config=config, base_url="https://test.com"
+        )
+
+        # Explicit api_key should take precedence
+        assert client.api_key == "explicit_key"

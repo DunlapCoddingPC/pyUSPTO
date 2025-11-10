@@ -22,6 +22,7 @@ from pyUSPTO.exceptions import (
     USPTOApiNotFoundError,
     USPTOApiRateLimitError,
 )
+from pyUSPTO.http_config import HTTPConfig
 from pyUSPTO.warnings import (
     USPTOBooleanParseWarning,
     USPTODataWarning,
@@ -51,6 +52,7 @@ __all__ = [
     "USPTOApiRateLimitError",
     "USPTOApiNotFoundError",
     "USPTOConfig",
+    "HTTPConfig",
     # Warning classes
     "USPTODataWarning",
     "USPTODateParseWarning",

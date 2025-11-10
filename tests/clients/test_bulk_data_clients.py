@@ -271,6 +271,7 @@ class TestBulkDataClientCore:
             url=f"{mock_bulk_data_client.base_url}/products/search",
             params={"param": "value"},
             stream=False,
+            timeout=(10.0, 30.0),
         )
         assert isinstance(response, BulkDataResponse)
         assert response.count == 2
@@ -317,6 +318,7 @@ class TestBulkDataClientCore:
                 "latest": "true",
             },
             stream=False,
+            timeout=(10.0, 30.0),
         )
         assert isinstance(product, BulkDataProduct)
         assert product.product_identifier == "PRODUCT1"
@@ -471,6 +473,7 @@ class TestBulkDataClientCore:
                 "facets": "true",
             },
             stream=False,
+            timeout=(10.0, 30.0),
         )
         assert isinstance(response, BulkDataResponse)
         assert response.count == 2
