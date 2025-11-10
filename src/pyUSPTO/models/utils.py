@@ -176,6 +176,8 @@ def parse_yn_to_bool(value: Optional[str]) -> Optional[bool]:
 
     if value is None:
         return None
+    if value == "":
+        return None
     if value.upper() == "Y":
         return True
     if value.upper() == "N":
