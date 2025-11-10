@@ -12,6 +12,7 @@ document details, continuity, assignments, and more.
 import csv
 import io
 import json
+import warnings
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from enum import Enum
@@ -29,6 +30,7 @@ from pyUSPTO.models.utils import (
     serialize_datetime_as_iso,
     to_camel_case,
 )
+from pyUSPTO.warnings import USPTOEnumParseWarning
 
 
 # --- Enums for Categorical Data ---
@@ -197,7 +199,11 @@ class Document:
             try:
                 dir_cat = DirectionCategory(dir_val)
             except ValueError:
-                print(f"Warning: Unknown document direction category '{dir_val}'.")
+                warnings.warn(
+                    f"Unknown document direction category '{dir_val}'",
+                    category=USPTOEnumParseWarning,
+                    stacklevel=2,
+                )
         return cls(
             application_number_text=data.get("applicationNumberText"),
             official_date=parse_to_datetime_utc(data.get("officialDate")),

@@ -6,17 +6,27 @@ data used across USPTO API data models. These utilities handle date/datetime
 conversions, boolean string representations, and string transformations.
 """
 
+import warnings
 from datetime import date, datetime, timezone, tzinfo
 from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from pyUSPTO.warnings import (
+    USPTOBooleanParseWarning,
+    USPTODateParseWarning,
+    USPTOTimezoneWarning,
+)
 
 # --- Timezone and Parsing Utilities ---
 ASSUMED_NAIVE_TIMEZONE_STR = "America/New_York"
 try:
     ASSUMED_NAIVE_TIMEZONE: Optional[tzinfo] = ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR)
 except ZoneInfoNotFoundError:
-    print(
-        f"Warning: Timezone '{ASSUMED_NAIVE_TIMEZONE_STR}' not found. Naive datetimes will be treated as UTC or may cause errors."
+    warnings.warn(
+        f"Timezone '{ASSUMED_NAIVE_TIMEZONE_STR}' not found. "
+        f"Naive datetimes will be treated as UTC.",
+        category=USPTOTimezoneWarning,
+        stacklevel=1,
     )
     ASSUMED_NAIVE_TIMEZONE = timezone.utc
 
@@ -31,8 +41,10 @@ def parse_to_date(date_str: Optional[str], fmt: str = "%Y-%m-%d") -> Optional[da
 
     Returns:
         Optional[date]: A date object if parsing is successful and `date_str`
-            is not None. Returns None if `date_str` is None or if parsing fails,
-            printing a warning in case of failure.
+            is not None. Returns None if `date_str` is None or if parsing fails.
+
+    Warns:
+        USPTODateParseWarning: If the date string cannot be parsed.
     """
 
     if not date_str:
@@ -40,7 +52,11 @@ def parse_to_date(date_str: Optional[str], fmt: str = "%Y-%m-%d") -> Optional[da
     try:
         return datetime.strptime(date_str, fmt).date()
     except ValueError:
-        print(f"Warning: Could not parse date string '{date_str}' with format '{fmt}'")
+        warnings.warn(
+            f"Could not parse date string '{date_str}' with format '{fmt}'",
+            category=USPTODateParseWarning,
+            stacklevel=2,
+        )
         return None
 
 
@@ -59,8 +75,11 @@ def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
     Returns:
         Optional[datetime]: A timezone-aware datetime object in UTC if parsing
             is successful and `datetime_str` is not None. Returns None if
-            `datetime_str` is None or if parsing/conversion fails (in which
-            case warnings may be printed).
+            `datetime_str` is None or if parsing/conversion fails.
+
+    Warns:
+        USPTODateParseWarning: If the datetime string cannot be parsed.
+        USPTOTimezoneWarning: If timezone localization fails.
     """
 
     if not datetime_str:
@@ -77,8 +96,10 @@ def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
         except ValueError:
             pass
     if not parsed_successfully or dt_obj is None:
-        print(
-            f"Warning: Could not parse datetime string '{datetime_str}' with any known format."
+        warnings.warn(
+            f"Could not parse datetime string '{datetime_str}' with any known format",
+            category=USPTODateParseWarning,
+            stacklevel=2,
         )
         return None
     if dt_obj.tzinfo is None or dt_obj.tzinfo.utcoffset(dt_obj) is None:
@@ -87,8 +108,10 @@ def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
                 aware_dt = dt_obj.replace(tzinfo=ASSUMED_NAIVE_TIMEZONE)
                 return aware_dt.astimezone(timezone.utc)
             except Exception as e:
-                print(
-                    f"Warning: Error localizing naive datetime '{datetime_str}': {e}."
+                warnings.warn(
+                    f"Error localizing naive datetime '{datetime_str}': {e}",
+                    category=USPTOTimezoneWarning,
+                    stacklevel=2,
                 )
                 if ASSUMED_NAIVE_TIMEZONE == timezone.utc:
                     return dt_obj.replace(tzinfo=timezone.utc)
@@ -145,8 +168,10 @@ def parse_yn_to_bool(value: Optional[str]) -> Optional[bool]:
 
     Returns:
         Optional[bool]: True if `value` is 'Y' or 'y', False if `value` is
-            'N' or 'n'. Returns None if `value` is None or any other string
-            (in which case a warning is printed for unexpected strings).
+            'N' or 'n'. Returns None if `value` is None or any other string.
+
+    Warns:
+        USPTOBooleanParseWarning: If the value is not 'Y' or 'N'.
     """
 
     if value is None:
@@ -155,8 +180,10 @@ def parse_yn_to_bool(value: Optional[str]) -> Optional[bool]:
         return True
     if value.upper() == "N":
         return False
-    print(
-        f"Warning: Unexpected value for Y/N boolean string: '{value}'. Treating as None."
+    warnings.warn(
+        f"Unexpected value for Y/N boolean string: '{value}'. Treating as None.",
+        category=USPTOBooleanParseWarning,
+        stacklevel=2,
     )
     return None
 

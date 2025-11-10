@@ -22,6 +22,13 @@ from pyUSPTO.exceptions import (
     USPTOApiNotFoundError,
     USPTOApiRateLimitError,
 )
+from pyUSPTO.warnings import (
+    USPTOBooleanParseWarning,
+    USPTODataWarning,
+    USPTODateParseWarning,
+    USPTOEnumParseWarning,
+    USPTOTimezoneWarning,
+)
 
 # Import model implementations
 from pyUSPTO.models.bulk_data import (
@@ -44,6 +51,12 @@ __all__ = [
     "USPTOApiRateLimitError",
     "USPTOApiNotFoundError",
     "USPTOConfig",
+    # Warning classes
+    "USPTODataWarning",
+    "USPTODateParseWarning",
+    "USPTOBooleanParseWarning",
+    "USPTOTimezoneWarning",
+    "USPTOEnumParseWarning",
     # Bulk Data API
     "BulkDataClient",
     "BulkDataResponse",

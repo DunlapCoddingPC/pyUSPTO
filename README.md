@@ -89,6 +89,49 @@ print(f"Decision Type: {decision.decision_type_code}")
 print(f"Application: {decision.application_number_text}")
 ```
 
+## Warning Control
+
+The library uses Python's standard `warnings` module to report data parsing issues. This allows you to control how warnings are handled based on your needs.
+
+### Warning Categories
+
+All warnings inherit from `USPTODataWarning`:
+
+- `USPTODateParseWarning`: Date/datetime string parsing failures
+- `USPTOBooleanParseWarning`: Y/N boolean string parsing failures
+- `USPTOTimezoneWarning`: Timezone-related issues
+- `USPTOEnumParseWarning`: Enum value parsing failures
+
+### Controlling Warnings
+
+```python
+import warnings
+from pyUSPTO.warnings import (
+    USPTODataWarning,
+    USPTODateParseWarning,
+    USPTOBooleanParseWarning,
+    USPTOTimezoneWarning,
+    USPTOEnumParseWarning
+)
+
+# Suppress all pyUSPTO data warnings
+warnings.filterwarnings('ignore', category=USPTODataWarning)
+
+# Suppress only date parsing warnings
+warnings.filterwarnings('ignore', category=USPTODateParseWarning)
+
+# Turn warnings into errors (strict mode)
+warnings.filterwarnings('error', category=USPTODataWarning)
+
+# Show warnings once per location
+warnings.filterwarnings('once', category=USPTODataWarning)
+
+# Always show all warnings (default Python behavior)
+warnings.filterwarnings('always', category=USPTODataWarning)
+```
+
+The library's permissive parsing philosophy returns `None` for fields that cannot be parsed, allowing you to retrieve partial data even when some fields have issues. Warnings inform you when this happens without stopping execution.
+
 ## Features
 
 - Access to USPTO Bulk Data API, Patent Data API, and Final Petition Decisions API

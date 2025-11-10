@@ -14,6 +14,12 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pytest
 
+from pyUSPTO.warnings import (
+    USPTOBooleanParseWarning,
+    USPTODateParseWarning,
+    USPTOEnumParseWarning,
+    USPTOTimezoneWarning,
+)
 from pyUSPTO.models.patent_data import (
     ASSUMED_NAIVE_TIMEZONE,
     ASSUMED_NAIVE_TIMEZONE_STR,
@@ -647,18 +653,14 @@ class TestDocument:
         assert data["downloadOptionBag"][0]["mimeTypeIdentifier"] == "image/tiff"
         assert data["downloadOptionBag"][0]["pageTotalQuantity"] == 5
 
-    def test_document_from_dict_unknown_enum(
-        self, capsys: pytest.CaptureFixture
-    ) -> None:
+    def test_document_from_dict_unknown_enum(self) -> None:
         """Test Document.from_dict with an unknown direction category."""
         data = {"documentDirectionCategory": "UNKNOWN_DIRECTION"}
-        doc = Document.from_dict(data)
+
+        with pytest.warns(USPTOEnumParseWarning, match="Unknown document direction"):
+            doc = Document.from_dict(data)
+
         assert doc.direction_category is None
-        captured = capsys.readouterr()
-        assert (
-            "Warning: Unknown document direction category 'UNKNOWN_DIRECTION'."
-            in captured.out
-        )
 
     def test_document_to_dict_all_none_and_empty_lists(self) -> None:
         """Test Document.to_dict when all fields are None or empty lists."""
@@ -2233,7 +2235,7 @@ class TestAssociatedDocumentsData:
 class TestUtilityFunctions:
     """Tests for utility functions in models.patent_data.py."""
 
-    def test_parse_to_datetime_utc(self, capsys: pytest.CaptureFixture) -> None:
+    def test_parse_to_datetime_utc(self) -> None:
         """Test parse_to_datetime_utc utility function comprehensively."""
         dt_utc_z = parse_to_datetime_utc("2023-01-01T10:00:00Z")
         assert isinstance(dt_utc_z, datetime)
@@ -2279,12 +2281,9 @@ class TestUtilityFunctions:
             assert dt_space.hour == 10
         assert dt_space.tzinfo == timezone.utc
 
-        assert parse_to_datetime_utc("invalid-datetime") is None
-        captured = capsys.readouterr()
-        assert (
-            "Warning: Could not parse datetime string 'invalid-datetime'"
-            in captured.out
-        )
+        with pytest.warns(USPTODateParseWarning, match="Could not parse datetime"):
+            assert parse_to_datetime_utc("invalid-datetime") is None
+
         assert parse_to_datetime_utc(None) is None
 
     def test_serialize_date(self) -> None:
@@ -2307,9 +2306,7 @@ class TestUtilityFunctions:
 
         assert serialize_datetime_as_iso(None) is None
 
-    def test_parse_to_datetime_utc_localization_failure_and_fallback(
-        self, capsys: pytest.CaptureFixture
-    ) -> None:
+    def test_parse_to_datetime_utc_localization_failure_and_fallback(self) -> None:
         """Triggers the except block by making astimezone() raise, and tests fallback path."""
 
         class FailingTZ(tzinfo):
@@ -2325,16 +2322,12 @@ class TestUtilityFunctions:
         dt_str = "2023-01-01T10:00:00"
 
         with patch("pyUSPTO.models.utils.ASSUMED_NAIVE_TIMEZONE", FailingTZ()):
-            result = parse_to_datetime_utc(datetime_str=dt_str)
+            with pytest.warns(USPTOTimezoneWarning, match="Error localizing"):
+                result = parse_to_datetime_utc(datetime_str=dt_str)
 
         assert result is None
 
-        captured = capsys.readouterr()
-        assert "Warning: Error localizing naive datetime" in captured.out
-
-    def test_parse_to_datetime_utc_fallback_to_utc_replace(
-        self, capsys: pytest.CaptureFixture
-    ) -> None:
+    def test_parse_to_datetime_utc_fallback_to_utc_replace(self) -> None:
         """Triggers fallback to dt_obj.replace(tzinfo=timezone.utc) without touching datetime.*"""
 
         class FailingButEqualToUTC(tzinfo):
@@ -2355,46 +2348,39 @@ class TestUtilityFunctions:
         with patch(
             "pyUSPTO.models.utils.ASSUMED_NAIVE_TIMEZONE", FailingButEqualToUTC()
         ):
-            result = parse_to_datetime_utc(dt_str)
+            with pytest.warns(USPTOTimezoneWarning, match="Error localizing"):
+                result = parse_to_datetime_utc(dt_str)
 
         assert isinstance(result, datetime)
         assert result.tzinfo == timezone.utc
 
-        captured = capsys.readouterr()
-        assert "Warning: Error localizing naive datetime" in captured.out
-
-    def test_parse_yn_to_bool(self, capsys: pytest.CaptureFixture) -> None:
+    def test_parse_yn_to_bool(self) -> None:
         """Test parse_yn_to_bool utility function."""
         assert parse_yn_to_bool("Y") is True
         assert parse_yn_to_bool("y") is True
         assert parse_yn_to_bool("N") is False
         assert parse_yn_to_bool("n") is False
         assert parse_yn_to_bool(None) is None
-        assert parse_yn_to_bool("True") is None
-        captured_true = capsys.readouterr()
-        assert (
-            "Warning: Unexpected value for Y/N boolean string: 'True'"
-            in captured_true.out
-        )
 
-        assert parse_yn_to_bool("False") is None
-        captured_false = capsys.readouterr()
-        assert (
-            "Warning: Unexpected value for Y/N boolean string: 'False'"
-            in captured_false.out
-        )
+        with pytest.warns(USPTOBooleanParseWarning, match="Unexpected value.*'True'"):
+            assert parse_yn_to_bool("True") is None
 
-        assert parse_yn_to_bool("Other") is None
-        captured_other = capsys.readouterr()
-        assert (
-            "Warning: Unexpected value for Y/N boolean string: 'Other'"
-            in captured_other.out
-        )
+        with pytest.warns(USPTOBooleanParseWarning, match="Unexpected value.*'False'"):
+            assert parse_yn_to_bool("False") is None
 
-        assert parse_yn_to_bool("yes") is None
-        assert parse_yn_to_bool("no") is None
+        with pytest.warns(USPTOBooleanParseWarning, match="Unexpected value.*'Other'"):
+            assert parse_yn_to_bool("Other") is None
+
+        # All these should also warn
+        with pytest.warns(USPTOBooleanParseWarning):
+            assert parse_yn_to_bool("yes") is None
+        with pytest.warns(USPTOBooleanParseWarning):
+            assert parse_yn_to_bool("no") is None
+        with pytest.warns(USPTOBooleanParseWarning):
+            assert parse_yn_to_bool("X") is None
+
+        # Empty string should not warn (just return None)
         assert parse_yn_to_bool("") is None
-        assert parse_yn_to_bool("X") is None
 
     def test_serialize_bool_to_yn(self) -> None:
         """Test serialize_bool_to_yn utility function."""
