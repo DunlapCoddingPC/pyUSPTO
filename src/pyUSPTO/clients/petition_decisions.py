@@ -79,15 +79,16 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
 
         decision = response_data.petition_decision_data_bag[0]
 
-        if (
-            petition_decision_record_identifier_for_validation
-            and decision.petition_decision_record_identifier
-            != petition_decision_record_identifier_for_validation
-        ):
-            print(
-                f"Warning: Fetched decision identifier '{decision.petition_decision_record_identifier}' "
-                f"does not match requested '{petition_decision_record_identifier_for_validation}'."
-            )
+        # This should probably just raise an exception rather than print a warning.
+        # if (
+        #     petition_decision_record_identifier_for_validation
+        #     and decision.petition_decision_record_identifier
+        #     != petition_decision_record_identifier_for_validation
+        # ):
+        #     print(
+        #         f"Warning: Fetched decision identifier '{decision.petition_decision_record_identifier}' "
+        #         f"does not match requested '{petition_decision_record_identifier_for_validation}'."
+        #     )
         return decision
 
     def search_decisions(

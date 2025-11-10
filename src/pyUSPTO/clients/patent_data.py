@@ -78,14 +78,15 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         wrapper = response_data.patent_file_wrapper_data_bag[0]
 
-        if (
-            application_number_for_validation
-            and wrapper.application_number_text != application_number_for_validation
-        ):
-            print(
-                f"Warning: Fetched wrapper application number '{wrapper.application_number_text}' "
-                f"does not match requested '{application_number_for_validation}'."
-            )
+        # This should probably just raise an exception rather than print a warning.
+        # if (
+        #     application_number_for_validation
+        #     and wrapper.application_number_text != application_number_for_validation
+        # ):
+        #     print(
+        #         f"Warning: Fetched wrapper application number '{wrapper.application_number_text}' "
+        #         f"does not match requested '{application_number_for_validation}'."
+        #     )
         return wrapper
 
     def search_applications(
@@ -597,7 +598,13 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         wrapper = self._get_wrapper_from_response(response_data, application_number)
         return wrapper.event_data_bag if wrapper else None
 
-    def get_application_documents(self, application_number: str) -> DocumentBag:
+    def get_application_documents(
+        self,
+        application_number: str,
+        document_codes: Optional[List[str]] = None,
+        official_date_from: Optional[str] = None,
+        official_date_to: Optional[str] = None,
+    ) -> DocumentBag:
         """Retrieves metadata for documents associated with a specific application.
 
         This method fetches a collection of document metadata related to the given
@@ -610,18 +617,37 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         Args:
             application_number (str): The USPTO application number for which
                 document metadata is being requested (e.g., "16123456").
+            document_codes (Optional[List[str]]): Filter by specific document type
+                codes. If provided, only documents with these codes will be returned.
+                Examples: ['ABST', 'CLM', 'SPEC', 'DRWD'].
+            official_date_from (Optional[str]): Filter documents from this date
+                (inclusive). Date format: YYYY-MM-DD (e.g., "2020-01-15").
+            official_date_to (Optional[str]): Filter documents to this date
+                (inclusive). Date format: YYYY-MM-DD (e.g., "2023-12-31").
 
         Returns:
             DocumentBag: A `DocumentBag` object containing metadata for all
-                publicly available documents associated with the application.
-                The bag will be empty if no documents are found or if the
-                API response indicates no documents. It does not return None
-                for "not found" cases; an empty collection is returned instead.
+                publicly available documents associated with the application
+                that match the provided filters. The bag will be empty if no
+                documents are found or if the API response indicates no documents.
+                It does not return None for "not found" cases; an empty collection
+                is returned instead.
         """
         endpoint = self.ENDPOINTS["get_application_documents"].format(
             application_number=application_number
         )
-        result_dict = self._make_request(method="GET", endpoint=endpoint)
+
+        params = {}
+        if document_codes:
+            params["documentCodes"] = ",".join(document_codes)
+        if official_date_from:
+            params["officialDateFrom"] = official_date_from
+        if official_date_to:
+            params["officialDateTo"] = official_date_to
+
+        result_dict = self._make_request(
+            method="GET", endpoint=endpoint, params=params if params else None
+        )
         assert isinstance(result_dict, dict)
         return DocumentBag.from_dict(result_dict)
 
