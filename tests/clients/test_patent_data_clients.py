@@ -2070,6 +2070,108 @@ class TestGeneralEdgeCasesAndErrors:
             client.search_applications(post_body={"q": "test"})
 
 
+class TestApplicationNumberSanitization:
+    """Tests for application number sanitization and validation."""
+
+    def test_sanitize_standard_format(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test sanitization of standard 8-digit format."""
+        assert patent_data_client.sanitize_application_number("16123456") == "16123456"
+
+    def test_sanitize_with_commas(self, patent_data_client: PatentDataClient) -> None:
+        """Test removal of commas."""
+        assert (
+            patent_data_client.sanitize_application_number("16,123,456") == "16123456"
+        )
+
+    def test_sanitize_with_spaces(self, patent_data_client: PatentDataClient) -> None:
+        """Test removal of spaces."""
+        assert (
+            patent_data_client.sanitize_application_number(" 16 123 456 ") == "16123456"
+        )
+
+    def test_sanitize_series_code_format(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test series code format (NN/NNNNNN)."""
+        assert (
+            patent_data_client.sanitize_application_number("08/123456") == "08/123456"
+        )
+
+    def test_sanitize_series_code_with_separators(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test series code format with commas and spaces."""
+        assert (
+            patent_data_client.sanitize_application_number("08/123,456") == "08/123456"
+        )
+        assert (
+            patent_data_client.sanitize_application_number(" 08 / 123 456 ")
+            == "08/123456"
+        )
+
+    def test_sanitize_empty_string_raises(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test empty string raises ValueError."""
+        with pytest.raises(ValueError, match="Application number cannot be empty"):
+            patent_data_client.sanitize_application_number("")
+
+    def test_sanitize_whitespace_only_raises(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test whitespace-only string raises ValueError."""
+        with pytest.raises(ValueError, match="Application number cannot be empty"):
+            patent_data_client.sanitize_application_number("   ")
+
+    def test_sanitize_invalid_characters_raises(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test invalid characters raise ValueError."""
+        with pytest.raises(ValueError, match="Invalid application number format"):
+            patent_data_client.sanitize_application_number("16ABC456")
+
+    def test_sanitize_wrong_length_raises(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test wrong length raises ValueError."""
+        with pytest.raises(ValueError, match="Expected 8 digits"):
+            patent_data_client.sanitize_application_number("1234567")  # 7 digits
+        with pytest.raises(ValueError, match="Expected 8 digits"):
+            patent_data_client.sanitize_application_number("123456789")  # 9 digits
+
+    def test_sanitize_invalid_series_code_format_raises(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test invalid series code format raises ValueError."""
+        # Wrong series length
+        with pytest.raises(
+            ValueError, match="Expected series code format: NN/NNNNNN"
+        ):
+            patent_data_client.sanitize_application_number("8/123456")  # 1 digit series
+
+        # Wrong serial length
+        with pytest.raises(
+            ValueError, match="Expected series code format: NN/NNNNNN"
+        ):
+            patent_data_client.sanitize_application_number("08/12345")  # 5 digit serial
+
+        # Non-numeric series
+        with pytest.raises(ValueError, match="Series and serial must be numeric"):
+            patent_data_client.sanitize_application_number("AB/123456")
+
+        # Non-numeric serial
+        with pytest.raises(ValueError, match="Series and serial must be numeric"):
+            patent_data_client.sanitize_application_number("08/ABC456")
+
+        # Multiple slashes
+        with pytest.raises(
+            ValueError, match="Expected format: NNNNNNNN or NN/NNNNNN"
+        ):
+            patent_data_client.sanitize_application_number("08/123/456")
+
+
 class TestInternalHelpersEdgeCases:
     """Tests for edge cases in internal helper methods like _get_wrapper_from_response."""
 
