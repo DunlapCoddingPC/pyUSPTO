@@ -1093,13 +1093,15 @@ class TestDownloadFile:
             method="GET", endpoint="", stream=True, custom_url=url
         )
 
-        # Verify file operations
-        mock_file_open.assert_called_once_with(file=file_path, mode="wb")
+        # Verify file operations - use str(Path()) to normalize path for platform
+        from pathlib import Path
+        expected_path = str(Path(file_path))
+        mock_file_open.assert_called_once_with(file=expected_path, mode="wb")
         mock_file_open().write.assert_has_calls(
             [mock.call(b"chunk1"), mock.call(b"chunk2")]
         )
 
-        assert result == file_path
+        assert result == expected_path
 
     @patch.object(BaseUSPTOClient, "_make_request")
     def test_download_file_wrong_response_type(

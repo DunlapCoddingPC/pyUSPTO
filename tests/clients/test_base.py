@@ -5,7 +5,7 @@ This module contains tests for the BaseUSPTOClient class.
 """
 
 from typing import Any, Dict, cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 import requests
@@ -665,3 +665,106 @@ class TestBaseUSPTOClient:
 
         # Explicit api_key should take precedence
         assert client.api_key == "explicit_key"
+
+
+class TestContentDispositionParsing:
+    """Tests for Content-Disposition header parsing."""
+
+    def test_extract_filename_simple(self) -> None:
+        """Test extracting filename from simple Content-Disposition."""
+        filename = BaseUSPTOClient._extract_filename_from_content_disposition(
+            'attachment; filename="document.pdf"'
+        )
+        assert filename == "document.pdf"
+
+    def test_extract_filename_without_quotes(self) -> None:
+        """Test extracting filename without quotes."""
+        filename = BaseUSPTOClient._extract_filename_from_content_disposition(
+            "attachment; filename=document.pdf"
+        )
+        assert filename == "document.pdf"
+
+    def test_extract_filename_rfc2231(self) -> None:
+        """Test extracting filename from RFC 2231 format."""
+        filename = BaseUSPTOClient._extract_filename_from_content_disposition(
+            "attachment; filename*=UTF-8''my%20document.pdf"
+        )
+        assert filename == "my document.pdf"
+
+    def test_extract_filename_rfc2231_lowercase(self) -> None:
+        """Test extracting filename from RFC 2231 format (lowercase)."""
+        filename = BaseUSPTOClient._extract_filename_from_content_disposition(
+            "attachment; filename*=utf-8''test%20file.txt"
+        )
+        assert filename == "test file.txt"
+
+    def test_extract_filename_empty_header(self) -> None:
+        """Test extracting filename from empty header."""
+        filename = BaseUSPTOClient._extract_filename_from_content_disposition("")
+        assert filename is None
+
+    def test_extract_filename_no_filename(self) -> None:
+        """Test extracting filename when header has no filename."""
+        filename = BaseUSPTOClient._extract_filename_from_content_disposition(
+            "attachment"
+        )
+        assert filename is None
+
+    def test_extract_filename_complex(self) -> None:
+        """Test extracting filename from complex header."""
+        filename = BaseUSPTOClient._extract_filename_from_content_disposition(
+            'attachment; filename="report.pdf"; size=12345'
+        )
+        assert filename == "report.pdf"
+
+
+class TestSaveResponseToFile:
+    """Tests for _save_response_to_file method."""
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_save_to_directory_with_content_disposition(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """Test saving to directory extracts filename from Content-Disposition."""
+        from pathlib import Path
+
+        # Create a test client
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Mock response with Content-Disposition header
+        mock_response = MagicMock()
+        mock_response.headers = {"Content-Disposition": 'attachment; filename="test_doc.pdf"'}
+        mock_response.iter_content.return_value = [b"data1", b"data2"]
+
+        # Save to directory (using tmp_path from pytest fixture)
+        result = client._save_response_to_file(mock_response, str(tmp_path))
+
+        # Verify the file was saved with extracted filename
+        expected_path = tmp_path / "test_doc.pdf"
+        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_save_to_directory_without_content_disposition(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """Test saving to directory without Content-Disposition raises ValueError."""
+        from pathlib import Path
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Mock response without Content-Disposition header
+        mock_response = MagicMock()
+        mock_response.headers = {}
+        mock_response.iter_content.return_value = [b"data"]
+
+        # Should raise ValueError when trying to save to directory without filename
+        with pytest.raises(
+            ValueError,
+            match="file_path is a directory .* but Content-Disposition header does not contain a filename",
+        ):
+            client._save_response_to_file(mock_response, str(tmp_path))
