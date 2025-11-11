@@ -6,6 +6,7 @@ Decisions API. It allows you to search for and retrieve final agency petition
 decisions in publicly available patent applications and patents filed in 2001 or later.
 """
 
+import warnings
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Union
 
@@ -19,6 +20,7 @@ from pyUSPTO.models.petition_decisions import (
     PetitionDecisionDownloadResponse,
     PetitionDecisionResponse,
 )
+from pyUSPTO.warnings import USPTODataMismatchWarning
 
 
 class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
@@ -81,16 +83,18 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
 
         decision = response_data.petition_decision_data_bag[0]
 
-        # This should probably just raise an exception rather than print a warning.
-        # if (
-        #     petition_decision_record_identifier_for_validation
-        #     and decision.petition_decision_record_identifier
-        #     != petition_decision_record_identifier_for_validation
-        # ):
-        #     print(
-        #         f"Warning: Fetched decision identifier '{decision.petition_decision_record_identifier}' "
-        #         f"does not match requested '{petition_decision_record_identifier_for_validation}'."
-        #     )
+        if (
+            petition_decision_record_identifier_for_validation
+            and decision.petition_decision_record_identifier
+            != petition_decision_record_identifier_for_validation
+        ):
+            warnings.warn(
+                f"API returned decision identifier '{decision.petition_decision_record_identifier}' "
+                f"but requested '{petition_decision_record_identifier_for_validation}'. "
+                f"This may indicate an API data inconsistency.",
+                USPTODataMismatchWarning,
+                stacklevel=2,
+            )
         return decision
 
     def search_decisions(

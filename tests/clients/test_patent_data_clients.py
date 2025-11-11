@@ -23,6 +23,7 @@ from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.clients.patent_data import PatentDataClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import USPTOApiBadRequestError, USPTOApiError
+from pyUSPTO.warnings import USPTODataMismatchWarning
 from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
     ApplicationMetaData,
@@ -1224,14 +1225,22 @@ class TestGetIFW:
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
         mock_patent_file_wrapper: PatentFileWrapper,
     ) -> None:
-        """Test get_IFW with PCT_app_number calls get_application_by_number."""
+        """Test get_IFW with PCT_app_number calls get_application_by_number.
+
+        Note: This will trigger a data mismatch warning because the mock_patent_file_wrapper
+        has application_number_text='12345678' but we're requesting a PCT number.
+        This is expected test behavior for validating the warning system.
+        """
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = PatentDataResponse(
             count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
         )
 
         pct_app = "PCT/US2024/012345"
-        result = client.get_IFW_metadata(PCT_app_number=pct_app)
+
+        # The mismatch between PCT number and regular app number triggers warning
+        with pytest.warns(USPTODataMismatchWarning):
+            result = client.get_IFW_metadata(PCT_app_number=pct_app)
 
         # Should call get_application_by_number
         mock_make_request.assert_called_once_with(
@@ -2006,12 +2015,11 @@ class TestGeneralEdgeCasesAndErrors:
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
         mock_patent_file_wrapper: PatentFileWrapper,
     ) -> None:
-        """Test that application number mismatch is handled.
+        """Test that application number mismatch raises a warning.
 
-        TODO: The validation logic is currently commented out in the source code
-        (see patent_data.py lines 81-90). This test verifies current behavior
-        where mismatched application numbers are NOT validated. When validation
-        is implemented, this test should be updated to expect an exception.
+        When the API returns a different application number than requested,
+        a USPTODataMismatchWarning should be issued to alert the user of
+        the data inconsistency.
         """
         client, mock_make_request = client_with_mocked_request
         requested_app_num = "DIFFERENT_APP_NUM_999"
@@ -2020,7 +2028,10 @@ class TestGeneralEdgeCasesAndErrors:
         )
         mock_make_request.return_value = response_with_original_wrapper
 
-        with patch("builtins.print") as mock_print:
+        with pytest.warns(
+            USPTODataMismatchWarning,
+            match="API returned application number '12345678' but requested 'DIFFERENT_APP_NUM_999'",
+        ):
             result = client.get_application_by_number(
                 application_number=requested_app_num
             )
@@ -2028,8 +2039,6 @@ class TestGeneralEdgeCasesAndErrors:
         assert result is mock_patent_file_wrapper
         assert result is not None
         assert result.application_number_text == "12345678"
-        # Currently no validation is performed (validation code is commented out)
-        mock_print.assert_not_called()
 
     def test_get_application_by_number_unexpected_response_type(
         self, client_with_mocked_request: tuple[PatentDataClient, MagicMock]

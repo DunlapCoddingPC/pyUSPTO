@@ -19,6 +19,7 @@ from pyUSPTO.models.petition_decisions import (
     PetitionDecisionDownloadResponse,
     PetitionDecisionResponse,
 )
+from pyUSPTO.warnings import USPTODataMismatchWarning
 
 
 # --- Fixtures ---
@@ -897,21 +898,19 @@ class TestFinalPetitionDecisionsClientHelpers:
         self,
         petition_client: FinalPetitionDecisionsClient,
         mock_petition_response_with_data: PetitionDecisionResponse,
-        capsys,
     ) -> None:
-        """Test _get_decision_from_response with mismatched ID.
+        """Test _get_decision_from_response with mismatched ID raises a warning.
 
-        TODO: The validation logic is currently commented out in the source code
-        (see petition_decisions.py lines 82-92). This test verifies current behavior
-        where mismatched IDs are NOT validated. When validation is implemented,
-        this test should be updated to expect an exception.
+        When the API returns a different decision identifier than requested,
+        a USPTODataMismatchWarning should be issued to alert the user of
+        the data inconsistency.
         """
-        result = petition_client._get_decision_from_response(
-            mock_petition_response_with_data,
-            petition_decision_record_identifier_for_validation="different-id-12345",
-        )
+        with pytest.warns(
+            USPTODataMismatchWarning,
+            match="API returned decision identifier .* but requested 'different-id-12345'",
+        ):
+            result = petition_client._get_decision_from_response(
+                mock_petition_response_with_data,
+                petition_decision_record_identifier_for_validation="different-id-12345",
+            )
         assert result is not None
-
-        # Capture stdout to verify no warning is printed (validation is commented out)
-        captured = capsys.readouterr()
-        assert "Warning" not in captured.out

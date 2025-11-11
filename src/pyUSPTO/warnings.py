@@ -66,3 +66,14 @@ class USPTOEnumParseWarning(USPTODataWarning):
     """
 
     pass
+
+
+class USPTODataMismatchWarning(USPTODataWarning):
+    """Warning for data validation mismatches.
+
+    Raised when the API returns data that doesn't match the requested
+    identifier (e.g., requesting application 12345678 but receiving 87654321).
+    This indicates a potential API inconsistency or data integrity issue.
+    """
+
+    pass

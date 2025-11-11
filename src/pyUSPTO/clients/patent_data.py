@@ -5,6 +5,7 @@ This module provides a client for interacting with the USPTO Patent Data API.
 It allows you to search for and retrieve patent application data.
 """
 
+import warnings
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 from urllib.parse import urljoin, urlparse
@@ -30,6 +31,7 @@ from pyUSPTO.models.patent_data import (
     StatusCodeCollection,
     StatusCodeSearchResponse,
 )
+from pyUSPTO.warnings import USPTODataMismatchWarning
 
 
 class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
@@ -80,15 +82,17 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         wrapper = response_data.patent_file_wrapper_data_bag[0]
 
-        # This should probably just raise an exception rather than print a warning.
-        # if (
-        #     application_number_for_validation
-        #     and wrapper.application_number_text != application_number_for_validation
-        # ):
-        #     print(
-        #         f"Warning: Fetched wrapper application number '{wrapper.application_number_text}' "
-        #         f"does not match requested '{application_number_for_validation}'."
-        #     )
+        if (
+            application_number_for_validation
+            and wrapper.application_number_text != application_number_for_validation
+        ):
+            warnings.warn(
+                f"API returned application number '{wrapper.application_number_text}' "
+                f"but requested '{application_number_for_validation}'. "
+                f"This may indicate an API data inconsistency.",
+                USPTODataMismatchWarning,
+                stacklevel=2,
+            )
         return wrapper
 
     def search_applications(
