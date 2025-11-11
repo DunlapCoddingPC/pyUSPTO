@@ -49,7 +49,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         # Use provided base_url or get from config
         base_url = base_url or self.config.bulk_data_base_url
 
-        super().__init__(api_key=api_key, base_url=base_url)
+        super().__init__(api_key=api_key, base_url=base_url, config=self.config)
 
     def get_products(self, params: Optional[Dict[str, Any]] = None) -> BulkDataResponse:
         """

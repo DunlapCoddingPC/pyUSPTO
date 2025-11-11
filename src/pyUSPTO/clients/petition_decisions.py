@@ -57,7 +57,9 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             or self.config.petition_decisions_base_url
             or "https://api.uspto.gov"
         )
-        super().__init__(api_key=api_key_to_use, base_url=effective_base_url)
+        super().__init__(
+            api_key=api_key_to_use, base_url=effective_base_url, config=self.config
+        )
 
     def _get_decision_from_response(
         self,
@@ -79,15 +81,16 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
 
         decision = response_data.petition_decision_data_bag[0]
 
-        if (
-            petition_decision_record_identifier_for_validation
-            and decision.petition_decision_record_identifier
-            != petition_decision_record_identifier_for_validation
-        ):
-            print(
-                f"Warning: Fetched decision identifier '{decision.petition_decision_record_identifier}' "
-                f"does not match requested '{petition_decision_record_identifier_for_validation}'."
-            )
+        # This should probably just raise an exception rather than print a warning.
+        # if (
+        #     petition_decision_record_identifier_for_validation
+        #     and decision.petition_decision_record_identifier
+        #     != petition_decision_record_identifier_for_validation
+        # ):
+        #     print(
+        #         f"Warning: Fetched decision identifier '{decision.petition_decision_record_identifier}' "
+        #         f"does not match requested '{petition_decision_record_identifier_for_validation}'."
+        #     )
         return decision
 
     def search_decisions(

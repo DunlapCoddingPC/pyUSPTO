@@ -64,6 +64,68 @@ patent_client = PatentDataClient(config=config_from_env)
 petition_client = FinalPetitionDecisionsClient(config=config_from_env)
 ```
 
+### Advanced HTTP Configuration
+
+Control timeout behavior, retry logic, and connection pooling using `HTTPConfig`:
+
+```python
+from pyUSPTO import PatentDataClient, USPTOConfig, HTTPConfig
+
+# Create HTTP configuration
+http_config = HTTPConfig(
+    timeout=60.0,              # 60 second read timeout
+    connect_timeout=10.0,      # 10 seconds to establish connection
+    max_retries=5,             # Retry up to 5 times on failure
+    backoff_factor=2.0,        # Exponential backoff: 2, 4, 8, 16, 32 seconds
+    retry_status_codes=[429, 500, 502, 503, 504],  # Retry on these status codes
+    pool_connections=20,       # Connection pool size
+    pool_maxsize=20,          # Max connections per pool
+    custom_headers={          # Additional headers for all requests
+        "User-Agent": "MyApp/1.0",
+        "X-Tracking-ID": "abc123"
+    }
+)
+
+# Pass HTTPConfig via USPTOConfig
+config = USPTOConfig(
+    api_key="your_api_key",
+    http_config=http_config
+)
+
+client = PatentDataClient(config=config)
+```
+
+Configure HTTP settings via environment variables:
+
+```bash
+export USPTO_REQUEST_TIMEOUT=60.0       # Read timeout
+export USPTO_CONNECT_TIMEOUT=10.0       # Connection timeout
+export USPTO_MAX_RETRIES=5              # Max retry attempts
+export USPTO_BACKOFF_FACTOR=2.0         # Retry backoff multiplier
+export USPTO_POOL_CONNECTIONS=20        # Connection pool size
+export USPTO_POOL_MAXSIZE=20            # Max connections per pool
+```
+
+Then create config from environment:
+
+```python
+config = USPTOConfig.from_env()  # Reads both API and HTTP config from env
+client = PatentDataClient(config=config)
+```
+
+Share HTTP configuration across multiple clients:
+
+```python
+# Create once, use multiple times
+http_config = HTTPConfig(timeout=60.0, max_retries=5)
+
+patent_config = USPTOConfig(api_key="key1", http_config=http_config)
+petition_config = USPTOConfig(api_key="key2", http_config=http_config)
+
+patent_client = PatentDataClient(config=patent_config)
+petition_client = FinalPetitionDecisionsClient(config=petition_config)
+```
+
 ### Patent Data API
 
 ```python
@@ -88,6 +150,49 @@ decision = petition_client.get_decision_by_id("decision_id_here")
 print(f"Decision Type: {decision.decision_type_code}")
 print(f"Application: {decision.application_number_text}")
 ```
+
+## Warning Control
+
+The library uses Python's standard `warnings` module to report data parsing issues. This allows you to control how warnings are handled based on your needs.
+
+### Warning Categories
+
+All warnings inherit from `USPTODataWarning`:
+
+- `USPTODateParseWarning`: Date/datetime string parsing failures
+- `USPTOBooleanParseWarning`: Y/N boolean string parsing failures
+- `USPTOTimezoneWarning`: Timezone-related issues
+- `USPTOEnumParseWarning`: Enum value parsing failures
+
+### Controlling Warnings
+
+```python
+import warnings
+from pyUSPTO.warnings import (
+    USPTODataWarning,
+    USPTODateParseWarning,
+    USPTOBooleanParseWarning,
+    USPTOTimezoneWarning,
+    USPTOEnumParseWarning
+)
+
+# Suppress all pyUSPTO data warnings
+warnings.filterwarnings('ignore', category=USPTODataWarning)
+
+# Suppress only date parsing warnings
+warnings.filterwarnings('ignore', category=USPTODateParseWarning)
+
+# Turn warnings into errors (strict mode)
+warnings.filterwarnings('error', category=USPTODataWarning)
+
+# Show warnings once per location
+warnings.filterwarnings('once', category=USPTODataWarning)
+
+# Always show all warnings (default Python behavior)
+warnings.filterwarnings('always', category=USPTODataWarning)
+```
+
+The library's permissive parsing philosophy returns `None` for fields that cannot be parsed, allowing you to retrieve partial data even when some fields have issues. Warnings inform you when this happens without stopping execution.
 
 ## Features
 

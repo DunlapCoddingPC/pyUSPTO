@@ -22,6 +22,7 @@ from pyUSPTO.exceptions import (
     USPTOApiNotFoundError,
     USPTOApiRateLimitError,
 )
+from pyUSPTO.http_config import HTTPConfig
 
 # Import model implementations
 from pyUSPTO.models.bulk_data import (
@@ -36,6 +37,13 @@ from pyUSPTO.models.petition_decisions import (
     PetitionDecisionDocument,
     PetitionDecisionResponse,
 )
+from pyUSPTO.warnings import (
+    USPTOBooleanParseWarning,
+    USPTODataWarning,
+    USPTODateParseWarning,
+    USPTOEnumParseWarning,
+    USPTOTimezoneWarning,
+)
 
 __all__ = [
     # Base classes
@@ -44,6 +52,13 @@ __all__ = [
     "USPTOApiRateLimitError",
     "USPTOApiNotFoundError",
     "USPTOConfig",
+    "HTTPConfig",
+    # Warning classes
+    "USPTODataWarning",
+    "USPTODateParseWarning",
+    "USPTOBooleanParseWarning",
+    "USPTOTimezoneWarning",
+    "USPTOEnumParseWarning",
     # Bulk Data API
     "BulkDataClient",
     "BulkDataResponse",

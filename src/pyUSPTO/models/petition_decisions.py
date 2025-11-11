@@ -11,8 +11,8 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-# Import parsing utilities from patent_data module
-from pyUSPTO.models.patent_data import (
+# Import parsing utilities from models utils module
+from pyUSPTO.models.utils import (
     parse_to_date,
     parse_to_datetime_utc,
     serialize_date,
