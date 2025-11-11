@@ -23,13 +23,6 @@ from pyUSPTO.exceptions import (
     USPTOApiRateLimitError,
 )
 from pyUSPTO.http_config import HTTPConfig
-from pyUSPTO.warnings import (
-    USPTOBooleanParseWarning,
-    USPTODataWarning,
-    USPTODateParseWarning,
-    USPTOEnumParseWarning,
-    USPTOTimezoneWarning,
-)
 
 # Import model implementations
 from pyUSPTO.models.bulk_data import (
@@ -43,6 +36,13 @@ from pyUSPTO.models.petition_decisions import (
     PetitionDecision,
     PetitionDecisionDocument,
     PetitionDecisionResponse,
+)
+from pyUSPTO.warnings import (
+    USPTOBooleanParseWarning,
+    USPTODataWarning,
+    USPTODateParseWarning,
+    USPTOEnumParseWarning,
+    USPTOTimezoneWarning,
 )
 
 __all__ = [
