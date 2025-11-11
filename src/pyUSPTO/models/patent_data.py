@@ -2018,18 +2018,22 @@ class PatentDataResponse:
     Attributes:
         count: The total number of patent applications found matching the query.
         patent_file_wrapper_data_bag: A list of `PatentFileWrapper` objects.
+        raw_data: Optional raw JSON data from the API response (for debugging).
     """
 
     count: int
     patent_file_wrapper_data_bag: List[PatentFileWrapper] = field(default_factory=list)
-    # TODO: raw as response in json
+    raw_data: Optional[str] = field(default=None, compare=False, repr=False)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PatentDataResponse":
+    def from_dict(
+        cls, data: Dict[str, Any], include_raw_data: bool = False
+    ) -> "PatentDataResponse":
         """Creates a `PatentDataResponse` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with API response data.
+            include_raw_data (bool): If True, store the raw JSON for debugging.
 
         Returns:
             PatentDataResponse: An instance of `PatentDataResponse`.
@@ -2039,7 +2043,11 @@ class PatentDataResponse:
             for w in data.get("patentFileWrapperDataBag", [])
             if isinstance(w, dict)
         ]
-        return cls(count=data.get("count", 0), patent_file_wrapper_data_bag=wrappers)
+        return cls(
+            count=data.get("count", 0),
+            patent_file_wrapper_data_bag=wrappers,
+            raw_data=json.dumps(data) if include_raw_data else None,
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Converts the `PatentDataResponse` instance to a dictionary.

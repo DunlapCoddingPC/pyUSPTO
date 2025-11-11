@@ -81,7 +81,9 @@ class TestResponseClass:
     data: Dict[str, Any]
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TestResponseClass":
+    def from_dict(
+        cls, data: Dict[str, Any], include_raw_data: bool = False
+    ) -> "TestResponseClass":
         """Create a TestResponseClass object from a dictionary."""
         instance = cls()
         instance.data = data

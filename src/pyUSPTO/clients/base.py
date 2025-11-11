@@ -182,7 +182,9 @@ class BaseUSPTOClient(Generic[T]):
 
             # Parse the response based on the specified class
             if response_class:
-                parsed_response: T = response_class.from_dict(response.json())
+                parsed_response: T = response_class.from_dict(
+                    response.json(), include_raw_data=self.config.include_raw_data
+                )
                 return parsed_response
 
             # Return the raw JSON for other requests

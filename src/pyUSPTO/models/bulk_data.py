@@ -4,7 +4,8 @@ models.bulk_data - Data models for USPTO bulk data API
 This module provides data models for the USPTO Open Data Portal (ODP) Bulk Data API.
 """
 
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 
@@ -103,20 +104,38 @@ class BulkDataProduct:
 
 @dataclass
 class BulkDataResponse:
-    """Top-level response from the bulk data API."""
+    """Top-level response from the bulk data API.
+
+    Attributes:
+        count: The number of bulk data products in the response.
+        bulk_data_product_bag: List of bulk data products.
+        raw_data: Optional raw JSON data from the API response (for debugging).
+    """
 
     count: int
     bulk_data_product_bag: List[BulkDataProduct]
+    raw_data: Optional[str] = field(default=None, compare=False, repr=False)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "BulkDataResponse":
-        """Create a BulkDataResponse object from a dictionary."""
+    def from_dict(
+        cls, data: Dict[str, Any], include_raw_data: bool = False
+    ) -> "BulkDataResponse":
+        """Create a BulkDataResponse object from a dictionary.
+
+        Args:
+            data: Dictionary containing API response data.
+            include_raw_data: If True, store the raw JSON for debugging.
+
+        Returns:
+            BulkDataResponse: An instance of BulkDataResponse.
+        """
         return cls(
             count=data.get("count", 0),
             bulk_data_product_bag=[
                 BulkDataProduct.from_dict(product)
                 for product in data.get("bulkDataProductBag", [])
             ],
+            raw_data=json.dumps(data) if include_raw_data else None,
         )
 
     def to_dict(self) -> Dict[str, Any]:

@@ -2172,6 +2172,53 @@ class TestApplicationNumberSanitization:
             patent_data_client.sanitize_application_number("08/123/456")
 
 
+class TestRawDataFeature:
+    """Tests for the include_raw_data feature."""
+
+    def test_raw_data_disabled_by_default(
+        self, client_with_mocked_request: tuple[PatentDataClient, MagicMock]
+    ) -> None:
+        """Test that raw_data is None by default."""
+        client, mock_make_request = client_with_mocked_request
+        mock_response = PatentDataResponse(count=1, patent_file_wrapper_data_bag=[])
+        mock_make_request.return_value = mock_response
+
+        result = client.search_applications(query="test")
+
+        assert result.raw_data is None
+
+    def test_raw_data_enabled_via_config(
+        self, mock_patent_file_wrapper: PatentFileWrapper
+    ) -> None:
+        """Test that raw_data is populated when config.include_raw_data=True."""
+        config = USPTOConfig(api_key="test_key", include_raw_data=True)
+        client = PatentDataClient(config=config)
+
+        # Create a response with raw_data enabled
+        test_data = {
+            "count": 1,
+            "patentFileWrapperDataBag": [{"applicationNumberText": "12345678"}],
+        }
+        response = PatentDataResponse.from_dict(test_data, include_raw_data=True)
+
+        assert response.raw_data is not None
+        assert "patentFileWrapperDataBag" in response.raw_data
+        assert response.count == 1
+
+    def test_raw_data_can_be_parsed_back(self) -> None:
+        """Test that raw_data contains valid JSON that can be parsed."""
+        test_data = {"count": 42, "patentFileWrapperDataBag": []}
+        response = PatentDataResponse.from_dict(test_data, include_raw_data=True)
+
+        assert response.raw_data is not None
+        # Parse it back
+        import json
+
+        parsed = json.loads(response.raw_data)
+        assert parsed["count"] == 42
+        assert parsed["patentFileWrapperDataBag"] == []
+
+
 class TestInternalHelpersEdgeCases:
     """Tests for edge cases in internal helper methods like _get_wrapper_from_response."""
 
