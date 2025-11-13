@@ -718,6 +718,67 @@ class TestContentDispositionParsing:
         assert filename == "report.pdf"
 
 
+class TestMimeTypeMapping:
+    """Tests for _get_extension_from_mime_type method."""
+
+    def test_mime_type_pdf(self) -> None:
+        """Test mapping application/pdf to .pdf extension."""
+        ext = BaseUSPTOClient._get_extension_from_mime_type("application/pdf")
+        assert ext == ".pdf"
+
+    def test_mime_type_tiff(self) -> None:
+        """Test mapping image/tiff to .tif extension."""
+        ext = BaseUSPTOClient._get_extension_from_mime_type("image/tiff")
+        assert ext == ".tif"
+
+    def test_mime_type_tif_variant(self) -> None:
+        """Test mapping image/tif to .tif extension."""
+        ext = BaseUSPTOClient._get_extension_from_mime_type("image/tif")
+        assert ext == ".tif"
+
+    def test_mime_type_xml_application(self) -> None:
+        """Test mapping application/xml to .xml extension."""
+        ext = BaseUSPTOClient._get_extension_from_mime_type("application/xml")
+        assert ext == ".xml"
+
+    def test_mime_type_xml_text(self) -> None:
+        """Test mapping text/xml to .xml extension."""
+        ext = BaseUSPTOClient._get_extension_from_mime_type("text/xml")
+        assert ext == ".xml"
+
+    def test_mime_type_zip(self) -> None:
+        """Test mapping application/zip to .zip extension."""
+        ext = BaseUSPTOClient._get_extension_from_mime_type("application/zip")
+        assert ext == ".zip"
+
+    def test_mime_type_with_charset(self) -> None:
+        """Test MIME type with charset parameter."""
+        ext = BaseUSPTOClient._get_extension_from_mime_type(
+            "application/pdf; charset=utf-8"
+        )
+        assert ext == ".pdf"
+
+    def test_mime_type_case_insensitive(self) -> None:
+        """Test MIME type mapping is case-insensitive."""
+        ext = BaseUSPTOClient._get_extension_from_mime_type("APPLICATION/PDF")
+        assert ext == ".pdf"
+
+    def test_mime_type_unmapped(self) -> None:
+        """Test unmapped MIME type returns None."""
+        ext = BaseUSPTOClient._get_extension_from_mime_type("application/unknown")
+        assert ext is None
+
+    def test_mime_type_empty(self) -> None:
+        """Test empty MIME type returns None."""
+        ext = BaseUSPTOClient._get_extension_from_mime_type("")
+        assert ext is None
+
+    def test_mime_type_none(self) -> None:
+        """Test None MIME type returns None."""
+        ext = BaseUSPTOClient._get_extension_from_mime_type(None)
+        assert ext is None
+
+
 class TestSaveResponseToFile:
     """Tests for _save_response_to_file method."""
 
@@ -768,3 +829,143 @@ class TestSaveResponseToFile:
             match="file_path is a directory .* but Content-Disposition header does not contain a filename",
         ):
             client._save_response_to_file(mock_response, str(tmp_path))
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_save_without_extension_uses_content_type_pdf(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """Test saving file without extension adds extension from Content-Type (PDF)."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Mock response with Content-Type but no Content-Disposition
+        mock_response = MagicMock()
+        mock_response.headers = {"Content-Type": "application/pdf"}
+        mock_response.iter_content.return_value = [b"pdf data"]
+
+        # Save to file without extension
+        file_path = tmp_path / "document"
+        result = client._save_response_to_file(mock_response, str(file_path))
+
+        # Verify extension was added
+        expected_path = tmp_path / "document.pdf"
+        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_save_without_extension_uses_content_type_tiff(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """Test saving file without extension adds extension from Content-Type (TIFF)."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Mock response with TIFF Content-Type
+        mock_response = MagicMock()
+        mock_response.headers = {"Content-Type": "image/tiff"}
+        mock_response.iter_content.return_value = [b"tiff data"]
+
+        # Save to file without extension
+        file_path = tmp_path / "image"
+        result = client._save_response_to_file(mock_response, str(file_path))
+
+        # Verify .tif extension was added
+        expected_path = tmp_path / "image.tif"
+        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_save_with_existing_extension_ignores_content_type(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """Test saving file with existing extension ignores Content-Type."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Mock response with Content-Type
+        mock_response = MagicMock()
+        mock_response.headers = {"Content-Type": "application/pdf"}
+        mock_response.iter_content.return_value = [b"data"]
+
+        # Save to file with existing extension
+        file_path = tmp_path / "document.txt"
+        result = client._save_response_to_file(mock_response, str(file_path))
+
+        # Verify original extension was kept
+        expected_path = tmp_path / "document.txt"
+        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_save_without_extension_unmapped_mime_type(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """Test saving file with unmapped MIME type saves without extension."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Mock response with unmapped Content-Type
+        mock_response = MagicMock()
+        mock_response.headers = {"Content-Type": "application/unknown"}
+        mock_response.iter_content.return_value = [b"data"]
+
+        # Save to file without extension
+        file_path = tmp_path / "document"
+        result = client._save_response_to_file(mock_response, str(file_path))
+
+        # Verify no extension was added
+        expected_path = tmp_path / "document"
+        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_save_without_extension_no_content_type(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """Test saving file without Content-Type header saves without extension."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Mock response without Content-Type header
+        mock_response = MagicMock()
+        mock_response.headers = {}
+        mock_response.iter_content.return_value = [b"data"]
+
+        # Save to file without extension
+        file_path = tmp_path / "document"
+        result = client._save_response_to_file(mock_response, str(file_path))
+
+        # Verify no extension was added
+        expected_path = tmp_path / "document"
+        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_save_content_disposition_takes_precedence_over_content_type(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """Test Content-Disposition filename takes precedence over Content-Type extension."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Mock response with both Content-Disposition and Content-Type
+        mock_response = MagicMock()
+        mock_response.headers = {
+            "Content-Disposition": 'attachment; filename="report.xml"',
+            "Content-Type": "application/pdf",  # Different type
+        }
+        mock_response.iter_content.return_value = [b"data"]
+
+        # Save to directory (will use Content-Disposition)
+        result = client._save_response_to_file(mock_response, str(tmp_path))
+
+        # Verify Content-Disposition filename was used (not Content-Type)
+        expected_path = tmp_path / "report.xml"
+        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        assert result == str(expected_path)

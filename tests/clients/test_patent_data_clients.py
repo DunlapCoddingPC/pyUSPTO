@@ -1132,6 +1132,7 @@ class TestDownloadFile:
     ) -> None:
         """Test that empty chunks are filtered out."""
         mock_response = MagicMock(spec=requests.Response)
+        mock_response.headers = {}  # Add headers to mock
         mock_response.iter_content.return_value = [b"data", b"", None, b"more"]
         mock_make_request.return_value = mock_response
 
