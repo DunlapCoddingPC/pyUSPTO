@@ -1563,7 +1563,7 @@ class TestDownloadArchive:
         )
 
         with pytest.raises(
-            ValueError, match="ArchiveMetaData must have a file_location_uri"
+            ValueError, match="PrintedMetaData must have a file_location_uri"
         ):
             client.download_archive(printed_metadata=metadata_no_url)
 
@@ -1658,6 +1658,137 @@ class TestDownloadArchive:
         mock_download_file.assert_called_once_with(
             url=metadata.file_location_uri, file_path=expected_path
         )
+        assert result == expected_path
+
+    # Tests for download_publication() - delegates to download_archive()
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.mkdir")
+    def test_download_publication_basic(
+        self,
+        mock_mkdir: MagicMock,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test basic publication download."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = False
+
+        expected_path = "/downloads/patent_12345.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_publication(
+            printed_metadata=sample_printed_metadata, destination_path="/downloads"
+        )
+
+        mock_download_file.assert_called_once_with(
+            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+        )
+        assert result == expected_path
+
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.mkdir")
+    def test_download_publication_custom_filename(
+        self,
+        mock_mkdir: MagicMock,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test publication download with custom filename."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = False
+
+        custom_name = "my_grant.xml"
+        expected_path = "/downloads/my_grant.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_publication(
+            printed_metadata=sample_printed_metadata,
+            file_name=custom_name,
+            destination_path="/downloads",
+        )
+
+        mock_download_file.assert_called_once_with(
+            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+        )
+        assert result == expected_path
+
+    @patch("pathlib.Path.exists")
+    def test_download_publication_no_destination_path(
+        self,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test publication download with no destination path (current directory)."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = False
+
+        expected_path = "patent_12345.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_publication(printed_metadata=sample_printed_metadata)
+
+        mock_download_file.assert_called_once_with(
+            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+        )
+        assert result == expected_path
+
+    def test_download_publication_missing_url(
+        self, client_with_mocked_download: tuple[PatentDataClient, MagicMock]
+    ) -> None:
+        """Test download_publication raises ValueError when no download URL."""
+        client, mock_download_file = client_with_mocked_download
+
+        metadata_no_url = PrintedMetaData(
+            xml_file_name="test.xml", file_location_uri=None
+        )
+
+        with pytest.raises(
+            ValueError, match="PrintedMetaData must have a file_location_uri"
+        ):
+            client.download_publication(printed_metadata=metadata_no_url)
+
+        mock_download_file.assert_not_called()
+
+    @patch("pathlib.Path.exists")
+    def test_download_publication_file_exists_no_overwrite(
+        self,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test download_publication raises FileExistsError when file exists."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = True
+
+        with pytest.raises(
+            FileExistsError, match="File already exists.*Use overwrite=True"
+        ):
+            client.download_publication(printed_metadata=sample_printed_metadata)
+
+        mock_download_file.assert_not_called()
+
+    @patch("pathlib.Path.exists")
+    def test_download_publication_overwrite_existing(
+        self,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test download_publication overwrites when overwrite=True."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = True
+
+        expected_path = "patent_12345.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_publication(
+            printed_metadata=sample_printed_metadata, overwrite=True
+        )
+
+        mock_download_file.assert_called_once()
         assert result == expected_path
 
 

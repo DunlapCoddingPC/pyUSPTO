@@ -203,6 +203,36 @@ try:
         else:
             print("No documents listed for this application.")
 
+        # Example: Download publication XML (grant or pgpub)
+        print("\nChecking for publication files (grant/pgpub XML)...")
+        if patent_wrapper_detail.grant_document_meta_data:
+            grant_metadata = patent_wrapper_detail.grant_document_meta_data
+            print(f"Grant document available: {grant_metadata.xml_file_name}")
+            print(f"  Product: {grant_metadata.product_identifier}")
+            print(f"  Created: {grant_metadata.file_create_date_time}")
+
+            # Download grant XML to downloads folder with auto-generated filename
+            print("\nDownloading grant XML...")
+            grant_path = client.download_publication(
+                printed_metadata=grant_metadata,
+                destination_path="./download-example",
+                overwrite=True,
+            )
+            print(f"Downloaded grant XML to: {grant_path}")
+
+        if patent_wrapper_detail.pgpub_document_meta_data:
+            pgpub_metadata = patent_wrapper_detail.pgpub_document_meta_data
+            print(f"\nPre-grant publication available: {pgpub_metadata.xml_file_name}")
+
+            # Download with custom filename
+            pgpub_path = client.download_publication(
+                printed_metadata=pgpub_metadata,
+                file_name="my_pgpub.xml",
+                destination_path="./download-example",
+                overwrite=True,
+            )
+            print(f"Downloaded pgpub XML to: {pgpub_path}")
+
         if patent_wrapper_detail.assignment_bag:
             print("\nAssignments:")
             for assignment in patent_wrapper_detail.assignment_bag:

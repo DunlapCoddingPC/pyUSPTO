@@ -1033,22 +1033,25 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     ) -> str:
         """Downloads Printed Metadata (XML data). These are XML files of the patent as printed.
 
+        Note:
+            See also `download_publication()` for a clearer method name with identical functionality.
+
         Args:
             printed_metadata: ArchiveMetaData object containing download URL and metadata
-            file_name: Optional filename. If not provided, uses zip_file_name from metadata
-            destination_path: Optional directory path to save the archive
+            file_name: Optional filename. If not provided, uses xml_file_name from metadata
+            destination_path: Optional directory path to save the file
             overwrite: Whether to overwrite existing files. Default False
 
         Returns:
-            str: Path to the downloaded archive file
+            str: Path to the downloaded file
 
         Raises:
-            ValueError: If archive_metadata has no download URL
+            ValueError: If printed_metadata has no download URL
             FileExistsError: If file exists and overwrite=False
         """
         # Validate we have a download URL
         if printed_metadata.file_location_uri is None:
-            raise ValueError("ArchiveMetaData must have a file_location_uri")
+            raise ValueError("PrintedMetaData must have a file_location_uri")
 
         # Get filename - either provided or from metadata
         if file_name is None:
@@ -1081,4 +1084,71 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         # Download the Printed Metadata
         return self._download_file(
             url=printed_metadata.file_location_uri, file_path=final_file_path.as_posix()
+        )
+
+    def download_publication(
+        self,
+        printed_metadata: PrintedMetaData,
+        file_name: Optional[str] = None,
+        destination_path: Optional[str] = None,
+        overwrite: bool = False,
+    ) -> str:
+        """Download a publication XML file (grant or pre-grant publication).
+
+        This method downloads publication XML files from PrintedMetaData objects,
+        such as grant documents or pre-grant publications (pgpub). The filename
+        is automatically extracted from the metadata if not provided.
+
+        Args:
+            printed_metadata: PrintedMetaData object containing the publication
+                download URL and filename information. Typically obtained from
+                `get_application_associated_documents()` or from PatentFileWrapper's
+                `grant_document_meta_data` or `pg_publication_document_meta_data`.
+            file_name: Optional custom filename. If not provided, uses the
+                `xml_file_name` from the metadata (e.g., "18915708_12307527.xml").
+            destination_path: Optional directory path where the file should be saved.
+                If not provided, saves to the current directory. The directory will
+                be created if it doesn't exist.
+            overwrite: Whether to overwrite an existing file at the destination.
+                Default is False, which raises FileExistsError if file exists.
+
+        Returns:
+            str: Absolute path to the downloaded publication file.
+
+        Raises:
+            ValueError: If printed_metadata has no file_location_uri (download URL).
+            FileExistsError: If the file already exists and overwrite=False.
+
+        Examples:
+            Download grant XML to a specific directory (auto-filename):
+
+            >>> response = client.get_application_by_number("18/915,708")
+            >>> ifw = response
+            >>> grant_metadata = ifw.grant_document_meta_data
+            >>> path = client.download_publication(grant_metadata, destination_path="./downloads")
+            >>> print(path)
+            './downloads/18915708_12307527.xml'
+
+            Download pgpub XML with custom filename:
+
+            >>> pgpub_metadata = ifw.pg_publication_document_meta_data
+            >>> path = client.download_publication(
+            ...     pgpub_metadata,
+            ...     file_name="my_publication.xml",
+            ...     destination_path="./downloads"
+            ... )
+            >>> print(path)
+            './downloads/my_publication.xml'
+
+            Download to current directory:
+
+            >>> path = client.download_publication(grant_metadata)
+            >>> print(path)
+            './18915708_12307527.xml'
+        """
+        return self.download_archive(
+            printed_metadata=printed_metadata,
+            file_name=file_name,
+            destination_path=destination_path,
+            overwrite=overwrite,
         )
