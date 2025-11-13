@@ -1402,7 +1402,6 @@ class PatentTermAdjustmentHistoryData:
         applicant_day_delay_quantity: Number of days of delay attributable to the applicant for this event.
         event_description_text: Textual description of the PTA event.
         event_sequence_number: Sequence number of this event in the PTA history.
-        ip_office_day_delay_quantity: Number of days of delay attributable to the IP office for this event.
         originating_event_sequence_number: Sequence number of an event that originated this event.
         pta_pte_code: Code indicating if the event relates to PTA or Patent Term Extension (PTE).
     """
@@ -1411,7 +1410,6 @@ class PatentTermAdjustmentHistoryData:
     applicant_day_delay_quantity: Optional[float] = None
     event_description_text: Optional[str] = None
     event_sequence_number: Optional[float] = None
-    ip_office_day_delay_quantity: Optional[float] = None
     originating_event_sequence_number: Optional[float] = None
     pta_pte_code: Optional[str] = None
 
@@ -1430,7 +1428,6 @@ class PatentTermAdjustmentHistoryData:
             applicant_day_delay_quantity=data.get("applicantDayDelayQuantity"),
             event_description_text=data.get("eventDescriptionText"),
             event_sequence_number=data.get("eventSequenceNumber"),
-            ip_office_day_delay_quantity=data.get("ipOfficeDayDelayQuantity"),
             originating_event_sequence_number=data.get(
                 "originatingEventSequenceNumber"
             ),
@@ -1454,8 +1451,6 @@ class PatentTermAdjustmentHistoryData:
             final_dict["eventDescriptionText"] = self.event_description_text
         if self.event_sequence_number is not None:
             final_dict["eventSequenceNumber"] = self.event_sequence_number
-        if self.ip_office_day_delay_quantity is not None:
-            final_dict["ipOfficeDayDelayQuantity"] = self.ip_office_day_delay_quantity
         if self.originating_event_sequence_number is not None:
             final_dict["originatingEventSequenceNumber"] = (
                 self.originating_event_sequence_number
@@ -1478,8 +1473,6 @@ class PatentTermAdjustmentData:
         applicant_day_delay_quantity: Total days of delay attributable to the applicant.
         b_delay_quantity: Number of days of 'B' delay.
         c_delay_quantity: Number of days of 'C' delay.
-        filing_date: The filing date of the application.
-        grant_date: The grant date of the patent.
         non_overlapping_day_quantity: Number of non-overlapping delay days.
         overlapping_day_quantity: Number of overlapping delay days.
         ip_office_day_delay_quantity: Total days of delay attributable to the IP office.
@@ -1491,8 +1484,6 @@ class PatentTermAdjustmentData:
     applicant_day_delay_quantity: Optional[float] = None
     b_delay_quantity: Optional[float] = None
     c_delay_quantity: Optional[float] = None
-    filing_date: Optional[date] = None
-    grant_date: Optional[date] = None
     non_overlapping_day_quantity: Optional[float] = None
     overlapping_day_quantity: Optional[float] = None
     ip_office_day_delay_quantity: Optional[float] = None
@@ -1521,8 +1512,6 @@ class PatentTermAdjustmentData:
             applicant_day_delay_quantity=data.get("applicantDayDelayQuantity"),
             b_delay_quantity=data.get("bDelayQuantity"),
             c_delay_quantity=data.get("cDelayQuantity"),
-            filing_date=parse_to_date(data.get("filingDate")),
-            grant_date=parse_to_date(data.get("grantDate")),
             non_overlapping_day_quantity=data.get("nonOverlappingDayQuantity"),
             overlapping_day_quantity=data.get("overlappingDayQuantity"),
             ip_office_day_delay_quantity=data.get("ipOfficeDayDelayQuantity"),
@@ -1538,8 +1527,6 @@ class PatentTermAdjustmentData:
             Dict[str, Any]: Dictionary representation.
         """
         d = asdict(self)
-        d["filingDate"] = serialize_date(self.filing_date)
-        d["grantDate"] = serialize_date(self.grant_date)
         d["patentTermAdjustmentHistoryDataBag"] = [
             h.to_dict() for h in self.patent_term_adjustment_history_data_bag
         ]

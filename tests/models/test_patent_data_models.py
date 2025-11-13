@@ -1565,7 +1565,6 @@ class TestPatentTermAdjustmentHistoryData:
             applicant_day_delay_quantity=10.0,
             event_description_text="Response to Office Action",
             event_sequence_number=1.0,
-            ip_office_day_delay_quantity=5.0,
             originating_event_sequence_number=0.0,
             pta_pte_code="A",
         )
@@ -1582,13 +1581,11 @@ class TestPatentTermAdjustmentData:
         data = {
             "aDelayQuantity": 100.0,
             "adjustmentTotalQuantity": 150.0,
-            "filingDate": "2020-01-01",
-            "grantDate": "2023-01-01",
             "patentTermAdjustmentHistoryDataBag": [{"eventDate": "2022-01-01"}],
         }
         pta_data = PatentTermAdjustmentData.from_dict(data)
         assert pta_data.a_delay_quantity == 100.0
-        assert pta_data.filing_date == date(2020, 1, 1)
+        assert pta_data.adjustment_total_quantity == 150.0
         assert len(pta_data.patent_term_adjustment_history_data_bag) == 1
         assert pta_data.patent_term_adjustment_history_data_bag[0].event_date == date(
             2022, 1, 1
@@ -1598,12 +1595,12 @@ class TestPatentTermAdjustmentData:
         history_item = PatentTermAdjustmentHistoryData(event_date=date(2022, 1, 1))
         pta_data = PatentTermAdjustmentData(
             a_delay_quantity=100.0,
-            filing_date=date(2020, 1, 1),
+            adjustment_total_quantity=150.0,
             patent_term_adjustment_history_data_bag=[history_item],
         )
         data = pta_data.to_dict()
         assert data["aDelayQuantity"] == 100.0
-        assert data["filingDate"] == "2020-01-01"
+        assert data["adjustmentTotalQuantity"] == 150.0
         assert len(data["patentTermAdjustmentHistoryDataBag"]) == 1
         assert (
             data["patentTermAdjustmentHistoryDataBag"][0]["eventDate"] == "2022-01-01"
