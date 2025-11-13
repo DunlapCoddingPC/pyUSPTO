@@ -6,6 +6,7 @@ representing responses from the USPTO Final Petition Decisions API. These models
 cover petition decision records, associated documents, and download options.
 """
 
+import json
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import Enum
@@ -387,18 +388,23 @@ class PetitionDecisionResponse:
         count: The number of petition decisions returned in this response.
         request_identifier: A unique identifier for the API request.
         petition_decision_data_bag: List of petition decision records.
+        raw_data: Optional raw JSON data from the API response (for debugging).
     """
 
     count: Optional[int] = None
     request_identifier: Optional[str] = None
     petition_decision_data_bag: List[PetitionDecision] = field(default_factory=list)
+    raw_data: Optional[str] = field(default=None, compare=False, repr=False)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PetitionDecisionResponse":
+    def from_dict(
+        cls, data: Dict[str, Any], include_raw_data: bool = False
+    ) -> "PetitionDecisionResponse":
         """Creates a PetitionDecisionResponse instance from a dictionary.
 
         Args:
             data: Dictionary containing API response data.
+            include_raw_data: If True, store the raw JSON for debugging.
 
         Returns:
             PetitionDecisionResponse: An instance of PetitionDecisionResponse.
@@ -419,6 +425,7 @@ class PetitionDecisionResponse:
             count=data.get("count"),
             request_identifier=data.get("requestIdentifier"),
             petition_decision_data_bag=decisions,
+            raw_data=json.dumps(data) if include_raw_data else None,
         )
 
     def to_dict(self) -> Dict[str, Any]:

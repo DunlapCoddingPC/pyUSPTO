@@ -39,6 +39,7 @@ from pyUSPTO.models.petition_decisions import (
 )
 from pyUSPTO.warnings import (
     USPTOBooleanParseWarning,
+    USPTODataMismatchWarning,
     USPTODataWarning,
     USPTODateParseWarning,
     USPTOEnumParseWarning,
@@ -59,6 +60,7 @@ __all__ = [
     "USPTOBooleanParseWarning",
     "USPTOTimezoneWarning",
     "USPTOEnumParseWarning",
+    "USPTODataMismatchWarning",
     # Bulk Data API
     "BulkDataClient",
     "BulkDataResponse",

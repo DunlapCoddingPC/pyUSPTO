@@ -4,6 +4,7 @@ base - Base client class for USPTO API clients
 This module provides a base client class with common functionality for all USPTO API clients.
 """
 
+import re
 from pathlib import Path
 from typing import (
     Any,
@@ -39,7 +40,7 @@ class FromDictProtocol(Protocol):
     """Protocol for classes that can be created from a dictionary."""
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> Any:
+    def from_dict(cls, data: Dict[str, Any], include_raw_data: bool = False) -> Any:
         """Create an object from a dictionary."""
         ...
 
@@ -177,12 +178,13 @@ class BaseUSPTOClient(Generic[T]):
 
             # Return the raw response for streaming requests
             if stream:
-                # TODO: Handle Content-Disposition
                 return response
 
             # Parse the response based on the specified class
             if response_class:
-                parsed_response: T = response_class.from_dict(response.json())
+                parsed_response: T = response_class.from_dict(
+                    response.json(), include_raw_data=self.config.include_raw_data
+                )
                 return parsed_response
 
             # Return the raw JSON for other requests
@@ -270,14 +272,59 @@ class BaseUSPTOClient(Generic[T]):
 
             offset += limit
 
+    @staticmethod
+    def _extract_filename_from_content_disposition(
+        content_disposition: Optional[str],
+    ) -> Optional[str]:
+        """Extract filename from Content-Disposition header.
+
+        Supports both RFC 2231 (filename*) and simple filename formats.
+
+        Args:
+            content_disposition: The Content-Disposition header value.
+
+        Returns:
+            Optional[str]: The extracted filename, or None if not found.
+
+        Examples:
+            >>> _extract_filename_from_content_disposition('attachment; filename="document.pdf"')
+            'document.pdf'
+            >>> _extract_filename_from_content_disposition("attachment; filename*=UTF-8''file%20name.pdf")
+            'file name.pdf'
+        """
+        if not content_disposition:
+            return None
+
+        # Try RFC 2231 format first (filename*=UTF-8''filename)
+        rfc2231_match = re.search(
+            r"filename\*=(?:UTF-8|utf-8)?''([^;\s]+)", content_disposition
+        )
+        if rfc2231_match:
+            from urllib.parse import unquote
+
+            return unquote(rfc2231_match.group(1))
+
+        # Try standard filename="..." or filename=...
+        filename_match = re.search(
+            r'filename=(?:"([^"]+)"|([^;\s]+))', content_disposition
+        )
+        if filename_match:
+            return filename_match.group(1) or filename_match.group(2)
+
+        return None
+
     def _save_response_to_file(
         self, response: requests.Response, file_path: str, overwrite: bool = False
     ) -> str:
         """Save a streaming response to a file on disk.
 
+        If file_path is a directory, attempts to extract filename from
+        Content-Disposition header and save in that directory.
+
         Args:
             response: Streaming response object from requests
-            file_path: Local path where file should be saved
+            file_path: Local path where file should be saved. Can be a file path
+                or a directory (in which case filename from Content-Disposition is used).
             overwrite: Whether to overwrite existing files. Default False
 
         Returns:
@@ -285,22 +332,35 @@ class BaseUSPTOClient(Generic[T]):
 
         Raises:
             FileExistsError: If file exists and overwrite=False
+            ValueError: If file_path is a directory but no filename can be determined
         """
-        # Check for existing file
         from pathlib import Path
 
         path = Path(file_path)
+
+        # If path is a directory, try to extract filename from Content-Disposition
+        if path.is_dir():
+            content_disp = response.headers.get("Content-Disposition")
+            filename = self._extract_filename_from_content_disposition(content_disp)
+            if not filename:
+                raise ValueError(
+                    f"file_path is a directory ({file_path}) but Content-Disposition "
+                    "header does not contain a filename. Please provide a full file path."
+                )
+            path = path / filename
+
+        # Check for existing file
         if path.exists() and not overwrite:
             raise FileExistsError(
-                f"File already exists: {file_path}. Set overwrite=True to replace."
+                f"File already exists: {path}. Set overwrite=True to replace."
             )
 
         # Save to disk with streaming
-        with open(file=file_path, mode="wb") as f:
+        with open(file=str(path), mode="wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:  # Filter out keep-alive chunks
                     f.write(chunk)
-        return file_path
+        return str(path)
 
     def _download_file(self, url: str, file_path: str, overwrite: bool = False) -> str:
         """Download a file directly to disk.

@@ -7,37 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1]
+
+### Added
+
+- `USPTODataMismatchWarning` for API data validation
+- `sanitize_application_number()` method supporting 8-digit and series code formats
+- Optional `include_raw_data` parameter in `USPTOConfig` for debugging
+- Content-Disposition header parsing with RFC 2231 support
+- `HTTPConfig` class for configurable timeouts, retries, and headers
+- `USPTOTimeout` and `USPTOConnectionError` exceptions
+- Document type filtering in `get_application_documents()`
+- Utility module `models/utils.py` for shared model helpers
+
+### Changed
+
+- Response models now support optional `include_raw_data` parameter
+- Replaced print statements with Python warnings module
+- Refactored base client to use `HTTPConfig`
+
+## [0.2.0]
+
 ### Added
 
 - Full support for USPTO Final Petition Decisions API
-- `FinalPetitionDecisionsClient` for interacting with petition decisions
-- New data models for petition decisions:
-  - `PetitionDecision`: Complete petition decision information
-  - `PetitionDecisionDocument`: Document details and metadata
-  - `DocumentDownloadOption`: Download options for petition documents
-  - `PetitionDecisionResponse`: API response wrapper
-  - `PetitionDecisionDownloadResponse`: Download response wrapper
-- Enums for petition decision data:
-  - `DecisionTypeCode`: Petition decision types
-  - `DocumentDirectionCategory`: Document direction categories
-- Search capabilities with convenience parameters:
-  - Application number, patent number, technology center
-  - Decision date ranges, applicant names, inventor names
-  - Examiner names, decision types, and more
-- Pagination support for petition decision searches
-- Document download functionality for petition documents
-- CSV and JSON export options for petition decisions
-- Integration tests for petition decisions (17 tests)
-- Unit tests for petition decision models and client (49 tests)
-- Example usage file: `examples/petition_decisions_example.py`
-- Configuration support for petition decisions base URL in `USPTOConfig`
+- `FinalPetitionDecisionsClient` with search, pagination, and document download
+- Data models: `PetitionDecision`, `PetitionDecisionDocument`, `PetitionDecisionResponse`
+- Enums: `DecisionTypeCode`, `DocumentDirectionCategory`
+- CSV and JSON export for petition decisions
 
 ## [0.1.2]
 
 ### Added
 
-- Initial release of pyUSPTO
-- Object Oriented Support for USPTO Patent Data API
-- Basic Support for USPTO Bulk Data API
-- Full type annotations and docstrings
-- Comprehensive test suite
+- Initial release
+- USPTO Patent Data API support
+- USPTO Bulk Data API support

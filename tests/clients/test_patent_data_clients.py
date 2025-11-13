@@ -23,6 +23,7 @@ from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.clients.patent_data import PatentDataClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import USPTOApiBadRequestError, USPTOApiError
+from pyUSPTO.warnings import USPTODataMismatchWarning
 from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
     ApplicationMetaData,
@@ -1092,13 +1093,15 @@ class TestDownloadFile:
             method="GET", endpoint="", stream=True, custom_url=url
         )
 
-        # Verify file operations
-        mock_file_open.assert_called_once_with(file=file_path, mode="wb")
+        # Verify file operations - use str(Path()) to normalize path for platform
+        from pathlib import Path
+        expected_path = str(Path(file_path))
+        mock_file_open.assert_called_once_with(file=expected_path, mode="wb")
         mock_file_open().write.assert_has_calls(
             [mock.call(b"chunk1"), mock.call(b"chunk2")]
         )
 
-        assert result == file_path
+        assert result == expected_path
 
     @patch.object(BaseUSPTOClient, "_make_request")
     def test_download_file_wrong_response_type(
@@ -1224,14 +1227,22 @@ class TestGetIFW:
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
         mock_patent_file_wrapper: PatentFileWrapper,
     ) -> None:
-        """Test get_IFW with PCT_app_number calls get_application_by_number."""
+        """Test get_IFW with PCT_app_number calls get_application_by_number.
+
+        Note: This will trigger a data mismatch warning because the mock_patent_file_wrapper
+        has application_number_text='12345678' but we're requesting a PCT number.
+        This is expected test behavior for validating the warning system.
+        """
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = PatentDataResponse(
             count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
         )
 
         pct_app = "PCT/US2024/012345"
-        result = client.get_IFW_metadata(PCT_app_number=pct_app)
+
+        # The mismatch between PCT number and regular app number triggers warning
+        with pytest.warns(USPTODataMismatchWarning):
+            result = client.get_IFW_metadata(PCT_app_number=pct_app)
 
         # Should call get_application_by_number
         mock_make_request.assert_called_once_with(
@@ -2006,12 +2017,11 @@ class TestGeneralEdgeCasesAndErrors:
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
         mock_patent_file_wrapper: PatentFileWrapper,
     ) -> None:
-        """Test that application number mismatch is handled.
+        """Test that application number mismatch raises a warning.
 
-        TODO: The validation logic is currently commented out in the source code
-        (see patent_data.py lines 81-90). This test verifies current behavior
-        where mismatched application numbers are NOT validated. When validation
-        is implemented, this test should be updated to expect an exception.
+        When the API returns a different application number than requested,
+        a USPTODataMismatchWarning should be issued to alert the user of
+        the data inconsistency.
         """
         client, mock_make_request = client_with_mocked_request
         requested_app_num = "DIFFERENT_APP_NUM_999"
@@ -2020,7 +2030,10 @@ class TestGeneralEdgeCasesAndErrors:
         )
         mock_make_request.return_value = response_with_original_wrapper
 
-        with patch("builtins.print") as mock_print:
+        with pytest.warns(
+            USPTODataMismatchWarning,
+            match="API returned application number '12345678' but requested 'DIFFERENT_APP_NUM_999'",
+        ):
             result = client.get_application_by_number(
                 application_number=requested_app_num
             )
@@ -2028,8 +2041,6 @@ class TestGeneralEdgeCasesAndErrors:
         assert result is mock_patent_file_wrapper
         assert result is not None
         assert result.application_number_text == "12345678"
-        # Currently no validation is performed (validation code is commented out)
-        mock_print.assert_not_called()
 
     def test_get_application_by_number_unexpected_response_type(
         self, client_with_mocked_request: tuple[PatentDataClient, MagicMock]
@@ -2059,6 +2070,155 @@ class TestGeneralEdgeCasesAndErrors:
 
         with pytest.raises(AssertionError):
             client.search_applications(post_body={"q": "test"})
+
+
+class TestApplicationNumberSanitization:
+    """Tests for application number sanitization and validation."""
+
+    def test_sanitize_standard_format(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test sanitization of standard 8-digit format."""
+        assert patent_data_client.sanitize_application_number("16123456") == "16123456"
+
+    def test_sanitize_with_commas(self, patent_data_client: PatentDataClient) -> None:
+        """Test removal of commas."""
+        assert (
+            patent_data_client.sanitize_application_number("16,123,456") == "16123456"
+        )
+
+    def test_sanitize_with_spaces(self, patent_data_client: PatentDataClient) -> None:
+        """Test removal of spaces."""
+        assert (
+            patent_data_client.sanitize_application_number(" 16 123 456 ") == "16123456"
+        )
+
+    def test_sanitize_series_code_format(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test series code format (NN/NNNNNN)."""
+        assert (
+            patent_data_client.sanitize_application_number("08/123456") == "08/123456"
+        )
+
+    def test_sanitize_series_code_with_separators(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test series code format with commas and spaces."""
+        assert (
+            patent_data_client.sanitize_application_number("08/123,456") == "08/123456"
+        )
+        assert (
+            patent_data_client.sanitize_application_number(" 08 / 123 456 ")
+            == "08/123456"
+        )
+
+    def test_sanitize_empty_string_raises(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test empty string raises ValueError."""
+        with pytest.raises(ValueError, match="Application number cannot be empty"):
+            patent_data_client.sanitize_application_number("")
+
+    def test_sanitize_whitespace_only_raises(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test whitespace-only string raises ValueError."""
+        with pytest.raises(ValueError, match="Application number cannot be empty"):
+            patent_data_client.sanitize_application_number("   ")
+
+    def test_sanitize_invalid_characters_raises(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test invalid characters raise ValueError."""
+        with pytest.raises(ValueError, match="Invalid application number format"):
+            patent_data_client.sanitize_application_number("16ABC456")
+
+    def test_sanitize_wrong_length_raises(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test wrong length raises ValueError."""
+        with pytest.raises(ValueError, match="Expected 8 digits"):
+            patent_data_client.sanitize_application_number("1234567")  # 7 digits
+        with pytest.raises(ValueError, match="Expected 8 digits"):
+            patent_data_client.sanitize_application_number("123456789")  # 9 digits
+
+    def test_sanitize_invalid_series_code_format_raises(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test invalid series code format raises ValueError."""
+        # Wrong series length
+        with pytest.raises(
+            ValueError, match="Expected series code format: NN/NNNNNN"
+        ):
+            patent_data_client.sanitize_application_number("8/123456")  # 1 digit series
+
+        # Wrong serial length
+        with pytest.raises(
+            ValueError, match="Expected series code format: NN/NNNNNN"
+        ):
+            patent_data_client.sanitize_application_number("08/12345")  # 5 digit serial
+
+        # Non-numeric series
+        with pytest.raises(ValueError, match="Series and serial must be numeric"):
+            patent_data_client.sanitize_application_number("AB/123456")
+
+        # Non-numeric serial
+        with pytest.raises(ValueError, match="Series and serial must be numeric"):
+            patent_data_client.sanitize_application_number("08/ABC456")
+
+        # Multiple slashes
+        with pytest.raises(
+            ValueError, match="Expected format: NNNNNNNN or NN/NNNNNN"
+        ):
+            patent_data_client.sanitize_application_number("08/123/456")
+
+
+class TestRawDataFeature:
+    """Tests for the include_raw_data feature."""
+
+    def test_raw_data_disabled_by_default(
+        self, client_with_mocked_request: tuple[PatentDataClient, MagicMock]
+    ) -> None:
+        """Test that raw_data is None by default."""
+        client, mock_make_request = client_with_mocked_request
+        mock_response = PatentDataResponse(count=1, patent_file_wrapper_data_bag=[])
+        mock_make_request.return_value = mock_response
+
+        result = client.search_applications(query="test")
+
+        assert result.raw_data is None
+
+    def test_raw_data_enabled_via_config(
+        self, mock_patent_file_wrapper: PatentFileWrapper
+    ) -> None:
+        """Test that raw_data is populated when config.include_raw_data=True."""
+        config = USPTOConfig(api_key="test_key", include_raw_data=True)
+        client = PatentDataClient(config=config)
+
+        # Create a response with raw_data enabled
+        test_data = {
+            "count": 1,
+            "patentFileWrapperDataBag": [{"applicationNumberText": "12345678"}],
+        }
+        response = PatentDataResponse.from_dict(test_data, include_raw_data=True)
+
+        assert response.raw_data is not None
+        assert "patentFileWrapperDataBag" in response.raw_data
+        assert response.count == 1
+
+    def test_raw_data_can_be_parsed_back(self) -> None:
+        """Test that raw_data contains valid JSON that can be parsed."""
+        test_data = {"count": 42, "patentFileWrapperDataBag": []}
+        response = PatentDataResponse.from_dict(test_data, include_raw_data=True)
+
+        assert response.raw_data is not None
+        # Parse it back
+        import json
+
+        parsed = json.loads(response.raw_data)
+        assert parsed["count"] == 42
+        assert parsed["patentFileWrapperDataBag"] == []
 
 
 class TestInternalHelpersEdgeCases:

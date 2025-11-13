@@ -5,6 +5,7 @@ This module provides a client for interacting with the USPTO Patent Data API.
 It allows you to search for and retrieve patent application data.
 """
 
+import warnings
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 from urllib.parse import urljoin, urlparse
@@ -30,6 +31,7 @@ from pyUSPTO.models.patent_data import (
     StatusCodeCollection,
     StatusCodeSearchResponse,
 )
+from pyUSPTO.warnings import USPTODataMismatchWarning
 
 
 class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
@@ -67,7 +69,80 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             api_key=api_key_to_use, base_url=effective_base_url, config=self.config
         )
 
-    # TODO: def sanitize_application_no(inputNumber: str) -> str:
+    def sanitize_application_number(self, input_number: str) -> str:
+        """Sanitize and validate a USPTO application number.
+
+        Application numbers are either:
+        - 8 digits (e.g., "16123456")
+        - Series code format: 2 digits + "/" + 6 digits (e.g., "08/123456")
+
+        This method removes common separators (commas, spaces) while preserving
+        the "/" in series code format.
+
+        Args:
+            input_number: Raw application number input. May include commas,
+                spaces, or other formatting.
+
+        Returns:
+            str: Sanitized application number (either "NNNNNNNN" or "NN/NNNNNN").
+
+        Raises:
+            ValueError: If the format is invalid.
+
+        Examples:
+            >>> client.sanitize_application_number("16123456")
+            "16123456"
+            >>> client.sanitize_application_number("16,123,456")
+            "16123456"
+            >>> client.sanitize_application_number("08/123456")
+            "08/123456"
+            >>> client.sanitize_application_number("08/123,456")
+            "08/123456"
+        """
+        if not input_number or not input_number.strip():
+            raise ValueError("Application number cannot be empty")
+
+        # Strip whitespace and remove commas/spaces
+        cleaned = input_number.strip().replace(",", "").replace(" ", "")
+
+        # Check if this is series code format (NN/NNNNNN)
+        if "/" in cleaned:
+            parts = cleaned.split("/")
+            if len(parts) != 2:
+                raise ValueError(
+                    f"Invalid application number format: {input_number}. "
+                    "Expected format: NNNNNNNN or NN/NNNNNN"
+                )
+
+            series, serial = parts
+            if not series.isdigit() or not serial.isdigit():
+                raise ValueError(
+                    f"Invalid application number format: {input_number}. "
+                    "Series and serial must be numeric."
+                )
+
+            if len(series) != 2 or len(serial) != 6:
+                raise ValueError(
+                    f"Invalid application number format: {input_number}. "
+                    "Expected series code format: NN/NNNNNN (2 digits / 6 digits)"
+                )
+
+            return cleaned
+
+        # Standard 8-digit format
+        if not cleaned.isdigit():
+            raise ValueError(
+                f"Invalid application number format: {input_number}. "
+                "Must contain only digits."
+            )
+
+        if len(cleaned) != 8:
+            raise ValueError(
+                f"Invalid application number format: {input_number}. "
+                "Expected 8 digits."
+            )
+
+        return cleaned
 
     def _get_wrapper_from_response(
         self,
@@ -80,15 +155,17 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         wrapper = response_data.patent_file_wrapper_data_bag[0]
 
-        # This should probably just raise an exception rather than print a warning.
-        # if (
-        #     application_number_for_validation
-        #     and wrapper.application_number_text != application_number_for_validation
-        # ):
-        #     print(
-        #         f"Warning: Fetched wrapper application number '{wrapper.application_number_text}' "
-        #         f"does not match requested '{application_number_for_validation}'."
-        #     )
+        if (
+            application_number_for_validation
+            and wrapper.application_number_text != application_number_for_validation
+        ):
+            warnings.warn(
+                f"API returned application number '{wrapper.application_number_text}' "
+                f"but requested '{application_number_for_validation}'. "
+                f"This may indicate an API data inconsistency.",
+                USPTODataMismatchWarning,
+                stacklevel=2,
+            )
         return wrapper
 
     def search_applications(

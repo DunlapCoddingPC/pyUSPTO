@@ -25,6 +25,7 @@ class USPTOConfig:
         patent_data_base_url: str = "https://api.uspto.gov",
         petition_decisions_base_url: str = "https://api.uspto.gov",
         http_config: Optional[HTTPConfig] = None,
+        include_raw_data: bool = False,
     ):
         """Initialize the USPTOConfig.
 
@@ -34,6 +35,7 @@ class USPTOConfig:
             patent_data_base_url: Base URL for the Patent Data API
             petition_decisions_base_url: Base URL for the Final Petition Decisions API
             http_config: Optional HTTPConfig for request handling (uses defaults if None)
+            include_raw_data: If True, store raw JSON in response objects for debugging (default: False)
         """
         # Use environment variable only if api_key is None, not if it's an empty string
         self.api_key = (
@@ -45,6 +47,9 @@ class USPTOConfig:
 
         # Use provided HTTPConfig or create default
         self.http_config = http_config if http_config is not None else HTTPConfig()
+
+        # Control whether to include raw JSON data in response objects
+        self.include_raw_data = include_raw_data
 
     @classmethod
     def from_env(cls) -> "USPTOConfig":
