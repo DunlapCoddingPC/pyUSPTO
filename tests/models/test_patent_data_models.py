@@ -82,6 +82,9 @@ def sample_address_data() -> Dict[str, Any]:
         "countryName": "United States",
         "postalAddressCategory": "Mailing",
         "correspondentNameText": "Test Correspondent",
+        "countryOrStateCode": None,
+        "ictStateCode": None,
+        "ictCountryCode": None,
     }
 
 
@@ -793,6 +796,9 @@ class TestAddress:
             "countryName": None,
             "postalAddressCategory": None,
             "correspondentNameText": None,
+            "countryOrStateCode": None,
+            "ictStateCode": None,
+            "ictCountryCode": None,
         }
         assert address.to_dict() == expected_camel_case_empty_dict
 
@@ -1237,6 +1243,8 @@ class TestAssignment:
             "assignmentRecordedDate": "2023-01-15",
             "assignmentMailedDate": "2023-01-20",
             "conveyanceText": "ASSIGNMENT OF ASSIGNORS INTEREST",
+            "imageAvailableStatusCode": True,
+            "attorneyDocketNumber": "12345-001",
             "assignorBag": [
                 {"assignorName": "John Smith", "executionDate": "2022-12-15"}
             ],
@@ -1246,20 +1254,28 @@ class TestAssignment:
                     "assigneeAddress": sample_address_data,
                 }
             ],
-            "correspondenceAddressBag": [sample_address_data],
+            "correspondenceAddress": sample_address_data,
+            "domesticRepresentative": sample_address_data,
         }
         assignment = Assignment.from_dict(data)
         assert assignment.reel_number == 12345
         assert assignment.frame_number == 67890
         assert assignment.page_total_quantity == 3
         assert assignment.assignment_received_date == date(2023, 1, 1)
+        assert assignment.image_available_status_code is True
+        assert assignment.attorney_docket_number == "12345-001"
         assert len(assignment.assignor_bag) == 1
         assert assignment.assignor_bag[0].assignor_name == "John Smith"
         assert len(assignment.assignee_bag) == 1
         assert assignment.assignee_bag[0].assignee_name_text == "Test Company Inc."
-        assert len(assignment.correspondence_address_bag) == 1
+        assert assignment.correspondence_address is not None
         assert (
-            assignment.correspondence_address_bag[0].city_name
+            assignment.correspondence_address.city_name
+            == sample_address_data["cityName"]
+        )
+        assert assignment.domestic_representative is not None
+        assert (
+            assignment.domestic_representative.city_name
             == sample_address_data["cityName"]
         )
 
@@ -1275,31 +1291,41 @@ class TestAssignment:
             frame_number=2002,
             page_total_quantity=5,
             assignment_received_date=date(2023, 2, 1),
+            image_available_status_code=False,
+            attorney_docket_number="TEST-123",
             assignor_bag=[assignor_obj],
             assignee_bag=[assignee_obj],
-            correspondence_address_bag=[address_obj],
+            correspondence_address=address_obj,
+            domestic_representative=address_obj,
         )
         data = assignment.to_dict()
         assert data["reelNumber"] == 1001
         assert data["frameNumber"] == 2002
         assert data["pageTotalQuantity"] == 5
         assert data["assignmentReceivedDate"] == "2023-02-01"
+        assert data["imageAvailableStatusCode"] is False
+        assert data["attorneyDocketNumber"] == "TEST-123"
         assert len(data["assignorBag"]) == 1
         assert len(data["assigneeBag"]) == 1
-        assert len(data["correspondenceAddressBag"]) == 1
+        assert data["correspondenceAddress"] is not None
+        assert data["correspondenceAddress"]["cityName"] == sample_address_data["cityName"]
+        assert data["domesticRepresentative"] is not None
+        assert data["domesticRepresentative"]["cityName"] == sample_address_data["cityName"]
 
     def test_assignment_to_dict_empty_bags(self) -> None:
         assignment = Assignment(
             reel_number=2002,
             assignor_bag=[],
             assignee_bag=[],
-            correspondence_address_bag=[],
+            correspondence_address=None,
+            domestic_representative=None,
         )
         data = assignment.to_dict()
         assert data["reelNumber"] == 2002
         assert data["assignorBag"] == []
         assert data["assigneeBag"] == []
-        assert data["correspondenceAddressBag"] == []
+        assert data["correspondenceAddress"] is None
+        assert data["domesticRepresentative"] is None
 
     def test_assignment_roundtrip(
         self,

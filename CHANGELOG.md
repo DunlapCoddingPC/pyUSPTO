@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Assignment fields: `image_available_status_code`, `attorney_docket_number`, `domestic_representative`
+- Address fields: `country_or_state_code`, `ict_state_code`, `ict_country_code`
+- PCT application number format support in `sanitize_application_number()`
+
+### Changed
+
+- **BREAKING**: Assignment `correspondence_address_bag` changed to `correspondence_address` (single object, not list)
+- All `PatentDataClient` methods now automatically sanitize application numbers before API requests
+
 ## [0.2.1]
 
 ### Added
