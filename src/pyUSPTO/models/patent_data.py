@@ -274,6 +274,46 @@ class DocumentBag:
     def __getitem__(self, index: int) -> Document:
         return self._documents[index]
 
+    def __str__(self) -> str:
+        """Returns a string representation showing document count and summary.
+
+        Returns:
+            str: Human-readable summary of the DocumentBag.
+        """
+        count = len(self._documents)
+        if count == 0:
+            return "DocumentBag(0 documents)"
+
+        # Count unique document codes
+        doc_codes: Dict[str, int] = {}
+        for doc in self._documents:
+            code = doc.document_code or "Unknown"
+            doc_codes[code] = doc_codes.get(code, 0) + 1
+
+        # Format summary
+        if count == 1:
+            code = self._documents[0].document_code or "Unknown"
+            return f"DocumentBag(1 document: {code})"
+
+        # Show top 3 most common document codes
+        sorted_codes = sorted(doc_codes.items(), key=lambda x: x[1], reverse=True)
+        top_codes = sorted_codes[:3]
+        code_summary = ", ".join(f"{code} ({cnt})" for code, cnt in top_codes)
+
+        if len(sorted_codes) > 3:
+            remaining = len(sorted_codes) - 3
+            return f"DocumentBag({count} documents: {code_summary}, +{remaining} more types)"
+        else:
+            return f"DocumentBag({count} documents: {code_summary})"
+
+    def __repr__(self) -> str:
+        """Returns a detailed string representation for debugging.
+
+        Returns:
+            str: Detailed representation of the DocumentBag.
+        """
+        return f"DocumentBag(documents={self._documents!r})"
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DocumentBag":
         """Creates a `DocumentBag` instance from a dictionary representation.

@@ -751,6 +751,94 @@ class TestDocumentBag:
             count += 1
         assert count == 1
 
+    def test_document_bag_str_empty(self) -> None:
+        """Test __str__ with empty DocumentBag."""
+        doc_bag = DocumentBag(documents=[])
+        assert str(doc_bag) == "DocumentBag(0 documents)"
+
+    def test_document_bag_str_single_document(self) -> None:
+        """Test __str__ with single document."""
+        doc = Document(document_identifier="doc1", document_code="OATH")
+        doc_bag = DocumentBag(documents=[doc])
+        assert str(doc_bag) == "DocumentBag(1 document: OATH)"
+
+    def test_document_bag_str_single_document_no_code(self) -> None:
+        """Test __str__ with single document without document_code."""
+        doc = Document(document_identifier="doc1", document_code=None)
+        doc_bag = DocumentBag(documents=[doc])
+        assert str(doc_bag) == "DocumentBag(1 document: Unknown)"
+
+    def test_document_bag_str_multiple_documents_same_code(self) -> None:
+        """Test __str__ with multiple documents of same type."""
+        docs = [
+            Document(document_identifier=f"doc{i}", document_code="OATH")
+            for i in range(5)
+        ]
+        doc_bag = DocumentBag(documents=docs)
+        assert str(doc_bag) == "DocumentBag(5 documents: OATH (5))"
+
+    def test_document_bag_str_multiple_document_types(self) -> None:
+        """Test __str__ with multiple document types (<=3 types)."""
+        docs = [
+            Document(document_identifier="doc1", document_code="OATH"),
+            Document(document_identifier="doc2", document_code="OATH"),
+            Document(document_identifier="doc3", document_code="CLM"),
+            Document(document_identifier="doc4", document_code="CLM"),
+            Document(document_identifier="doc5", document_code="SPEC"),
+        ]
+        doc_bag = DocumentBag(documents=docs)
+        result = str(doc_bag)
+        assert result.startswith("DocumentBag(5 documents:")
+        assert "OATH (2)" in result
+        assert "CLM (2)" in result
+        assert "SPEC (1)" in result
+        assert "+0 more" not in result  # Only 3 types, no "more"
+
+    def test_document_bag_str_many_document_types(self) -> None:
+        """Test __str__ with more than 3 document types."""
+        docs = [
+            Document(document_identifier="doc1", document_code="OATH"),
+            Document(document_identifier="doc2", document_code="OATH"),
+            Document(document_identifier="doc3", document_code="OATH"),
+            Document(document_identifier="doc4", document_code="CLM"),
+            Document(document_identifier="doc5", document_code="CLM"),
+            Document(document_identifier="doc6", document_code="SPEC"),
+            Document(document_identifier="doc7", document_code="DRFT"),
+            Document(document_identifier="doc8", document_code="IDS"),
+        ]
+        doc_bag = DocumentBag(documents=docs)
+        result = str(doc_bag)
+        assert result.startswith("DocumentBag(8 documents:")
+        # Should show top 3 most common
+        assert "OATH (3)" in result
+        assert "CLM (2)" in result
+        assert "+2 more types" in result  # 5 total types - 3 shown = 2 more
+
+    def test_document_bag_str_mixed_codes_and_none(self) -> None:
+        """Test __str__ with mix of document codes and None."""
+        docs = [
+            Document(document_identifier="doc1", document_code="OATH"),
+            Document(document_identifier="doc2", document_code=None),
+            Document(document_identifier="doc3", document_code="CLM"),
+            Document(document_identifier="doc4", document_code=None),
+        ]
+        doc_bag = DocumentBag(documents=docs)
+        result = str(doc_bag)
+        assert result.startswith("DocumentBag(4 documents:")
+        assert "Unknown (2)" in result
+        assert "OATH (1)" in result or "CLM (1)" in result
+
+    def test_document_bag_repr(self) -> None:
+        """Test __repr__ returns detailed representation."""
+        doc1 = Document(document_identifier="doc1", document_code="OATH")
+        doc2 = Document(document_identifier="doc2", document_code="CLM")
+        doc_bag = DocumentBag(documents=[doc1, doc2])
+        result = repr(doc_bag)
+        assert result.startswith("DocumentBag(documents=(")
+        assert "Document(" in result
+        assert "doc1" in result
+        assert "doc2" in result
+
 
 class TestAddress:
     """Tests for the Address class."""
