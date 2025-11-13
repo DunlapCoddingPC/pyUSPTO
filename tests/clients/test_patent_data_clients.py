@@ -1249,7 +1249,7 @@ class TestGetIFW:
         # Should call get_application_by_number
         mock_make_request.assert_called_once_with(
             method="GET",
-            endpoint=f"api/v1/patent/applications/{"PCTUS24012345"}",
+            endpoint=f"api/v1/patent/applications/PCTUS24012345",
             response_class=PatentDataResponse,
         )
         assert result is mock_patent_file_wrapper
@@ -1282,7 +1282,7 @@ class TestGetIFW:
         # Should call get_application_by_number
         mock_make_request.assert_called_once_with(
             method="GET",
-            endpoint=f"api/v1/patent/applications/{"PCTUS24012345"}",
+            endpoint=f"api/v1/patent/applications/PCTUS24012345",
             response_class=PatentDataResponse,
         )
         assert result is mock_patent_file_wrapper
