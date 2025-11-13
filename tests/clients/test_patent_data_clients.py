@@ -631,7 +631,7 @@ class TestPatentApplicationDetails:
         """Test get_application_by_number returns None if patentFileWrapperDataBag is empty."""
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = mock_patent_data_response_empty
-        app_num_to_request = "nonexistent123"
+        app_num_to_request = "00000000"
 
         result = client.get_application_by_number(application_number=app_num_to_request)
         assert result is None
@@ -682,7 +682,7 @@ class TestPatentApplicationDocumentListing:
     ) -> None:
         """Test retrieval of application documents."""
         client, mock_make_request = client_with_mocked_request
-        app_num = "appDoc123"
+        app_num = "12345678"
         mock_response_dict = {
             "documentBag": [
                 {
@@ -712,7 +712,7 @@ class TestPatentApplicationDocumentListing:
     ) -> None:
         """Test retrieval of application documents filtered by document codes."""
         client, mock_make_request = client_with_mocked_request
-        app_num = "appDoc456"
+        app_num = "12345678"
         mock_response_dict = {
             "documentBag": [
                 {
@@ -744,7 +744,7 @@ class TestPatentApplicationDocumentListing:
     ) -> None:
         """Test retrieval of application documents filtered by official date range."""
         client, mock_make_request = client_with_mocked_request
-        app_num = "appDoc789"
+        app_num = "12345678"
         mock_response_dict = {
             "documentBag": [
                 {
@@ -777,7 +777,7 @@ class TestPatentApplicationDocumentListing:
     ) -> None:
         """Test retrieval of application documents with multiple filters combined."""
         client, mock_make_request = client_with_mocked_request
-        app_num = "appDoc999"
+        app_num = "12345678"
         mock_response_dict = {"documentBag": []}
         mock_make_request.return_value = mock_response_dict
         result = client.get_application_documents(
@@ -804,7 +804,7 @@ class TestPatentApplicationDocumentListing:
     ) -> None:
         """Test retrieval with only one date boundary specified."""
         client, mock_make_request = client_with_mocked_request
-        app_num = "appDoc111"
+        app_num = "12345678"
         mock_response_dict = {"documentBag": []}
         mock_make_request.return_value = mock_response_dict
 
@@ -1095,6 +1095,7 @@ class TestDownloadFile:
 
         # Verify file operations - use str(Path()) to normalize path for platform
         from pathlib import Path
+
         expected_path = str(Path(file_path))
         mock_file_open.assert_called_once_with(file=expected_path, mode="wb")
         mock_file_open().write.assert_has_calls(
@@ -1131,6 +1132,7 @@ class TestDownloadFile:
     ) -> None:
         """Test that empty chunks are filtered out."""
         mock_response = MagicMock(spec=requests.Response)
+        mock_response.headers = {}  # Add headers to mock
         mock_response.iter_content.return_value = [b"data", b"", None, b"more"]
         mock_make_request.return_value = mock_response
 
@@ -1247,10 +1249,140 @@ class TestGetIFW:
         # Should call get_application_by_number
         mock_make_request.assert_called_once_with(
             method="GET",
-            endpoint=f"api/v1/patent/applications/{pct_app}",
+            endpoint=f"api/v1/patent/applications/PCTUS24012345",
             response_class=PatentDataResponse,
         )
         assert result is mock_patent_file_wrapper
+
+    def test_get_ifw_by_short_pct_app_number(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test PCT application number sanitization with 2-digit year format (US24 vs US2024).
+
+        Verifies that PCT numbers with short year format (PCT/US24/012345) are correctly
+        sanitized to PCTUS24012345 before making API request.
+
+        Note: This will trigger a data mismatch warning because the mock_patent_file_wrapper
+        has application_number_text='12345678' but we're requesting a PCT number.
+        This is expected test behavior for validating the warning system.
+        """
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        pct_app = "PCT/US24/012345"
+
+        # The mismatch between PCT number and regular app number triggers warning
+        with pytest.warns(USPTODataMismatchWarning):
+            result = client.get_IFW_metadata(PCT_app_number=pct_app)
+
+        # Should call get_application_by_number
+        mock_make_request.assert_called_once_with(
+            method="GET",
+            endpoint=f"api/v1/patent/applications/PCTUS24012345",
+            response_class=PatentDataResponse,
+        )
+        assert result is mock_patent_file_wrapper
+
+    def test_get_ifw_by_pct_app_number_malformed(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test PCT application number validation rejects malformed format missing first slash.
+
+        Verifies that PCT numbers missing the first slash (PCTUS2024/012345 instead of
+        PCT/US2024/012345) raise ValueError with descriptive error message.
+        """
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        pct_app = "PCTUS2024/012345"
+
+        # The malformed PCT number  triggers error
+        with pytest.raises(
+            ValueError,
+            match="Invalid PCT application format: PCTUS2024/012345. Expected PCT/CCYYYY/NNNNNN",
+        ):
+            client.get_IFW_metadata(PCT_app_number=pct_app)
+
+    def test_get_ifw_by_pct_app_year_corrupted(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test PCT application number validation rejects invalid year length.
+
+        Verifies that PCT numbers with incorrect year length (PCT/US224/012345 with 3-digit
+        year instead of 2 or 4 digits) raise ValueError with descriptive error message.
+        """
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        pct_app = "PCT/US224/012345"
+
+        # The malformed PCT number  triggers error
+        with pytest.raises(
+            ValueError,
+            match="Invalid PCT year length in: US224. Expected CCYYYY or CCYY.",
+        ):
+            client.get_IFW_metadata(PCT_app_number=pct_app)
+
+    def test_get_ifw_by_pct_app_year_malformed(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test PCT application number validation rejects non-numeric year.
+
+        Verifies that PCT numbers with non-digit characters in year field
+        (PCT/USA2024/012345 instead of PCT/US2024/012345) raise ValueError with
+        descriptive error message.
+        """
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        pct_app = "PCT/USA2024/012345"
+
+        # The malformed PCT number  triggers error
+        with pytest.raises(
+            ValueError,
+            match="Invalid PCT year in: USA2024. Must be digits.",
+        ):
+            client.get_IFW_metadata(PCT_app_number=pct_app)
+
+    def test_get_ifw_by_pct_app_serial_malformed(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test PCT application number validation rejects non-numeric serial number.
+
+        Verifies that PCT numbers with non-numeric serial number (PCT/US2024/A12345
+        instead of PCT/US2024/012345) raise ValueError with descriptive error message.
+        """
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        pct_app = "PCT/US2024/A12345"
+
+        # The malformed PCT number  triggers error
+        with pytest.raises(
+            ValueError,
+            match="Invalid PCT serial: A12345. Must be numeric.",
+        ):
+            client.get_IFW_metadata(PCT_app_number=pct_app)
 
     def test_get_ifw_by_pct_pub_number(
         self,
@@ -1431,7 +1563,7 @@ class TestDownloadArchive:
         )
 
         with pytest.raises(
-            ValueError, match="ArchiveMetaData must have a file_location_uri"
+            ValueError, match="PrintedMetaData must have a file_location_uri"
         ):
             client.download_archive(printed_metadata=metadata_no_url)
 
@@ -1526,6 +1658,137 @@ class TestDownloadArchive:
         mock_download_file.assert_called_once_with(
             url=metadata.file_location_uri, file_path=expected_path
         )
+        assert result == expected_path
+
+    # Tests for download_publication() - delegates to download_archive()
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.mkdir")
+    def test_download_publication_basic(
+        self,
+        mock_mkdir: MagicMock,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test basic publication download."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = False
+
+        expected_path = "/downloads/patent_12345.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_publication(
+            printed_metadata=sample_printed_metadata, destination_path="/downloads"
+        )
+
+        mock_download_file.assert_called_once_with(
+            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+        )
+        assert result == expected_path
+
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.mkdir")
+    def test_download_publication_custom_filename(
+        self,
+        mock_mkdir: MagicMock,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test publication download with custom filename."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = False
+
+        custom_name = "my_grant.xml"
+        expected_path = "/downloads/my_grant.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_publication(
+            printed_metadata=sample_printed_metadata,
+            file_name=custom_name,
+            destination_path="/downloads",
+        )
+
+        mock_download_file.assert_called_once_with(
+            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+        )
+        assert result == expected_path
+
+    @patch("pathlib.Path.exists")
+    def test_download_publication_no_destination_path(
+        self,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test publication download with no destination path (current directory)."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = False
+
+        expected_path = "patent_12345.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_publication(printed_metadata=sample_printed_metadata)
+
+        mock_download_file.assert_called_once_with(
+            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+        )
+        assert result == expected_path
+
+    def test_download_publication_missing_url(
+        self, client_with_mocked_download: tuple[PatentDataClient, MagicMock]
+    ) -> None:
+        """Test download_publication raises ValueError when no download URL."""
+        client, mock_download_file = client_with_mocked_download
+
+        metadata_no_url = PrintedMetaData(
+            xml_file_name="test.xml", file_location_uri=None
+        )
+
+        with pytest.raises(
+            ValueError, match="PrintedMetaData must have a file_location_uri"
+        ):
+            client.download_publication(printed_metadata=metadata_no_url)
+
+        mock_download_file.assert_not_called()
+
+    @patch("pathlib.Path.exists")
+    def test_download_publication_file_exists_no_overwrite(
+        self,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test download_publication raises FileExistsError when file exists."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = True
+
+        with pytest.raises(
+            FileExistsError, match="File already exists.*Use overwrite=True"
+        ):
+            client.download_publication(printed_metadata=sample_printed_metadata)
+
+        mock_download_file.assert_not_called()
+
+    @patch("pathlib.Path.exists")
+    def test_download_publication_overwrite_existing(
+        self,
+        mock_exists: MagicMock,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_printed_metadata: PrintedMetaData,
+    ) -> None:
+        """Test download_publication overwrites when overwrite=True."""
+        client, mock_download_file = client_with_mocked_download
+        mock_exists.return_value = True
+
+        expected_path = "patent_12345.xml"
+        mock_download_file.return_value = expected_path
+
+        result = client.download_publication(
+            printed_metadata=sample_printed_metadata, overwrite=True
+        )
+
+        mock_download_file.assert_called_once()
         assert result == expected_path
 
 
@@ -2024,7 +2287,7 @@ class TestGeneralEdgeCasesAndErrors:
         the data inconsistency.
         """
         client, mock_make_request = client_with_mocked_request
-        requested_app_num = "DIFFERENT_APP_NUM_999"
+        requested_app_num = "87654321"
         response_with_original_wrapper = PatentDataResponse(
             count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
         )
@@ -2032,7 +2295,7 @@ class TestGeneralEdgeCasesAndErrors:
 
         with pytest.warns(
             USPTODataMismatchWarning,
-            match="API returned application number '12345678' but requested 'DIFFERENT_APP_NUM_999'",
+            match="API returned application number '12345678' but requested '87654321'",
         ):
             result = client.get_application_by_number(
                 application_number=requested_app_num
@@ -2049,7 +2312,7 @@ class TestGeneralEdgeCasesAndErrors:
         mock_make_request.return_value = ["not", "a", "PatentDataResponse"]
 
         with pytest.raises(AssertionError):
-            client.get_application_by_number(application_number="123")
+            client.get_application_by_number(application_number="32165487")
 
     def test_api_error_handling(
         self, client_with_mocked_request: tuple[PatentDataClient, MagicMock]
@@ -2148,15 +2411,11 @@ class TestApplicationNumberSanitization:
     ) -> None:
         """Test invalid series code format raises ValueError."""
         # Wrong series length
-        with pytest.raises(
-            ValueError, match="Expected series code format: NN/NNNNNN"
-        ):
+        with pytest.raises(ValueError, match="Expected series code format: NN/NNNNNN"):
             patent_data_client.sanitize_application_number("8/123456")  # 1 digit series
 
         # Wrong serial length
-        with pytest.raises(
-            ValueError, match="Expected series code format: NN/NNNNNN"
-        ):
+        with pytest.raises(ValueError, match="Expected series code format: NN/NNNNNN"):
             patent_data_client.sanitize_application_number("08/12345")  # 5 digit serial
 
         # Non-numeric series
@@ -2168,9 +2427,7 @@ class TestApplicationNumberSanitization:
             patent_data_client.sanitize_application_number("08/ABC456")
 
         # Multiple slashes
-        with pytest.raises(
-            ValueError, match="Expected format: NNNNNNNN or NN/NNNNNN"
-        ):
+        with pytest.raises(ValueError, match="Expected format: NNNNNNNN or NN/NNNNNN"):
             patent_data_client.sanitize_application_number("08/123/456")
 
 

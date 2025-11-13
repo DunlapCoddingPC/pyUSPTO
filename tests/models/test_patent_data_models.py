@@ -82,6 +82,9 @@ def sample_address_data() -> Dict[str, Any]:
         "countryName": "United States",
         "postalAddressCategory": "Mailing",
         "correspondentNameText": "Test Correspondent",
+        "countryOrStateCode": None,
+        "ictStateCode": None,
+        "ictCountryCode": None,
     }
 
 
@@ -748,6 +751,94 @@ class TestDocumentBag:
             count += 1
         assert count == 1
 
+    def test_document_bag_str_empty(self) -> None:
+        """Test __str__ with empty DocumentBag."""
+        doc_bag = DocumentBag(documents=[])
+        assert str(doc_bag) == "DocumentBag(0 documents)"
+
+    def test_document_bag_str_single_document(self) -> None:
+        """Test __str__ with single document."""
+        doc = Document(document_identifier="doc1", document_code="OATH")
+        doc_bag = DocumentBag(documents=[doc])
+        assert str(doc_bag) == "DocumentBag(1 document: OATH)"
+
+    def test_document_bag_str_single_document_no_code(self) -> None:
+        """Test __str__ with single document without document_code."""
+        doc = Document(document_identifier="doc1", document_code=None)
+        doc_bag = DocumentBag(documents=[doc])
+        assert str(doc_bag) == "DocumentBag(1 document: Unknown)"
+
+    def test_document_bag_str_multiple_documents_same_code(self) -> None:
+        """Test __str__ with multiple documents of same type."""
+        docs = [
+            Document(document_identifier=f"doc{i}", document_code="OATH")
+            for i in range(5)
+        ]
+        doc_bag = DocumentBag(documents=docs)
+        assert str(doc_bag) == "DocumentBag(5 documents: OATH (5))"
+
+    def test_document_bag_str_multiple_document_types(self) -> None:
+        """Test __str__ with multiple document types (<=3 types)."""
+        docs = [
+            Document(document_identifier="doc1", document_code="OATH"),
+            Document(document_identifier="doc2", document_code="OATH"),
+            Document(document_identifier="doc3", document_code="CLM"),
+            Document(document_identifier="doc4", document_code="CLM"),
+            Document(document_identifier="doc5", document_code="SPEC"),
+        ]
+        doc_bag = DocumentBag(documents=docs)
+        result = str(doc_bag)
+        assert result.startswith("DocumentBag(5 documents:")
+        assert "OATH (2)" in result
+        assert "CLM (2)" in result
+        assert "SPEC (1)" in result
+        assert "+0 more" not in result  # Only 3 types, no "more"
+
+    def test_document_bag_str_many_document_types(self) -> None:
+        """Test __str__ with more than 3 document types."""
+        docs = [
+            Document(document_identifier="doc1", document_code="OATH"),
+            Document(document_identifier="doc2", document_code="OATH"),
+            Document(document_identifier="doc3", document_code="OATH"),
+            Document(document_identifier="doc4", document_code="CLM"),
+            Document(document_identifier="doc5", document_code="CLM"),
+            Document(document_identifier="doc6", document_code="SPEC"),
+            Document(document_identifier="doc7", document_code="DRFT"),
+            Document(document_identifier="doc8", document_code="IDS"),
+        ]
+        doc_bag = DocumentBag(documents=docs)
+        result = str(doc_bag)
+        assert result.startswith("DocumentBag(8 documents:")
+        # Should show top 3 most common
+        assert "OATH (3)" in result
+        assert "CLM (2)" in result
+        assert "+2 more types" in result  # 5 total types - 3 shown = 2 more
+
+    def test_document_bag_str_mixed_codes_and_none(self) -> None:
+        """Test __str__ with mix of document codes and None."""
+        docs = [
+            Document(document_identifier="doc1", document_code="OATH"),
+            Document(document_identifier="doc2", document_code=None),
+            Document(document_identifier="doc3", document_code="CLM"),
+            Document(document_identifier="doc4", document_code=None),
+        ]
+        doc_bag = DocumentBag(documents=docs)
+        result = str(doc_bag)
+        assert result.startswith("DocumentBag(4 documents:")
+        assert "Unknown (2)" in result
+        assert "OATH (1)" in result or "CLM (1)" in result
+
+    def test_document_bag_repr(self) -> None:
+        """Test __repr__ returns detailed representation."""
+        doc1 = Document(document_identifier="doc1", document_code="OATH")
+        doc2 = Document(document_identifier="doc2", document_code="CLM")
+        doc_bag = DocumentBag(documents=[doc1, doc2])
+        result = repr(doc_bag)
+        assert result.startswith("DocumentBag(documents=(")
+        assert "Document(" in result
+        assert "doc1" in result
+        assert "doc2" in result
+
 
 class TestAddress:
     """Tests for the Address class."""
@@ -793,6 +884,9 @@ class TestAddress:
             "countryName": None,
             "postalAddressCategory": None,
             "correspondentNameText": None,
+            "countryOrStateCode": None,
+            "ictStateCode": None,
+            "ictCountryCode": None,
         }
         assert address.to_dict() == expected_camel_case_empty_dict
 
@@ -1237,6 +1331,8 @@ class TestAssignment:
             "assignmentRecordedDate": "2023-01-15",
             "assignmentMailedDate": "2023-01-20",
             "conveyanceText": "ASSIGNMENT OF ASSIGNORS INTEREST",
+            "imageAvailableStatusCode": True,
+            "attorneyDocketNumber": "12345-001",
             "assignorBag": [
                 {"assignorName": "John Smith", "executionDate": "2022-12-15"}
             ],
@@ -1246,20 +1342,28 @@ class TestAssignment:
                     "assigneeAddress": sample_address_data,
                 }
             ],
-            "correspondenceAddressBag": [sample_address_data],
+            "correspondenceAddress": sample_address_data,
+            "domesticRepresentative": sample_address_data,
         }
         assignment = Assignment.from_dict(data)
         assert assignment.reel_number == 12345
         assert assignment.frame_number == 67890
         assert assignment.page_total_quantity == 3
         assert assignment.assignment_received_date == date(2023, 1, 1)
+        assert assignment.image_available_status_code is True
+        assert assignment.attorney_docket_number == "12345-001"
         assert len(assignment.assignor_bag) == 1
         assert assignment.assignor_bag[0].assignor_name == "John Smith"
         assert len(assignment.assignee_bag) == 1
         assert assignment.assignee_bag[0].assignee_name_text == "Test Company Inc."
-        assert len(assignment.correspondence_address_bag) == 1
+        assert assignment.correspondence_address is not None
         assert (
-            assignment.correspondence_address_bag[0].city_name
+            assignment.correspondence_address.city_name
+            == sample_address_data["cityName"]
+        )
+        assert assignment.domestic_representative is not None
+        assert (
+            assignment.domestic_representative.city_name
             == sample_address_data["cityName"]
         )
 
@@ -1275,31 +1379,41 @@ class TestAssignment:
             frame_number=2002,
             page_total_quantity=5,
             assignment_received_date=date(2023, 2, 1),
+            image_available_status_code=False,
+            attorney_docket_number="TEST-123",
             assignor_bag=[assignor_obj],
             assignee_bag=[assignee_obj],
-            correspondence_address_bag=[address_obj],
+            correspondence_address=address_obj,
+            domestic_representative=address_obj,
         )
         data = assignment.to_dict()
         assert data["reelNumber"] == 1001
         assert data["frameNumber"] == 2002
         assert data["pageTotalQuantity"] == 5
         assert data["assignmentReceivedDate"] == "2023-02-01"
+        assert data["imageAvailableStatusCode"] is False
+        assert data["attorneyDocketNumber"] == "TEST-123"
         assert len(data["assignorBag"]) == 1
         assert len(data["assigneeBag"]) == 1
-        assert len(data["correspondenceAddressBag"]) == 1
+        assert data["correspondenceAddress"] is not None
+        assert data["correspondenceAddress"]["cityName"] == sample_address_data["cityName"]
+        assert data["domesticRepresentative"] is not None
+        assert data["domesticRepresentative"]["cityName"] == sample_address_data["cityName"]
 
     def test_assignment_to_dict_empty_bags(self) -> None:
         assignment = Assignment(
             reel_number=2002,
             assignor_bag=[],
             assignee_bag=[],
-            correspondence_address_bag=[],
+            correspondence_address=None,
+            domestic_representative=None,
         )
         data = assignment.to_dict()
         assert data["reelNumber"] == 2002
         assert data["assignorBag"] == []
         assert data["assigneeBag"] == []
-        assert data["correspondenceAddressBag"] == []
+        assert data["correspondenceAddress"] is None
+        assert data["domesticRepresentative"] is None
 
     def test_assignment_roundtrip(
         self,
@@ -1451,7 +1565,6 @@ class TestPatentTermAdjustmentHistoryData:
             applicant_day_delay_quantity=10.0,
             event_description_text="Response to Office Action",
             event_sequence_number=1.0,
-            ip_office_day_delay_quantity=5.0,
             originating_event_sequence_number=0.0,
             pta_pte_code="A",
         )
@@ -1468,13 +1581,11 @@ class TestPatentTermAdjustmentData:
         data = {
             "aDelayQuantity": 100.0,
             "adjustmentTotalQuantity": 150.0,
-            "filingDate": "2020-01-01",
-            "grantDate": "2023-01-01",
             "patentTermAdjustmentHistoryDataBag": [{"eventDate": "2022-01-01"}],
         }
         pta_data = PatentTermAdjustmentData.from_dict(data)
         assert pta_data.a_delay_quantity == 100.0
-        assert pta_data.filing_date == date(2020, 1, 1)
+        assert pta_data.adjustment_total_quantity == 150.0
         assert len(pta_data.patent_term_adjustment_history_data_bag) == 1
         assert pta_data.patent_term_adjustment_history_data_bag[0].event_date == date(
             2022, 1, 1
@@ -1484,12 +1595,12 @@ class TestPatentTermAdjustmentData:
         history_item = PatentTermAdjustmentHistoryData(event_date=date(2022, 1, 1))
         pta_data = PatentTermAdjustmentData(
             a_delay_quantity=100.0,
-            filing_date=date(2020, 1, 1),
+            adjustment_total_quantity=150.0,
             patent_term_adjustment_history_data_bag=[history_item],
         )
         data = pta_data.to_dict()
         assert data["aDelayQuantity"] == 100.0
-        assert data["filingDate"] == "2020-01-01"
+        assert data["adjustmentTotalQuantity"] == 150.0
         assert len(data["patentTermAdjustmentHistoryDataBag"]) == 1
         assert (
             data["patentTermAdjustmentHistoryDataBag"][0]["eventDate"] == "2022-01-01"

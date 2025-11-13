@@ -313,6 +313,44 @@ class BaseUSPTOClient(Generic[T]):
 
         return None
 
+    @staticmethod
+    def _get_extension_from_mime_type(mime_type: Optional[str]) -> Optional[str]:
+        """Map MIME type to file extension.
+
+        Maps common USPTO file formats to their appropriate extensions.
+
+        Args:
+            mime_type: The MIME type from Content-Type header (e.g., "application/pdf").
+
+        Returns:
+            Optional[str]: File extension including dot (e.g., ".pdf"), or None if unmapped.
+
+        Examples:
+            >>> _get_extension_from_mime_type("application/pdf")
+            '.pdf'
+            >>> _get_extension_from_mime_type("image/tiff")
+            '.tif'
+            >>> _get_extension_from_mime_type("unknown/type")
+            None
+        """
+        if not mime_type:
+            return None
+
+        # Normalize MIME type (remove charset and other parameters)
+        mime_type = mime_type.split(";")[0].strip().lower()
+
+        # Map of common USPTO file MIME types to extensions
+        mime_to_ext = {
+            "application/pdf": ".pdf",
+            "image/tiff": ".tif",
+            "image/tif": ".tif",
+            "application/xml": ".xml",
+            "text/xml": ".xml",
+            "application/zip": ".zip",
+        }
+
+        return mime_to_ext.get(mime_type)
+
     def _save_response_to_file(
         self, response: requests.Response, file_path: str, overwrite: bool = False
     ) -> str:
@@ -320,6 +358,9 @@ class BaseUSPTOClient(Generic[T]):
 
         If file_path is a directory, attempts to extract filename from
         Content-Disposition header and save in that directory.
+
+        If file_path has no extension and Content-Disposition doesn't provide
+        a filename, attempts to determine extension from Content-Type header.
 
         Args:
             response: Streaming response object from requests
@@ -348,6 +389,16 @@ class BaseUSPTOClient(Generic[T]):
                     "header does not contain a filename. Please provide a full file path."
                 )
             path = path / filename
+        # If path has no extension, try to determine it from Content-Type
+        elif not path.suffix:
+            # Only attempt if Content-Disposition doesn't already provide filename
+            content_disp = response.headers.get("Content-Disposition")
+            if not self._extract_filename_from_content_disposition(content_disp):
+                # Try to get extension from Content-Type header
+                content_type = response.headers.get("Content-Type")
+                extension = self._get_extension_from_mime_type(content_type)
+                if extension:
+                    path = path.with_suffix(extension)
 
         # Check for existing file
         if path.exists() and not overwrite:

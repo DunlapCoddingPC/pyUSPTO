@@ -274,6 +274,46 @@ class DocumentBag:
     def __getitem__(self, index: int) -> Document:
         return self._documents[index]
 
+    def __str__(self) -> str:
+        """Returns a string representation showing document count and summary.
+
+        Returns:
+            str: Human-readable summary of the DocumentBag.
+        """
+        count = len(self._documents)
+        if count == 0:
+            return "DocumentBag(0 documents)"
+
+        # Count unique document codes
+        doc_codes: Dict[str, int] = {}
+        for doc in self._documents:
+            code = doc.document_code or "Unknown"
+            doc_codes[code] = doc_codes.get(code, 0) + 1
+
+        # Format summary
+        if count == 1:
+            code = self._documents[0].document_code or "Unknown"
+            return f"DocumentBag(1 document: {code})"
+
+        # Show top 3 most common document codes
+        sorted_codes = sorted(doc_codes.items(), key=lambda x: x[1], reverse=True)
+        top_codes = sorted_codes[:3]
+        code_summary = ", ".join(f"{code} ({cnt})" for code, cnt in top_codes)
+
+        if len(sorted_codes) > 3:
+            remaining = len(sorted_codes) - 3
+            return f"DocumentBag({count} documents: {code_summary}, +{remaining} more types)"
+        else:
+            return f"DocumentBag({count} documents: {code_summary})"
+
+    def __repr__(self) -> str:
+        """Returns a detailed string representation for debugging.
+
+        Returns:
+            str: Detailed representation of the DocumentBag.
+        """
+        return f"DocumentBag(documents={self._documents!r})"
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DocumentBag":
         """Creates a `DocumentBag` instance from a dictionary representation.
@@ -329,6 +369,9 @@ class Address:
         country_name: Full name of the country (e.g., "United States").
         postal_address_category: Category of the address (e.g., "MAILING_ADDRESS").
         correspondent_name_text: Name of the correspondent at this address.
+        country_or_state_code: Country or state code.
+        ict_state_code: International code for the state/region (USPTO format).
+        ict_country_code: International code for the country (USPTO format).
     """
 
     name_line_one_text: Optional[str] = None
@@ -345,6 +388,9 @@ class Address:
     country_name: Optional[str] = None
     postal_address_category: Optional[str] = None
     correspondent_name_text: Optional[str] = None
+    country_or_state_code: Optional[str] = None
+    ict_state_code: Optional[str] = None
+    ict_country_code: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Address":
@@ -373,6 +419,9 @@ class Address:
             country_name=data.get("countryName"),
             postal_address_category=data.get("postalAddressCategory"),
             correspondent_name_text=data.get("correspondentNameText"),
+            country_or_state_code=data.get("countryOrStateCode"),
+            ict_state_code=data.get("ictStateCode"),
+            ict_country_code=data.get("ictCountryCode"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -397,6 +446,9 @@ class Address:
             "countryName": self.country_name,
             "postalAddressCategory": self.postal_address_category,
             "correspondentNameText": self.correspondent_name_text,
+            "countryOrStateCode": self.country_or_state_code,
+            "ictStateCode": self.ict_state_code,
+            "ictCountryCode": self.ict_country_code,
         }
 
 
@@ -965,7 +1017,7 @@ class Assignment:
     """Represents a patent assignment, detailing the transfer of rights.
 
     Includes information about the reel and frame, document location, dates, conveyance text,
-    and bags of assignors, assignees, and correspondence addresses.
+    and bags of assignors, assignees, correspondence address, and domestic representative.
 
     Attributes:
         reel_number: Reel number for the assignment record.
@@ -977,9 +1029,12 @@ class Assignment:
         assignment_recorded_date: Date the assignment was recorded by USPTO.
         assignment_mailed_date: Date the assignment notification was mailed.
         conveyance_text: Text describing the nature of the conveyance.
+        image_available_status_code: Code to indicate the availability of the image.
+        attorney_docket_number: Attorney docket number for the assignment.
         assignor_bag: List of `Assignor` objects.
         assignee_bag: List of `Assignee` objects.
-        correspondence_address_bag: List of `Address` objects for correspondence.
+        correspondence_address: `Address` object for correspondence (single object).
+        domestic_representative: `Address` object for the domestic representative.
     """
 
     reel_number: Optional[int] = None
@@ -991,9 +1046,12 @@ class Assignment:
     assignment_recorded_date: Optional[date] = None
     assignment_mailed_date: Optional[date] = None
     conveyance_text: Optional[str] = None
+    image_available_status_code: Optional[bool] = None
+    attorney_docket_number: Optional[str] = None
     assignor_bag: List[Assignor] = field(default_factory=list)
     assignee_bag: List[Assignee] = field(default_factory=list)
-    correspondence_address_bag: List[Address] = field(default_factory=list)
+    correspondence_address: Optional[Address] = None
+    domestic_representative: Optional[Address] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Assignment":
@@ -1015,11 +1073,21 @@ class Assignment:
             for a in data.get("assigneeBag", [])
             if isinstance(a, dict)
         ]
-        addrs = [
-            Address.from_dict(a)
-            for a in data.get("correspondenceAddressBag", [])
-            if isinstance(a, dict)
-        ]
+
+        # Parse correspondence address (single object, not bag)
+        corr_addr_data = data.get("correspondenceAddress")
+        corr_addr = (
+            Address.from_dict(corr_addr_data)
+            if isinstance(corr_addr_data, dict)
+            else None
+        )
+
+        # Parse domestic representative
+        dom_rep_data = data.get("domesticRepresentative")
+        dom_rep = (
+            Address.from_dict(dom_rep_data) if isinstance(dom_rep_data, dict) else None
+        )
+
         return cls(
             reel_number=data.get("reelNumber"),
             frame_number=data.get("frameNumber"),
@@ -1030,9 +1098,12 @@ class Assignment:
             assignment_recorded_date=parse_to_date(data.get("assignmentRecordedDate")),
             assignment_mailed_date=parse_to_date(data.get("assignmentMailedDate")),
             conveyance_text=data.get("conveyanceText"),
+            image_available_status_code=data.get("imageAvailableStatusCode"),
+            attorney_docket_number=data.get("attorneyDocketNumber"),
             assignor_bag=assignors,
             assignee_bag=assignees,
-            correspondence_address_bag=addrs,
+            correspondence_address=corr_addr,
+            domestic_representative=dom_rep,
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1051,11 +1122,20 @@ class Assignment:
             "assignmentRecordedDate": serialize_date(self.assignment_recorded_date),
             "assignmentMailedDate": serialize_date(self.assignment_mailed_date),
             "conveyanceText": self.conveyance_text,
+            "imageAvailableStatusCode": self.image_available_status_code,
+            "attorneyDocketNumber": self.attorney_docket_number,
             "assignorBag": [a.to_dict() for a in self.assignor_bag],
             "assigneeBag": [a.to_dict() for a in self.assignee_bag],
-            "correspondenceAddressBag": [
-                a.to_dict() for a in self.correspondence_address_bag
-            ],
+            "correspondenceAddress": (
+                self.correspondence_address.to_dict()
+                if self.correspondence_address
+                else None
+            ),
+            "domesticRepresentative": (
+                self.domestic_representative.to_dict()
+                if self.domestic_representative
+                else None
+            ),
         }
 
 
@@ -1322,7 +1402,6 @@ class PatentTermAdjustmentHistoryData:
         applicant_day_delay_quantity: Number of days of delay attributable to the applicant for this event.
         event_description_text: Textual description of the PTA event.
         event_sequence_number: Sequence number of this event in the PTA history.
-        ip_office_day_delay_quantity: Number of days of delay attributable to the IP office for this event.
         originating_event_sequence_number: Sequence number of an event that originated this event.
         pta_pte_code: Code indicating if the event relates to PTA or Patent Term Extension (PTE).
     """
@@ -1331,7 +1410,6 @@ class PatentTermAdjustmentHistoryData:
     applicant_day_delay_quantity: Optional[float] = None
     event_description_text: Optional[str] = None
     event_sequence_number: Optional[float] = None
-    ip_office_day_delay_quantity: Optional[float] = None
     originating_event_sequence_number: Optional[float] = None
     pta_pte_code: Optional[str] = None
 
@@ -1350,7 +1428,6 @@ class PatentTermAdjustmentHistoryData:
             applicant_day_delay_quantity=data.get("applicantDayDelayQuantity"),
             event_description_text=data.get("eventDescriptionText"),
             event_sequence_number=data.get("eventSequenceNumber"),
-            ip_office_day_delay_quantity=data.get("ipOfficeDayDelayQuantity"),
             originating_event_sequence_number=data.get(
                 "originatingEventSequenceNumber"
             ),
@@ -1374,8 +1451,6 @@ class PatentTermAdjustmentHistoryData:
             final_dict["eventDescriptionText"] = self.event_description_text
         if self.event_sequence_number is not None:
             final_dict["eventSequenceNumber"] = self.event_sequence_number
-        if self.ip_office_day_delay_quantity is not None:
-            final_dict["ipOfficeDayDelayQuantity"] = self.ip_office_day_delay_quantity
         if self.originating_event_sequence_number is not None:
             final_dict["originatingEventSequenceNumber"] = (
                 self.originating_event_sequence_number
@@ -1398,8 +1473,6 @@ class PatentTermAdjustmentData:
         applicant_day_delay_quantity: Total days of delay attributable to the applicant.
         b_delay_quantity: Number of days of 'B' delay.
         c_delay_quantity: Number of days of 'C' delay.
-        filing_date: The filing date of the application.
-        grant_date: The grant date of the patent.
         non_overlapping_day_quantity: Number of non-overlapping delay days.
         overlapping_day_quantity: Number of overlapping delay days.
         ip_office_day_delay_quantity: Total days of delay attributable to the IP office.
@@ -1411,8 +1484,6 @@ class PatentTermAdjustmentData:
     applicant_day_delay_quantity: Optional[float] = None
     b_delay_quantity: Optional[float] = None
     c_delay_quantity: Optional[float] = None
-    filing_date: Optional[date] = None
-    grant_date: Optional[date] = None
     non_overlapping_day_quantity: Optional[float] = None
     overlapping_day_quantity: Optional[float] = None
     ip_office_day_delay_quantity: Optional[float] = None
@@ -1441,8 +1512,6 @@ class PatentTermAdjustmentData:
             applicant_day_delay_quantity=data.get("applicantDayDelayQuantity"),
             b_delay_quantity=data.get("bDelayQuantity"),
             c_delay_quantity=data.get("cDelayQuantity"),
-            filing_date=parse_to_date(data.get("filingDate")),
-            grant_date=parse_to_date(data.get("grantDate")),
             non_overlapping_day_quantity=data.get("nonOverlappingDayQuantity"),
             overlapping_day_quantity=data.get("overlappingDayQuantity"),
             ip_office_day_delay_quantity=data.get("ipOfficeDayDelayQuantity"),
@@ -1458,8 +1527,6 @@ class PatentTermAdjustmentData:
             Dict[str, Any]: Dictionary representation.
         """
         d = asdict(self)
-        d["filingDate"] = serialize_date(self.filing_date)
-        d["grantDate"] = serialize_date(self.grant_date)
         d["patentTermAdjustmentHistoryDataBag"] = [
             h.to_dict() for h in self.patent_term_adjustment_history_data_bag
         ]
@@ -1672,11 +1739,14 @@ class ApplicationMetaData:
         return not self.first_inventor_to_file_indicator
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ApplicationMetaData":
+    def from_dict(
+        cls, data: Dict[str, Any], include_raw_data: bool = False
+    ) -> "ApplicationMetaData":
         """Creates an `ApplicationMetaData` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with application metadata.
+            include_raw_data (bool): If True, store the raw JSON for debugging.
 
         Returns:
             ApplicationMetaData: An instance of `ApplicationMetaData`.
@@ -1751,7 +1821,7 @@ class ApplicationMetaData:
             cpc_classification_bag=data.get("cpcClassificationBag", []),
             applicant_bag=app_bag,
             inventor_bag=inv_bag,
-            raw_data=json.dumps(data),
+            raw_data=json.dumps(data) if include_raw_data else None,
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1869,18 +1939,21 @@ class PatentFileWrapper:
     last_ingestion_date_time: Optional[datetime] = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PatentFileWrapper":
+    def from_dict(
+        cls, data: Dict[str, Any], include_raw_data: bool = False
+    ) -> "PatentFileWrapper":
         """Creates a `PatentFileWrapper` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with patent file wrapper data.
+            include_raw_data (bool): If True, store the raw JSON for debugging.
 
         Returns:
             PatentFileWrapper: An instance of `PatentFileWrapper`.
         """
         amd_json = data.get("applicationMetaData")
         amd = (
-            ApplicationMetaData.from_dict(amd_json)
+            ApplicationMetaData.from_dict(amd_json, include_raw_data=include_raw_data)
             if isinstance(amd_json, dict)
             else None
         )
@@ -2039,7 +2112,7 @@ class PatentDataResponse:
             PatentDataResponse: An instance of `PatentDataResponse`.
         """
         wrappers = [
-            PatentFileWrapper.from_dict(w)
+            PatentFileWrapper.from_dict(w, include_raw_data=include_raw_data)
             for w in data.get("patentFileWrapperDataBag", [])
             if isinstance(w, dict)
         ]

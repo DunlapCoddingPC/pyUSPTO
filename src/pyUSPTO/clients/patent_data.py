@@ -75,6 +75,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         Application numbers are either:
         - 8 digits (e.g., "16123456")
         - Series code format: 2 digits + "/" + 6 digits (e.g., "08/123456")
+        - PCT format: "PCT/US2024/012345" → "PCTUS2412345"
 
         This method removes common separators (commas, spaces) while preserving
         the "/" in series code format.
@@ -102,8 +103,50 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         if not input_number or not input_number.strip():
             raise ValueError("Application number cannot be empty")
 
+        raw = input_number.strip()
+
+        # --- NEW: Handle PCT formats ---
+        # Example: "PCT/US2024/012345" -> "PCTUS2412345"
+        if raw.startswith("PCT"):
+            parts = raw.split("/")
+            if len(parts) != 3:
+                raise ValueError(
+                    f"Invalid PCT application format: {input_number}. "
+                    "Expected PCT/CCYYYY/NNNNNN"
+                )
+
+            _, country_year, serial = parts
+
+            # country_year can be "US2024" or "US24"
+            country = country_year[:2]
+
+            year_part = country_year[2:]
+            if not year_part.isdigit():
+                raise ValueError(
+                    f"Invalid PCT year in: {country_year}. Must be digits."
+                )
+
+            # Normalize:
+            # "2024" -> "24"
+            # "24"   -> "24"
+            if len(year_part) == 4:
+                year = year_part[-2:]
+            elif len(year_part) == 2:
+                year = year_part
+            else:
+                raise ValueError(
+                    f"Invalid PCT year length in: {country_year}. "
+                    "Expected CCYYYY or CCYY."
+                )
+
+            # Serial must be digits only
+            if not serial.isdigit():
+                raise ValueError(f"Invalid PCT serial: {serial}. Must be numeric.")
+
+            return f"PCT{country}{year}{serial}"
+
         # Strip whitespace and remove commas/spaces
-        cleaned = input_number.strip().replace(",", "").replace(" ", "")
+        cleaned = raw.replace(",", "").replace(" ", "")
 
         # Check if this is series code format (NN/NNNNNN)
         if "/" in cleaned:
@@ -157,7 +200,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         if (
             application_number_for_validation
-            and wrapper.application_number_text != application_number_for_validation
+            and wrapper.application_number_text
+            != self.sanitize_application_number(application_number_for_validation)
         ):
             warnings.warn(
                 f"API returned application number '{wrapper.application_number_text}' "
@@ -433,7 +477,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         Args:
             application_number (str): The USPTO application number for the patent
-                application (e.g., "16123456").
+                application (e.g., "16123456" or "18/915,708"). The application
+                number will be automatically sanitized to remove commas and spaces.
 
         Returns:
             Optional[PatentFileWrapper]: A `PatentFileWrapper` object representing
@@ -445,7 +490,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 does not contain the expected data.
         """
         endpoint = self.ENDPOINTS["get_application_by_number"].format(
-            application_number=application_number
+            application_number=self.sanitize_application_number(application_number)
         )
         response_data = self._make_request(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
@@ -469,7 +514,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         Args:
             application_number (str): The USPTO application number for which
-                metadata is being requested (e.g., "16123456").
+                metadata is being requested (e.g., "16123456" or "18/915,708").
+                The application number will be automatically sanitized.
 
         Returns:
             Optional[ApplicationMetaData]: An `ApplicationMetaData` object
@@ -478,7 +524,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 is not available in the response.
         """
         endpoint = self.ENDPOINTS["get_application_metadata"].format(
-            application_number=application_number
+            application_number=self.sanitize_application_number(application_number)
         )
         response_data = self._make_request(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
@@ -509,7 +555,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 found or if PTA data is not available in the response.
         """
         endpoint = self.ENDPOINTS["get_application_adjustment"].format(
-            application_number=application_number
+            application_number=self.sanitize_application_number(application_number)
         )
         response_data = self._make_request(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
@@ -541,7 +587,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 assignments.
         """
         endpoint = self.ENDPOINTS["get_application_assignment"].format(
-            application_number=application_number
+            application_number=self.sanitize_application_number(application_number)
         )
         response_data = self._make_request(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
@@ -571,7 +617,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 be found or if no attorney data is available in the response.
         """
         endpoint = self.ENDPOINTS["get_application_attorney"].format(
-            application_number=application_number
+            application_number=self.sanitize_application_number(application_number)
         )
         response_data = self._make_request(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
@@ -604,7 +650,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 links exist.
         """
         endpoint = self.ENDPOINTS["get_application_continuity"].format(
-            application_number=application_number
+            application_number=self.sanitize_application_number(application_number)
         )
         response_data = self._make_request(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
@@ -636,7 +682,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 is found but has no foreign priority claims.
         """
         endpoint = self.ENDPOINTS["get_application_foreign_priority"].format(
-            application_number=application_number
+            application_number=self.sanitize_application_number(application_number)
         )
         response_data = self._make_request(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
@@ -668,7 +714,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 the application is found but has no recorded transaction events.
         """
         endpoint = self.ENDPOINTS["get_application_transactions"].format(
-            application_number=application_number
+            application_number=self.sanitize_application_number(application_number)
         )
         response_data = self._make_request(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
@@ -713,7 +759,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 is returned instead.
         """
         endpoint = self.ENDPOINTS["get_application_documents"].format(
-            application_number=application_number
+            application_number=self.sanitize_application_number(application_number)
         )
 
         params = {}
@@ -758,7 +804,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 (e.g., PGPUB) does not exist for the application.
         """
         endpoint = self.ENDPOINTS["get_application_associated_documents"].format(
-            application_number=application_number
+            application_number=self.sanitize_application_number(application_number)
         )
         response_data = self._make_request(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
@@ -987,22 +1033,25 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     ) -> str:
         """Downloads Printed Metadata (XML data). These are XML files of the patent as printed.
 
+        Note:
+            See also `download_publication()` for a clearer method name with identical functionality.
+
         Args:
             printed_metadata: ArchiveMetaData object containing download URL and metadata
-            file_name: Optional filename. If not provided, uses zip_file_name from metadata
-            destination_path: Optional directory path to save the archive
+            file_name: Optional filename. If not provided, uses xml_file_name from metadata
+            destination_path: Optional directory path to save the file
             overwrite: Whether to overwrite existing files. Default False
 
         Returns:
-            str: Path to the downloaded archive file
+            str: Path to the downloaded file
 
         Raises:
-            ValueError: If archive_metadata has no download URL
+            ValueError: If printed_metadata has no download URL
             FileExistsError: If file exists and overwrite=False
         """
         # Validate we have a download URL
         if printed_metadata.file_location_uri is None:
-            raise ValueError("ArchiveMetaData must have a file_location_uri")
+            raise ValueError("PrintedMetaData must have a file_location_uri")
 
         # Get filename - either provided or from metadata
         if file_name is None:
@@ -1035,4 +1084,71 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         # Download the Printed Metadata
         return self._download_file(
             url=printed_metadata.file_location_uri, file_path=final_file_path.as_posix()
+        )
+
+    def download_publication(
+        self,
+        printed_metadata: PrintedMetaData,
+        file_name: Optional[str] = None,
+        destination_path: Optional[str] = None,
+        overwrite: bool = False,
+    ) -> str:
+        """Download a publication XML file (grant or pre-grant publication).
+
+        This method downloads publication XML files from PrintedMetaData objects,
+        such as grant documents or pre-grant publications (pgpub). The filename
+        is automatically extracted from the metadata if not provided.
+
+        Args:
+            printed_metadata: PrintedMetaData object containing the publication
+                download URL and filename information. Typically obtained from
+                `get_application_associated_documents()` or from PatentFileWrapper's
+                `grant_document_meta_data` or `pg_publication_document_meta_data`.
+            file_name: Optional custom filename. If not provided, uses the
+                `xml_file_name` from the metadata (e.g., "18915708_12307527.xml").
+            destination_path: Optional directory path where the file should be saved.
+                If not provided, saves to the current directory. The directory will
+                be created if it doesn't exist.
+            overwrite: Whether to overwrite an existing file at the destination.
+                Default is False, which raises FileExistsError if file exists.
+
+        Returns:
+            str: Absolute path to the downloaded publication file.
+
+        Raises:
+            ValueError: If printed_metadata has no file_location_uri (download URL).
+            FileExistsError: If the file already exists and overwrite=False.
+
+        Examples:
+            Download grant XML to a specific directory (auto-filename):
+
+            >>> response = client.get_application_by_number("18/915,708")
+            >>> ifw = response
+            >>> grant_metadata = ifw.grant_document_meta_data
+            >>> path = client.download_publication(grant_metadata, destination_path="./downloads")
+            >>> print(path)
+            './downloads/18915708_12307527.xml'
+
+            Download pgpub XML with custom filename:
+
+            >>> pgpub_metadata = ifw.pg_publication_document_meta_data
+            >>> path = client.download_publication(
+            ...     pgpub_metadata,
+            ...     file_name="my_publication.xml",
+            ...     destination_path="./downloads"
+            ... )
+            >>> print(path)
+            './downloads/my_publication.xml'
+
+            Download to current directory:
+
+            >>> path = client.download_publication(grant_metadata)
+            >>> print(path)
+            './18915708_12307527.xml'
+        """
+        return self.download_archive(
+            printed_metadata=printed_metadata,
+            file_name=file_name,
+            destination_path=destination_path,
+            overwrite=overwrite,
         )
