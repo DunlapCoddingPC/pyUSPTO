@@ -68,11 +68,11 @@ class BaseUSPTOClient(Generic[T]):
         # Handle config if provided
         if config:
             self.config = config
-            self.api_key = api_key or config.api_key
+            self._api_key = api_key or config.api_key
         else:
             # Backward compatibility: create minimal config
             self.config = USPTOConfig(api_key=api_key)
-            self.api_key = api_key
+            self._api_key = api_key
 
         self.base_url = base_url.rstrip("/")
 
@@ -91,9 +91,9 @@ class BaseUSPTOClient(Generic[T]):
         session = requests.Session()
 
         # Set API key and default headers
-        if self.api_key:
+        if self._api_key:
             session.headers.update(
-                {"X-API-KEY": self.api_key, "content-type": "application/json"}
+                {"X-API-KEY": self._api_key, "content-type": "application/json"}
             )
 
         # Apply custom headers from HTTP config
@@ -444,3 +444,7 @@ class BaseUSPTOClient(Generic[T]):
         return self._save_response_to_file(
             response=response, file_path=file_path, overwrite=overwrite
         )
+
+    @property
+    def api_key(self):
+        return "********"
