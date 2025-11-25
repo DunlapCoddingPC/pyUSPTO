@@ -446,5 +446,5 @@ class BaseUSPTOClient(Generic[T]):
         )
 
     @property
-    def api_key(self):
+    def api_key(self) -> str:
         return "********"

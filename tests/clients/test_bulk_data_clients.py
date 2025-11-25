@@ -211,7 +211,7 @@ class TestBulkDataClientInit:
     def test_init_with_api_key(self) -> None:
         """Test initialization with direct API key."""
         client = BulkDataClient(api_key="test_key")
-        assert client.api_key == "test_key"
+        assert client._api_key == "test_key"
         assert client.base_url == "https://api.uspto.gov"
         assert client.config is not None
         assert client.config.api_key == "test_key"
@@ -230,7 +230,7 @@ class TestBulkDataClientInit:
             bulk_data_base_url="https://config.api.test.com",
         )
         client = BulkDataClient(config=config)
-        assert client.api_key == "config_key"
+        assert client._api_key == "config_key"
         assert client.base_url == "https://config.api.test.com"
         assert client.config is config
 
@@ -241,7 +241,7 @@ class TestBulkDataClientInit:
             bulk_data_base_url="https://config.api.test.com",
         )
         client = BulkDataClient(api_key="direct_key", config=config)
-        assert client.api_key == "direct_key"
+        assert client._api_key == "direct_key"
         assert client.base_url == "https://config.api.test.com"
 
 

@@ -99,14 +99,15 @@ class TestBaseUSPTOClient:
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
             api_key="test_key", base_url="https://api.test.com"
         )
-        assert client.api_key == "test_key"
+        assert client._api_key == "test_key"
+        assert client.api_key == "********"  # API key is masked
         assert client.base_url == "https://api.test.com"
         assert "X-API-KEY" in client.session.headers
         assert client.session.headers["X-API-KEY"] == "test_key"
 
         # Test without API key
         client = BaseUSPTOClient(base_url="https://api.test.com")
-        assert client.api_key is None
+        assert client._api_key is None
         assert client.base_url == "https://api.test.com"
         assert "X-API-KEY" not in client.session.headers
 
@@ -651,7 +652,7 @@ class TestBaseUSPTOClient:
         )
 
         # API key should come from config
-        assert client.api_key == "config_key"
+        assert client._api_key == "config_key"
         assert client.config is config
 
     def test_base_client_api_key_priority(self) -> None:
@@ -664,7 +665,7 @@ class TestBaseUSPTOClient:
         )
 
         # Explicit api_key should take precedence
-        assert client.api_key == "explicit_key"
+        assert client._api_key == "explicit_key"
 
 
 class TestContentDispositionParsing:
