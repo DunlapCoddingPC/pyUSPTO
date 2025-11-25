@@ -249,14 +249,14 @@ class TestPatentDataClientInit:
     def test_init_with_api_key(self, api_key_fixture: str) -> None:
         """Test initialization with API key."""
         client = PatentDataClient(api_key=api_key_fixture)
-        assert client.api_key == api_key_fixture
+        assert client._api_key == api_key_fixture
         assert client.base_url == "https://api.uspto.gov"
 
     def test_init_with_custom_base_url(self, api_key_fixture: str) -> None:
         """Test initialization with custom base URL."""
         custom_url = "https://custom.api.test.com"
         client = PatentDataClient(api_key=api_key_fixture, base_url=custom_url)
-        assert client.api_key == api_key_fixture
+        assert client._api_key == api_key_fixture
         assert client.base_url == custom_url
 
     def test_init_with_config(self) -> None:
@@ -265,7 +265,7 @@ class TestPatentDataClientInit:
         config_url = "https://config.api.test.com"
         config = USPTOConfig(api_key=config_key, patent_data_base_url=config_url)
         client = PatentDataClient(config=config)
-        assert client.api_key == config_key
+        assert client._api_key == config_key
         assert client.base_url == config_url
         assert client.config is config
 
@@ -275,7 +275,7 @@ class TestPatentDataClientInit:
             api_key="config_key", patent_data_base_url="https://config.api.test.com"
         )
         client = PatentDataClient(api_key=api_key_fixture, config=config)
-        assert client.api_key == api_key_fixture
+        assert client._api_key == api_key_fixture
         assert client.base_url == "https://config.api.test.com"
 
         custom_url = "https://custom.url.com"

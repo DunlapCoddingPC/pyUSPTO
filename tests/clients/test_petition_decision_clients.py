@@ -99,7 +99,7 @@ class TestFinalPetitionDecisionsClientInit:
     def test_init_with_api_key(self, api_key_fixture: str) -> None:
         """Test initialization with API key."""
         client = FinalPetitionDecisionsClient(api_key=api_key_fixture)
-        assert client.api_key == api_key_fixture
+        assert client._api_key == api_key_fixture
         assert client.base_url == "https://api.uspto.gov"
 
     def test_init_with_custom_base_url(self, api_key_fixture: str) -> None:
@@ -108,7 +108,7 @@ class TestFinalPetitionDecisionsClientInit:
         client = FinalPetitionDecisionsClient(
             api_key=api_key_fixture, base_url=custom_url
         )
-        assert client.api_key == api_key_fixture
+        assert client._api_key == api_key_fixture
         assert client.base_url == custom_url
 
     def test_init_with_config(self) -> None:
@@ -117,7 +117,7 @@ class TestFinalPetitionDecisionsClientInit:
         config_url = "https://config.api.test.com"
         config = USPTOConfig(api_key=config_key, petition_decisions_base_url=config_url)
         client = FinalPetitionDecisionsClient(config=config)
-        assert client.api_key == config_key
+        assert client._api_key == config_key
         assert client.base_url == config_url
         assert client.config is config
 
@@ -129,7 +129,7 @@ class TestFinalPetitionDecisionsClientInit:
         )
         client = FinalPetitionDecisionsClient(api_key=api_key_fixture, config=config)
         # API key parameter takes precedence
-        assert client.api_key == api_key_fixture
+        assert client._api_key == api_key_fixture
         # But base_url comes from config
         assert client.base_url == "https://config.api.test.com"
 
