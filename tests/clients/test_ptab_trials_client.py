@@ -381,6 +381,11 @@ class TestPTABTrialsClientSearchDocuments:
             document_type_name_q="Patent Owner Response",
             filing_date_from_q="2023-01-01",
             filing_date_to_q="2023-12-31",
+            petitioner_party_name_q="Test Petitioner",
+            inventor_name_q="Jane Inventor",
+            real_party_in_interest_name_q="Real Party LLC",
+            patent_number_q="US1234567",
+            patent_owner_name_q="Test Owner",
             limit=50,
         )
 
@@ -391,6 +396,11 @@ class TestPTABTrialsClientSearchDocuments:
         assert "trialNumber:IPR2023-00001" in params["q"]
         assert "documentCategory:Paper" in params["q"]
         assert "documentTypeName:Patent Owner Response" in params["q"]
+        assert "petitionerPartyName:Test Petitioner" in params["q"]
+        assert "inventorName:Jane Inventor" in params["q"]
+        assert "realPartyInInterestName:Real Party LLC" in params["q"]
+        assert "patentNumber:US1234567" in params["q"]
+        assert "patentOwnerName:Test Owner" in params["q"]
         assert params["limit"] == 50
 
     def test_search_documents_with_date_from_only(
@@ -572,9 +582,15 @@ class TestPTABTrialsClientSearchDecisions:
         result = mock_ptab_trials_client.search_decisions(
             trial_number_q="IPR2023-00001",
             decision_type_category_q="Final Written Decision",
-            # document_category_q="Decision",
             decision_date_from_q="2023-01-01",
             decision_date_to_q="2023-12-31",
+            trial_type_code_q="IPR",
+            patent_number_q="US1234567",
+            application_number_q="15/123456",
+            patent_owner_name_q="Test Owner",
+            trial_status_category_q="Instituted",
+            real_party_in_interest_name_q="Real Party LLC",
+            document_category_q="Decision",
             limit=50,
         )
 
@@ -584,7 +600,13 @@ class TestPTABTrialsClientSearchDecisions:
         params = call_args[1]["params"]
         assert "trialNumber:IPR2023-00001" in params["q"]
         assert "decisionTypeCategory:Final Written Decision" in params["q"]
-        # assert "documentCategory:Decision" in params["q"]
+        assert "trialTypeCode:IPR" in params["q"]
+        assert "patentNumber:US1234567" in params["q"]
+        assert "applicationNumber:15/123456" in params["q"]
+        assert "patentOwnerName:Test Owner" in params["q"]
+        assert "trialStatusCategory:Instituted" in params["q"]
+        assert "realPartyInInterestName:Real Party LLC" in params["q"]
+        assert "documentCategory:Decision" in params["q"]
         assert "decisionDate:[2023-01-01 TO 2023-12-31]" in params["q"]
         assert params["limit"] == 50
 

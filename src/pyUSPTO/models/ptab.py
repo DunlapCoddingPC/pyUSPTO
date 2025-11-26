@@ -4,6 +4,7 @@ models.ptab - Data models for USPTO PTAB (Patent Trial and Appeal Board) APIs
 This module provides data models, primarily using frozen dataclasses, for
 representing responses from the USPTO PTAB APIs. These models cover:
 - Patent trial proceedings (IPR, PGR, CBM, DER)
+- Trial documents and decisions
 - Appeal decisions
 - Interference decisions
 """
@@ -32,6 +33,7 @@ class TrialMetaData:
 
     Attributes:
         petition_filing_date: Date the petition was filed.
+        accorded_filing_date: The filing date accorded to the petition.
         trial_last_modified_date_time: Last modification timestamp.
         trial_last_modified_date: Last modification date.
         trial_status_category: Status of the trial (e.g., "Institution Denied", "Instituted").
@@ -43,6 +45,7 @@ class TrialMetaData:
     """
 
     petition_filing_date: Optional[date] = None
+    accorded_filing_date: Optional[date] = None
     trial_last_modified_date_time: Optional[datetime] = None
     trial_last_modified_date: Optional[date] = None
     trial_status_category: Optional[str] = None
@@ -67,6 +70,7 @@ class TrialMetaData:
         """
         return cls(
             petition_filing_date=parse_to_date(data.get("petitionFilingDate")),
+            accorded_filing_date=parse_to_date(data.get("accordedFilingDate")),
             trial_last_modified_date_time=parse_to_datetime_utc(
                 data.get("trialLastModifiedDateTime")
             ),
@@ -389,6 +393,179 @@ class PTABTrialProceedingResponse:
         )
 
 
+@dataclass(frozen=True)
+class TrialDocumentData:
+    """Metadata for a document in a PTAB trial.
+
+    Attributes:
+        document_category: Category of the document.
+        document_filing_date: Filing date.
+        document_identifier: Unique ID.
+        document_name: Filename.
+        document_number: Document number in the proceeding.
+        document_size_quantity: Size in bytes.
+        document_ocr_text: OCR text content.
+        document_title_text: Title of the document.
+        document_type_description_text: Description of document type.
+        download_uri: URL to download the file.
+        filing_party_category: Who filed (e.g., "Petitioner").
+        mime_type_identifier: MIME type (e.g., "application/pdf").
+        document_status: Public status.
+    """
+
+    document_category: Optional[str] = None
+    document_filing_date: Optional[date] = None
+    document_identifier: Optional[str] = None
+    document_name: Optional[str] = None
+    document_number: Optional[str] = None
+    document_size_quantity: Optional[int] = None
+    document_ocr_text: Optional[str] = None
+    document_title_text: Optional[str] = None
+    document_type_description_text: Optional[str] = None
+    download_uri: Optional[str] = None
+    filing_party_category: Optional[str] = None
+    mime_type_identifier: Optional[str] = None
+    document_status: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "TrialDocumentData":
+        return cls(
+            document_category=data.get("documentCategory"),
+            document_filing_date=parse_to_date(data.get("documentFilingDate")),
+            document_identifier=data.get("documentIdentifier"),
+            document_name=data.get("documentName"),
+            document_number=data.get("documentNumber"),
+            document_size_quantity=data.get("documentSizeQuantity"),
+            document_ocr_text=data.get("documentOCRText"),
+            document_title_text=data.get("documentTitleText"),
+            document_type_description_text=data.get("documentTypeDescriptionText"),
+            download_uri=data.get("downloadURI"),
+            filing_party_category=data.get("filingPartyCategory"),
+            mime_type_identifier=data.get("mimeTypeIdentifier"),
+            document_status=data.get("documentStatus"),
+        )
+
+
+@dataclass(frozen=True)
+class TrialDecisionData:
+    """Metadata for a decision in a PTAB trial.
+
+    Attributes:
+        statute_and_rule_bag: Statutes/rules cited (string or list).
+        decision_issue_date: Date issued.
+        decision_type_category: Type of decision (e.g. "Final Written Decision").
+        issue_type_bag: Issues addressed (string or list).
+        trial_outcome_category: Outcome (e.g., "Denied").
+    """
+
+    statute_and_rule_bag: Optional[str] = None
+    decision_issue_date: Optional[date] = None
+    decision_type_category: Optional[str] = None
+    issue_type_bag: Optional[str] = None
+    trial_outcome_category: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "TrialDecisionData":
+        return cls(
+            statute_and_rule_bag=data.get("statuteAndRuleBag"),
+            decision_issue_date=parse_to_date(data.get("decisionIssueDate")),
+            decision_type_category=data.get("decisionTypeCategory"),
+            issue_type_bag=data.get("issueTypeBag"),
+            trial_outcome_category=data.get("trialOutcomeCategory"),
+        )
+
+
+@dataclass(frozen=True)
+class PTABTrialDocument:
+    """Record representing a Trial Document or Decision from the search APIs.
+
+    This differs from PTABTrialProceeding by including documentData/decisionData
+    and often omitting some proceeding-level details or structuring them differently.
+    """
+
+    trial_document_category: Optional[str] = None
+    last_modified_date_time: Optional[datetime] = None
+    trial_number: Optional[str] = None
+    trial_type_code: Optional[str] = None
+    trial_meta_data: Optional[TrialMetaData] = None
+    patent_owner_data: Optional[PatentOwnerData] = None
+    regular_petitioner_data: Optional[RegularPetitionerData] = None
+    respondent_data: Optional[RespondentData] = None
+    derivation_petitioner_data: Optional[DerivationPetitionerData] = None
+    document_data: Optional[TrialDocumentData] = None
+    decision_data: Optional[TrialDecisionData] = None
+    raw_data: Optional[Dict[str, Any]] = None
+
+    @classmethod
+    def from_dict(
+        cls, data: Dict[str, Any], include_raw_data: bool = False
+    ) -> "PTABTrialDocument":
+        trial_meta = data.get("trialMetaData")
+        patent_owner = data.get("patentOwnerData")
+        reg_petitioner = data.get("regularPetitionerData")
+        respondent = data.get("respondentData")
+        deriv_petitioner = data.get("derivationPetitionerData")
+        doc_data = data.get("documentData")
+        dec_data = data.get("decisionData")
+
+        return cls(
+            trial_document_category=data.get("trialDocumentCategory"),
+            last_modified_date_time=parse_to_datetime_utc(
+                data.get("lastModifiedDateTime")
+            ),
+            trial_number=data.get("trialNumber"),
+            trial_type_code=data.get("trialTypeCode"),
+            trial_meta_data=(
+                TrialMetaData.from_dict(trial_meta) if trial_meta else None
+            ),
+            patent_owner_data=(
+                PatentOwnerData.from_dict(patent_owner) if patent_owner else None
+            ),
+            regular_petitioner_data=(
+                RegularPetitionerData.from_dict(reg_petitioner)
+                if reg_petitioner
+                else None
+            ),
+            respondent_data=(
+                RespondentData.from_dict(respondent) if respondent else None
+            ),
+            derivation_petitioner_data=(
+                DerivationPetitionerData.from_dict(deriv_petitioner)
+                if deriv_petitioner
+                else None
+            ),
+            document_data=(TrialDocumentData.from_dict(doc_data) if doc_data else None),
+            decision_data=(TrialDecisionData.from_dict(dec_data) if dec_data else None),
+            raw_data=data if include_raw_data else None,
+        )
+
+
+@dataclass(frozen=True)
+class PTABTrialDocumentResponse:
+    """Response container for PTAB trial documents/decisions search."""
+
+    count: Optional[int] = None
+    patent_trial_document_data_bag: List[PTABTrialDocument] = field(
+        default_factory=list
+    )
+    raw_data: Optional[Dict[str, Any]] = None
+
+    @classmethod
+    def from_dict(
+        cls, data: Dict[str, Any], include_raw_data: bool = False
+    ) -> "PTABTrialDocumentResponse":
+        docs_data = data.get("patentTrialDocumentDataBag", [])
+        docs = [
+            PTABTrialDocument.from_dict(item, include_raw_data=include_raw_data)
+            for item in docs_data
+        ]
+        return cls(
+            count=data.get("count"),
+            patent_trial_document_data_bag=docs,
+            raw_data=data if include_raw_data else None,
+        )
+
+
 # ============================================================================
 # APPEAL DECISIONS MODELS
 # ============================================================================
@@ -473,16 +650,20 @@ class AppellantData:
         Returns:
             AppellantData: An instance of AppellantData.
         """
+        # Handle aliases seen in API samples
+        real_party = data.get("realPartyInInterestName") or data.get("realPartyName")
+        tech_center = data.get("technologyCenterNumber") or data.get("techCenterNumber")
+
         return cls(
             application_number_text=data.get("applicationNumberText"),
             counsel_name=data.get("counselName"),
             group_art_unit_number=data.get("groupArtUnitNumber"),
             inventor_name=data.get("inventorName"),
-            real_party_in_interest_name=data.get("realPartyInInterestName"),
+            real_party_in_interest_name=real_party,
             patent_owner_name=data.get("patentOwnerName"),
             publication_date=parse_to_date(data.get("publicationDate")),
             publication_number=data.get("publicationNumber"),
-            technology_center_number=data.get("technologyCenterNumber"),
+            technology_center_number=tech_center,
         )
 
 
@@ -549,14 +730,20 @@ class AppealDocumentData:
         Returns:
             AppealDocumentData: An instance of AppealDocumentData.
         """
+        # Handle aliases
+        download_uri = data.get("fileDownloadURI") or data.get("downloadURI")
+        doc_type = data.get("documentTypeDescriptionText") or data.get(
+            "documentTypeCategory"
+        )
+
         return cls(
             document_filing_date=parse_to_date(data.get("documentFilingDate")),
             document_identifier=data.get("documentIdentifier"),
             document_name=data.get("documentName"),
             document_size_quantity=data.get("documentSizeQuantity"),
             document_ocr_text=data.get("documentOCRText"),
-            document_type_description_text=data.get("documentTypeDescriptionText"),
-            file_download_uri=data.get("fileDownloadURI"),
+            document_type_description_text=doc_type,
+            file_download_uri=download_uri,
         )
 
 
@@ -645,7 +832,8 @@ class PTABAppealDecision:
             AppealMetaData.from_dict(appeal_meta) if appeal_meta else None
         )
 
-        appellant = data.get("appellantData")
+        # Handle potential typo 'appelantData' vs 'appellantData'
+        appellant = data.get("appellantData") or data.get("appelantData")
         appellant_data = AppellantData.from_dict(appellant) if appellant else None
 
         requestor = data.get("requestorData")
@@ -911,6 +1099,8 @@ class InterferenceDocumentData:
         decision_issue_date: Date the decision was issued.
         decision_type_category: Type of decision.
         file_download_uri: URI to download the document.
+        statute_and_rule_bag: Statutes and rules cited (list or string).
+        issue_type_bag: Issues addressed (list or string).
     """
 
     document_identifier: Optional[str] = None
@@ -922,6 +1112,8 @@ class InterferenceDocumentData:
     decision_issue_date: Optional[date] = None
     decision_type_category: Optional[str] = None
     file_download_uri: Optional[str] = None
+    statute_and_rule_bag: Optional[List[str]] = None
+    issue_type_bag: Optional[List[str]] = None
 
     @classmethod
     def from_dict(
@@ -936,6 +1128,9 @@ class InterferenceDocumentData:
         Returns:
             InterferenceDocumentData: An instance of InterferenceDocumentData.
         """
+        # Handle aliases
+        download_uri = data.get("fileDownloadURI") or data.get("downloadURI")
+
         return cls(
             document_identifier=data.get("documentIdentifier"),
             document_name=data.get("documentName"),
@@ -945,7 +1140,9 @@ class InterferenceDocumentData:
             interference_outcome_category=data.get("interferenceOutcomeCategory"),
             decision_issue_date=parse_to_date(data.get("decisionIssueDate")),
             decision_type_category=data.get("decisionTypeCategory"),
-            file_download_uri=data.get("fileDownloadURI"),
+            file_download_uri=download_uri,
+            statute_and_rule_bag=data.get("statuteAndRuleBag"),
+            issue_type_bag=data.get("issueTypeBag"),
         )
 
 
@@ -1011,7 +1208,8 @@ class PTABInterferenceDecision:
             AdditionalPartyData.from_dict(item) for item in additional_parties_data
         ]
 
-        document = data.get("documentData")
+        # Handle alias: documentData vs decisionDocumentData
+        document = data.get("documentData") or data.get("decisionDocumentData")
         document_data = (
             InterferenceDocumentData.from_dict(document) if document else None
         )
@@ -1091,6 +1289,11 @@ __all__ = [
     "DerivationPetitionerData",
     "PTABTrialProceeding",
     "PTABTrialProceedingResponse",
+    # Trial Documents/Decisions Models
+    "TrialDocumentData",
+    "TrialDecisionData",
+    "PTABTrialDocument",
+    "PTABTrialDocumentResponse",
     # Appeal Decisions Models
     "AppealMetaData",
     "AppellantData",

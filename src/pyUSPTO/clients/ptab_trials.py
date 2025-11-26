@@ -6,14 +6,20 @@ and Appeal Board) Trials API. It allows you to search for trial proceedings,
 documents, and decisions.
 """
 
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.models.ptab import PTABTrialProceeding, PTABTrialProceedingResponse
+from pyUSPTO.models.ptab import (
+    PTABTrialDocumentResponse,
+    PTABTrialProceeding,
+    PTABTrialProceedingResponse,
+)
 
 
-class PTABTrialsClient(BaseUSPTOClient[PTABTrialProceedingResponse]):
+class PTABTrialsClient(
+    BaseUSPTOClient[Union[PTABTrialProceedingResponse, PTABTrialDocumentResponse]]
+):
     """Client for interacting with the USPTO PTAB Trials API.
 
     This client provides methods to search for trial proceedings, trial documents,
@@ -24,9 +30,9 @@ class PTABTrialsClient(BaseUSPTOClient[PTABTrialProceedingResponse]):
     """
 
     ENDPOINTS = {
-        "search_proceedings": "api/v1/ptab/trials/proceedings/search",
-        "search_documents": "api/v1/ptab/trials/documents/search",
-        "search_decisions": "api/v1/ptab/trials/decisions/search",
+        "search_proceedings": "api/v1/patent/trials/proceedings/search",
+        "search_documents": "api/v1/patent/trials/documents/search",
+        "search_decisions": "api/v1/patent/trials/decisions/search",
     }
 
     def __init__(
@@ -51,6 +57,72 @@ class PTABTrialsClient(BaseUSPTOClient[PTABTrialProceedingResponse]):
             api_key=api_key_to_use, base_url=effective_base_url, config=self.config
         )
 
+    def _perform_search(
+        self,
+        endpoint_key: str,
+        response_class: Any,
+        query: Optional[str],
+        query_parts: List[str],
+        post_body: Optional[Dict[str, Any]],
+        sort: Optional[str],
+        offset: Optional[int],
+        limit: Optional[int],
+        facets: Optional[str],
+        fields: Optional[str],
+        filters: Optional[str],
+        range_filters: Optional[str],
+        additional_params: Optional[Dict[str, Any]],
+    ) -> Union[PTABTrialProceedingResponse, PTABTrialDocumentResponse]:
+        """Internal helper to execute search requests (GET or POST)."""
+        endpoint = self.ENDPOINTS[endpoint_key]
+
+        # Handle POST request
+        if post_body is not None:
+            result = self._make_request(
+                method="POST",
+                endpoint=endpoint,
+                json_data=post_body,
+                params=additional_params,
+                response_class=response_class,
+            )
+            return result  # type: ignore
+
+        # Handle GET request
+        params: Dict[str, Any] = {}
+        final_q = query
+
+        # Combine specific convenience query parts if no direct query is provided
+        if final_q is None and query_parts:
+            final_q = " AND ".join(query_parts)
+
+        if final_q:
+            params["q"] = final_q
+        if sort:
+            params["sort"] = sort
+        if offset is not None:
+            params["offset"] = offset
+        if limit is not None:
+            params["limit"] = limit
+        if facets:
+            params["facets"] = facets
+        if fields:
+            params["fields"] = fields
+        if filters:
+            params["filters"] = filters
+        if range_filters:
+            params["rangeFilters"] = range_filters
+
+        if additional_params:
+            params.update(additional_params)
+
+        result = self._make_request(
+            method="GET",
+            endpoint=endpoint,
+            params=params,
+            response_class=response_class,
+        )
+        return result  # type: ignore
+
     def search_proceedings(
         self,
         query: Optional[str] = None,
@@ -65,7 +137,7 @@ class PTABTrialsClient(BaseUSPTOClient[PTABTrialProceedingResponse]):
         # Convenience query parameters
         trial_number_q: Optional[str] = None,
         patent_owner_name_q: Optional[str] = None,
-        petitioner_party_name_q: Optional[str] = None,
+        petitioner_real_party_in_interest_name_q: Optional[str] = None,
         respondent_name_q: Optional[str] = None,
         trial_type_code_q: Optional[str] = None,
         trial_status_category_q: Optional[str] = None,
@@ -92,7 +164,7 @@ class PTABTrialsClient(BaseUSPTOClient[PTABTrialProceedingResponse]):
             post_body: Optional POST body for complex queries.
             trial_number_q: Filter by trial number (e.g., "IPR2023-00001").
             patent_owner_name_q: Filter by patent owner name.
-            petitioner_party_name_q: Filter by petitioner party name.
+            petitioner_real_party_in_interest_name_q: Filter by petitioner real party in interest.
             respondent_name_q: Filter by respondent name.
             trial_type_code_q: Filter by trial type code (e.g., "IPR", "PGR", "CBM", "DER").
             trial_status_category_q: Filter by trial status category.
@@ -113,89 +185,53 @@ class PTABTrialsClient(BaseUSPTOClient[PTABTrialProceedingResponse]):
             ...     petition_filing_date_from_q="2023-01-01",
             ...     limit=50
             ... )
-
-            # Search with POST body
-            >>> response = client.search_proceedings(
-            ...     post_body={"q": "trialStatusCategory:Terminated", "limit": 100}
-            ... )
         """
-        endpoint = self.ENDPOINTS["search_proceedings"]
-
-        if post_body is not None:
-            # POST request path
-            result = self._make_request(
-                method="POST",
-                endpoint=endpoint,
-                json_data=post_body,
-                params=additional_query_params,
-                response_class=PTABTrialProceedingResponse,
+        q_parts = []
+        if trial_number_q:
+            q_parts.append(f"trialNumber:{trial_number_q}")
+        if patent_owner_name_q:
+            q_parts.append(f"patentOwnerData.patentOwnerName:{patent_owner_name_q}")
+        if petitioner_real_party_in_interest_name_q:
+            q_parts.append(
+                f"regularPetitionerData.realPartyInInterestName:{petitioner_real_party_in_interest_name_q}"
             )
-        else:
-            # GET request path
-            params: Dict[str, Any] = {}
-            final_q = query
-
-            # Build query from convenience parameters
-            if final_q is None:
-                q_parts = []
-                if trial_number_q:
-                    q_parts.append(f"trialNumber:{trial_number_q}")
-                if patent_owner_name_q:
-                    q_parts.append(f"patentOwnerName:{patent_owner_name_q}")
-                if petitioner_party_name_q:
-                    q_parts.append(f"petitionerPartyName:{petitioner_party_name_q}")
-                if respondent_name_q:
-                    q_parts.append(f"respondentName:{respondent_name_q}")
-                if trial_type_code_q:
-                    q_parts.append(f"trialTypeCode:{trial_type_code_q}")
-                if trial_status_category_q:
-                    q_parts.append(f"trialStatusCategory:{trial_status_category_q}")
-
-                # Handle petition filing date range
-                if petition_filing_date_from_q and petition_filing_date_to_q:
-                    q_parts.append(
-                        f"petitionFilingDate:[{petition_filing_date_from_q} TO {petition_filing_date_to_q}]"
-                    )
-                elif petition_filing_date_from_q:
-                    q_parts.append(
-                        f"petitionFilingDate:>={petition_filing_date_from_q}"
-                    )
-                elif petition_filing_date_to_q:
-                    q_parts.append(f"petitionFilingDate:<={petition_filing_date_to_q}")
-
-                if q_parts:
-                    final_q = " AND ".join(q_parts)
-
-            # Add parameters
-            if final_q is not None:
-                params["q"] = final_q
-            if sort is not None:
-                params["sort"] = sort
-            if offset is not None:
-                params["offset"] = offset
-            if limit is not None:
-                params["limit"] = limit
-            if facets is not None:
-                params["facets"] = facets
-            if fields is not None:
-                params["fields"] = fields
-            if filters is not None:
-                params["filters"] = filters
-            if range_filters is not None:
-                params["rangeFilters"] = range_filters
-
-            if additional_query_params:
-                params.update(additional_query_params)
-
-            result = self._make_request(
-                method="GET",
-                endpoint=endpoint,
-                params=params,
-                response_class=PTABTrialProceedingResponse,
+        if respondent_name_q:
+            q_parts.append(f"respondentData.patentOwnerName:{respondent_name_q}")
+        if trial_type_code_q:
+            q_parts.append(f"trialTypeCode:{trial_type_code_q}")
+        if trial_status_category_q:
+            q_parts.append(
+                f"trialMetaData.trialStatusCategory:{trial_status_category_q}"
             )
 
-        assert isinstance(result, PTABTrialProceedingResponse)
-        return result
+        if petition_filing_date_from_q and petition_filing_date_to_q:
+            q_parts.append(
+                f"trialMetaData.petitionFilingDate:[{petition_filing_date_from_q} TO {petition_filing_date_to_q}]"
+            )
+        elif petition_filing_date_from_q:
+            q_parts.append(
+                f"trialMetaData.petitionFilingDate:>={petition_filing_date_from_q}"
+            )
+        elif petition_filing_date_to_q:
+            q_parts.append(
+                f"trialMetaData.petitionFilingDate:<={petition_filing_date_to_q}"
+            )
+
+        return self._perform_search(
+            endpoint_key="search_proceedings",
+            response_class=PTABTrialProceedingResponse,
+            query=query,
+            query_parts=q_parts,
+            post_body=post_body,
+            sort=sort,
+            offset=offset,
+            limit=limit,
+            facets=facets,
+            fields=fields,
+            filters=filters,
+            range_filters=range_filters,
+            additional_params=additional_query_params,
+        )  # type: ignore
 
     def search_documents(
         self,
@@ -214,8 +250,13 @@ class PTABTrialsClient(BaseUSPTOClient[PTABTrialProceedingResponse]):
         document_type_name_q: Optional[str] = None,
         filing_date_from_q: Optional[str] = None,
         filing_date_to_q: Optional[str] = None,
+        petitioner_real_party_in_interest_name_q: Optional[str] = None,
+        inventor_name_q: Optional[str] = None,
+        real_party_in_interest_name_q: Optional[str] = None,
+        patent_number_q: Optional[str] = None,
+        patent_owner_name_q: Optional[str] = None,
         additional_query_params: Optional[Dict[str, Any]] = None,
-    ) -> PTABTrialProceedingResponse:
+    ) -> PTABTrialDocumentResponse:
         """Searches for PTAB trial documents.
 
         This method can perform either a GET request using query parameters or a POST
@@ -234,14 +275,19 @@ class PTABTrialsClient(BaseUSPTOClient[PTABTrialProceedingResponse]):
             range_filters: Range filter configuration string.
             post_body: Optional POST body for complex queries.
             trial_number_q: Filter by trial number.
-            document_category_q: Filter by document category.
-            document_type_name_q: Filter by document type name.
+            document_category_q: Filter by document category (e.g., "Petition").
+            document_type_name_q: Filter by document type name (description).
             filing_date_from_q: Filter documents from this date (YYYY-MM-DD).
             filing_date_to_q: Filter documents to this date (YYYY-MM-DD).
+            petitioner_real_party_in_interest_name_q: Filter by petitioner real party in interest.
+            inventor_name_q: Filter by inventor name.
+            real_party_in_interest_name_q: Filter by real party in interest (generic).
+            patent_number_q: Filter by patent number.
+            patent_owner_name_q: Filter by patent owner name.
             additional_query_params: Additional custom query parameters.
 
         Returns:
-            PTABTrialProceedingResponse: Response containing matching trial documents.
+            PTABTrialDocumentResponse: Response containing matching trial documents.
 
         Examples:
             # Search with direct query
@@ -253,82 +299,55 @@ class PTABTrialsClient(BaseUSPTOClient[PTABTrialProceedingResponse]):
             ...     filing_date_from_q="2023-01-01",
             ...     limit=50
             ... )
-
-            # Search with POST body
-            >>> response = client.search_documents(
-            ...     post_body={"q": "documentTypeName:Decision", "limit": 100}
-            ... )
         """
-        endpoint = self.ENDPOINTS["search_documents"]
-
-        if post_body is not None:
-            # POST request path
-            result = self._make_request(
-                method="POST",
-                endpoint=endpoint,
-                json_data=post_body,
-                params=additional_query_params,
-                response_class=PTABTrialProceedingResponse,
+        q_parts = []
+        if trial_number_q:
+            q_parts.append(f"trialNumber:{trial_number_q}")
+        if document_category_q:
+            q_parts.append(f"documentData.documentCategory:{document_category_q}")
+        if document_type_name_q:
+            q_parts.append(
+                f"documentData.documentTypeDescriptionText:{document_type_name_q}"
             )
-        else:
-            # GET request path
-            params: Dict[str, Any] = {}
-            final_q = query
-
-            # TODO: Add convenience parameters for Petitioner, inventor, real party in interest, patent number, patent owner,
-            # Build query from convenience parameters
-            if final_q is None:
-                q_parts = []
-                if trial_number_q:
-                    q_parts.append(f"trialNumber:{trial_number_q}")
-                if document_category_q:
-                    q_parts.append(f"documentCategory:{document_category_q}")
-                if document_type_name_q:
-                    q_parts.append(f"documentTypeName:{document_type_name_q}")
-
-                # Handle filing date range
-                if filing_date_from_q and filing_date_to_q:
-                    q_parts.append(
-                        f"filingDate:[{filing_date_from_q} TO {filing_date_to_q}]"
-                    )
-                elif filing_date_from_q:
-                    q_parts.append(f"filingDate:>={filing_date_from_q}")
-                elif filing_date_to_q:
-                    q_parts.append(f"filingDate:<={filing_date_to_q}")
-
-                if q_parts:
-                    final_q = " AND ".join(q_parts)
-
-            # Add parameters
-            if final_q is not None:
-                params["q"] = final_q
-            if sort is not None:
-                params["sort"] = sort
-            if offset is not None:
-                params["offset"] = offset
-            if limit is not None:
-                params["limit"] = limit
-            if facets is not None:
-                params["facets"] = facets
-            if fields is not None:
-                params["fields"] = fields
-            if filters is not None:
-                params["filters"] = filters
-            if range_filters is not None:
-                params["rangeFilters"] = range_filters
-
-            if additional_query_params:
-                params.update(additional_query_params)
-
-            result = self._make_request(
-                method="GET",
-                endpoint=endpoint,
-                params=params,
-                response_class=PTABTrialProceedingResponse,
+        if petitioner_real_party_in_interest_name_q:
+            q_parts.append(
+                f"regularPetitionerData.realPartyInInterestName:{petitioner_real_party_in_interest_name_q}"
             )
+        if inventor_name_q:
+            q_parts.append(f"patentOwnerData.inventorName:{inventor_name_q}")
+        if real_party_in_interest_name_q:
+            q_parts.append(
+                f"regularPetitionerData.realPartyInInterestName:{real_party_in_interest_name_q}"
+            )
+        if patent_number_q:
+            q_parts.append(f"patentOwnerData.patentNumber:{patent_number_q}")
+        if patent_owner_name_q:
+            q_parts.append(f"patentOwnerData.patentOwnerName:{patent_owner_name_q}")
 
-        assert isinstance(result, PTABTrialProceedingResponse)
-        return result
+        if filing_date_from_q and filing_date_to_q:
+            q_parts.append(
+                f"documentData.documentFilingDate:[{filing_date_from_q} TO {filing_date_to_q}]"
+            )
+        elif filing_date_from_q:
+            q_parts.append(f"documentData.documentFilingDate:>={filing_date_from_q}")
+        elif filing_date_to_q:
+            q_parts.append(f"documentData.documentFilingDate:<={filing_date_to_q}")
+
+        return self._perform_search(
+            endpoint_key="search_documents",
+            response_class=PTABTrialDocumentResponse,
+            query=query,
+            query_parts=q_parts,
+            post_body=post_body,
+            sort=sort,
+            offset=offset,
+            limit=limit,
+            facets=facets,
+            fields=fields,
+            filters=filters,
+            range_filters=range_filters,
+            additional_params=additional_query_params,
+        )  # type: ignore
 
     def search_decisions(
         self,
@@ -342,13 +361,19 @@ class PTABTrialsClient(BaseUSPTOClient[PTABTrialProceedingResponse]):
         range_filters: Optional[str] = None,
         post_body: Optional[Dict[str, Any]] = None,
         # Convenience query parameters
-        # TODO: parameter for trialTypeCode, patent number, application number, patent owner, trial status, real party in interest, document categroy.
         trial_number_q: Optional[str] = None,
         decision_type_category_q: Optional[str] = None,
         decision_date_from_q: Optional[str] = None,
         decision_date_to_q: Optional[str] = None,
+        trial_type_code_q: Optional[str] = None,
+        patent_number_q: Optional[str] = None,
+        application_number_q: Optional[str] = None,
+        patent_owner_name_q: Optional[str] = None,
+        trial_status_category_q: Optional[str] = None,
+        real_party_in_interest_name_q: Optional[str] = None,
+        document_category_q: Optional[str] = None,
         additional_query_params: Optional[Dict[str, Any]] = None,
-    ) -> PTABTrialProceedingResponse:
+    ) -> PTABTrialDocumentResponse:
         """Searches for PTAB trial decisions.
 
         This method can perform either a GET request using query parameters or a POST
@@ -370,10 +395,17 @@ class PTABTrialsClient(BaseUSPTOClient[PTABTrialProceedingResponse]):
             decision_type_category_q: Filter by decision type category.
             decision_date_from_q: Filter decisions from this date (YYYY-MM-DD).
             decision_date_to_q: Filter decisions to this date (YYYY-MM-DD).
+            trial_type_code_q: Filter by trial type code (e.g., "IPR", "PGR", "CBM", "DER").
+            patent_number_q: Filter by patent number.
+            application_number_q: Filter by application number.
+            patent_owner_name_q: Filter by patent owner name.
+            trial_status_category_q: Filter by trial status category.
+            real_party_in_interest_name_q: Filter by real party in interest name.
+            document_category_q: Filter by document category.
             additional_query_params: Additional custom query parameters.
 
         Returns:
-            PTABTrialProceedingResponse: Response containing matching trial decisions.
+            PTABTrialDocumentResponse: Response containing matching trial decisions.
 
         Examples:
             # Search with direct query
@@ -385,116 +417,62 @@ class PTABTrialsClient(BaseUSPTOClient[PTABTrialProceedingResponse]):
             ...     decision_date_from_q="2023-01-01",
             ...     limit=50
             ... )
-
-            # Search with POST body
-            >>> response = client.search_decisions(
-            ...     post_body={"q": "decisionTypeCategory:Institution Decision", "limit": 100}
-            ... )
         """
-        endpoint = self.ENDPOINTS["search_decisions"]
-
-        if post_body is not None:
-            # POST request path
-            result = self._make_request(
-                method="POST",
-                endpoint=endpoint,
-                json_data=post_body,
-                params=additional_query_params,
-                response_class=PTABTrialProceedingResponse,
+        q_parts = []
+        if trial_number_q:
+            q_parts.append(f"trialNumber:{trial_number_q}")
+        if decision_type_category_q:
+            q_parts.append(
+                f"decisionData.decisionTypeCategory:{decision_type_category_q}"
             )
-        else:
-            # GET request path
-            params: Dict[str, Any] = {}
-            final_q = query
-
-            # Build query from convenience parameters
-            if final_q is None:
-                q_parts = []
-                if trial_number_q:
-                    q_parts.append(f"trialNumber:{trial_number_q}")
-                if decision_type_category_q:
-                    q_parts.append(f"decisionTypeCategory:{decision_type_category_q}")
-
-                # Handle decision date range
-                if decision_date_from_q and decision_date_to_q:
-                    q_parts.append(
-                        f"decisionDate:[{decision_date_from_q} TO {decision_date_to_q}]"
-                    )
-                elif decision_date_from_q:
-                    q_parts.append(f"decisionDate:>={decision_date_from_q}")
-                elif decision_date_to_q:
-                    q_parts.append(f"decisionDate:<={decision_date_to_q}")
-
-                if q_parts:
-                    final_q = " AND ".join(q_parts)
-
-            # Add parameters
-            if final_q is not None:
-                params["q"] = final_q
-            if sort is not None:
-                params["sort"] = sort
-            if offset is not None:
-                params["offset"] = offset
-            if limit is not None:
-                params["limit"] = limit
-            if facets is not None:
-                params["facets"] = facets
-            if fields is not None:
-                params["fields"] = fields
-            if filters is not None:
-                params["filters"] = filters
-            if range_filters is not None:
-                params["rangeFilters"] = range_filters
-
-            if additional_query_params:
-                params.update(additional_query_params)
-
-            result = self._make_request(
-                method="GET",
-                endpoint=endpoint,
-                params=params,
-                response_class=PTABTrialProceedingResponse,
+        if trial_type_code_q:
+            q_parts.append(f"trialTypeCode:{trial_type_code_q}")
+        if patent_number_q:
+            q_parts.append(f"patentOwnerData.patentNumber:{patent_number_q}")
+        if application_number_q:
+            q_parts.append(
+                f"patentOwnerData.applicationNumberText:{application_number_q}"
             )
+        if patent_owner_name_q:
+            q_parts.append(f"patentOwnerData.patentOwnerName:{patent_owner_name_q}")
+        if trial_status_category_q:
+            q_parts.append(
+                f"trialMetaData.trialStatusCategory:{trial_status_category_q}"
+            )
+        if real_party_in_interest_name_q:
+            q_parts.append(
+                f"regularPetitionerData.realPartyInInterestName:{real_party_in_interest_name_q}"
+            )
+        if document_category_q:
+            q_parts.append(f"documentData.documentCategory:{document_category_q}")
 
-        assert isinstance(result, PTABTrialProceedingResponse)
-        return result
+        if decision_date_from_q and decision_date_to_q:
+            q_parts.append(
+                f"decisionData.decisionIssueDate:[{decision_date_from_q} TO {decision_date_to_q}]"
+            )
+        elif decision_date_from_q:
+            q_parts.append(f"decisionData.decisionIssueDate:>={decision_date_from_q}")
+        elif decision_date_to_q:
+            q_parts.append(f"decisionData.decisionIssueDate:<={decision_date_to_q}")
+
+        return self._perform_search(
+            endpoint_key="search_decisions",
+            response_class=PTABTrialDocumentResponse,
+            query=query,
+            query_parts=q_parts,
+            post_body=post_body,
+            sort=sort,
+            offset=offset,
+            limit=limit,
+            facets=facets,
+            fields=fields,
+            filters=filters,
+            range_filters=range_filters,
+            additional_params=additional_query_params,
+        )  # type: ignore
 
     def paginate_proceedings(self, **kwargs: Any) -> Iterator[PTABTrialProceeding]:
-        """Provides an iterator to paginate through trial proceeding search results.
-
-        This method simplifies fetching all trial proceedings matching a search query
-        by automatically handling pagination. It internally calls the search_proceedings
-        method for GET requests, batching results and yielding them one by one.
-
-        All keyword arguments are passed directly to search_proceedings to define the
-        search criteria. The offset and limit parameters are managed by the pagination
-        logic; setting them directly in kwargs might lead to unexpected behavior.
-
-        Args:
-            **kwargs: Keyword arguments passed to search_proceedings for constructing
-                the search query. Do not include post_body.
-
-        Returns:
-            Iterator[PTABTrialProceeding]: An iterator yielding PTABTrialProceeding objects,
-                allowing iteration over all matching proceedings across multiple pages of results.
-
-        Raises:
-            ValueError: If post_body is included in kwargs, as this method only
-                supports GET request parameters for pagination.
-
-        Examples:
-            # Paginate through all IPR proceedings
-            >>> for proceeding in client.paginate_proceedings(trial_type_code_q="IPR"):
-            ...     print(f"{proceeding.trial_meta_data.trial_number}: "
-            ...           f"{proceeding.trial_meta_data.trial_status_category}")
-
-            # Paginate with date range
-            >>> for proceeding in client.paginate_proceedings(
-            ...     petition_filing_date_from_q="2023-01-01",
-            ...     petition_filing_date_to_q="2023-12-31"
-            ... ):
-            ...     process_proceeding(proceeding)
-        """
+        """Provides an iterator to paginate through trial proceeding search results."""
         if "post_body" in kwargs:
             raise ValueError(
                 "paginate_proceedings uses GET requests and does not support 'post_body'. "
