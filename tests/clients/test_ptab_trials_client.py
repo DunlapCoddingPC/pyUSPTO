@@ -162,6 +162,127 @@ class TestPTABTrialsClientSearchProceedings:
         assert "petitionFilingDate:[2023-01-01 TO 2023-12-31]" in params["q"]
         assert params["limit"] == 25
 
+    def test_search_proceedings_with_all_convenience_params(
+        self,
+        mock_ptab_trials_client: PTABTrialsClient,
+        trial_proceeding_sample: Dict[str, Any],
+    ) -> None:
+        """Test search_proceedings with all convenience parameters."""
+        # Setup
+        mock_session = MagicMock()
+        mock_response = MagicMock()
+        mock_response.json.return_value = trial_proceeding_sample
+        mock_session.get.return_value = mock_response
+        mock_ptab_trials_client.session = mock_session
+
+        # Test
+        result = mock_ptab_trials_client.search_proceedings(
+            trial_number_q="IPR2023-00001",
+            patent_owner_name_q="Test Owner",
+            petitioner_party_name_q="Test Petitioner",
+            respondent_name_q="Test Respondent",
+            trial_type_code_q="IPR",
+            trial_status_category_q="Instituted",
+            petition_filing_date_from_q="2023-01-01",
+            petition_filing_date_to_q="2023-12-31",
+        )
+
+        # Verify
+        assert isinstance(result, PTABTrialProceedingResponse)
+        call_args = mock_session.get.call_args
+        params = call_args[1]["params"]
+        assert "patentOwnerName:Test Owner" in params["q"]
+        assert "petitionerPartyName:Test Petitioner" in params["q"]
+        assert "respondentName:Test Respondent" in params["q"]
+        assert "trialStatusCategory:Instituted" in params["q"]
+
+    def test_search_proceedings_with_date_from_only(
+        self,
+        mock_ptab_trials_client: PTABTrialsClient,
+        trial_proceeding_sample: Dict[str, Any],
+    ) -> None:
+        """Test search_proceedings with only petition_filing_date_from."""
+        # Setup
+        mock_session = MagicMock()
+        mock_response = MagicMock()
+        mock_response.json.return_value = trial_proceeding_sample
+        mock_session.get.return_value = mock_response
+        mock_ptab_trials_client.session = mock_session
+
+        # Test
+        result = mock_ptab_trials_client.search_proceedings(
+            petition_filing_date_from_q="2023-01-01"
+        )
+
+        # Verify
+        assert isinstance(result, PTABTrialProceedingResponse)
+        call_args = mock_session.get.call_args
+        params = call_args[1]["params"]
+        assert "petitionFilingDate:>=2023-01-01" in params["q"]
+
+    def test_search_proceedings_with_date_to_only(
+        self,
+        mock_ptab_trials_client: PTABTrialsClient,
+        trial_proceeding_sample: Dict[str, Any],
+    ) -> None:
+        """Test search_proceedings with only petition_filing_date_to."""
+        # Setup
+        mock_session = MagicMock()
+        mock_response = MagicMock()
+        mock_response.json.return_value = trial_proceeding_sample
+        mock_session.get.return_value = mock_response
+        mock_ptab_trials_client.session = mock_session
+
+        # Test
+        result = mock_ptab_trials_client.search_proceedings(
+            petition_filing_date_to_q="2023-12-31"
+        )
+
+        # Verify
+        assert isinstance(result, PTABTrialProceedingResponse)
+        call_args = mock_session.get.call_args
+        params = call_args[1]["params"]
+        assert "petitionFilingDate:<=2023-12-31" in params["q"]
+
+    def test_search_proceedings_with_optional_params(
+        self,
+        mock_ptab_trials_client: PTABTrialsClient,
+        trial_proceeding_sample: Dict[str, Any],
+    ) -> None:
+        """Test search_proceedings with optional parameters."""
+        # Setup
+        mock_session = MagicMock()
+        mock_response = MagicMock()
+        mock_response.json.return_value = trial_proceeding_sample
+        mock_session.get.return_value = mock_response
+        mock_ptab_trials_client.session = mock_session
+
+        # Test
+        result = mock_ptab_trials_client.search_proceedings(
+            query="trialNumber:IPR2023-00001",
+            sort="petitionFilingDate desc",
+            offset=10,
+            limit=50,
+            facets="trialTypeCode",
+            fields="trialNumber,petitionFilingDate",
+            filters="trialStatusCategory:Instituted",
+            range_filters="petitionFilingDate:[2023-01-01 TO 2023-12-31]",
+            additional_query_params={"customParam": "value"},
+        )
+
+        # Verify
+        assert isinstance(result, PTABTrialProceedingResponse)
+        call_args = mock_session.get.call_args
+        params = call_args[1]["params"]
+        assert params["sort"] == "petitionFilingDate desc"
+        assert params["offset"] == 10
+        assert params["limit"] == 50
+        assert params["facets"] == "trialTypeCode"
+        assert params["fields"] == "trialNumber,petitionFilingDate"
+        assert params["filters"] == "trialStatusCategory:Instituted"
+        assert params["rangeFilters"] == "petitionFilingDate:[2023-01-01 TO 2023-12-31]"
+        assert params["customParam"] == "value"
+
     def test_search_proceedings_post_with_body(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
@@ -363,6 +484,9 @@ class TestPTABTrialsClientSearchDocuments:
             limit=50,
             facets="documentCategory",
             fields="trialNumber,filingDate",
+            filters="documentCategory:Paper",
+            range_filters="filingDate:[2023-01-01 TO 2023-12-31]",
+            additional_query_params={"customParam": "value"},
         )
 
         # Verify
@@ -374,6 +498,9 @@ class TestPTABTrialsClientSearchDocuments:
         assert params["limit"] == 50
         assert params["facets"] == "documentCategory"
         assert params["fields"] == "trialNumber,filingDate"
+        assert params["filters"] == "documentCategory:Paper"
+        assert params["rangeFilters"] == "filingDate:[2023-01-01 TO 2023-12-31]"
+        assert params["customParam"] == "value"
 
 
 class TestPTABTrialsClientSearchDecisions:
@@ -554,6 +681,9 @@ class TestPTABTrialsClientSearchDecisions:
             limit=50,
             facets="decisionTypeCategory",
             fields="trialNumber,decisionDate",
+            filters="decisionTypeCategory:Final Written Decision",
+            range_filters="decisionDate:[2023-01-01 TO 2023-12-31]",
+            additional_query_params={"customParam": "value"},
         )
 
         # Verify
@@ -565,6 +695,9 @@ class TestPTABTrialsClientSearchDecisions:
         assert params["limit"] == 50
         assert params["facets"] == "decisionTypeCategory"
         assert params["fields"] == "trialNumber,decisionDate"
+        assert params["filters"] == "decisionTypeCategory:Final Written Decision"
+        assert params["rangeFilters"] == "decisionDate:[2023-01-01 TO 2023-12-31]"
+        assert params["customParam"] == "value"
 
 
 class TestPTABTrialsClientPaginate:
