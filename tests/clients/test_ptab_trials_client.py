@@ -10,7 +10,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from pyUSPTO import PTABTrialsClient, USPTOConfig
-from pyUSPTO.models.ptab import PTABTrialProceeding, PTABTrialProceedingResponse
+from pyUSPTO.models.ptab import (
+    PTABTrialProceeding,
+    PTABTrialProceedingResponse,
+    PTABTrialDocumentResponse,
+)
 
 
 @pytest.fixture
@@ -48,6 +52,37 @@ def trial_proceeding_sample() -> Dict[str, Any]:
                     "petitionFilingDate": "2023-01-10",
                     "trialStatusCategory": "Terminated",
                     "trialTypeCode": "PGR",
+                },
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def trial_document_sample() -> Dict[str, Any]:
+    """Sample trial document data for testing."""
+    return {
+        "count": 2,
+        "patentTrialDocumentDataBag": [
+            {
+                "trialNumber": "IPR2023-00001",
+                "trialDocumentCategory": "Document",
+                "lastModifiedDateTime": "2023-01-15T10:30:00Z",
+                "trialTypeCode": "IPR",
+                "documentData": {
+                    "documentName": "Petition.pdf",
+                    "documentIdentifier": "doc-123",
+                    "documentFilingDate": "2023-01-10",
+                },
+            },
+            {
+                "trialNumber": "IPR2023-00002",
+                "trialDocumentCategory": "Decision",
+                "lastModifiedDateTime": "2023-06-15T14:00:00Z",
+                "trialTypeCode": "IPR",
+                "decisionData": {
+                    "decisionTypeCategory": "Final Written Decision",
+                    "decisionIssueDate": "2023-06-10",
                 },
             },
         ],
@@ -179,7 +214,7 @@ class TestPTABTrialsClientSearchProceedings:
         result = mock_ptab_trials_client.search_proceedings(
             trial_number_q="IPR2023-00001",
             patent_owner_name_q="Test Owner",
-            petitioner_party_name_q="Test Petitioner",
+            petitioner_real_party_in_interest_name_q="Test Petitioner",
             respondent_name_q="Test Respondent",
             trial_type_code_q="IPR",
             trial_status_category_q="Instituted",
@@ -191,10 +226,10 @@ class TestPTABTrialsClientSearchProceedings:
         assert isinstance(result, PTABTrialProceedingResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
-        assert "patentOwnerName:Test Owner" in params["q"]
-        assert "petitionerPartyName:Test Petitioner" in params["q"]
-        assert "respondentName:Test Respondent" in params["q"]
-        assert "trialStatusCategory:Instituted" in params["q"]
+        assert "patentOwnerData.patentOwnerName:Test Owner" in params["q"]
+        assert "regularPetitionerData.realPartyInInterestName:Test Petitioner" in params["q"]
+        assert "respondentData.patentOwnerName:Test Respondent" in params["q"]
+        assert "trialMetaData.trialStatusCategory:Instituted" in params["q"]
 
     def test_search_proceedings_with_date_from_only(
         self,
@@ -314,13 +349,13 @@ class TestPTABTrialsClientSearchDocuments:
     def test_search_documents_get_with_query(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_documents with GET and direct query."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.get.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -330,19 +365,19 @@ class TestPTABTrialsClientSearchDocuments:
         )
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         mock_session.get.assert_called_once()
 
     def test_search_documents_with_convenience_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_documents with convenience parameters."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.get.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -355,22 +390,22 @@ class TestPTABTrialsClientSearchDocuments:
         )
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert "q" in params
-        assert "filingDate:[2023-01-01 TO 2023-12-31]" in params["q"]
+        assert "documentData.documentFilingDate:[2023-01-01 TO 2023-12-31]" in params["q"]
 
     def test_search_documents_with_all_convenience_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_documents with all convenience parameters."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.get.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -381,7 +416,7 @@ class TestPTABTrialsClientSearchDocuments:
             document_type_name_q="Patent Owner Response",
             filing_date_from_q="2023-01-01",
             filing_date_to_q="2023-12-31",
-            petitioner_party_name_q="Test Petitioner",
+            petitioner_real_party_in_interest_name_q="Test Petitioner",
             inventor_name_q="Jane Inventor",
             real_party_in_interest_name_q="Real Party LLC",
             patent_number_q="US1234567",
@@ -390,29 +425,29 @@ class TestPTABTrialsClientSearchDocuments:
         )
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert "trialNumber:IPR2023-00001" in params["q"]
-        assert "documentCategory:Paper" in params["q"]
-        assert "documentTypeName:Patent Owner Response" in params["q"]
-        assert "petitionerPartyName:Test Petitioner" in params["q"]
-        assert "inventorName:Jane Inventor" in params["q"]
-        assert "realPartyInInterestName:Real Party LLC" in params["q"]
-        assert "patentNumber:US1234567" in params["q"]
-        assert "patentOwnerName:Test Owner" in params["q"]
+        assert "documentData.documentCategory:Paper" in params["q"]
+        assert "documentData.documentTypeDescriptionText:Patent Owner Response" in params["q"]
+        assert "regularPetitionerData.realPartyInInterestName:Test Petitioner" in params["q"]
+        assert "patentOwnerData.inventorName:Jane Inventor" in params["q"]
+        assert "regularPetitionerData.realPartyInInterestName:Real Party LLC" in params["q"]
+        assert "patentOwnerData.patentNumber:US1234567" in params["q"]
+        assert "patentOwnerData.patentOwnerName:Test Owner" in params["q"]
         assert params["limit"] == 50
 
     def test_search_documents_with_date_from_only(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_documents with only filing_date_from."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.get.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -422,21 +457,21 @@ class TestPTABTrialsClientSearchDocuments:
         )
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
-        assert "filingDate:>=2023-01-01" in params["q"]
+        assert "documentData.documentFilingDate:>=2023-01-01" in params["q"]
 
     def test_search_documents_with_date_to_only(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_documents with only filing_date_to."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.get.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -444,21 +479,21 @@ class TestPTABTrialsClientSearchDocuments:
         result = mock_ptab_trials_client.search_documents(filing_date_to_q="2023-12-31")
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
-        assert "filingDate:<=2023-12-31" in params["q"]
+        assert "documentData.documentFilingDate:<=2023-12-31" in params["q"]
 
     def test_search_documents_post_with_body(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_documents with POST body."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.post.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -468,7 +503,7 @@ class TestPTABTrialsClientSearchDocuments:
         result = mock_ptab_trials_client.search_documents(post_body=post_body)
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         mock_session.post.assert_called_once()
         call_args = mock_session.post.call_args
         assert call_args[1]["json"] == post_body
@@ -476,13 +511,13 @@ class TestPTABTrialsClientSearchDocuments:
     def test_search_documents_with_optional_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_documents with optional parameters."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.get.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -500,7 +535,7 @@ class TestPTABTrialsClientSearchDocuments:
         )
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert params["sort"] == "filingDate desc"
@@ -519,13 +554,13 @@ class TestPTABTrialsClientSearchDecisions:
     def test_search_decisions_get_with_query(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_decisions with GET and direct query."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.get.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -535,19 +570,19 @@ class TestPTABTrialsClientSearchDecisions:
         )
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         mock_session.get.assert_called_once()
 
     def test_search_decisions_with_convenience_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_decisions with convenience parameters."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.get.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -559,22 +594,22 @@ class TestPTABTrialsClientSearchDecisions:
         )
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert "q" in params
-        assert "decisionDate:>=2023-01-01" in params["q"]
+        assert "decisionData.decisionIssueDate:>=2023-01-01" in params["q"]
 
     def test_search_decisions_with_all_convenience_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_decisions with all convenience parameters."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.get.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -595,31 +630,31 @@ class TestPTABTrialsClientSearchDecisions:
         )
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert "trialNumber:IPR2023-00001" in params["q"]
-        assert "decisionTypeCategory:Final Written Decision" in params["q"]
+        assert "decisionData.decisionTypeCategory:Final Written Decision" in params["q"]
         assert "trialTypeCode:IPR" in params["q"]
-        assert "patentNumber:US1234567" in params["q"]
-        assert "applicationNumber:15/123456" in params["q"]
-        assert "patentOwnerName:Test Owner" in params["q"]
-        assert "trialStatusCategory:Instituted" in params["q"]
-        assert "realPartyInInterestName:Real Party LLC" in params["q"]
-        assert "documentCategory:Decision" in params["q"]
-        assert "decisionDate:[2023-01-01 TO 2023-12-31]" in params["q"]
+        assert "patentOwnerData.patentNumber:US1234567" in params["q"]
+        assert "patentOwnerData.applicationNumberText:15/123456" in params["q"]
+        assert "patentOwnerData.patentOwnerName:Test Owner" in params["q"]
+        assert "trialMetaData.trialStatusCategory:Instituted" in params["q"]
+        assert "regularPetitionerData.realPartyInInterestName:Real Party LLC" in params["q"]
+        assert "documentData.documentCategory:Decision" in params["q"]
+        assert "decisionData.decisionIssueDate:[2023-01-01 TO 2023-12-31]" in params["q"]
         assert params["limit"] == 50
 
     def test_search_decisions_with_date_from_only(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_decisions with only decision_date_from."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.get.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -629,21 +664,21 @@ class TestPTABTrialsClientSearchDecisions:
         )
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
-        assert "decisionDate:>=2023-01-01" in params["q"]
+        assert "decisionData.decisionIssueDate:>=2023-01-01" in params["q"]
 
     def test_search_decisions_with_date_to_only(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_decisions with only decision_date_to."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.get.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -653,21 +688,21 @@ class TestPTABTrialsClientSearchDecisions:
         )
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
-        assert "decisionDate:<=2023-12-31" in params["q"]
+        assert "decisionData.decisionIssueDate:<=2023-12-31" in params["q"]
 
     def test_search_decisions_post_with_body(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_decisions with POST body."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.post.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -677,7 +712,7 @@ class TestPTABTrialsClientSearchDecisions:
         result = mock_ptab_trials_client.search_decisions(post_body=post_body)
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         mock_session.post.assert_called_once()
         call_args = mock_session.post.call_args
         assert call_args[1]["json"] == post_body
@@ -685,13 +720,13 @@ class TestPTABTrialsClientSearchDecisions:
     def test_search_decisions_with_optional_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_document_sample: Dict[str, Any],
     ) -> None:
         """Test search_decisions with optional parameters."""
         # Setup
         mock_session = MagicMock()
         mock_response = MagicMock()
-        mock_response.json.return_value = trial_proceeding_sample
+        mock_response.json.return_value = trial_document_sample
         mock_session.get.return_value = mock_response
         mock_ptab_trials_client.session = mock_session
 
@@ -709,7 +744,7 @@ class TestPTABTrialsClientSearchDecisions:
         )
 
         # Verify
-        assert isinstance(result, PTABTrialProceedingResponse)
+        assert isinstance(result, PTABTrialDocumentResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert params["sort"] == "decisionDate desc"

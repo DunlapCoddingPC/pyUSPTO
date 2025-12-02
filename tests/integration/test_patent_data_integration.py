@@ -484,7 +484,7 @@ class TestPatentDataIntegration:
 
             file_path = patent_data_client.download_document(
                 document_format=doc_to_download.document_formats[0],
-                file_path=TEST_DOWNLOAD_DIR,
+                destination_path=TEST_DOWNLOAD_DIR,
             )
 
             assert file_path is not None

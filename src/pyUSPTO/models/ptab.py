@@ -12,7 +12,7 @@ representing responses from the USPTO PTAB APIs. These models cover:
 import json
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Self
 
 # Import parsing utilities from models utils module
 from pyUSPTO.models.utils import (
@@ -21,6 +21,63 @@ from pyUSPTO.models.utils import (
     serialize_date,
     serialize_datetime_as_iso,
 )
+
+
+@dataclass(frozen=True)
+class PartyData:
+    """Base class for all party data models across PTAB endpoints.
+
+    Attributes:
+        application_number_text: Application number.
+        counsel_name: Name of counsel.
+        grant_date: Patent grant date.
+        group_art_unit_number: Art unit number.
+        inventor_name: Name of inventor.
+        patent_number: Patent number.
+        technology_center_number: Technology center number.
+        real_party_in_interest_name: Real party in interest name.
+        patent_owner_name: Patent owner name.
+        publication_date: Publication date (if applicable).
+        publication_number: Publication number (if applicable).
+    """
+
+    application_number_text: Optional[str] = None
+    counsel_name: Optional[str] = None
+    grant_date: Optional[date] = None
+    group_art_unit_number: Optional[str] = None
+    inventor_name: Optional[str] = None
+    real_party_in_interest_name: Optional[str] = None
+    patent_number: Optional[str] = None
+    patent_owner_name: Optional[str] = None
+    technology_center_number: Optional[str] = None
+    publication_date: Optional[date] = None
+    publication_number: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any], include_raw_data: bool = False) -> Self:
+        """Creates a PartyData instance from a dictionary.
+
+        Args:
+            data: Dictionary containing party data from API response.
+            include_raw_data: Ignored for this model.
+
+        Returns:
+            PartyData: A populated PartyData instance.
+        """
+        return cls(
+            application_number_text=data.get("applicationNumberText"),
+            counsel_name=data.get("counselName"),
+            grant_date=parse_to_date(data.get("grantDate")),
+            group_art_unit_number=data.get("groupArtUnitNumber"),
+            inventor_name=data.get("inventorName"),
+            real_party_in_interest_name=data.get("realPartyInInterestName"),
+            patent_number=data.get("patentNumber"),
+            patent_owner_name=data.get("patentOwnerName"),
+            technology_center_number=data.get("technologyCenterNumber"),
+            publication_date=parse_to_date(data.get("publicationDate")),
+            publication_number=data.get("publicationNumber"),
+        )
+
 
 # ============================================================================
 # TRIAL PROCEEDINGS MODELS
@@ -68,6 +125,8 @@ class TrialMetaData:
         Returns:
             TrialMetaData: An instance of TrialMetaData.
         """
+        # Handle aliases
+        file_download_uri = data.get("fileDownloadURI") or data.get("downloadURI")
         return cls(
             petition_filing_date=parse_to_date(data.get("petitionFilingDate")),
             accorded_filing_date=parse_to_date(data.get("accordedFilingDate")),
@@ -77,7 +136,7 @@ class TrialMetaData:
             trial_last_modified_date=parse_to_date(data.get("trialLastModifiedDate")),
             trial_status_category=data.get("trialStatusCategory"),
             trial_type_code=data.get("trialTypeCode"),
-            file_download_uri=data.get("fileDownloadURI"),
+            file_download_uri=file_download_uri,
             termination_date=parse_to_date(data.get("terminationDate")),
             latest_decision_date=parse_to_date(data.get("latestDecisionDate")),
             institution_decision_date=parse_to_date(
@@ -87,55 +146,10 @@ class TrialMetaData:
 
 
 @dataclass(frozen=True)
-class PatentOwnerData:
-    """Patent owner/respondent information.
+class PatentOwnerData(PartyData):
+    """Party data for a patent owner."""
 
-    Attributes:
-        application_number_text: Application number.
-        counsel_name: Name of counsel.
-        grant_date: Patent grant date.
-        group_art_unit_number: Art unit number.
-        inventor_name: Name of inventor.
-        patent_number: Patent number.
-        technology_center_number: Technology center number.
-        real_party_in_interest_name: Real party in interest name.
-        patent_owner_name: Patent owner name.
-    """
-
-    application_number_text: Optional[str] = None
-    counsel_name: Optional[str] = None
-    grant_date: Optional[date] = None
-    group_art_unit_number: Optional[str] = None
-    inventor_name: Optional[str] = None
-    patent_number: Optional[str] = None
-    technology_center_number: Optional[str] = None
-    real_party_in_interest_name: Optional[str] = None
-    patent_owner_name: Optional[str] = None
-
-    @classmethod
-    def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
-    ) -> "PatentOwnerData":
-        """Creates a PatentOwnerData instance from a dictionary.
-
-        Args:
-            data: Dictionary containing patent owner data from API response.
-            include_raw_data: Ignored for this model.
-
-        Returns:
-            PatentOwnerData: An instance of PatentOwnerData.
-        """
-        return cls(
-            application_number_text=data.get("applicationNumberText"),
-            counsel_name=data.get("counselName"),
-            grant_date=parse_to_date(data.get("grantDate")),
-            group_art_unit_number=data.get("groupArtUnitNumber"),
-            inventor_name=data.get("inventorName"),
-            patent_number=data.get("patentNumber"),
-            technology_center_number=data.get("technologyCenterNumber"),
-            real_party_in_interest_name=data.get("realPartyInInterestName"),
-            patent_owner_name=data.get("patentOwnerName"),
-        )
+    pass
 
 
 @dataclass(frozen=True)
@@ -170,104 +184,17 @@ class RegularPetitionerData:
 
 
 @dataclass(frozen=True)
-class RespondentData:
-    """Respondent information (same structure as PatentOwnerData).
+class RespondentData(PartyData):
+    """Respondent party data."""
 
-    Attributes:
-        application_number_text: Application number.
-        counsel_name: Name of counsel.
-        grant_date: Patent grant date.
-        group_art_unit_number: Art unit number.
-        inventor_name: Name of inventor.
-        patent_number: Patent number.
-        technology_center_number: Technology center number.
-        real_party_in_interest_name: Real party in interest name.
-        patent_owner_name: Patent owner name.
-    """
-
-    application_number_text: Optional[str] = None
-    counsel_name: Optional[str] = None
-    grant_date: Optional[date] = None
-    group_art_unit_number: Optional[str] = None
-    inventor_name: Optional[str] = None
-    patent_number: Optional[str] = None
-    technology_center_number: Optional[str] = None
-    real_party_in_interest_name: Optional[str] = None
-    patent_owner_name: Optional[str] = None
-
-    @classmethod
-    def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
-    ) -> "RespondentData":
-        """Creates a RespondentData instance from a dictionary.
-
-        Args:
-            data: Dictionary containing respondent data from API response.
-            include_raw_data: Ignored for this model.
-
-        Returns:
-            RespondentData: An instance of RespondentData.
-        """
-        return cls(
-            application_number_text=data.get("applicationNumberText"),
-            counsel_name=data.get("counselName"),
-            grant_date=parse_to_date(data.get("grantDate")),
-            group_art_unit_number=data.get("groupArtUnitNumber"),
-            inventor_name=data.get("inventorName"),
-            patent_number=data.get("patentNumber"),
-            technology_center_number=data.get("technologyCenterNumber"),
-            real_party_in_interest_name=data.get("realPartyInInterestName"),
-            patent_owner_name=data.get("patentOwnerName"),
-        )
+    pass
 
 
 @dataclass(frozen=True)
-class DerivationPetitionerData:
-    """Derivation petitioner information.
+class DerivationPetitionerData(PartyData):
+    """Derivation petitioner data."""
 
-    Attributes:
-        counsel_name: Name of counsel.
-        grant_date: Patent grant date.
-        group_art_unit_number: Art unit number.
-        inventor_name: Name of inventor.
-        patent_number: Patent number.
-        technology_center_number: Technology center number.
-        real_party_in_interest_name: Real party in interest name.
-        patent_owner_name: Patent owner name.
-    """
-
-    counsel_name: Optional[str] = None
-    grant_date: Optional[date] = None
-    group_art_unit_number: Optional[str] = None
-    inventor_name: Optional[str] = None
-    patent_number: Optional[str] = None
-    technology_center_number: Optional[str] = None
-    real_party_in_interest_name: Optional[str] = None
-    patent_owner_name: Optional[str] = None
-
-    @classmethod
-    def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
-    ) -> "DerivationPetitionerData":
-        """Creates a DerivationPetitionerData instance from a dictionary.
-
-        Args:
-            data: Dictionary containing derivation petitioner data from API response.
-            include_raw_data: Ignored for this model.
-
-        Returns:
-            DerivationPetitionerData: An instance of DerivationPetitionerData.
-        """
-        return cls(
-            counsel_name=data.get("counselName"),
-            grant_date=parse_to_date(data.get("grantDate")),
-            group_art_unit_number=data.get("groupArtUnitNumber"),
-            inventor_name=data.get("inventorName"),
-            patent_number=data.get("patentNumber"),
-            technology_center_number=data.get("technologyCenterNumber"),
-            real_party_in_interest_name=data.get("realPartyInInterestName"),
-            patent_owner_name=data.get("patentOwnerName"),
-        )
+    pass
 
 
 @dataclass(frozen=True)
@@ -407,7 +334,7 @@ class TrialDocumentData:
         document_ocr_text: OCR text content.
         document_title_text: Title of the document.
         document_type_description_text: Description of document type.
-        download_uri: URL to download the file.
+        file_download_uri: URL to download the file.
         filing_party_category: Who filed (e.g., "Petitioner").
         mime_type_identifier: MIME type (e.g., "application/pdf").
         document_status: Public status.
@@ -422,13 +349,15 @@ class TrialDocumentData:
     document_ocr_text: Optional[str] = None
     document_title_text: Optional[str] = None
     document_type_description_text: Optional[str] = None
-    download_uri: Optional[str] = None
+    file_download_uri: Optional[str] = None
     filing_party_category: Optional[str] = None
     mime_type_identifier: Optional[str] = None
     document_status: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TrialDocumentData":
+        # Handle aliases
+        file_download_uri = data.get("fileDownloadURI") or data.get("downloadURI")
         return cls(
             document_category=data.get("documentCategory"),
             document_filing_date=parse_to_date(data.get("documentFilingDate")),
@@ -439,7 +368,7 @@ class TrialDocumentData:
             document_ocr_text=data.get("documentOCRText"),
             document_title_text=data.get("documentTitleText"),
             document_type_description_text=data.get("documentTypeDescriptionText"),
-            download_uri=data.get("downloadURI"),
+            file_download_uri=file_download_uri,
             filing_party_category=data.get("filingPartyCategory"),
             mime_type_identifier=data.get("mimeTypeIdentifier"),
             document_status=data.get("documentStatus"),
@@ -451,26 +380,26 @@ class TrialDecisionData:
     """Metadata for a decision in a PTAB trial.
 
     Attributes:
-        statute_and_rule_bag: Statutes/rules cited (string or list).
+        statute_and_rule_bag: List of applicable statutes and rules.
         decision_issue_date: Date issued.
         decision_type_category: Type of decision (e.g. "Final Written Decision").
-        issue_type_bag: Issues addressed (string or list).
+        issue_type_bag: List of issues addressed.
         trial_outcome_category: Outcome (e.g., "Denied").
     """
 
-    statute_and_rule_bag: Optional[str] = None
+    statute_and_rule_bag: List[str] = field(default_factory=list)
     decision_issue_date: Optional[date] = None
     decision_type_category: Optional[str] = None
-    issue_type_bag: Optional[str] = None
+    issue_type_bag: List[str] = field(default_factory=list)
     trial_outcome_category: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TrialDecisionData":
         return cls(
-            statute_and_rule_bag=data.get("statuteAndRuleBag"),
+            statute_and_rule_bag=data.get("statuteAndRuleBag", []),
             decision_issue_date=parse_to_date(data.get("decisionIssueDate")),
             decision_type_category=data.get("decisionTypeCategory"),
-            issue_type_bag=data.get("issueTypeBag"),
+            issue_type_bag=data.get("issueTypeBag", []),
             trial_outcome_category=data.get("trialOutcomeCategory"),
         )
 
@@ -585,6 +514,7 @@ class AppealMetaData:
 
     appeal_filing_date: Optional[date] = None
     appeal_last_modified_date: Optional[date] = None
+    appeal_last_modified_date_time: Optional[date] = None
     application_type_category: Optional[str] = None
     docket_notice_mailed_date: Optional[date] = None
     file_download_uri: Optional[str] = None
@@ -602,69 +532,25 @@ class AppealMetaData:
         Returns:
             AppealMetaData: An instance of AppealMetaData.
         """
+        # Handle aliases
+        file_download_uri = data.get("fileDownloadURI") or data.get("downloadURI")
         return cls(
             appeal_filing_date=parse_to_date(data.get("appealFilingDate")),
             appeal_last_modified_date=parse_to_date(data.get("appealLastModifiedDate")),
+            appeal_last_modified_date_time=parse_to_datetime_utc(
+                data.get("appealLastModifiedDateTime")
+            ),
             application_type_category=data.get("applicationTypeCategory"),
             docket_notice_mailed_date=parse_to_date(data.get("docketNoticeMailedDate")),
-            file_download_uri=data.get("fileDownloadURI"),
+            file_download_uri=file_download_uri,
         )
 
 
 @dataclass(frozen=True)
-class AppellantData:
-    """Appellant information.
+class AppellantData(PartyData):
+    """Appellant party data."""
 
-    Attributes:
-        application_number_text: Application number.
-        counsel_name: Name of counsel.
-        group_art_unit_number: Art unit number.
-        inventor_name: Name of inventor.
-        real_party_in_interest_name: Real party in interest name.
-        patent_owner_name: Patent owner name.
-        publication_date: Publication date.
-        publication_number: Publication number.
-        technology_center_number: Technology center number.
-    """
-
-    application_number_text: Optional[str] = None
-    counsel_name: Optional[str] = None
-    group_art_unit_number: Optional[str] = None
-    inventor_name: Optional[str] = None
-    real_party_in_interest_name: Optional[str] = None
-    patent_owner_name: Optional[str] = None
-    publication_date: Optional[date] = None
-    publication_number: Optional[str] = None
-    technology_center_number: Optional[str] = None
-
-    @classmethod
-    def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
-    ) -> "AppellantData":
-        """Creates an AppellantData instance from a dictionary.
-
-        Args:
-            data: Dictionary containing appellant data from API response.
-            include_raw_data: Ignored for this model.
-
-        Returns:
-            AppellantData: An instance of AppellantData.
-        """
-        # Handle aliases seen in API samples
-        real_party = data.get("realPartyInInterestName") or data.get("realPartyName")
-        tech_center = data.get("technologyCenterNumber") or data.get("techCenterNumber")
-
-        return cls(
-            application_number_text=data.get("applicationNumberText"),
-            counsel_name=data.get("counselName"),
-            group_art_unit_number=data.get("groupArtUnitNumber"),
-            inventor_name=data.get("inventorName"),
-            real_party_in_interest_name=real_party,
-            patent_owner_name=data.get("patentOwnerName"),
-            publication_date=parse_to_date(data.get("publicationDate")),
-            publication_number=data.get("publicationNumber"),
-            technology_center_number=tech_center,
-        )
+    pass
 
 
 @dataclass(frozen=True)
@@ -731,7 +617,7 @@ class AppealDocumentData:
             AppealDocumentData: An instance of AppealDocumentData.
         """
         # Handle aliases
-        download_uri = data.get("fileDownloadURI") or data.get("downloadURI")
+        file_download_uri = data.get("fileDownloadURI") or data.get("downloadURI")
         doc_type = data.get("documentTypeDescriptionText") or data.get(
             "documentTypeCategory"
         )
@@ -743,7 +629,7 @@ class AppealDocumentData:
             document_size_quantity=data.get("documentSizeQuantity"),
             document_ocr_text=data.get("documentOCRText"),
             document_type_description_text=doc_type,
-            file_download_uri=download_uri,
+            file_download_uri=file_download_uri,
         )
 
 
@@ -935,117 +821,29 @@ class InterferenceMetaData:
         Returns:
             InterferenceMetaData: An instance of InterferenceMetaData.
         """
+        # Handle aliases
+        file_download_uri = data.get("fileDownloadURI") or data.get("downloadURI")
         return cls(
             interference_style_name=data.get("interferenceStyleName"),
             interference_last_modified_date=parse_to_date(
                 data.get("interferenceLastModifiedDate")
             ),
-            file_download_uri=data.get("fileDownloadURI"),
+            file_download_uri=file_download_uri,
         )
 
 
 @dataclass(frozen=True)
-class SeniorPartyData:
-    """Senior party information in an interference.
+class SeniorPartyData(PartyData):
+    """Senior party information in an interference."""
 
-    Attributes:
-        application_number_text: Application number.
-        counsel_name: Name of counsel.
-        grant_date: Patent grant date.
-        group_art_unit_number: Art unit number.
-        real_party_in_interest_name: Real party in interest name.
-        patent_number: Patent number.
-        patent_owner_name: Patent owner name.
-        publication_date: Publication date.
-        publication_number: Publication number.
-        technology_center_number: Technology center number.
-    """
-
-    application_number_text: Optional[str] = None
-    counsel_name: Optional[str] = None
-    grant_date: Optional[date] = None
-    group_art_unit_number: Optional[str] = None
-    real_party_in_interest_name: Optional[str] = None
-    patent_number: Optional[str] = None
-    patent_owner_name: Optional[str] = None
-    publication_date: Optional[date] = None
-    publication_number: Optional[str] = None
-    technology_center_number: Optional[str] = None
-
-    @classmethod
-    def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
-    ) -> "SeniorPartyData":
-        """Creates a SeniorPartyData instance from a dictionary.
-
-        Args:
-            data: Dictionary containing senior party data from API response.
-            include_raw_data: Ignored for this model.
-
-        Returns:
-            SeniorPartyData: An instance of SeniorPartyData.
-        """
-        return cls(
-            application_number_text=data.get("applicationNumberText"),
-            counsel_name=data.get("counselName"),
-            grant_date=parse_to_date(data.get("grantDate")),
-            group_art_unit_number=data.get("groupArtUnitNumber"),
-            real_party_in_interest_name=data.get("realPartyInInterestName"),
-            patent_number=data.get("patentNumber"),
-            patent_owner_name=data.get("patentOwnerName"),
-            publication_date=parse_to_date(data.get("publicationDate")),
-            publication_number=data.get("publicationNumber"),
-            technology_center_number=data.get("technologyCenterNumber"),
-        )
+    pass
 
 
 @dataclass(frozen=True)
-class JuniorPartyData:
-    """Junior party information in an interference.
+class JuniorPartyData(PartyData):
+    """Junior party information in an interference."""
 
-    Attributes:
-        publication_number: Publication number.
-        counsel_name: Name of counsel.
-        group_art_unit_number: Art unit number.
-        inventor_name: Name of inventor.
-        patent_owner_name: Patent owner name.
-        publication_date: Publication date.
-        real_party_in_interest_name: Real party in interest name.
-        technology_center_number: Technology center number.
-    """
-
-    publication_number: Optional[str] = None
-    counsel_name: Optional[str] = None
-    group_art_unit_number: Optional[str] = None
-    inventor_name: Optional[str] = None
-    patent_owner_name: Optional[str] = None
-    publication_date: Optional[date] = None
-    real_party_in_interest_name: Optional[str] = None
-    technology_center_number: Optional[str] = None
-
-    @classmethod
-    def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
-    ) -> "JuniorPartyData":
-        """Creates a JuniorPartyData instance from a dictionary.
-
-        Args:
-            data: Dictionary containing junior party data from API response.
-            include_raw_data: Ignored for this model.
-
-        Returns:
-            JuniorPartyData: An instance of JuniorPartyData.
-        """
-        return cls(
-            publication_number=data.get("publicationNumber"),
-            counsel_name=data.get("counselName"),
-            group_art_unit_number=data.get("groupArtUnitNumber"),
-            inventor_name=data.get("inventorName"),
-            patent_owner_name=data.get("patentOwnerName"),
-            publication_date=parse_to_date(data.get("publicationDate")),
-            real_party_in_interest_name=data.get("realPartyInInterestName"),
-            technology_center_number=data.get("technologyCenterNumber"),
-        )
+    pass
 
 
 @dataclass(frozen=True)
@@ -1099,8 +897,8 @@ class InterferenceDocumentData:
         decision_issue_date: Date the decision was issued.
         decision_type_category: Type of decision.
         file_download_uri: URI to download the document.
-        statute_and_rule_bag: Statutes and rules cited (list or string).
-        issue_type_bag: Issues addressed (list or string).
+        statute_and_rule_bag: List of applicable statutes and rules.
+        issue_type_bag: List of issues addressed.
     """
 
     document_identifier: Optional[str] = None
@@ -1112,8 +910,8 @@ class InterferenceDocumentData:
     decision_issue_date: Optional[date] = None
     decision_type_category: Optional[str] = None
     file_download_uri: Optional[str] = None
-    statute_and_rule_bag: Optional[List[str]] = None
-    issue_type_bag: Optional[List[str]] = None
+    statute_and_rule_bag: List[str] = field(default_factory=list)
+    issue_type_bag: List[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(
@@ -1129,7 +927,7 @@ class InterferenceDocumentData:
             InterferenceDocumentData: An instance of InterferenceDocumentData.
         """
         # Handle aliases
-        download_uri = data.get("fileDownloadURI") or data.get("downloadURI")
+        file_download_uri = data.get("fileDownloadURI") or data.get("downloadURI")
 
         return cls(
             document_identifier=data.get("documentIdentifier"),
@@ -1140,9 +938,9 @@ class InterferenceDocumentData:
             interference_outcome_category=data.get("interferenceOutcomeCategory"),
             decision_issue_date=parse_to_date(data.get("decisionIssueDate")),
             decision_type_category=data.get("decisionTypeCategory"),
-            file_download_uri=download_uri,
-            statute_and_rule_bag=data.get("statuteAndRuleBag"),
-            issue_type_bag=data.get("issueTypeBag"),
+            file_download_uri=file_download_uri,
+            statute_and_rule_bag=data.get("statuteAndRuleBag", []),
+            issue_type_bag=data.get("issueTypeBag", []),
         )
 
 
@@ -1153,7 +951,6 @@ class PTABInterferenceDecision:
     Attributes:
         interference_number: Interference number.
         last_modified_date_time: Last modification timestamp.
-        last_ingestion_date_time: Last ingestion timestamp (alternative field).
         interference_meta_data: Interference metadata.
         senior_party_data: Senior party information.
         junior_party_data: Junior party information.
@@ -1164,7 +961,6 @@ class PTABInterferenceDecision:
 
     interference_number: Optional[str] = None
     last_modified_date_time: Optional[datetime] = None
-    last_ingestion_date_time: Optional[datetime] = None
     interference_meta_data: Optional[InterferenceMetaData] = None
     senior_party_data: Optional[SeniorPartyData] = None
     junior_party_data: Optional[JuniorPartyData] = None
@@ -1218,9 +1014,6 @@ class PTABInterferenceDecision:
             interference_number=data.get("interferenceNumber"),
             last_modified_date_time=parse_to_datetime_utc(
                 data.get("lastModifiedDateTime")
-            ),
-            last_ingestion_date_time=parse_to_datetime_utc(
-                data.get("lastIngestionDateTime")
             ),
             interference_meta_data=interference_meta_data,
             senior_party_data=senior_party_data,
