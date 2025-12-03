@@ -29,7 +29,6 @@ from pyUSPTO.models.patent_data import (
     PatentDataResponse,
     PatentFileWrapper,
     PatentTermAdjustmentData,
-    PrintedMetaData,
     PrintedPublication,
     RecordAttorney,
     StatusCode,
@@ -44,10 +43,13 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def patent_data_client(config: USPTOConfig) -> PatentDataClient:
     """
     Create a PatentDataClient instance for integration tests.
+
+    Uses module scope to reuse the same client for all tests in the module,
+    reducing overhead from creating multiple client instances.
 
     Args:
         config: The configuration instance
@@ -58,13 +60,16 @@ def patent_data_client(config: USPTOConfig) -> PatentDataClient:
     return PatentDataClient(config=config)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def sample_application_number(patent_data_client: PatentDataClient) -> str:
-    """Provides a sample application number for tests."""
+    """Provides a sample application number for tests.
+
+    Uses module scope to execute once per test module and cache the result,
+    reducing redundant API calls from 11 to 1.
+    """
     try:
-        # Updated to use search_applications (GET path)
         response = patent_data_client.search_applications(
-            query='applicationMetaData.applicationTypeCategory:Utility AND applicationMetaData.applicationStatusDescriptionText:(Pending OR "Patented Case")',
+            query='applicationMetaData.applicationTypeLabelName:Utility AND applicationMetaData.applicationStatusDescriptionText:"Patented Case"',
             limit=1,
         )
         if response.count > 0 and response.patent_file_wrapper_data_bag:
@@ -90,11 +95,10 @@ class TestPatentDataIntegration:
 
     KNOWN_APP_NUM_WITH_DOCS = "18045436"
 
-    def test_search_applications_get(  # Renamed test
+    def test_search_applications_get(
         self, patent_data_client: PatentDataClient
     ) -> None:
         """Test getting patent applications from the API using GET path of search_applications."""
-        # Updated to use search_applications
         response = patent_data_client.search_applications(
             query="applicationMetaData.applicationTypeLabelName:Utility", limit=2
         )
@@ -114,9 +118,8 @@ class TestPatentDataIntegration:
 
     def test_search_applications_with_convenience_q_param(
         self, patent_data_client: PatentDataClient
-    ) -> None:  # Renamed test
+    ) -> None:
         """Test searching for patents using convenience _q parameters of search_applications."""
-        # Updated to use search_applications with _q parameter
         response = patent_data_client.search_applications(
             assignee_name_q="International Business Machines", limit=2
         )
@@ -133,11 +136,10 @@ class TestPatentDataIntegration:
         else:
             assert response.patent_file_wrapper_data_bag == []
 
-    def test_get_application_by_number(  # Renamed test
+    def test_get_application_by_number(
         self, patent_data_client: PatentDataClient, sample_application_number: str
     ) -> None:
         """Test getting a specific patent by application number."""
-        # Updated to use get_application_by_number
         patent_wrapper = patent_data_client.get_application_by_number(
             sample_application_number
         )
@@ -149,11 +151,153 @@ class TestPatentDataIntegration:
         assert isinstance(patent_wrapper.application_meta_data, ApplicationMetaData)
         assert patent_wrapper.application_meta_data.invention_title is not None
 
-    def test_get_status_codes(  # Renamed test
-        self, patent_data_client: PatentDataClient
+    def test_to_dict_matches_raw_api_response(
+        self, api_key: Optional[str], sample_application_number: str
     ) -> None:
+        """Test that to_dict() output matches the original API response stored in raw_data.
+
+        This test compares the to_dict() serialization with the original API response
+        to ensure that the model correctly reconstructs the API format. Some differences
+        are expected (e.g., requestIdentifier field is not part of the model).
+        """
+        # TEMPORARILY DISABLED: See GitHub issue #17
+        # API returns naive datetime strings (e.g., '2025-12-03T07:21:12') without timezone
+        # indicators, but we serialize with UTC 'Z' suffix (e.g., '2025-12-03T12:21:12Z').
+        # Waiting for USPTO ODP to adopt UTC standard for datetime fields.
+        pytest.skip(
+            "Test disabled pending USPTO API fix for datetime format. See issue #17"
+        )
+
+        # Create a config with include_raw_data=True to preserve original API JSON
+        config_with_raw = USPTOConfig(api_key=api_key, include_raw_data=True)
+        client_with_raw = PatentDataClient(config=config_with_raw)
+
+        # Use search_applications to get a PatentDataResponse (which has raw_data)
+        response = client_with_raw.search_applications(
+            application_number_q=sample_application_number, limit=1
+        )
+
+        assert response is not None
+        assert isinstance(response, PatentDataResponse)
+        assert response.raw_data is not None, (
+            "raw_data should be populated when include_raw_data=True"
+        )
+
+        # Parse the raw API response JSON
+        import json
+
+        raw_api_dict = json.loads(response.raw_data)
+
+        # Convert the model back to dict
+        to_dict_output = response.to_dict()
+
+        # Fields that are expected to be in raw API but not in model serialization
+        # (these are API metadata, not domain data)
+        expected_missing_fields = {"requestIdentifier"}
+
+        # Remove expected metadata fields from raw API for comparison
+        raw_api_dict_filtered = {
+            k: v for k, v in raw_api_dict.items() if k not in expected_missing_fields
+        }
+
+        # Deep comparison of the two dictionaries
+        def compare_dicts(dict1, dict2, path=""):
+            """Recursively compare two dictionaries and report differences."""
+            differences = []
+
+            # Check keys present in dict1 but not dict2
+            keys1 = set(dict1.keys())
+            keys2 = set(dict2.keys())
+
+            missing_in_dict2 = keys1 - keys2
+            if missing_in_dict2:
+                differences.append(
+                    f"Keys in to_dict but not in raw API at {path}: {missing_in_dict2}"
+                )
+
+            missing_in_dict1 = keys2 - keys1
+            if missing_in_dict1:
+                differences.append(
+                    f"Keys in raw API but not in to_dict at {path}: {missing_in_dict1}"
+                )
+
+            # Compare values for common keys
+            for key in keys1 & keys2:
+                val1 = dict1[key]
+                val2 = dict2[key]
+                current_path = f"{path}.{key}" if path else key
+
+                if type(val1) != type(val2):
+                    differences.append(
+                        f"Type mismatch at {current_path}: {type(val1).__name__} vs {type(val2).__name__}"
+                    )
+                elif isinstance(val1, dict):
+                    differences.extend(compare_dicts(val1, val2, current_path))
+                elif isinstance(val1, list):
+                    if len(val1) != len(val2):
+                        differences.append(
+                            f"List length mismatch at {current_path}: {len(val1)} vs {len(val2)}"
+                        )
+                    else:
+                        for i, (item1, item2) in enumerate(zip(val1, val2)):
+                            if isinstance(item1, dict) and isinstance(item2, dict):
+                                differences.extend(
+                                    compare_dicts(item1, item2, f"{current_path}[{i}]")
+                                )
+                            elif item1 != item2:
+                                differences.append(
+                                    f"Value mismatch at {current_path}[{i}]: {item1!r} vs {item2!r}"
+                                )
+                elif val1 != val2:
+                    differences.append(
+                        f"Value mismatch at {current_path}: {val1!r} vs {val2!r}"
+                    )
+
+            return differences
+
+        # Perform the comparison
+        differences = compare_dicts(to_dict_output, raw_api_dict_filtered)
+
+        # If there are differences, print them and fail
+        if differences:
+            diff_report = "\n".join(differences[:20])  # Limit to first 20 differences
+            if len(differences) > 20:
+                diff_report += f"\n... and {len(differences) - 20} more differences"
+            pytest.fail(
+                f"to_dict() output does not match raw API response. Differences found:\n{diff_report}"
+            )
+
+    def test_round_trip_data_integrity(
+        self, patent_data_client: PatentDataClient, sample_application_number: str
+    ) -> None:
+        """Test that parsing and serialization preserves data (round-trip test)."""
+        # Get application from API
+        original = patent_data_client.get_application_by_number(sample_application_number)
+
+        assert original is not None
+
+        # Convert to dict
+        data_dict = original.to_dict()
+
+        # Parse back from dict
+        reconstructed = PatentFileWrapper.from_dict(data_dict)
+
+        # Verify key fields match
+        assert reconstructed.application_number_text == original.application_number_text
+
+        if original.application_meta_data:
+            assert reconstructed.application_meta_data is not None
+            assert (
+                reconstructed.application_meta_data.invention_title
+                == original.application_meta_data.invention_title
+            )
+            assert (
+                reconstructed.application_meta_data.filing_date
+                == original.application_meta_data.filing_date
+            )
+
+    def test_get_status_codes(self, patent_data_client: PatentDataClient) -> None:
         """Test getting patent status codes."""
-        # Updated to use get_status_codes
         status_codes_response = patent_data_client.get_status_codes()
 
         assert status_codes_response is not None
@@ -271,9 +415,7 @@ class TestPatentDataIntegration:
                 has_attorney_info = True
             if attorney_data.customer_number_correspondence_data:
                 assert (
-                    attorney_data.customer_number_correspondence_data[
-                        0
-                    ].patron_identifier
+                    attorney_data.customer_number_correspondence_data.patron_identifier
                     is not None
                 )
                 has_attorney_info = True
@@ -432,11 +574,16 @@ class TestPatentDataIntegration:
                     f"No associated documents data for {sample_application_number}"
                 )
 
-            assert isinstance(assoc_docs_data, PrintedMetaData)
-            assert (
-                assoc_docs_data.pgpub_document_meta_data is not None
-                or assoc_docs_data.grant_document_meta_data is not None
-            )
+            assert isinstance(assoc_docs_data, PrintedPublication)
+
+            # Skip if no document metadata is available
+            if (
+                assoc_docs_data.pgpub_document_meta_data is None
+                and assoc_docs_data.grant_document_meta_data is None
+            ):
+                pytest.skip(
+                    f"No pgpub or grant document metadata for {sample_application_number}"
+                )
             if assoc_docs_data.pgpub_document_meta_data:
                 assert (
                     assoc_docs_data.pgpub_document_meta_data.file_location_uri
@@ -458,7 +605,7 @@ class TestPatentDataIntegration:
 
     def test_download_application_document(
         self, patent_data_client: PatentDataClient
-    ) -> None:  # Renamed test
+    ) -> None:
         """Test downloading a document file."""
         try:
             documents_bag = patent_data_client.get_application_documents(
@@ -503,16 +650,15 @@ class TestPatentDataIntegration:
                 f"No documents available in bag for {self.KNOWN_APP_NUM_WITH_DOCS} to test download."
             )
 
-    def test_search_applications_post(  # Renamed test
+    def test_search_applications_post(
         self, patent_data_client: PatentDataClient
     ) -> None:
         """Test searching patent applications using POST method with search_applications."""
-        search_request_body = {  # Renamed from search_request to search_request_body for clarity
-            "q": "applicationMetaData.applicationTypeCategory:Utility AND applicationMetaData.inventionTitle:(computer OR software)",
+        search_request_body = {
+            "q": "applicationMetaData.applicationTypeLabelName:Utility AND applicationMetaData.inventionTitle:(computer OR software)",
             "pagination": {"offset": 0, "limit": 2},
         }
         try:
-            # Updated to use search_applications with post_body
             response = patent_data_client.search_applications(
                 post_body=search_request_body
             )
@@ -531,16 +677,12 @@ class TestPatentDataIntegration:
         except USPTOApiError as e:
             pytest.skip(f"POST search failed: {e}")
 
-    def test_get_search_results_get(  # Renamed test
-        self, patent_data_client: PatentDataClient
-    ) -> None:
+    def test_get_search_results_get(self, patent_data_client: PatentDataClient) -> None:
         """Test getting search results (as JSON structure) using GET path of get_search_results."""
-        # format is now handled internally by get_search_results for GET
         try:
-            # Updated to use get_search_results
             response = patent_data_client.get_search_results(
                 query=f"applicationNumberText:{self.KNOWN_APP_NUM_WITH_DOCS}",
-                limit=1,  # Pass as keyword argument
+                limit=1,
             )
             assert response is not None
             assert isinstance(response, PatentDataResponse)
@@ -558,18 +700,16 @@ class TestPatentDataIntegration:
         except USPTOApiError as e:
             pytest.skip(f"get_search_results GET test failed: {e}")
 
-    def test_get_search_results_post(  # Renamed test
+    def test_get_search_results_post(
         self, patent_data_client: PatentDataClient
     ) -> None:
         """Test getting search results (as JSON structure) using POST path of get_search_results."""
-        # format should be part of the post_body for POST requests to this endpoint
-        post_body_request = {  # Renamed for clarity
+        post_body_request = {
             "q": f"applicationNumberText:{self.KNOWN_APP_NUM_WITH_DOCS}",
             "pagination": {"offset": 0, "limit": 1},
-            "format": "json",  # Explicitly set format for POST body
+            "format": "json",
         }
         try:
-            # Updated to use get_search_results with post_body
             response = patent_data_client.get_search_results(
                 post_body=post_body_request
             )
@@ -590,7 +730,7 @@ class TestPatentDataIntegration:
         except USPTOApiError as e:
             pytest.skip(f"get_search_results POST test failed: {e}")
 
-    def test_search_status_codes_post(  # Renamed test
+    def test_search_status_codes_post(
         self, patent_data_client: PatentDataClient
     ) -> None:
         """Test searching status codes using POST method with search_status_codes."""
@@ -599,7 +739,6 @@ class TestPatentDataIntegration:
             "pagination": {"offset": 0, "limit": 5},
         }
         try:
-            # Updated to use search_status_codes
             response = patent_data_client.search_status_codes(search_request)
             assert response is not None
             assert isinstance(response, StatusCodeSearchResponse)
@@ -628,6 +767,9 @@ class TestPatentDataIntegration:
             assert (
                 metadata is None
             ), "Expected None for invalid application number if client handles 404 by returning None"
+        except ValueError as e:
+            # Client validates application number format before API call
+            assert "Invalid application number format" in str(e)
         except USPTOApiNotFoundError as e:
             assert e.status_code == 404, f"Expected 404 error, got {e.status_code}"
         except USPTOApiError as e:

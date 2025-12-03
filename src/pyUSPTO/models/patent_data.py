@@ -430,8 +430,7 @@ class Address:
         Returns:
             Dict[str, Any]: A dictionary representation of the address.
         """
-
-        return {
+        _dict = {
             "nameLineOneText": self.name_line_one_text,
             "nameLineTwoText": self.name_line_two_text,
             "addressLineOneText": self.address_line_one_text,
@@ -450,6 +449,8 @@ class Address:
             "ictStateCode": self.ict_state_code,
             "ictCountryCode": self.ict_country_code,
         }
+        # Filter out None values to match API behavior
+        return {k: v for k, v in _dict.items() if v is not None}
 
 
 @dataclass(frozen=True)
@@ -488,11 +489,13 @@ class Telecommunication:
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.
         """
-        return {
+        _dict = {
             "telecommunicationNumber": self.telecommunication_number,
             "extensionNumber": self.extension_number,
             "telecomTypeCode": self.telecom_type_code,
         }
+        # Filter out None values to match API behavior
+        return {k: v for k, v in _dict.items() if v is not None}
 
 
 @dataclass(frozen=True)
@@ -864,14 +867,12 @@ class RecordAttorney:
     Contains customer number correspondence data, power of attorney information, and listed attorneys.
 
     Attributes:
-        customer_number_correspondence_data: List of `CustomerNumberCorrespondence` objects.
+        customer_number_correspondence_data: `CustomerNumberCorrespondence` object with customer number details.
         power_of_attorney_bag: List of `Attorney` objects named in a power of attorney.
         attorney_bag: List of `Attorney` objects listed as attorneys of record.
     """
 
-    customer_number_correspondence_data: List[CustomerNumberCorrespondence] = field(
-        default_factory=list
-    )
+    customer_number_correspondence_data: Optional[CustomerNumberCorrespondence] = None
     power_of_attorney_bag: List[Attorney] = field(default_factory=list)
     attorney_bag: List[Attorney] = field(default_factory=list)
 
@@ -885,11 +886,12 @@ class RecordAttorney:
         Returns:
             RecordAttorney: An instance of `RecordAttorney`.
         """
-        cust_corr = [
-            CustomerNumberCorrespondence.from_dict(c)
-            for c in data.get("customerNumberCorrespondenceData", [])
-            if isinstance(c, dict)
-        ]
+        cust_corr_data = data.get("customerNumberCorrespondenceData")
+        cust_corr = (
+            CustomerNumberCorrespondence.from_dict(cust_corr_data)
+            if isinstance(cust_corr_data, dict)
+            else None
+        )
         poa_bag = [
             Attorney.from_dict(a)
             for a in data.get("powerOfAttorneyBag", [])
@@ -909,23 +911,21 @@ class RecordAttorney:
     def to_dict(self) -> Dict[str, Any]:
         """Converts the `RecordAttorney` instance to a dictionary.
 
-        Omits keys with None values or empty lists.
+        Omits keys with None values. Includes empty lists to match API behavior.
 
         Returns:
             Dict[str, Any]: Dictionary representation.
         """
         d = {
-            "customerNumberCorrespondenceData": [
-                c.to_dict() for c in self.customer_number_correspondence_data
-            ],
+            "customerNumberCorrespondenceData": (
+                self.customer_number_correspondence_data.to_dict()
+                if self.customer_number_correspondence_data
+                else None
+            ),
             "powerOfAttorneyBag": [p.to_dict() for p in self.power_of_attorney_bag],
             "attorneyBag": [a.to_dict() for a in self.attorney_bag],
         }
-        return {
-            k: v
-            for k, v in d.items()
-            if v is not None and (not isinstance(v, list) or v)
-        }
+        return {k: v for k, v in d.items() if v is not None}
 
 
 @dataclass(frozen=True)
@@ -1112,7 +1112,7 @@ class Assignment:
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.
         """
-        return {
+        _dict = {
             "reelNumber": self.reel_number,
             "frameNumber": self.frame_number,
             "reelAndFrameNumber": self.reel_and_frame_number,
@@ -1137,6 +1137,8 @@ class Assignment:
                 else None
             ),
         }
+        # Filter out None values to match API behavior
+        return {k: v for k, v in _dict.items() if v is not None}
 
 
 @dataclass(frozen=True)
@@ -1404,6 +1406,7 @@ class PatentTermAdjustmentHistoryData:
         event_sequence_number: Sequence number of this event in the PTA history.
         originating_event_sequence_number: Sequence number of an event that originated this event.
         pta_pte_code: Code indicating if the event relates to PTA or Patent Term Extension (PTE).
+        ip_office_day_delay_quantity: Number of days of delay attributable to the IP office for this event.
     """
 
     event_date: Optional[date] = None
@@ -1412,6 +1415,7 @@ class PatentTermAdjustmentHistoryData:
     event_sequence_number: Optional[float] = None
     originating_event_sequence_number: Optional[float] = None
     pta_pte_code: Optional[str] = None
+    ip_office_day_delay_quantity: Optional[float] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PatentTermAdjustmentHistoryData":
@@ -1432,6 +1436,7 @@ class PatentTermAdjustmentHistoryData:
                 "originatingEventSequenceNumber"
             ),
             pta_pte_code=data.get("ptaPTECode"),
+            ip_office_day_delay_quantity=data.get("ipOfficeDayDelayQuantity"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1457,6 +1462,8 @@ class PatentTermAdjustmentHistoryData:
             )
         if self.pta_pte_code is not None:
             final_dict["ptaPTECode"] = self.pta_pte_code
+        if self.ip_office_day_delay_quantity is not None:
+            final_dict["ipOfficeDayDelayQuantity"] = self.ip_office_day_delay_quantity
         return final_dict
 
 
@@ -1476,6 +1483,8 @@ class PatentTermAdjustmentData:
         non_overlapping_day_quantity: Number of non-overlapping delay days.
         overlapping_day_quantity: Number of overlapping delay days.
         ip_office_day_delay_quantity: Total days of delay attributable to the IP office.
+        non_overlapping_day_delay_quantity: Number of non-overlapping delay days specifically for delay calculation.
+        ip_office_adjustment_delay_quantity: Days of IP office delay used in adjustment calculation.
         patent_term_adjustment_history_data_bag: List of `PatentTermAdjustmentHistoryData` events.
     """
 
@@ -1487,6 +1496,8 @@ class PatentTermAdjustmentData:
     non_overlapping_day_quantity: Optional[float] = None
     overlapping_day_quantity: Optional[float] = None
     ip_office_day_delay_quantity: Optional[float] = None
+    non_overlapping_day_delay_quantity: Optional[float] = None
+    ip_office_adjustment_delay_quantity: Optional[float] = None
     patent_term_adjustment_history_data_bag: List[PatentTermAdjustmentHistoryData] = (
         field(default_factory=list)
     )
@@ -1515,6 +1526,12 @@ class PatentTermAdjustmentData:
             non_overlapping_day_quantity=data.get("nonOverlappingDayQuantity"),
             overlapping_day_quantity=data.get("overlappingDayQuantity"),
             ip_office_day_delay_quantity=data.get("ipOfficeDayDelayQuantity"),
+            non_overlapping_day_delay_quantity=data.get(
+                "nonOverlappingDayDelayQuantity"
+            ),
+            ip_office_adjustment_delay_quantity=data.get(
+                "ipOfficeAdjustmentDelayQuantity"
+            ),
             patent_term_adjustment_history_data_bag=history,
         )
 

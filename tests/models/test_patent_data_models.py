@@ -82,9 +82,6 @@ def sample_address_data() -> Dict[str, Any]:
         "countryName": "United States",
         "postalAddressCategory": "Mailing",
         "correspondentNameText": "Test Correspondent",
-        "countryOrStateCode": None,
-        "ictStateCode": None,
-        "ictCountryCode": None,
     }
 
 
@@ -507,9 +504,7 @@ def sample_record_attorney_data(
     attorney_2_data["lastName"] = "Practitioner"
 
     return {
-        "customerNumberCorrespondenceData": [
-            sample_customer_number_correspondence_data
-        ],
+        "customerNumberCorrespondenceData": sample_customer_number_correspondence_data,
         "powerOfAttorneyBag": [sample_attorney_data],
         "attorneyBag": [
             sample_attorney_data,
@@ -869,26 +864,8 @@ class TestAddress:
 
     def test_address_to_dict_empty(self) -> None:
         address = Address()
-        expected_camel_case_empty_dict = {
-            "nameLineOneText": None,
-            "nameLineTwoText": None,
-            "addressLineOneText": None,
-            "addressLineTwoText": None,
-            "addressLineThreeText": None,
-            "addressLineFourText": None,
-            "geographicRegionName": None,
-            "geographicRegionCode": None,
-            "postalCode": None,
-            "cityName": None,
-            "countryCode": None,
-            "countryName": None,
-            "postalAddressCategory": None,
-            "correspondentNameText": None,
-            "countryOrStateCode": None,
-            "ictStateCode": None,
-            "ictCountryCode": None,
-        }
-        assert address.to_dict() == expected_camel_case_empty_dict
+        # Empty address should serialize to empty dict (None values are filtered out)
+        assert address.to_dict() == {}
 
 
 class TestTelecommunication:
@@ -930,11 +907,8 @@ class TestTelecommunication:
 
     def test_telecommunication_to_dict_empty(self) -> None:
         telecom = Telecommunication()
-        assert telecom.to_dict() == {
-            "telecommunicationNumber": None,
-            "extensionNumber": None,
-            "telecomTypeCode": None,
-        }
+        # Empty telecommunication should serialize to empty dict (None values are filtered out)
+        assert telecom.to_dict() == {}
 
 
 class TestPerson:
@@ -1206,16 +1180,17 @@ class TestRecordAttorney:
         self, sample_attorney_data: Dict[str, Any]
     ) -> None:
         data = {
-            "customerNumberCorrespondenceData": [
-                {"patronIdentifier": 12345, "organizationStandardName": "Test Law Firm"}
-            ],
+            "customerNumberCorrespondenceData": {
+                "patronIdentifier": 12345,
+                "organizationStandardName": "Test Law Firm",
+            },
             "powerOfAttorneyBag": [sample_attorney_data],
             "attorneyBag": [sample_attorney_data],
         }
         record_attorney = RecordAttorney.from_dict(data)
-        assert len(record_attorney.customer_number_correspondence_data) == 1
+        assert record_attorney.customer_number_correspondence_data is not None
         assert (
-            record_attorney.customer_number_correspondence_data[0].patron_identifier
+            record_attorney.customer_number_correspondence_data.patron_identifier
             == 12345
         )
         assert len(record_attorney.power_of_attorney_bag) == 1
@@ -1236,13 +1211,13 @@ class TestRecordAttorney:
         cust_corr_obj = CustomerNumberCorrespondence(patron_identifier=999)
 
         record_attorney = RecordAttorney(
-            customer_number_correspondence_data=[cust_corr_obj],
+            customer_number_correspondence_data=cust_corr_obj,
             power_of_attorney_bag=[attorney_obj],
             attorney_bag=[attorney_obj],
         )
         data = record_attorney.to_dict()
-        assert len(data["customerNumberCorrespondenceData"]) == 1
-        assert data["customerNumberCorrespondenceData"][0]["patronIdentifier"] == 999
+        assert "customerNumberCorrespondenceData" in data
+        assert data["customerNumberCorrespondenceData"]["patronIdentifier"] == 999
         assert len(data["powerOfAttorneyBag"]) == 1
         assert (
             data["powerOfAttorneyBag"][0]["firstName"]
@@ -1252,12 +1227,13 @@ class TestRecordAttorney:
 
     def test_record_attorney_to_dict_all_empty_bags(self) -> None:
         record_attorney = RecordAttorney(
-            customer_number_correspondence_data=[],
+            customer_number_correspondence_data=None,
             power_of_attorney_bag=[],
             attorney_bag=[],
         )
         data = record_attorney.to_dict()
-        assert data == {}
+        # Empty lists are now included to match API behavior
+        assert data == {"powerOfAttorneyBag": [], "attorneyBag": []}
 
     def test_record_attorney_roundtrip(
         self, sample_record_attorney_data: Dict[str, Any]
@@ -1412,8 +1388,9 @@ class TestAssignment:
         assert data["reelNumber"] == 2002
         assert data["assignorBag"] == []
         assert data["assigneeBag"] == []
-        assert data["correspondenceAddress"] is None
-        assert data["domesticRepresentative"] is None
+        # None values are filtered out, so these keys won't exist
+        assert "correspondenceAddress" not in data
+        assert "domesticRepresentative" not in data
 
     def test_assignment_roundtrip(
         self,
