@@ -442,7 +442,7 @@ def sample_pta_history_data() -> Dict[str, Any]:
         "applicantDayDelayQuantity": 5.0,
         "eventDescriptionText": "Applicant Delay - Late Response",
         "eventSequenceNumber": 2.0,
-        "ipOfficeDayDelayQuantity": 0.0,
+        "ipOfficeAdjustmentDelayQuantity": 0.0,
         "originatingEventSequenceNumber": 1.0,
         "ptaPTECode": "APL",
     }
@@ -463,7 +463,7 @@ def sample_patent_term_adjustment_data(
         "grantDate": "2023-11-20",
         "nonOverlappingDayQuantity": 120.0,
         "overlappingDayQuantity": 20.0,
-        "ipOfficeDayDelayQuantity": 130.0,
+        "ipOfficeAdjustmentDelayQuantity": 130.0,
         "patentTermAdjustmentHistoryDataBag": [
             sample_pta_history_data,
             {
@@ -471,7 +471,7 @@ def sample_patent_term_adjustment_data(
                 "applicantDayDelayQuantity": 0.0,
                 "eventDescriptionText": "USPTO Delay - Examination",
                 "eventSequenceNumber": 1.0,
-                "ipOfficeDayDelayQuantity": 15.0,
+                "ipOfficeAdjustmentDelayQuantity": 15.0,
                 "originatingEventSequenceNumber": 0.0,
                 "ptaPTECode": "PTO",
             },
@@ -1372,9 +1372,14 @@ class TestAssignment:
         assert len(data["assignorBag"]) == 1
         assert len(data["assigneeBag"]) == 1
         assert data["correspondenceAddress"] is not None
-        assert data["correspondenceAddress"]["cityName"] == sample_address_data["cityName"]
+        assert (
+            data["correspondenceAddress"]["cityName"] == sample_address_data["cityName"]
+        )
         assert data["domesticRepresentative"] is not None
-        assert data["domesticRepresentative"]["cityName"] == sample_address_data["cityName"]
+        assert (
+            data["domesticRepresentative"]["cityName"]
+            == sample_address_data["cityName"]
+        )
 
     def test_assignment_to_dict_empty_bags(self) -> None:
         assignment = Assignment(
@@ -1527,7 +1532,7 @@ class TestPatentTermAdjustmentHistoryData:
             "applicantDayDelayQuantity": 10.0,
             "eventDescriptionText": "Response to Office Action",
             "eventSequenceNumber": 1.0,
-            "ipOfficeDayDelayQuantity": 5.0,
+            "ipOfficeAdjustmentDelayQuantity": 5.0,
             "originatingEventSequenceNumber": 0.0,
             "ptaPTECode": "A",
         }
@@ -1535,6 +1540,7 @@ class TestPatentTermAdjustmentHistoryData:
         assert pta_hist.event_date == date(2022, 1, 1)
         assert pta_hist.applicant_day_delay_quantity == 10.0
         assert pta_hist.event_description_text == "Response to Office Action"
+        assert pta_hist.ip_office_adjustment_delay_quantity == 5.0
 
     def test_pta_history_to_dict(self) -> None:
         pta_hist = PatentTermAdjustmentHistoryData(

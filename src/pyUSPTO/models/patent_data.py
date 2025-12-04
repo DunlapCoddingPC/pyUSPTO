@@ -1406,7 +1406,7 @@ class PatentTermAdjustmentHistoryData:
         event_sequence_number: Sequence number of this event in the PTA history.
         originating_event_sequence_number: Sequence number of an event that originated this event.
         pta_pte_code: Code indicating if the event relates to PTA or Patent Term Extension (PTE).
-        ip_office_day_delay_quantity: Number of days of delay attributable to the IP office for this event.
+        ip_office_adjustment_delay_quantity: Number of days of IP office delay used in adjustment calculation for this event.
     """
 
     event_date: Optional[date] = None
@@ -1415,7 +1415,7 @@ class PatentTermAdjustmentHistoryData:
     event_sequence_number: Optional[float] = None
     originating_event_sequence_number: Optional[float] = None
     pta_pte_code: Optional[str] = None
-    ip_office_day_delay_quantity: Optional[float] = None
+    ip_office_adjustment_delay_quantity: Optional[float] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PatentTermAdjustmentHistoryData":
@@ -1436,7 +1436,9 @@ class PatentTermAdjustmentHistoryData:
                 "originatingEventSequenceNumber"
             ),
             pta_pte_code=data.get("ptaPTECode"),
-            ip_office_day_delay_quantity=data.get("ipOfficeDayDelayQuantity"),
+            ip_office_adjustment_delay_quantity=data.get(
+                "ipOfficeAdjustmentDelayQuantity"
+            ),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1462,8 +1464,10 @@ class PatentTermAdjustmentHistoryData:
             )
         if self.pta_pte_code is not None:
             final_dict["ptaPTECode"] = self.pta_pte_code
-        if self.ip_office_day_delay_quantity is not None:
-            final_dict["ipOfficeDayDelayQuantity"] = self.ip_office_day_delay_quantity
+        if self.ip_office_adjustment_delay_quantity is not None:
+            final_dict["ipOfficeAdjustmentDelayQuantity"] = (
+                self.ip_office_adjustment_delay_quantity
+            )
         return final_dict
 
 
@@ -1482,7 +1486,6 @@ class PatentTermAdjustmentData:
         c_delay_quantity: Number of days of 'C' delay.
         non_overlapping_day_quantity: Number of non-overlapping delay days.
         overlapping_day_quantity: Number of overlapping delay days.
-        ip_office_day_delay_quantity: Total days of delay attributable to the IP office.
         non_overlapping_day_delay_quantity: Number of non-overlapping delay days specifically for delay calculation.
         ip_office_adjustment_delay_quantity: Days of IP office delay used in adjustment calculation.
         patent_term_adjustment_history_data_bag: List of `PatentTermAdjustmentHistoryData` events.
@@ -1495,7 +1498,6 @@ class PatentTermAdjustmentData:
     c_delay_quantity: Optional[float] = None
     non_overlapping_day_quantity: Optional[float] = None
     overlapping_day_quantity: Optional[float] = None
-    ip_office_day_delay_quantity: Optional[float] = None
     non_overlapping_day_delay_quantity: Optional[float] = None
     ip_office_adjustment_delay_quantity: Optional[float] = None
     patent_term_adjustment_history_data_bag: List[PatentTermAdjustmentHistoryData] = (
@@ -1525,7 +1527,6 @@ class PatentTermAdjustmentData:
             c_delay_quantity=data.get("cDelayQuantity"),
             non_overlapping_day_quantity=data.get("nonOverlappingDayQuantity"),
             overlapping_day_quantity=data.get("overlappingDayQuantity"),
-            ip_office_day_delay_quantity=data.get("ipOfficeDayDelayQuantity"),
             non_overlapping_day_delay_quantity=data.get(
                 "nonOverlappingDayDelayQuantity"
             ),

@@ -6,6 +6,8 @@ This module contains unit tests for the PTAB model classes with full coverage.
 
 from datetime import date, datetime, timezone
 from typing import Any, Dict
+import importlib
+from unittest.mock import patch
 
 import pytest
 
@@ -42,6 +44,78 @@ from pyUSPTO.models.ptab import (
     PTABInterferenceDecision,
     PTABInterferenceResponse,
 )
+
+
+class TestSelfImport:
+    """Tests for Self type import compatibility across Python versions."""
+
+    def test_self_import_works(self) -> None:
+        """Test that Self type can be imported from ptab module."""
+        # This test verifies the try/except import pattern works
+        # by importing the module (which happens at test module import time)
+        # and using a from_dict method that relies on Self type hints
+        import sys
+
+        # Verify the import succeeded (module is already imported)
+        import pyUSPTO.models.ptab as ptab_module
+
+        assert hasattr(ptab_module, "PartyData")
+
+    def test_import_fallback_logic(self) -> None:
+        import sys
+        import importlib
+        import typing
+        import typing_extensions
+
+        module_name = "pyUSPTO.models.ptab"
+        original_self = getattr(typing, "Self", None)
+
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+
+        try:
+            if original_self:
+                del typing.Self
+
+            ptab_module = importlib.import_module(module_name)
+            assert ptab_module.Self is typing_extensions.Self
+
+        finally:
+            if original_self:
+                typing.Self = original_self
+
+            if module_name in sys.modules:
+                del sys.modules[module_name]
+            importlib.import_module(module_name)
+
+    def test_self_type_in_from_dict_methods(self) -> None:
+        """Test that from_dict methods work correctly with Self return type."""
+        # Create an instance using from_dict which uses Self as return type
+        data = {"counselName": "Test Counsel", "patentNumber": "US1234567"}
+        result = PartyData.from_dict(data)
+
+        # Verify the return type is correct (should be PartyData instance)
+        assert isinstance(result, PartyData)
+        assert result.counsel_name == "Test Counsel"
+        assert result.patent_number == "US1234567"
+
+    def test_self_type_returns_correct_class_instance(self) -> None:
+        """Test that from_dict returns an instance of the calling class."""
+        # Test with different model classes to ensure Self works correctly
+        trial_data = {"trialNumber": "IPR2023-00001"}
+        trial_result = PTABTrialProceeding.from_dict(trial_data)
+        assert isinstance(trial_result, PTABTrialProceeding)
+        assert type(trial_result) == PTABTrialProceeding
+
+        appeal_data = {"appealNumber": "2023-001234"}
+        appeal_result = PTABAppealDecision.from_dict(appeal_data)
+        assert isinstance(appeal_result, PTABAppealDecision)
+        assert type(appeal_result) == PTABAppealDecision
+
+        interference_data = {"interferenceNumber": "106123"}
+        interference_result = PTABInterferenceDecision.from_dict(interference_data)
+        assert isinstance(interference_result, PTABInterferenceDecision)
+        assert type(interference_result) == PTABInterferenceDecision
 
 
 class TestPartyData:
@@ -117,7 +191,9 @@ class TestPTABTrialModels:
         result = TrialMetaData.from_dict(data)
         assert result.petition_filing_date == date(2023, 1, 15)
         assert result.accorded_filing_date == date(2023, 1, 16)
-        assert result.trial_last_modified_date_time == datetime(2023, 6, 1, 10, 30, 0, tzinfo=timezone.utc)
+        assert result.trial_last_modified_date_time == datetime(
+            2023, 6, 1, 10, 30, 0, tzinfo=timezone.utc
+        )
         assert result.trial_last_modified_date == date(2023, 6, 1)
         assert result.trial_status_category == "Instituted"
         assert result.trial_type_code == "IPR"
@@ -229,7 +305,9 @@ class TestPTABTrialModels:
         result = PTABTrialProceeding.from_dict(data)
         assert result.trial_number == "IPR2023-00001"
         assert result.trial_record_identifier == "uuid-1"
-        assert result.last_modified_date_time == datetime(2023, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
+        assert result.last_modified_date_time == datetime(
+            2023, 1, 15, 10, 30, 0, tzinfo=timezone.utc
+        )
         assert result.trial_meta_data is not None
         assert result.trial_meta_data.trial_status_category == "Instituted"
         assert result.patent_owner_data is not None
@@ -285,8 +363,12 @@ class TestPTABTrialModels:
         assert result.count == 2
         assert result.request_identifier == "request-uuid-1"
         assert len(result.patent_trial_proceeding_data_bag) == 2
-        assert result.patent_trial_proceeding_data_bag[0].trial_number == "IPR2023-00001"
-        assert result.patent_trial_proceeding_data_bag[1].trial_number == "IPR2023-00002"
+        assert (
+            result.patent_trial_proceeding_data_bag[0].trial_number == "IPR2023-00001"
+        )
+        assert (
+            result.patent_trial_proceeding_data_bag[1].trial_number == "IPR2023-00002"
+        )
         assert result.raw_data is None
 
     def test_trial_proceeding_response_from_dict_with_raw_data(self) -> None:
@@ -427,7 +509,9 @@ class TestPTABTrialDocumentModels:
         }
         result = PTABTrialDocument.from_dict(data)
         assert result.trial_document_category == "Decision"
-        assert result.last_modified_date_time == datetime(2023, 12, 15, 10, 30, 0, tzinfo=timezone.utc)
+        assert result.last_modified_date_time == datetime(
+            2023, 12, 15, 10, 30, 0, tzinfo=timezone.utc
+        )
         assert result.trial_number == "IPR2023-00001"
         assert result.trial_type_code == "IPR"
         assert result.trial_meta_data is not None
@@ -491,9 +575,15 @@ class TestPTABTrialDocumentModels:
         assert result.count == 2
         assert len(result.patent_trial_document_data_bag) == 2
         assert result.patent_trial_document_data_bag[0].trial_number == "IPR2023-00001"
-        assert result.patent_trial_document_data_bag[0].trial_document_category == "Document"
+        assert (
+            result.patent_trial_document_data_bag[0].trial_document_category
+            == "Document"
+        )
         assert result.patent_trial_document_data_bag[1].trial_number == "IPR2023-00002"
-        assert result.patent_trial_document_data_bag[1].trial_document_category == "Decision"
+        assert (
+            result.patent_trial_document_data_bag[1].trial_document_category
+            == "Decision"
+        )
         assert result.raw_data is None
 
     def test_trial_document_response_from_dict_with_raw_data(self) -> None:
@@ -680,7 +770,9 @@ class TestPTABAppealModels:
         }
         result = PTABAppealDecision.from_dict(data)
         assert result.appeal_number == "2023-001234"
-        assert result.last_modified_date_time == datetime(2023, 6, 15, 10, 30, 0, tzinfo=timezone.utc)
+        assert result.last_modified_date_time == datetime(
+            2023, 6, 15, 10, 30, 0, tzinfo=timezone.utc
+        )
         assert result.appeal_document_category == "Decision"
         assert result.appeal_meta_data is not None
         assert result.appeal_meta_data.application_type_category == "Utility"
@@ -768,7 +860,9 @@ class TestPTABAppealModels:
         assert result.count == 1
         assert result.raw_data == data
         assert len(result.patent_appeal_data_bag) == 1
-        assert result.patent_appeal_data_bag[0].raw_data == {"appealNumber": "2023-001234"}
+        assert result.patent_appeal_data_bag[0].raw_data == {
+            "appealNumber": "2023-001234"
+        }
 
     def test_appeal_response_from_dict_empty(self) -> None:
         """Test PTABAppealResponse.from_dict() with empty list."""
@@ -948,18 +1042,31 @@ class TestPTABInterferenceModels:
         }
         result = PTABInterferenceDecision.from_dict(data)
         assert result.interference_number == "106123"
-        assert result.last_modified_date_time == datetime(2023, 3, 15, 10, 30, 0, tzinfo=timezone.utc)
+        assert result.last_modified_date_time == datetime(
+            2023, 3, 15, 10, 30, 0, tzinfo=timezone.utc
+        )
         assert result.interference_meta_data is not None
-        assert result.interference_meta_data.interference_style_name == "Senior v. Junior"
+        assert (
+            result.interference_meta_data.interference_style_name == "Senior v. Junior"
+        )
         assert result.senior_party_data is not None
         assert result.senior_party_data.patent_owner_name == "Senior Inc"
         assert result.junior_party_data is not None
         assert result.junior_party_data.patent_owner_name == "Junior LLC"
         assert len(result.additional_party_data_bag) == 2
-        assert result.additional_party_data_bag[0].additional_party_name == "Additional Party 1"
-        assert result.additional_party_data_bag[1].additional_party_name == "Additional Party 2"
+        assert (
+            result.additional_party_data_bag[0].additional_party_name
+            == "Additional Party 1"
+        )
+        assert (
+            result.additional_party_data_bag[1].additional_party_name
+            == "Additional Party 2"
+        )
         assert result.document_data is not None
-        assert result.document_data.interference_outcome_category == "Priority to Senior Party"
+        assert (
+            result.document_data.interference_outcome_category
+            == "Priority to Senior Party"
+        )
         assert result.raw_data is None
 
     def test_interference_decision_from_dict_with_alias_decision_document_data(

@@ -20,14 +20,33 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
     "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Legal Industry",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Other Audience",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
     "Topic :: Software Development :: Libraries",
+    "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Education",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Office/Business",
+    "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities"
 ]
+
 keywords = ["uspto", "patent", "odp", "client", "bulk data", "patent data"]
 dependencies = [
     "requests>=2.32.5",
+    "typing-extensions>=4.0.0; python_version < '3.11'",
 ]
 dynamic = ["version"]
 
