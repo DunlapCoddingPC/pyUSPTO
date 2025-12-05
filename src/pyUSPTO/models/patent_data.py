@@ -1406,7 +1406,7 @@ class PatentTermAdjustmentHistoryData:
         event_sequence_number: Sequence number of this event in the PTA history.
         originating_event_sequence_number: Sequence number of an event that originated this event.
         pta_pte_code: Code indicating if the event relates to PTA or Patent Term Extension (PTE).
-        ip_office_adjustment_delay_quantity: Number of days of IP office delay used in adjustment calculation for this event.
+        ip_office_day_delay_quantity: Number of days of IP office delay used in adjustment calculation for this event.
     """
 
     event_date: Optional[date] = None
@@ -1415,7 +1415,7 @@ class PatentTermAdjustmentHistoryData:
     event_sequence_number: Optional[float] = None
     originating_event_sequence_number: Optional[float] = None
     pta_pte_code: Optional[str] = None
-    ip_office_adjustment_delay_quantity: Optional[float] = None
+    ip_office_day_delay_quantity: Optional[float] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PatentTermAdjustmentHistoryData":
@@ -1436,9 +1436,7 @@ class PatentTermAdjustmentHistoryData:
                 "originatingEventSequenceNumber"
             ),
             pta_pte_code=data.get("ptaPTECode"),
-            ip_office_adjustment_delay_quantity=data.get(
-                "ipOfficeAdjustmentDelayQuantity"
-            ),
+            ip_office_day_delay_quantity=data.get("ipOfficeDayDelayQuantity"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1464,10 +1462,8 @@ class PatentTermAdjustmentHistoryData:
             )
         if self.pta_pte_code is not None:
             final_dict["ptaPTECode"] = self.pta_pte_code
-        if self.ip_office_adjustment_delay_quantity is not None:
-            final_dict["ipOfficeAdjustmentDelayQuantity"] = (
-                self.ip_office_adjustment_delay_quantity
-            )
+        if self.ip_office_day_delay_quantity is not None:
+            final_dict["ipOfficeDayDelayQuantity"] = self.ip_office_day_delay_quantity
         return final_dict
 
 
@@ -1660,7 +1656,7 @@ class PrintedMetaData:
 
 @dataclass(frozen=True)
 class ApplicationMetaData:
-    """Represents the comprehensive metadata associated with a patent application.
+    """Represents the metadata associated with a patent application.
 
     This class holds a wide range of information including application status,
     dates (filing, grant, publication), applicant and inventor details,
@@ -2109,11 +2105,13 @@ class PatentDataResponse:
     Attributes:
         count: The total number of patent applications found matching the query.
         patent_file_wrapper_data_bag: A list of `PatentFileWrapper` objects.
+        request_identifier: An identifier for the API request, if provided.
         raw_data: Optional raw JSON data from the API response (for debugging).
     """
 
     count: int
     patent_file_wrapper_data_bag: List[PatentFileWrapper] = field(default_factory=list)
+    request_identifier: Optional[str] = None
     raw_data: Optional[str] = field(default=None, compare=False, repr=False)
 
     @classmethod
@@ -2137,6 +2135,7 @@ class PatentDataResponse:
         return cls(
             count=data.get("count", 0),
             patent_file_wrapper_data_bag=wrappers,
+            request_identifier=data.get("requestIdentifier"),
             raw_data=json.dumps(data) if include_raw_data else None,
         )
 
@@ -2146,11 +2145,17 @@ class PatentDataResponse:
         Returns:
             Dict[str, Any]: Dictionary representation.
         """
-        return {
+        _dict = {
             "count": self.count,
             "patentFileWrapperDataBag": [
                 w.to_dict() for w in self.patent_file_wrapper_data_bag
             ],
+            "requestIdentifier": self.request_identifier,
+        }
+        return {
+            k: v
+            for k, v in _dict.items()
+            if v is not None and (not isinstance(v, list) or v)
         }
 
     def to_csv(self) -> str:

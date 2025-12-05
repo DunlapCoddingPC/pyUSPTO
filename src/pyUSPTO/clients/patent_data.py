@@ -363,7 +363,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         grant_date_to_q: Optional[str] = None,
         classification_q: Optional[str] = None,
         additional_query_params: Optional[Dict[str, Any]] = None,
-    ) -> PatentDataResponse:
+    ) -> list[ApplicationMetaData]:
         """
         Fetches a dataset of patent applications based on search criteria, always requesting JSON format.
         For GET, parameters align with OpenAPI for /api/v1/patent/applications/search/download.
@@ -380,7 +380,6 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 endpoint=endpoint,
                 json_data=post_body,
                 params=additional_query_params,
-                response_class=PatentDataResponse,
             )
         else:
             params: Dict[str, Any] = {}
@@ -462,10 +461,13 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 method="GET",
                 endpoint=endpoint,
                 params=params,
-                response_class=PatentDataResponse,
             )
-        assert isinstance(result, PatentDataResponse)
-        return result
+        assert isinstance(result, Dict)
+        amd_list = [
+            ApplicationMetaData.from_dict(item["applicationMetaData"])
+            for item in result["patentdata"]
+        ]
+        return amd_list
 
     def get_application_by_number(
         self, application_number: str

@@ -121,7 +121,7 @@ class PetitionDecisionDocument:
         document_identifier: A unique identifier for the document.
         document_code: The code identifying the document type.
         document_code_description_text: Description of the document code.
-        document_direction_category: Whether the document is INCOMING or OUTGOING.
+        direction_category: Whether the document is INCOMING or OUTGOING.
         download_option_bag: List of available download options for the document.
     """
 
@@ -130,7 +130,7 @@ class PetitionDecisionDocument:
     document_identifier: Optional[str] = None
     document_code: Optional[str] = None
     document_code_description_text: Optional[str] = None
-    document_direction_category: Optional[str] = None
+    direction_category: Optional[str] = None
     download_option_bag: List[DocumentDownloadOption] = field(default_factory=list)
 
     @classmethod
@@ -161,7 +161,7 @@ class PetitionDecisionDocument:
             document_identifier=data.get("documentIdentifier"),
             document_code=data.get("documentCode"),
             document_code_description_text=data.get("documentCodeDescriptionText"),
-            document_direction_category=data.get("documentDirectionCategory"),
+            direction_category=data.get("directionCategory"),
             download_option_bag=download_options,
         )
 
@@ -177,7 +177,7 @@ class PetitionDecisionDocument:
             "documentIdentifier": self.document_identifier,
             "documentCode": self.document_code,
             "documentCodeDescriptionText": self.document_code_description_text,
-            "documentDirectionCategory": self.document_direction_category,
+            "directionCategory": self.direction_category,
             "downloadOptionBag": [opt.to_dict() for opt in self.download_option_bag],
         }
         return {

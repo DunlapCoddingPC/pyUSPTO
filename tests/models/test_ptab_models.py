@@ -62,31 +62,42 @@ class TestSelfImport:
         assert hasattr(ptab_module, "PartyData")
 
     def test_import_fallback_logic(self) -> None:
+        """
+        Tests that the module falls back to typing_extensions.Self if typing.Self fails.
+        Uses builtins.__import__ patching to avoid corrupting the global typing module.
+        """
         import sys
         import importlib
-        import typing
+        import builtins
+        from unittest.mock import patch
         import typing_extensions
 
         module_name = "pyUSPTO.models.ptab"
-        original_self = getattr(typing, "Self", None)
 
+        # 1. Ensure the module is unloaded so we can force a fresh import
         if module_name in sys.modules:
             del sys.modules[module_name]
 
-        try:
-            if original_self:
-                del typing.Self
+        # 2. Define a side_effect that simulates ImportError ONLY when importing Self from typing
+        # This intercepts 'from typing import Self'
+        original_import = builtins.__import__
 
+        def mock_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "typing" and "Self" in fromlist:
+                raise ImportError("Simulated missing Self in typing")
+            return original_import(name, globals, locals, fromlist, level)
+
+        # 3. Apply the patch and import
+        with patch("builtins.__import__", side_effect=mock_import):
             ptab_module = importlib.import_module(module_name)
-            assert ptab_module.Self is typing_extensions.Self
 
-        finally:
-            if original_self:
-                typing.Self = original_self
+        # 4. Verify the fallback works (it should be the typing_extensions version)
+        assert ptab_module.Self is typing_extensions.Self
 
-            if module_name in sys.modules:
-                del sys.modules[module_name]
-            importlib.import_module(module_name)
+        # 5. Cleanup: Restore the module to its normal state for other tests
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+        importlib.import_module(module_name)
 
     def test_self_type_in_from_dict_methods(self) -> None:
         """Test that from_dict methods work correctly with Self return type."""

@@ -1532,7 +1532,7 @@ class TestPatentTermAdjustmentHistoryData:
             "applicantDayDelayQuantity": 10.0,
             "eventDescriptionText": "Response to Office Action",
             "eventSequenceNumber": 1.0,
-            "ipOfficeAdjustmentDelayQuantity": 5.0,
+            "ipOfficeDayDelayQuantity": 5.0,
             "originatingEventSequenceNumber": 0.0,
             "ptaPTECode": "A",
         }
@@ -1540,7 +1540,7 @@ class TestPatentTermAdjustmentHistoryData:
         assert pta_hist.event_date == date(2022, 1, 1)
         assert pta_hist.applicant_day_delay_quantity == 10.0
         assert pta_hist.event_description_text == "Response to Office Action"
-        assert pta_hist.ip_office_adjustment_delay_quantity == 5.0
+        assert pta_hist.ip_office_day_delay_quantity == 5.0
 
     def test_pta_history_to_dict(self) -> None:
         pta_hist = PatentTermAdjustmentHistoryData(
@@ -1550,11 +1550,16 @@ class TestPatentTermAdjustmentHistoryData:
             event_sequence_number=1.0,
             originating_event_sequence_number=0.0,
             pta_pte_code="A",
+            ip_office_day_delay_quantity=5.0,
         )
         data = pta_hist.to_dict()
         assert data["eventDate"] == "2022-01-01"
         assert data["applicantDayDelayQuantity"] == 10.0
         assert data["eventDescriptionText"] == "Response to Office Action"
+        assert data["eventSequenceNumber"] == 1.0
+        assert data["originatingEventSequenceNumber"] == 0.0
+        assert data["ptaPTECode"] == "A"
+        assert data["ipOfficeDayDelayQuantity"] == 5.0
 
 
 class TestPatentTermAdjustmentData:
@@ -1564,11 +1569,13 @@ class TestPatentTermAdjustmentData:
         data = {
             "aDelayQuantity": 100.0,
             "adjustmentTotalQuantity": 150.0,
+            "ipOfficeAdjustmentDelayQuantity": 2.0,
             "patentTermAdjustmentHistoryDataBag": [{"eventDate": "2022-01-01"}],
         }
         pta_data = PatentTermAdjustmentData.from_dict(data)
         assert pta_data.a_delay_quantity == 100.0
         assert pta_data.adjustment_total_quantity == 150.0
+        assert pta_data.ip_office_adjustment_delay_quantity == 2.0
         assert len(pta_data.patent_term_adjustment_history_data_bag) == 1
         assert pta_data.patent_term_adjustment_history_data_bag[0].event_date == date(
             2022, 1, 1
@@ -1941,7 +1948,7 @@ class TestPatentDataResponse:
         response = PatentDataResponse(count=0, patent_file_wrapper_data_bag=[])
         result = response.to_dict()
         assert result["count"] == 0
-        assert result["patentFileWrapperDataBag"] == []
+        assert "patentFileWrapperDataBag" not in result
 
     def test_patent_data_response_to_csv(
         self, patent_data_sample: Dict[str, Any]

@@ -218,6 +218,12 @@ def mock_patent_data_response_empty() -> PatentDataResponse:
 
 
 @pytest.fixture
+def mock_get_search_results_empty() -> Dict:
+    """Provides an empty mock PatentDataResponse instance."""
+    return {"patentdata": {}}
+
+
+@pytest.fixture
 def client_with_mocked_request(
     patent_data_client: PatentDataClient,
 ) -> Iterator[tuple[PatentDataClient, MagicMock]]:
@@ -1798,11 +1804,11 @@ class TestPatentApplicationDataRetrieval:
     def test_get_search_results_get_direct_query(
         self,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_patent_data_response_empty: PatentDataResponse,
+        mock_get_search_results_empty: List[ApplicationMetaData],
     ) -> None:
         """Test GET path of get_search_results with direct query, always requests JSON."""
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_patent_data_response_empty
+        mock_make_request.return_value = mock_get_search_results_empty
 
         method_params: Dict[str, Any] = {"query": "bulk test"}
         expected_api_params = {
@@ -1818,18 +1824,17 @@ class TestPatentApplicationDataRetrieval:
             method="GET",
             endpoint="api/v1/patent/applications/search/download",
             params=expected_api_params,
-            response_class=PatentDataResponse,
         )
-        assert result is mock_patent_data_response_empty
+        assert result == []
 
     def test_get_search_results_get_with_combined_q_convenience_params(
         self,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_patent_data_response_empty: PatentDataResponse,
+        mock_get_search_results_empty: List[ApplicationMetaData],
     ) -> None:
         """Test get_search_results GET path with a combination of _q convenience params."""
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_patent_data_response_empty
+        mock_make_request.return_value = mock_get_search_results_empty
 
         client.get_search_results(
             inventor_name_q="Doe", filing_date_from_q="2021-01-01", limit=5
@@ -1845,7 +1850,6 @@ class TestPatentApplicationDataRetrieval:
             method="GET",
             endpoint="api/v1/patent/applications/search/download",
             params=expected_api_params,
-            response_class=PatentDataResponse,
         )
 
     @pytest.mark.parametrize(
@@ -1900,11 +1904,11 @@ class TestPatentApplicationDataRetrieval:
         search_q_params: Dict[str, Any],
         expected_q_part: str,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_patent_data_response_empty: PatentDataResponse,
+        mock_get_search_results_empty: List[ApplicationMetaData],
     ) -> None:
         """Test get_search_results GET path with various individual _q convenience filters."""
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_patent_data_response_empty
+        mock_make_request.return_value = mock_get_search_results_empty
 
         limit = 15
         offset = 5
@@ -1927,7 +1931,6 @@ class TestPatentApplicationDataRetrieval:
             method="GET",
             endpoint="api/v1/patent/applications/search/download",
             params=expected_call_params,
-            response_class=PatentDataResponse,
         )
         # mock_make_request.reset_mock() # Removed to avoid issues with parametrize if tests are run in certain ways
 
@@ -1939,22 +1942,22 @@ class TestPatentApplicationDataRetrieval:
             ("filters_param", "applicationMetaData.applicationTypeCode DES", "filters"),
             (
                 "range_filters_param",
-                "applicationMetaData.filingDate 2021-01-01:2021-12-31",
+                "applicationMetaData.filingDate 2021-01-01",
                 "rangeFilters",
             ),
         ],
     )
-    def test_get_search_results_get_with_openapi_params(  # New test
+    def test_get_search_results_get_with_openapi_params(
         self,
         method_param_name: str,
         param_value: str,
         expected_api_key: str,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_patent_data_response_empty: PatentDataResponse,
+        mock_get_search_results_empty: List[ApplicationMetaData],
     ) -> None:
         """Test get_search_results GET path with various direct OpenAPI parameters."""
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_patent_data_response_empty
+        mock_make_request.return_value = mock_get_search_results_empty
 
         method_kwargs: Dict[str, Any] = {
             method_param_name: param_value,
@@ -1973,18 +1976,17 @@ class TestPatentApplicationDataRetrieval:
             method="GET",
             endpoint="api/v1/patent/applications/search/download",
             params=expected_api_params,
-            response_class=PatentDataResponse,
         )
         # mock_make_request.reset_mock() # Parametrized tests should not reset mock if one instance per test function
 
     def test_get_search_results_get_with_additional_query_params(  # New test
         self,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_patent_data_response_empty: PatentDataResponse,
+        mock_get_search_results_empty: List[ApplicationMetaData],
     ) -> None:
         """Test get_search_results GET path with additional_query_params."""
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_patent_data_response_empty
+        mock_make_request.return_value = mock_get_search_results_empty
 
         client.get_search_results(
             query="main_download_query",
@@ -2009,17 +2011,16 @@ class TestPatentApplicationDataRetrieval:
             method="GET",
             endpoint="api/v1/patent/applications/search/download",
             params=expected_api_params,
-            response_class=PatentDataResponse,
         )
 
     def test_get_search_results_post(
         self,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_patent_data_response_with_data: PatentDataResponse,
+        mock_get_search_results_empty: PatentDataResponse,
     ) -> None:
         """Test POST path of get_search_results."""
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_patent_data_response_with_data
+        mock_make_request.return_value = mock_get_search_results_empty
 
         post_body_request = {"q": "Test POST", "fields": ["patentNumber"]}
 
@@ -2036,9 +2037,8 @@ class TestPatentApplicationDataRetrieval:
             endpoint="api/v1/patent/applications/search/download",
             json_data=expected_post_body_sent_to_api,
             params=None,
-            response_class=PatentDataResponse,
         )
-        assert result is mock_patent_data_response_with_data
+        assert result == []
 
 
 class TestApplicationSpecificDataRetrieval:

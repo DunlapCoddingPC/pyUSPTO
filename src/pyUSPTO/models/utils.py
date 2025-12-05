@@ -65,7 +65,7 @@ def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
 
     Attempts to parse ISO format strings. If the input string contains timezone
     information, it's used. If the string is a naive datetime (no timezone),
-    it's assumed to be in the `ASSUMED_NAIVE_TIMEZONE` (e.g., "America/New_York")
+    it's assumed to be in the `ASSUMED_NAIVE_TIMEZONE_STR` (e.g., "America/New_York")
     and then converted to UTC.
 
     Args:

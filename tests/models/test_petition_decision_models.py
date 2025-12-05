@@ -39,7 +39,7 @@ def sample_document_dict() -> Dict[str, Any]:
         "documentIdentifier": "M98QOH0NWFYTX17",
         "documentCode": "PETDEC",
         "documentCodeDescriptionText": "Petition Decision",
-        "documentDirectionCategory": "OUTGOING",
+        "directionCategory": "OUTGOING",
         "downloadOptionBag": [
             {
                 "mimeTypeIdentifier": "PDF",
@@ -171,7 +171,7 @@ class TestPetitionDecisionDocumentFromDict:
         assert doc.document_identifier == "M98QOH0NWFYTX17"
         assert doc.document_code == "PETDEC"
         assert doc.document_code_description_text == "Petition Decision"
-        assert doc.document_direction_category == "OUTGOING"
+        assert doc.direction_category == "OUTGOING"
         assert len(doc.download_option_bag) == 2
         assert doc.download_option_bag[0].mime_type_identifier == "PDF"
         assert doc.download_option_bag[1].mime_type_identifier == "XML"
