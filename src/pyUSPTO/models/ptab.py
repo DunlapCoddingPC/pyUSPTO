@@ -10,7 +10,7 @@ representing responses from the USPTO PTAB APIs. These models cover:
 """
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
@@ -25,6 +25,8 @@ from pyUSPTO.models.utils import (
     parse_to_datetime_utc,
     serialize_date,
     serialize_datetime_as_iso,
+    to_camel_case,
+    serialize_datetime_as_naive,
 )
 
 
@@ -82,6 +84,21 @@ class PartyData:
             publication_date=parse_to_date(data.get("publicationDate")),
             publication_number=data.get("publicationNumber"),
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the PartyData instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+        for k, v in asdict(self).items():
+            if v is not None:
+                if isinstance(v, date):
+                    result[to_camel_case(k)] = serialize_date(v)
+                else:
+                    result[to_camel_case(k)] = v
+        return result
 
 
 # ============================================================================
@@ -149,6 +166,43 @@ class TrialMetaData:
             ),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the TrialMetaData instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        if self.petition_filing_date is not None:
+            result["petitionFilingDate"] = serialize_date(self.petition_filing_date)
+        if self.accorded_filing_date is not None:
+            result["accordedFilingDate"] = serialize_date(self.accorded_filing_date)
+        if self.trial_last_modified_date_time is not None:
+            result["trialLastModifiedDateTime"] = serialize_datetime_as_naive(
+                self.trial_last_modified_date_time
+            )
+        if self.trial_last_modified_date is not None:
+            result["trialLastModifiedDate"] = serialize_date(
+                self.trial_last_modified_date
+            )
+        if self.trial_status_category is not None:
+            result["trialStatusCategory"] = self.trial_status_category
+        if self.trial_type_code is not None:
+            result["trialTypeCode"] = self.trial_type_code
+        if self.file_download_uri is not None:
+            result["fileDownloadURI"] = self.file_download_uri
+        if self.termination_date is not None:
+            result["terminationDate"] = serialize_date(self.termination_date)
+        if self.latest_decision_date is not None:
+            result["latestDecisionDate"] = serialize_date(self.latest_decision_date)
+        if self.institution_decision_date is not None:
+            result["institutionDecisionDate"] = serialize_date(
+                self.institution_decision_date
+            )
+
+        return result
+
 
 @dataclass(frozen=True)
 class PatentOwnerData(PartyData):
@@ -186,6 +240,21 @@ class RegularPetitionerData:
             counsel_name=data.get("counselName"),
             real_party_in_interest_name=data.get("realPartyInInterestName"),
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the RegularPetitionerData instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        if self.counsel_name is not None:
+            result["counselName"] = self.counsel_name
+        if self.real_party_in_interest_name is not None:
+            result["realPartyInInterestName"] = self.real_party_in_interest_name
+
+        return result
 
 
 @dataclass(frozen=True)
@@ -279,6 +348,37 @@ class PTABTrialProceeding:
             raw_data=data if include_raw_data else None,
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the PTABTrialProceeding instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        if self.trial_number is not None:
+            result["trialNumber"] = self.trial_number
+        if self.trial_record_identifier is not None:
+            result["trialRecordIdentifier"] = self.trial_record_identifier
+        if self.last_modified_date_time is not None:
+            result["lastModifiedDateTime"] = serialize_datetime_as_naive(
+                self.last_modified_date_time
+            )
+        if self.trial_meta_data is not None:
+            result["trialMetaData"] = self.trial_meta_data.to_dict()
+        if self.patent_owner_data is not None:
+            result["patentOwnerData"] = self.patent_owner_data.to_dict()
+        if self.regular_petitioner_data is not None:
+            result["regularPetitionerData"] = self.regular_petitioner_data.to_dict()
+        if self.respondent_data is not None:
+            result["respondentData"] = self.respondent_data.to_dict()
+        if self.derivation_petitioner_data is not None:
+            result["derivationPetitionerData"] = (
+                self.derivation_petitioner_data.to_dict()
+            )
+
+        return result
+
 
 @dataclass(frozen=True)
 class PTABTrialProceedingResponse:
@@ -291,7 +391,7 @@ class PTABTrialProceedingResponse:
         raw_data: Raw JSON response data (if include_raw_data=True).
     """
 
-    count: Optional[int] = None
+    count: int = 0
     request_identifier: Optional[str] = None
     patent_trial_proceeding_data_bag: List[PTABTrialProceeding] = field(
         default_factory=list
@@ -318,11 +418,34 @@ class PTABTrialProceedingResponse:
         ]
 
         return cls(
-            count=data.get("count"),
+            count=data.get("count", 0),
             request_identifier=data.get("requestIdentifier"),
             patent_trial_proceeding_data_bag=proceedings,
             raw_data=data if include_raw_data else None,
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the PTABTrialProceedingResponse instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        if self.count is not None:
+            result["count"] = self.count
+        if self.request_identifier is not None:
+            result["requestIdentifier"] = self.request_identifier
+        if (
+            self.patent_trial_proceeding_data_bag is not None
+            and len(self.patent_trial_proceeding_data_bag) > 0
+        ):
+            result["patentTrialProceedingDataBag"] = [
+                proceeding.to_dict()
+                for proceeding in self.patent_trial_proceeding_data_bag
+            ]
+
+        return result
 
 
 @dataclass(frozen=True)
@@ -379,6 +502,43 @@ class TrialDocumentData:
             document_status=data.get("documentStatus"),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the TrialDocumentData instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        if self.document_category is not None:
+            result["documentCategory"] = self.document_category
+        if self.document_filing_date is not None:
+            result["documentFilingDate"] = serialize_date(self.document_filing_date)
+        if self.document_identifier is not None:
+            result["documentIdentifier"] = self.document_identifier
+        if self.document_name is not None:
+            result["documentName"] = self.document_name
+        if self.document_number is not None:
+            result["documentNumber"] = self.document_number
+        if self.document_size_quantity is not None:
+            result["documentSizeQuantity"] = self.document_size_quantity
+        if self.document_ocr_text is not None:
+            result["documentOCRText"] = self.document_ocr_text  # Uppercase OCR
+        if self.document_title_text is not None:
+            result["documentTitleText"] = self.document_title_text
+        if self.document_type_description_text is not None:
+            result["documentTypeDescriptionText"] = self.document_type_description_text
+        if self.file_download_uri is not None:
+            result["fileDownloadURI"] = self.file_download_uri  # Uppercase URI
+        if self.filing_party_category is not None:
+            result["filingPartyCategory"] = self.filing_party_category
+        if self.mime_type_identifier is not None:
+            result["mimeTypeIdentifier"] = self.mime_type_identifier
+        if self.document_status is not None:
+            result["documentStatus"] = self.document_status
+
+        return result
+
 
 @dataclass(frozen=True)
 class TrialDecisionData:
@@ -407,6 +567,27 @@ class TrialDecisionData:
             issue_type_bag=data.get("issueTypeBag", []),
             trial_outcome_category=data.get("trialOutcomeCategory"),
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the TrialDecisionData instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        if self.statute_and_rule_bag is not None and len(self.statute_and_rule_bag) > 0:
+            result["statuteAndRuleBag"] = self.statute_and_rule_bag
+        if self.decision_issue_date is not None:
+            result["decisionIssueDate"] = serialize_date(self.decision_issue_date)
+        if self.decision_type_category is not None:
+            result["decisionTypeCategory"] = self.decision_type_category
+        if self.issue_type_bag is not None and len(self.issue_type_bag) > 0:
+            result["issueTypeBag"] = self.issue_type_bag
+        if self.trial_outcome_category is not None:
+            result["trialOutcomeCategory"] = self.trial_outcome_category
+
+        return result
 
 
 @dataclass(frozen=True)
@@ -473,12 +654,50 @@ class PTABTrialDocument:
             raw_data=data if include_raw_data else None,
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the PTABTrialDocument instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        if self.trial_document_category is not None:
+            result["trialDocumentCategory"] = self.trial_document_category
+        if self.last_modified_date_time is not None:
+            result["lastModifiedDateTime"] = serialize_datetime_as_naive(
+                self.last_modified_date_time
+            )
+        if self.trial_number is not None:
+            result["trialNumber"] = self.trial_number
+        if self.trial_type_code is not None:
+            result["trialTypeCode"] = self.trial_type_code
+        if self.trial_meta_data is not None:
+            result["trialMetaData"] = self.trial_meta_data.to_dict()
+        if self.patent_owner_data is not None:
+            result["patentOwnerData"] = self.patent_owner_data.to_dict()
+        if self.regular_petitioner_data is not None:
+            result["regularPetitionerData"] = self.regular_petitioner_data.to_dict()
+        if self.respondent_data is not None:
+            result["respondentData"] = self.respondent_data.to_dict()
+        if self.derivation_petitioner_data is not None:
+            result["derivationPetitionerData"] = (
+                self.derivation_petitioner_data.to_dict()
+            )
+        if self.document_data is not None:
+            result["documentData"] = self.document_data.to_dict()
+        if self.decision_data is not None:
+            result["decisionData"] = self.decision_data.to_dict()
+
+        return result
+
 
 @dataclass(frozen=True)
 class PTABTrialDocumentResponse:
     """Response container for PTAB trial documents/decisions search."""
 
-    count: Optional[int] = None
+    count: int = 0
+    request_identifier: Optional[str] = None
     patent_trial_document_data_bag: List[PTABTrialDocument] = field(
         default_factory=list
     )
@@ -494,10 +713,33 @@ class PTABTrialDocumentResponse:
             for item in docs_data
         ]
         return cls(
-            count=data.get("count"),
+            count=data.get("count", 0),
             patent_trial_document_data_bag=docs,
+            request_identifier=data.get("requestIdentifier"),
             raw_data=data if include_raw_data else None,
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the PTABTrialDocumentResponse instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        if self.count is not None:
+            result["count"] = self.count
+        if self.request_identifier is not None:
+            result["requestIdentifier"] = self.request_identifier
+        if (
+            self.patent_trial_document_data_bag is not None
+            and len(self.patent_trial_document_data_bag) > 0
+        ):
+            result["patentTrialDocumentDataBag"] = [
+                doc.to_dict() for doc in self.patent_trial_document_data_bag
+            ]
+
+        return result
 
 
 # ============================================================================
@@ -519,7 +761,7 @@ class AppealMetaData:
 
     appeal_filing_date: Optional[date] = None
     appeal_last_modified_date: Optional[date] = None
-    appeal_last_modified_date_time: Optional[date] = None
+    appeal_last_modified_date_time: Optional[datetime] = None
     application_type_category: Optional[str] = None
     docket_notice_mailed_date: Optional[date] = None
     file_download_uri: Optional[str] = None
@@ -549,6 +791,35 @@ class AppealMetaData:
             docket_notice_mailed_date=parse_to_date(data.get("docketNoticeMailedDate")),
             file_download_uri=file_download_uri,
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the AppealMetaData instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        if self.appeal_filing_date is not None:
+            result["appealFilingDate"] = serialize_date(self.appeal_filing_date)
+        if self.appeal_last_modified_date is not None:
+            result["appealLastModifiedDate"] = serialize_date(
+                self.appeal_last_modified_date
+            )
+        if self.appeal_last_modified_date_time is not None:
+            result["appealLastModifiedDateTime"] = serialize_datetime_as_naive(
+                self.appeal_last_modified_date_time
+            )
+        if self.application_type_category is not None:
+            result["applicationTypeCategory"] = self.application_type_category
+        if self.docket_notice_mailed_date is not None:
+            result["docketNoticeMailedDate"] = serialize_date(
+                self.docket_notice_mailed_date
+            )
+        if self.file_download_uri is not None:
+            result["fileDownloadURI"] = self.file_download_uri
+
+        return result
 
 
 @dataclass(frozen=True)
@@ -584,6 +855,18 @@ class RequestorData:
         return cls(
             third_party_name=data.get("thirdPartyName"),
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the RequestorData instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+        for k, v in asdict(self).items():
+            if v is not None:
+                result[to_camel_case(k)] = v
+        return result
 
 
 @dataclass(frozen=True)
@@ -637,6 +920,31 @@ class AppealDocumentData:
             file_download_uri=file_download_uri,
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the AppealDocumentData instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        if self.document_filing_date is not None:
+            result["documentFilingDate"] = serialize_date(self.document_filing_date)
+        if self.document_identifier is not None:
+            result["documentIdentifier"] = self.document_identifier
+        if self.document_name is not None:
+            result["documentName"] = self.document_name
+        if self.document_size_quantity is not None:
+            result["documentSizeQuantity"] = self.document_size_quantity
+        if self.document_ocr_text is not None:
+            result["documentOCRText"] = self.document_ocr_text
+        if self.document_type_description_text is not None:
+            result["documentTypeDescriptionText"] = self.document_type_description_text
+        if self.file_download_uri is not None:
+            result["fileDownloadURI"] = self.file_download_uri
+
+        return result
+
 
 @dataclass(frozen=True)
 class DecisionData:
@@ -676,6 +984,24 @@ class DecisionData:
             decision_type_category=data.get("decisionTypeCategory"),
             issue_type_bag=data.get("issueTypeBag", []),
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the DecisionData instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+        for k, v in asdict(self).items():
+            if v is not None:
+                if isinstance(v, date):
+                    result[to_camel_case(k)] = serialize_date(v)
+                elif isinstance(v, list) and len(v) == 0:
+                    # Skip empty lists
+                    continue
+                else:
+                    result[to_camel_case(k)] = v
+        return result
 
 
 @dataclass(frozen=True)
@@ -750,6 +1076,36 @@ class PTABAppealDecision:
             raw_data=data if include_raw_data else None,
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the PTABAppealDecision instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        # Manually process each field to preserve nested objects
+        if self.appeal_number is not None:
+            result["appealNumber"] = self.appeal_number
+        if self.last_modified_date_time is not None:
+            result["lastModifiedDateTime"] = serialize_datetime_as_naive(
+                self.last_modified_date_time
+            )
+        if self.appeal_document_category is not None:
+            result["appealDocumentCategory"] = self.appeal_document_category
+        if self.appeal_meta_data is not None:
+            result["appealMetaData"] = self.appeal_meta_data.to_dict()
+        if self.appellant_data is not None:
+            result["appellantData"] = self.appellant_data.to_dict()
+        if self.requestor_data is not None:
+            result["requestorData"] = self.requestor_data.to_dict()
+        if self.document_data is not None:
+            result["documentData"] = self.document_data.to_dict()
+        if self.decision_data is not None:
+            result["decisionData"] = self.decision_data.to_dict()
+
+        return result
+
 
 @dataclass(frozen=True)
 class PTABAppealResponse:
@@ -762,7 +1118,7 @@ class PTABAppealResponse:
         raw_data: Raw JSON response data (if include_raw_data=True).
     """
 
-    count: Optional[int] = None
+    count: int = 0
     request_identifier: Optional[str] = None
     patent_appeal_data_bag: List[PTABAppealDecision] = field(default_factory=list)
     raw_data: Optional[Dict[str, Any]] = None
@@ -787,11 +1143,34 @@ class PTABAppealResponse:
         ]
 
         return cls(
-            count=data.get("count"),
+            count=data.get("count", 0),
             request_identifier=data.get("requestIdentifier"),
             patent_appeal_data_bag=appeals,
             raw_data=data if include_raw_data else None,
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the PTABAppealResponse instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        # Manually process each field
+        if self.count is not None:
+            result["count"] = self.count
+        if self.request_identifier is not None:
+            result["requestIdentifier"] = self.request_identifier
+        if (
+            self.patent_appeal_data_bag is not None
+            and len(self.patent_appeal_data_bag) > 0
+        ):
+            result["patentAppealDataBag"] = [
+                decision.to_dict() for decision in self.patent_appeal_data_bag
+            ]
+
+        return result
 
 
 # ============================================================================
@@ -806,11 +1185,15 @@ class InterferenceMetaData:
     Attributes:
         interference_style_name: Style name of the interference.
         interference_last_modified_date: Last modification date.
+        interference_last_modified_date_time: Last modification datetime.
+        declaration_date: Declaration date.
         file_download_uri: URI to download ZIP of interference documents.
     """
 
     interference_style_name: Optional[str] = None
     interference_last_modified_date: Optional[date] = None
+    interference_last_modified_date_time: Optional[datetime] = None
+    declaration_date: Optional[date] = None
     file_download_uri: Optional[str] = None
 
     @classmethod
@@ -833,8 +1216,37 @@ class InterferenceMetaData:
             interference_last_modified_date=parse_to_date(
                 data.get("interferenceLastModifiedDate")
             ),
+            interference_last_modified_date_time=parse_to_datetime_utc(
+                data.get("interferenceLastModifiedDateTime")
+            ),
+            declaration_date=parse_to_date(data.get("declarationDate")),
             file_download_uri=file_download_uri,
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the InterferenceMetaData instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        if self.interference_style_name is not None:
+            result["interferenceStyleName"] = self.interference_style_name
+        if self.interference_last_modified_date is not None:
+            result["interferenceLastModifiedDate"] = serialize_date(
+                self.interference_last_modified_date
+            )
+        if self.interference_last_modified_date_time is not None:
+            result["interferenceLastModifiedDateTime"] = serialize_datetime_as_naive(
+                self.interference_last_modified_date_time
+            )
+        if self.declaration_date is not None:
+            result["declarationDate"] = serialize_date(self.declaration_date)
+        if self.file_download_uri is not None:
+            result["fileDownloadURI"] = self.file_download_uri
+
+        return result
 
 
 @dataclass(frozen=True)
@@ -887,6 +1299,25 @@ class AdditionalPartyData:
             additional_party_name=data.get("additionalPartyName"),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the AdditionalPartyData instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        if self.application_number_text is not None:
+            result["applicationNumberText"] = self.application_number_text
+        if self.inventor_name is not None:
+            result["inventorName"] = self.inventor_name
+        if self.patent_number is not None:
+            result["patentNumber"] = self.patent_number
+        if self.additional_party_name is not None:
+            result["additionalPartyName"] = self.additional_party_name
+
+        return result
+
 
 @dataclass(frozen=True)
 class InterferenceDocumentData:
@@ -899,6 +1330,7 @@ class InterferenceDocumentData:
         document_ocr_text: Full OCR text of the document.
         document_title_text: Title of the document.
         interference_outcome_category: Outcome of the interference.
+        document_filing_date: Date the document was filed.
         decision_issue_date: Date the decision was issued.
         decision_type_category: Type of decision.
         file_download_uri: URI to download the document.
@@ -912,6 +1344,7 @@ class InterferenceDocumentData:
     document_ocr_text: Optional[str] = None
     document_title_text: Optional[str] = None
     interference_outcome_category: Optional[str] = None
+    document_filing_date: Optional[date] = None
     decision_issue_date: Optional[date] = None
     decision_type_category: Optional[str] = None
     file_download_uri: Optional[str] = None
@@ -941,12 +1374,48 @@ class InterferenceDocumentData:
             document_ocr_text=data.get("documentOCRText"),
             document_title_text=data.get("documentTitleText"),
             interference_outcome_category=data.get("interferenceOutcomeCategory"),
+            document_filing_date=parse_to_date(data.get("documentFilingDate")),
             decision_issue_date=parse_to_date(data.get("decisionIssueDate")),
             decision_type_category=data.get("decisionTypeCategory"),
             file_download_uri=file_download_uri,
             statute_and_rule_bag=data.get("statuteAndRuleBag", []),
             issue_type_bag=data.get("issueTypeBag", []),
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the InterferenceDocumentData instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        if self.document_identifier is not None:
+            result["documentIdentifier"] = self.document_identifier
+        if self.document_name is not None:
+            result["documentName"] = self.document_name
+        if self.document_size_quantity is not None:
+            result["documentSizeQuantity"] = self.document_size_quantity
+        if self.document_ocr_text is not None:
+            result["documentOCRText"] = self.document_ocr_text
+        if self.document_title_text is not None:
+            result["documentTitleText"] = self.document_title_text
+        if self.interference_outcome_category is not None:
+            result["interferenceOutcomeCategory"] = self.interference_outcome_category
+        if self.document_filing_date is not None:
+            result["documentFilingDate"] = serialize_date(self.document_filing_date)
+        if self.decision_issue_date is not None:
+            result["decisionIssueDate"] = serialize_date(self.decision_issue_date)
+        if self.decision_type_category is not None:
+            result["decisionTypeCategory"] = self.decision_type_category
+        if self.file_download_uri is not None:
+            result["fileDownloadURI"] = self.file_download_uri
+        if self.statute_and_rule_bag is not None and len(self.statute_and_rule_bag) > 0:
+            result["statuteAndRuleBag"] = self.statute_and_rule_bag
+        if self.issue_type_bag is not None and len(self.issue_type_bag) > 0:
+            result["issueTypeBag"] = self.issue_type_bag
+
+        return result
 
 
 @dataclass(frozen=True)
@@ -1028,6 +1497,39 @@ class PTABInterferenceDecision:
             raw_data=data if include_raw_data else None,
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the PTABInterferenceDecision instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        # Manually process each field to preserve nested objects
+        if self.interference_number is not None:
+            result["interferenceNumber"] = self.interference_number
+        if self.last_modified_date_time is not None:
+            result["lastModifiedDateTime"] = serialize_datetime_as_naive(
+                self.last_modified_date_time
+            )
+        if self.interference_meta_data is not None:
+            result["interferenceMetaData"] = self.interference_meta_data.to_dict()
+        if self.senior_party_data is not None:
+            result["seniorPartyData"] = self.senior_party_data.to_dict()
+        if self.junior_party_data is not None:
+            result["juniorPartyData"] = self.junior_party_data.to_dict()
+        if (
+            self.additional_party_data_bag is not None
+            and len(self.additional_party_data_bag) > 0
+        ):
+            result["additionalPartyDataBag"] = [
+                party.to_dict() for party in self.additional_party_data_bag
+            ]
+        if self.document_data is not None:
+            result["documentData"] = self.document_data.to_dict()
+
+        return result
+
 
 @dataclass(frozen=True)
 class PTABInterferenceResponse:
@@ -1040,7 +1542,7 @@ class PTABInterferenceResponse:
         raw_data: Raw JSON response data (if include_raw_data=True).
     """
 
-    count: Optional[int] = None
+    count: int = 0
     request_identifier: Optional[str] = None
     patent_interference_data_bag: List[PTABInterferenceDecision] = field(
         default_factory=list
@@ -1067,11 +1569,34 @@ class PTABInterferenceResponse:
         ]
 
         return cls(
-            count=data.get("count"),
+            count=data.get("count", 0),
             request_identifier=data.get("requestIdentifier"),
             patent_interference_data_bag=interferences,
             raw_data=data if include_raw_data else None,
         )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converts the PTABInterferenceResponse instance to a dictionary.
+
+        Returns:
+            Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
+        """
+        result = {}
+
+        # Manually process each field
+        if self.count is not None:
+            result["count"] = self.count
+        if self.request_identifier is not None:
+            result["requestIdentifier"] = self.request_identifier
+        if (
+            self.patent_interference_data_bag is not None
+            and len(self.patent_interference_data_bag) > 0
+        ):
+            result["patentInterferenceDataBag"] = [
+                decision.to_dict() for decision in self.patent_interference_data_bag
+            ]
+
+        return result
 
 
 # ============================================================================

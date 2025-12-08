@@ -159,6 +159,14 @@ def serialize_datetime_as_iso(dt: Optional[datetime]) -> Optional[str]:
     return dt_utc.isoformat().replace("+00:00", "Z")
 
 
+def serialize_datetime_as_naive(dt: datetime) -> str:
+    if dt.tzinfo is not None and dt.tzinfo.utcoffset(dt) is not None:
+        dt = dt.astimezone(ASSUMED_NAIVE_TIMEZONE).replace(tzinfo=None)
+    else:
+        dt = dt.replace(tzinfo=ASSUMED_NAIVE_TIMEZONE).replace(tzinfo=None)
+    return dt.isoformat()
+
+
 def parse_yn_to_bool(value: Optional[str]) -> Optional[bool]:
     """Converts a 'Y'/'N' (case-insensitive) string to a boolean.
 

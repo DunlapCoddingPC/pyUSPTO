@@ -17,7 +17,7 @@ from pyUSPTO.models.utils import (
     parse_to_date,
     parse_to_datetime_utc,
     serialize_date,
-    serialize_datetime_as_iso,
+    serialize_datetime_as_naive,
 )
 
 
@@ -173,7 +173,11 @@ class PetitionDecisionDocument:
         """
         d = {
             "applicationNumberText": self.application_number_text,
-            "officialDate": serialize_datetime_as_iso(self.official_date),
+            "officialDate": (
+                serialize_datetime_as_naive(self.official_date)
+                if self.official_date
+                else None
+            ),
             "documentIdentifier": self.document_identifier,
             "documentCode": self.document_code,
             "documentCodeDescriptionText": self.document_code_description_text,
@@ -366,8 +370,10 @@ class PetitionDecision:
             "statuteBag": self.statute_bag,
             "ruleBag": self.rule_bag,
             "documentBag": [doc.to_dict() for doc in self.document_bag],
-            "lastIngestionDateTime": serialize_datetime_as_iso(
-                self.last_ingestion_datetime
+            "lastIngestionDateTime": (
+                serialize_datetime_as_naive(self.last_ingestion_datetime)
+                if self.last_ingestion_datetime
+                else None
             ),
         }
         return {

@@ -27,7 +27,7 @@ from pyUSPTO.models.utils import (
     parse_yn_to_bool,
     serialize_bool_to_yn,
     serialize_date,
-    serialize_datetime_as_iso,
+    serialize_datetime_as_naive,
     to_camel_case,
 )
 from pyUSPTO.warnings import USPTOEnumParseWarning
@@ -226,7 +226,11 @@ class Document:
 
         d = {
             "applicationNumberText": self.application_number_text,
-            "officialDate": serialize_datetime_as_iso(self.official_date),
+            "officialDate": (
+                serialize_datetime_as_naive(self.official_date)
+                if self.official_date
+                else None
+            ),
             "documentIdentifier": self.document_identifier,
             "documentCode": self.document_code,
             "documentCodeDescriptionText": self.document_code_description_text,
@@ -1297,11 +1301,12 @@ class ParentContinuity(Continuity):
         """Converts the `ParentContinuity` instance to a dictionary.
 
         Maps attributes to specific camelCase keys expected by the API for parent continuity.
+        Filters out None values to match the API response structure.
 
         Returns:
             Dict[str, Any]: Dictionary representation.
         """
-        return {
+        _dict = {
             "firstInventorToFileIndicator": self.first_inventor_to_file_indicator,
             "parentApplicationStatusCode": self.parent_application_status_code,
             "parentPatentNumber": self.parent_patent_number,
@@ -1314,6 +1319,7 @@ class ParentContinuity(Continuity):
             "claimParentageTypeCode": self.claim_parentage_type_code,
             "claimParentageTypeCodeDescriptionText": self.claim_parentage_type_code_description_text,
         }
+        return {k: v for k, v in _dict.items() if v is not None}
 
 
 @dataclass(frozen=True)
@@ -1374,11 +1380,12 @@ class ChildContinuity(Continuity):
         """Converts the `ChildContinuity` instance to a dictionary.
 
         Maps attributes to specific camelCase keys expected by the API for child continuity.
+        Filters out None values to match the API response structure.
 
         Returns:
             Dict[str, Any]: Dictionary representation.
         """
-        return {
+        _dict = {
             "childApplicationStatusCode": self.child_application_status_code,
             "parentApplicationNumberText": self.parent_application_number_text,
             "childApplicationNumberText": self.child_application_number_text,
@@ -1391,6 +1398,7 @@ class ChildContinuity(Continuity):
             "claimParentageTypeCode": self.claim_parentage_type_code,
             "claimParentageTypeCodeDescriptionText": self.claim_parentage_type_code_description_text,
         }
+        return {k: v for k, v in _dict.items() if v is not None}
 
 
 @dataclass(frozen=True)
@@ -1646,7 +1654,7 @@ class PrintedMetaData:
         if self.file_location_uri is not None:
             final_dict["fileLocationURI"] = self.file_location_uri
         if self.file_create_date_time is not None:
-            final_dict["fileCreateDateTime"] = serialize_datetime_as_iso(
+            final_dict["fileCreateDateTime"] = serialize_datetime_as_naive(
                 self.file_create_date_time
             )
         if self.xml_file_name is not None:
@@ -2084,8 +2092,10 @@ class PatentFileWrapper:
                 if self.grant_document_meta_data
                 else None
             ),
-            "lastIngestionDateTime": serialize_datetime_as_iso(
-                self.last_ingestion_date_time
+            "lastIngestionDateTime": (
+                serialize_datetime_as_naive(self.last_ingestion_date_time)
+                if self.last_ingestion_date_time
+                else None
             ),
         }
         return {

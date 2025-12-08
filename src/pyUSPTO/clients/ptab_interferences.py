@@ -23,7 +23,7 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
     """
 
     ENDPOINTS = {
-        "search_decisions": "api/v1/ptab/interferences/decisions/search",
+        "search_decisions": "api/v1/patent/interferences/decisions/search",
     }
 
     def __init__(
@@ -65,6 +65,7 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
         junior_party_application_number_q: Optional[str] = None,
         senior_party_name_q: Optional[str] = None,
         junior_party_name_q: Optional[str] = None,
+        real_party_in_interest_q: Optional[str] = None,
         interference_outcome_category_q: Optional[str] = None,
         decision_type_category_q: Optional[str] = None,
         decision_date_from_q: Optional[str] = None,
@@ -93,6 +94,7 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
             junior_party_application_number_q: Filter by junior party application number.
             senior_party_name_q: Filter by senior party name.
             junior_party_name_q: Filter by junior party name.
+            real_party_in_interest_q: Filter by Real Party in Interest.
             interference_outcome_category_q: Filter by interference outcome category.
             decision_type_category_q: Filter by decision type category.
             decision_date_from_q: Filter decisions from this date (YYYY-MM-DD).
@@ -141,32 +143,47 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
                     q_parts.append(f"interferenceNumber:{interference_number_q}")
                 if senior_party_application_number_q:
                     q_parts.append(
-                        f"seniorPartyApplicationNumber:{senior_party_application_number_q}"
+                        f"seniorPartyData.applicationNumberText:{senior_party_application_number_q}"
                     )
                 if junior_party_application_number_q:
                     q_parts.append(
-                        f"juniorPartyApplicationNumber:{junior_party_application_number_q}"
+                        f"juniorPartyData.applicationNumberText:{junior_party_application_number_q}"
                     )
                 if senior_party_name_q:
-                    q_parts.append(f"seniorPartyName:{senior_party_name_q}")
+                    q_parts.append(
+                        f"seniorPartyData.patentOwnerName:{senior_party_name_q} OR seniorPartyData.inventorName:{senior_party_name_q} OR seniorPartyData.realPartyInInterestName:{senior_party_name_q}"
+                    )
                 if junior_party_name_q:
-                    q_parts.append(f"juniorPartyName:{junior_party_name_q}")
+                    q_parts.append(
+                        f"juniorPartyData.patentOwnerName:{junior_party_name_q} OR juniorPartyData.inventorName:{junior_party_name_q} OR juniorPartyData.realPartyInInterestName:{junior_party_name_q}"
+                    )
+                if real_party_in_interest_q:
+                    q_parts.append(
+                        f"seniorPartyData.realPartyInInterestName:{real_party_in_interest_q} OR juniorPartyData.realPartyInInterestName:{real_party_in_interest_q}"
+                    )
+
                 if interference_outcome_category_q:
                     q_parts.append(
-                        f"interferenceOutcomeCategory:{interference_outcome_category_q}"
+                        f'documentData.interferenceOutcomeCategory:"{interference_outcome_category_q}"'
                     )
                 if decision_type_category_q:
-                    q_parts.append(f"decisionTypeCategory:{decision_type_category_q}")
+                    q_parts.append(
+                        f'documentData.decisionTypeCategory:"{decision_type_category_q}"'
+                    )
 
                 # Handle decision date range
                 if decision_date_from_q and decision_date_to_q:
                     q_parts.append(
-                        f"decisionDate:[{decision_date_from_q} TO {decision_date_to_q}]"
+                        f"documentData.decisionIssueDate:[{decision_date_from_q} TO {decision_date_to_q}]"
                     )
                 elif decision_date_from_q:
-                    q_parts.append(f"decisionDate:>={decision_date_from_q}")
+                    q_parts.append(
+                        f"documentData.decisionIssueDate:>={decision_date_from_q}"
+                    )
                 elif decision_date_to_q:
-                    q_parts.append(f"decisionDate:<={decision_date_to_q}")
+                    q_parts.append(
+                        f"documentData.decisionIssueDate:<={decision_date_to_q}"
+                    )
 
                 if q_parts:
                     final_q = " AND ".join(q_parts)

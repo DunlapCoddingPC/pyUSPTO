@@ -198,7 +198,7 @@ class PTABTrialsClient(
         if respondent_name_q:
             q_parts.append(f"respondentData.patentOwnerName:{respondent_name_q}")
         if trial_type_code_q:
-            q_parts.append(f"trialTypeCode:{trial_type_code_q}")
+            q_parts.append(f"trialMetaData.trialTypeCode:{trial_type_code_q}")
         if trial_status_category_q:
             q_parts.append(
                 f"trialMetaData.trialStatusCategory:{trial_status_category_q}"
@@ -275,7 +275,7 @@ class PTABTrialsClient(
             range_filters: Range filter configuration string.
             post_body: Optional POST body for complex queries.
             trial_number_q: Filter by trial number.
-            document_category_q: Filter by document category (e.g., "Petition").
+            document_category_q: Filter by document category (e.g., "Petition") DOCUMENTED BUT NOT IN API.
             document_type_name_q: Filter by document type name (description).
             filing_date_from_q: Filter documents from this date (YYYY-MM-DD).
             filing_date_to_q: Filter documents to this date (YYYY-MM-DD).
@@ -363,6 +363,7 @@ class PTABTrialsClient(
         # Convenience query parameters
         trial_number_q: Optional[str] = None,
         decision_type_category_q: Optional[str] = None,
+        document_type_description_q: Optional[str] = None,
         decision_date_from_q: Optional[str] = None,
         decision_date_to_q: Optional[str] = None,
         trial_type_code_q: Optional[str] = None,
@@ -393,6 +394,7 @@ class PTABTrialsClient(
             post_body: Optional POST body for complex queries.
             trial_number_q: Filter by trial number.
             decision_type_category_q: Filter by decision type category.
+            document_type_description_q: Filter by "*[description]*".
             decision_date_from_q: Filter decisions from this date (YYYY-MM-DD).
             decision_date_to_q: Filter decisions to this date (YYYY-MM-DD).
             trial_type_code_q: Filter by trial type code (e.g., "IPR", "PGR", "CBM", "DER").
@@ -425,8 +427,12 @@ class PTABTrialsClient(
             q_parts.append(
                 f"decisionData.decisionTypeCategory:{decision_type_category_q}"
             )
+        if document_type_description_q:
+            q_parts.append(
+                f"documentData.documentTypeDescriptionText:*{document_type_description_q}*"
+            )
         if trial_type_code_q:
-            q_parts.append(f"trialTypeCode:{trial_type_code_q}")
+            q_parts.append(f"trialMetaData.trialTypeCode:{trial_type_code_q}")
         if patent_number_q:
             q_parts.append(f"patentOwnerData.patentNumber:{patent_number_q}")
         if application_number_q:

@@ -23,7 +23,7 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
     """
 
     ENDPOINTS = {
-        "search_decisions": "api/v1/ptab/appeals/decisions/search",
+        "search_decisions": "api/v1/patent/appeals/decisions/search",
     }
 
     def __init__(

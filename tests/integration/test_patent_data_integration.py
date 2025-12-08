@@ -93,7 +93,7 @@ def sample_application_number(patent_data_client: PatentDataClient) -> str:
 class TestPatentDataIntegration:
     """Integration tests for the PatentDataClient."""
 
-    KNOWN_APP_NUM_WITH_DOCS = "18045436"
+    KNOWN_APP_NUM_WITH_DOCS = "14412875"
 
     def test_search_applications_get(
         self, patent_data_client: PatentDataClient
