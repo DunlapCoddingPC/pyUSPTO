@@ -190,18 +190,18 @@ class PTABTrialsClient(
         if trial_number_q:
             q_parts.append(f"trialNumber:{trial_number_q}")
         if patent_owner_name_q:
-            q_parts.append(f"patentOwnerData.patentOwnerName:{patent_owner_name_q}")
+            q_parts.append(f'patentOwnerData.patentOwnerName:"{patent_owner_name_q}"')
         if petitioner_real_party_in_interest_name_q:
             q_parts.append(
-                f"regularPetitionerData.realPartyInInterestName:{petitioner_real_party_in_interest_name_q}"
+                f'regularPetitionerData.realPartyInInterestName:"{petitioner_real_party_in_interest_name_q}"'
             )
         if respondent_name_q:
-            q_parts.append(f"respondentData.patentOwnerName:{respondent_name_q}")
+            q_parts.append(f'respondentData.patentOwnerName:"{respondent_name_q}"')
         if trial_type_code_q:
             q_parts.append(f"trialMetaData.trialTypeCode:{trial_type_code_q}")
         if trial_status_category_q:
             q_parts.append(
-                f"trialMetaData.trialStatusCategory:{trial_status_category_q}"
+                f'trialMetaData.trialStatusCategory:"{trial_status_category_q}"'
             )
 
         if petition_filing_date_from_q and petition_filing_date_to_q:
@@ -304,25 +304,25 @@ class PTABTrialsClient(
         if trial_number_q:
             q_parts.append(f"trialNumber:{trial_number_q}")
         if document_category_q:
-            q_parts.append(f"documentData.documentCategory:{document_category_q}")
+            q_parts.append(f'documentData.documentCategory:"{document_category_q}"')
         if document_type_name_q:
             q_parts.append(
-                f"documentData.documentTypeDescriptionText:{document_type_name_q}"
+                f'documentData.documentTypeDescriptionText:"{document_type_name_q}"'
             )
         if petitioner_real_party_in_interest_name_q:
             q_parts.append(
-                f"regularPetitionerData.realPartyInInterestName:{petitioner_real_party_in_interest_name_q}"
+                f'regularPetitionerData.realPartyInInterestName:"{petitioner_real_party_in_interest_name_q}"'
             )
         if inventor_name_q:
-            q_parts.append(f"patentOwnerData.inventorName:{inventor_name_q}")
+            q_parts.append(f'patentOwnerData.inventorName:"{inventor_name_q}"')
         if real_party_in_interest_name_q:
             q_parts.append(
-                f"regularPetitionerData.realPartyInInterestName:{real_party_in_interest_name_q}"
+                f'regularPetitionerData.realPartyInInterestName:"{real_party_in_interest_name_q}"'
             )
         if patent_number_q:
             q_parts.append(f"patentOwnerData.patentNumber:{patent_number_q}")
         if patent_owner_name_q:
-            q_parts.append(f"patentOwnerData.patentOwnerName:{patent_owner_name_q}")
+            q_parts.append(f'patentOwnerData.patentOwnerName:"{patent_owner_name_q}"')
 
         if filing_date_from_q and filing_date_to_q:
             q_parts.append(
@@ -425,11 +425,11 @@ class PTABTrialsClient(
             q_parts.append(f"trialNumber:{trial_number_q}")
         if decision_type_category_q:
             q_parts.append(
-                f"decisionData.decisionTypeCategory:{decision_type_category_q}"
+                f'decisionData.decisionTypeCategory:"{decision_type_category_q}"'
             )
         if document_type_description_q:
             q_parts.append(
-                f"documentData.documentTypeDescriptionText:*{document_type_description_q}*"
+                f'documentData.documentTypeDescriptionText:"*{document_type_description_q}*"'
             )
         if trial_type_code_q:
             q_parts.append(f"trialMetaData.trialTypeCode:{trial_type_code_q}")
@@ -440,17 +440,17 @@ class PTABTrialsClient(
                 f"patentOwnerData.applicationNumberText:{application_number_q}"
             )
         if patent_owner_name_q:
-            q_parts.append(f"patentOwnerData.patentOwnerName:{patent_owner_name_q}")
+            q_parts.append(f'patentOwnerData.patentOwnerName:"{patent_owner_name_q}"')
         if trial_status_category_q:
             q_parts.append(
-                f"trialMetaData.trialStatusCategory:{trial_status_category_q}"
+                f'trialMetaData.trialStatusCategory:"{trial_status_category_q}"'
             )
         if real_party_in_interest_name_q:
             q_parts.append(
-                f"regularPetitionerData.realPartyInInterestName:{real_party_in_interest_name_q}"
+                f'regularPetitionerData.realPartyInInterestName:"{real_party_in_interest_name_q}"'
             )
         if document_category_q:
-            q_parts.append(f"documentData.documentCategory:{document_category_q}")
+            q_parts.append(f'documentData.documentCategory:"{document_category_q}"')
 
         if decision_date_from_q and decision_date_to_q:
             q_parts.append(

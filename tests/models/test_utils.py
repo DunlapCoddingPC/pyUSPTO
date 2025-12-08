@@ -21,6 +21,7 @@ from pyUSPTO.models.utils import (
     serialize_bool_to_yn,
     serialize_date,
     serialize_datetime_as_iso,
+    serialize_datetime_as_naive,
     to_camel_case,
 )
 
@@ -104,6 +105,28 @@ class TestUtilityFunctions:
         assert serialize_datetime_as_iso(dt_est) == "2023-01-01T15:00:00Z"
 
         assert serialize_datetime_as_iso(None) is None
+
+    def test_serialize_datetime_as_naive(self) -> None:
+        """Test serialize_datetime_as_naive utility function with both aware and naive datetimes."""
+        # Test with timezone-aware datetime (hits if branch, line 163-164)
+        dt_utc = datetime(2023, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        result_aware = serialize_datetime_as_naive(dt_utc)
+        assert isinstance(result_aware, str)
+        # Should convert to ASSUMED_NAIVE_TIMEZONE and serialize as ISO
+        assert result_aware.startswith("2023-01-01")
+
+        # Test with naive datetime (hits else branch, line 165-166)
+        dt_naive = datetime(2023, 1, 1, 15, 30, 45)
+        result_naive = serialize_datetime_as_naive(dt_naive)
+        assert isinstance(result_naive, str)
+        assert result_naive == "2023-01-01T15:30:45"
+
+        # Test with timezone-aware datetime with offset
+        minus_five = timezone(timedelta(hours=-5))
+        dt_est = datetime(2023, 1, 1, 10, 0, 0, tzinfo=minus_five)
+        result_est = serialize_datetime_as_naive(dt_est)
+        assert isinstance(result_est, str)
+        assert result_est.startswith("2023-01-01")
 
     def test_parse_to_datetime_utc_localization_failure_and_fallback(self) -> None:
         """Triggers the except block by making astimezone() raise, and tests fallback path."""

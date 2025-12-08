@@ -58,7 +58,7 @@ from pyUSPTO.models.patent_data import (
     parse_yn_to_bool,
     serialize_bool_to_yn,
     serialize_date,
-    serialize_datetime_as_iso,
+    serialize_datetime_as_naive,
     to_camel_case,
 )
 
@@ -197,7 +197,6 @@ def sample_child_continuity_data() -> Dict[str, Any]:
         "childApplicationNumberText": "87654321",
         "childApplicationStatusDescriptionText": "Docketed New Case - Ready for Examination",
         "childApplicationFilingDate": "2022-01-01",
-        "childPatentNumber": None,
         "claimParentageTypeCode": "CON",
         "claimParentageTypeCodeDescriptionText": "Continuation",
     }
@@ -642,7 +641,7 @@ class TestDocument:
         )
         data = doc.to_dict()
         assert data["documentIdentifier"] == "doc123"
-        assert data["officialDate"] == "2023-03-15T10:30:00Z"
+        assert data["officialDate"] == "2023-03-15T06:30:00"
         assert data["documentDirectionCategory"] == "OUTGOING"
         assert len(data["downloadOptionBag"]) == 1
         assert data["downloadOptionBag"][0]["mimeTypeIdentifier"] == "image/tiff"
@@ -1520,6 +1519,8 @@ class TestChildContinuity:
         expected_data["childApplicationFilingDate"] = serialize_date(
             parse_to_date(expected_data["childApplicationFilingDate"])
         )
+        # Remove None values from expected data to match to_dict() filtering behavior
+        expected_data = {k: v for k, v in expected_data.items() if v is not None}
         assert data == expected_data
 
 
@@ -1671,7 +1672,7 @@ class TestDocumentMetaData:
         )
         data = doc_meta.to_dict()
         assert data["zipFileName"] == sample_document_meta_data_data["zipFileName"]
-        assert data["fileCreateDateTime"] == "2023-01-01T12:00:00Z"
+        assert data["fileCreateDateTime"] == "2023-01-01T07:00:00"
 
     def test_document_meta_data_with_null_input(self) -> None:
         doc_meta = PrintedMetaData.from_dict({})
@@ -1844,7 +1845,7 @@ class TestPatentFileWrapper:
             data["pgpubDocumentMetaData"]["zipFileName"]
             == sample_document_meta_data_data["zipFileName"]
         )
-        assert data["lastIngestionDateTime"] == "2023-02-02T11:00:00Z"
+        assert data["lastIngestionDateTime"] == "2023-02-02T06:00:00"
 
     def test_patent_file_wrapper_with_grant_document_meta_data(
         self, sample_document_meta_data_data: Dict[str, Any]

@@ -151,15 +151,15 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
                     )
                 if senior_party_name_q:
                     q_parts.append(
-                        f"seniorPartyData.patentOwnerName:{senior_party_name_q} OR seniorPartyData.inventorName:{senior_party_name_q} OR seniorPartyData.realPartyInInterestName:{senior_party_name_q}"
+                        f'seniorPartyData.patentOwnerName:"{senior_party_name_q}" OR seniorPartyData.inventorName:"{senior_party_name_q}" OR seniorPartyData.realPartyInInterestName:"{senior_party_name_q}"'
                     )
                 if junior_party_name_q:
                     q_parts.append(
-                        f"juniorPartyData.patentOwnerName:{junior_party_name_q} OR juniorPartyData.inventorName:{junior_party_name_q} OR juniorPartyData.realPartyInInterestName:{junior_party_name_q}"
+                        f'juniorPartyData.patentOwnerName:"{junior_party_name_q}" OR juniorPartyData.inventorName:"{junior_party_name_q}" OR juniorPartyData.realPartyInInterestName:"{junior_party_name_q}"'
                     )
                 if real_party_in_interest_q:
                     q_parts.append(
-                        f"seniorPartyData.realPartyInInterestName:{real_party_in_interest_q} OR juniorPartyData.realPartyInInterestName:{real_party_in_interest_q}"
+                        f'seniorPartyData.realPartyInInterestName:"{real_party_in_interest_q}" OR juniorPartyData.realPartyInInterestName:"{real_party_in_interest_q}"'
                     )
 
                 if interference_outcome_category_q:

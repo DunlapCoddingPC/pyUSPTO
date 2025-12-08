@@ -24,36 +24,84 @@ def interference_decision_sample() -> Dict[str, Any]:
     """Sample interference decision data for testing."""
     return {
         "count": 2,
-        "requestIdentifier": "req-123",
+        "requestIdentifier": "c76aa849-bd60-40db-a98b-c8cbc143d4f9",
         "patentInterferenceDataBag": [
             {
-                "interferenceNumber": "106123",
-                "interferenceRecordIdentifier": "interference-uuid-1",
-                "lastModifiedDateTime": "2023-03-15T10:30:00Z",
+                "interferenceNumber": "104807",
+                "lastModifiedDateTime": "2025-11-20T03:12:32",
                 "interferenceMetaData": {
-                    "seniorPartyApplicationNumber": "12/345678",
-                    "juniorPartyApplicationNumber": "13/987654",
-                    "seniorPartyName": "Senior Party Inc.",
-                    "juniorPartyName": "Junior Party LLC",
+                    "interferenceLastModifiedDateTime": "2006-12-22T00:00:00",
+                    "interferenceLastModifiedDate": "2006-12-22",
+                    "declarationDate": "2002-12-11",
+                    "interferenceStyleName": "VINOGRADOV V. FLAMM",
+                    "fileDownloadURI": "https://api.uspto.gov/api/v1/patent/ptab-files/INTF/104807/104807.zip",
+                },
+                "seniorPartyData": {
+                    "applicationNumberText": "08739037",
+                    "grantDate": "1999-10-12",
+                    "groupArtUnitNumber": "1763",
+                    "inventorName": "GEORGY  VINOGRADOV et al",
+                    "patentNumber": "5965034",
+                    "patentOwnerName": "GEORGY  VINOGRADOV et al",
+                    "realPartyInInterestName": "GEORGY  VINOGRADOV et al",
+                    "technologyCenterNumber": "1700",
+                },
+                "juniorPartyData": {
+                    "applicationNumberText": "08748746",
+                    "grantDate": "2005-02-22",
+                    "groupArtUnitNumber": "1763",
+                    "inventorName": "DANIEL L.  FLAMM et al",
+                    "patentNumber": "6858112",
+                    "patentOwnerName": "DANIEL L.  FLAMM et al",
+                    "publicationDate": "2003-09-11",
+                    "publicationNumber": "20030168427A1",
+                    "realPartyInInterestName": "DANIEL L.  FLAMM et al",
+                    "technologyCenterNumber": "1700",
                 },
                 "documentData": {
-                    "interferenceOutcomeCategory": "Priority to Senior Party",
-                    "decisionTypeCategory": "Final Decision",
-                    "decisionDate": "2023-03-01",
+                    "documentIdentifier": "b8c473a3bcab88d5c33ef3231daf45a10f967103a89b8db9c791d1ee",
+                    "documentName": "fd10480712-11-2002",
+                    "documentSizeQuantity": 160468,
+                    "documentOCRText": "The opinion in support of the decision being \nentered today is not binding precedent of the Board.  \n\nPaper 20 \nFiled by: Trial Section Motions Panel \n\nBox Interference Filed: December 11, 2002 \nWashington, D.C. 20231 \nTel: 703-308-9797 \nFax: 703-305-0942 \n\nUNITED STATES PATENT AND TRADEMARK OFFICE \n\nBEFORE THE BOARD OF PATENT APPEALS \nAND INTERFERENCES \n\nMAILED \nDANIEL L. FLAMM \n\nJunior Party DEC 2002 \n(U.S. Application 08/748,746), \n\nPAT & TM OFFICE BOARD OF PATENT \nV. AND INTERFER,'N\"FALS \n\nGEORGY",
+                    "documentTitleText": "DECISION-104807",
+                    "interferenceOutcomeCategory": "Final Decision",
+                    "decisionIssueDate": "2002-12-11",
+                    "decisionTypeCategory": "Decision",
+                    "fileDownloadURI": "https://api.uspto.gov/api/v1/patent/ptab-files/INTF/104807/Intf608_10480708739037_1039582800000.pdf",
+                    "documentFilingDate": "2002-12-11",
                 },
             },
             {
-                "interferenceNumber": "106124",
-                "interferenceRecordIdentifier": "interference-uuid-2",
-                "lastModifiedDateTime": "2023-03-20T14:00:00Z",
+                "interferenceNumber": "103751",
+                "lastModifiedDateTime": "2025-11-20T03:12:32",
                 "interferenceMetaData": {
-                    "seniorPartyApplicationNumber": "14/111222",
-                    "juniorPartyApplicationNumber": "14/333444",
+                    "interferenceLastModifiedDateTime": "2006-02-08T00:00:00",
+                    "interferenceLastModifiedDate": "2006-02-08",
+                    "declarationDate": "2002-02-25",
+                    "interferenceStyleName": "TANG",
+                    "fileDownloadURI": "https://api.uspto.gov/api/v1/patent/ptab-files/INTF/103751/103751.zip",
+                },
+                "seniorPartyData": {
+                    "applicationNumberText": "07996817",
+                    "grantDate": "2003-09-02",
+                    "groupArtUnitNumber": "1763",
+                    "inventorName": "  TANG",
+                    "patentNumber": "6614529",
+                    "patentOwnerName": "  TANG",
+                    "realPartyInInterestName": "  TANG",
+                    "technologyCenterNumber": "1700",
                 },
                 "documentData": {
-                    "interferenceOutcomeCategory": "Priority to Junior Party",
-                    "decisionTypeCategory": "Judgment",
-                    "decisionDate": "2023-03-10",
+                    "documentIdentifier": "a1adf3e98f9e07271420b607222b5ad0ddc7198317be600b7c48a3be",
+                    "documentName": "jd103751",
+                    "documentSizeQuantity": 45224,
+                    "documentOCRText": "E:\\FY2002~5\\FEB200~7\\FEB200~4\\JD103751.WPD\n\n\nThe opinion in support of the decision being\nentered today is not binding precedent of the Board.\n\n                                                  Paper 62\nFiled by: Interference Trial Section Merits Panel\n           Box Interference                       Filed:\n           Washington, D.C.  20231                    25 February 2002\n           Tel:  703-308-9797\n           Fax:  703-305-0942\n\nUNITED STATES PATENT AND TRADEMARK OFFICE\n____________",
+                    "documentTitleText": "DECISION-103751",
+                    "interferenceOutcomeCategory": "Final Decision",
+                    "decisionIssueDate": "2002-02-25",
+                    "decisionTypeCategory": "Decision",
+                    "fileDownloadURI": "https://api.uspto.gov/api/v1/patent/ptab-files/INTF/103751/Intf608_10375107996817_1014613200000.pdf",
+                    "documentFilingDate": "2002-02-25",
                 },
             },
         ],
@@ -153,8 +201,8 @@ class TestPTABInterferencesClientSearchDecisions:
             interference_number_q="106123",
             senior_party_name_q="Senior Party Inc.",
             junior_party_name_q="Junior Party LLC",
-            interference_outcome_category_q="Priority to Senior Party",
-            decision_type_category_q="Final Decision",
+            interference_outcome_category_q="Final Decision",
+            decision_type_category_q="Decision",
             decision_date_from_q="2023-01-01",
             decision_date_to_q="2023-12-31",
             limit=25,
@@ -168,11 +216,15 @@ class TestPTABInterferencesClientSearchDecisions:
         params = call_args[1]["params"]
         assert "q" in params
         assert "106123" in params["interferenceNumber"]
-        assert "seniorPartyName:Senior Party Inc." in params["q"]
-        assert "juniorPartyName:Junior Party LLC" in params["q"]
-        assert "interferenceOutcomeCategory:Priority to Senior Party" in params["q"]
-        assert "decisionTypeCategory:Final Decision" in params["q"]
-        assert "decisionDate:[2023-01-01 TO 2023-12-31]" in params["q"]
+        assert 'seniorPartyData.patentOwnerName:"Senior Party Inc."' in params["q"]
+        assert 'juniorPartyData.patentOwnerName:"Junior Party LLC"' in params["q"]
+        assert (
+            'documentData.interferenceOutcomeCategory:"Final Decision"' in params["q"]
+        )
+        assert 'documentData.decisionTypeCategory:"Decision"' in params["q"]
+        assert (
+            "documentData.decisionIssueDate:[2023-01-01 TO 2023-12-31]" in params["q"]
+        )
         assert params["limit"] == 25
 
     def test_search_decisions_get_with_date_from_only(
@@ -197,7 +249,7 @@ class TestPTABInterferencesClientSearchDecisions:
         assert isinstance(result, PTABInterferenceResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
-        assert "decisionDate:>=2023-01-01" in params["q"]
+        assert "documentData.decisionIssueDate:>=2023-01-01" in params["q"]
 
     def test_search_decisions_get_with_date_to_only(
         self,
@@ -221,7 +273,7 @@ class TestPTABInterferencesClientSearchDecisions:
         assert isinstance(result, PTABInterferenceResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
-        assert "decisionDate:<=2023-12-31" in params["q"]
+        assert "documentData.decisionIssueDate:<=2023-12-31" in params["q"]
 
     def test_search_decisions_get_with_all_convenience_params(
         self,
@@ -254,12 +306,42 @@ class TestPTABInterferencesClientSearchDecisions:
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert "interferenceNumber:106123" in params["q"]
-        assert "seniorPartyApplicationNumber:12/345678" in params["q"]
-        assert "juniorPartyApplicationNumber:13/987654" in params["q"]
-        assert "seniorPartyName:Senior Party Inc." in params["q"]
-        assert "juniorPartyName:Junior Party LLC" in params["q"]
-        assert "interferenceOutcomeCategory:Priority to Senior Party" in params["q"]
-        assert "decisionTypeCategory:Final Decision" in params["q"]
+        assert "seniorPartyData.applicationNumberText:12/345678" in params["q"]
+        assert "juniorPartyData.applicationNumberText:13/987654" in params["q"]
+        assert 'seniorPartyData.patentOwnerName:"Senior Party Inc."' in params["q"]
+        assert 'juniorPartyData.patentOwnerName:"Junior Party LLC"' in params["q"]
+        assert (
+            'documentData.interferenceOutcomeCategory:"Priority to Senior Party"'
+            in params["q"]
+        )
+        assert 'documentData.decisionTypeCategory:"Final Decision"' in params["q"]
+
+    def test_search_decisions_with_real_party_in_interest_q(
+        self,
+        mock_ptab_interferences_client: PTABInterferencesClient,
+        interference_decision_sample: Dict[str, Any],
+    ) -> None:
+        """Test search_decisions with real_party_in_interest_q parameter."""
+        # Setup
+        mock_session = MagicMock()
+        mock_response = MagicMock()
+        mock_response.json.return_value = interference_decision_sample
+        mock_session.get.return_value = mock_response
+        mock_ptab_interferences_client.session = mock_session
+
+        # Test
+        result = mock_ptab_interferences_client.search_decisions(
+            real_party_in_interest_q="Tech Company Inc."
+        )
+
+        # Verify
+        assert isinstance(result, PTABInterferenceResponse)
+        call_args = mock_session.get.call_args
+        params = call_args[1]["params"]
+        assert (
+            'seniorPartyData.realPartyInInterestName:"Tech Company Inc." OR juniorPartyData.realPartyInInterestName:"Tech Company Inc."'
+            in params["q"]
+        )
 
     def test_search_decisions_post_with_body(
         self,

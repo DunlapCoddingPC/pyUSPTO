@@ -25,8 +25,8 @@ from pyUSPTO.models.utils import (
     parse_to_datetime_utc,
     serialize_date,
     serialize_datetime_as_iso,
-    to_camel_case,
     serialize_datetime_as_naive,
+    to_camel_case,
 )
 
 
@@ -91,7 +91,7 @@ class PartyData:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
         for k, v in asdict(self).items():
             if v is not None:
                 if isinstance(v, date):
@@ -172,7 +172,7 @@ class TrialMetaData:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         if self.petition_filing_date is not None:
             result["petitionFilingDate"] = serialize_date(self.petition_filing_date)
@@ -247,7 +247,7 @@ class RegularPetitionerData:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         if self.counsel_name is not None:
             result["counselName"] = self.counsel_name
@@ -288,7 +288,7 @@ class PTABTrialProceeding:
     """
 
     trial_number: Optional[str] = None
-    trial_record_identifier: Optional[str] = None
+    # trial_record_identifier: Optional[str] = None
     last_modified_date_time: Optional[datetime] = None
     trial_meta_data: Optional[TrialMetaData] = None
     patent_owner_data: Optional[PatentOwnerData] = None
@@ -336,7 +336,7 @@ class PTABTrialProceeding:
 
         return cls(
             trial_number=data.get("trialNumber"),
-            trial_record_identifier=data.get("trialRecordIdentifier"),
+            # trial_record_identifier=data.get("trialRecordIdentifier"),
             last_modified_date_time=parse_to_datetime_utc(
                 data.get("lastModifiedDateTime")
             ),
@@ -354,12 +354,12 @@ class PTABTrialProceeding:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         if self.trial_number is not None:
             result["trialNumber"] = self.trial_number
-        if self.trial_record_identifier is not None:
-            result["trialRecordIdentifier"] = self.trial_record_identifier
+        # if self.trial_record_identifier is not None:
+        #     result["trialRecordIdentifier"] = self.trial_record_identifier
         if self.last_modified_date_time is not None:
             result["lastModifiedDateTime"] = serialize_datetime_as_naive(
                 self.last_modified_date_time
@@ -430,7 +430,7 @@ class PTABTrialProceedingResponse:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         if self.count is not None:
             result["count"] = self.count
@@ -468,7 +468,7 @@ class TrialDocumentData:
         document_status: Public status.
     """
 
-    document_category: Optional[str] = None
+    # document_category: Optional[str] = None
     document_filing_date: Optional[date] = None
     document_identifier: Optional[str] = None
     document_name: Optional[str] = None
@@ -479,15 +479,15 @@ class TrialDocumentData:
     document_type_description_text: Optional[str] = None
     file_download_uri: Optional[str] = None
     filing_party_category: Optional[str] = None
-    mime_type_identifier: Optional[str] = None
-    document_status: Optional[str] = None
+    # mime_type_identifier: Optional[str] = None
+    # document_status: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TrialDocumentData":
         # Handle aliases
         file_download_uri = data.get("fileDownloadURI") or data.get("downloadURI")
         return cls(
-            document_category=data.get("documentCategory"),
+            # document_category=data.get("documentCategory"),
             document_filing_date=parse_to_date(data.get("documentFilingDate")),
             document_identifier=data.get("documentIdentifier"),
             document_name=data.get("documentName"),
@@ -498,8 +498,8 @@ class TrialDocumentData:
             document_type_description_text=data.get("documentTypeDescriptionText"),
             file_download_uri=file_download_uri,
             filing_party_category=data.get("filingPartyCategory"),
-            mime_type_identifier=data.get("mimeTypeIdentifier"),
-            document_status=data.get("documentStatus"),
+            # mime_type_identifier=data.get("mimeTypeIdentifier"),
+            # document_status=data.get("documentStatus"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -508,10 +508,10 @@ class TrialDocumentData:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
-        if self.document_category is not None:
-            result["documentCategory"] = self.document_category
+        # if self.document_category is not None:
+        #     result["documentCategory"] = self.document_category
         if self.document_filing_date is not None:
             result["documentFilingDate"] = serialize_date(self.document_filing_date)
         if self.document_identifier is not None:
@@ -532,10 +532,10 @@ class TrialDocumentData:
             result["fileDownloadURI"] = self.file_download_uri  # Uppercase URI
         if self.filing_party_category is not None:
             result["filingPartyCategory"] = self.filing_party_category
-        if self.mime_type_identifier is not None:
-            result["mimeTypeIdentifier"] = self.mime_type_identifier
-        if self.document_status is not None:
-            result["documentStatus"] = self.document_status
+        # if self.mime_type_identifier is not None:
+        #     result["mimeTypeIdentifier"] = self.mime_type_identifier
+        # if self.document_status is not None:
+        #     result["documentStatus"] = self.document_status
 
         return result
 
@@ -574,7 +574,7 @@ class TrialDecisionData:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         if self.statute_and_rule_bag is not None and len(self.statute_and_rule_bag) > 0:
             result["statuteAndRuleBag"] = self.statute_and_rule_bag
@@ -629,7 +629,6 @@ class PTABTrialDocument:
                 data.get("lastModifiedDateTime")
             ),
             trial_number=data.get("trialNumber"),
-            trial_type_code=data.get("trialTypeCode"),
             trial_meta_data=(
                 TrialMetaData.from_dict(trial_meta) if trial_meta else None
             ),
@@ -660,7 +659,7 @@ class PTABTrialDocument:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         if self.trial_document_category is not None:
             result["trialDocumentCategory"] = self.trial_document_category
@@ -670,8 +669,6 @@ class PTABTrialDocument:
             )
         if self.trial_number is not None:
             result["trialNumber"] = self.trial_number
-        if self.trial_type_code is not None:
-            result["trialTypeCode"] = self.trial_type_code
         if self.trial_meta_data is not None:
             result["trialMetaData"] = self.trial_meta_data.to_dict()
         if self.patent_owner_data is not None:
@@ -725,7 +722,7 @@ class PTABTrialDocumentResponse:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         if self.count is not None:
             result["count"] = self.count
@@ -798,7 +795,7 @@ class AppealMetaData:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         if self.appeal_filing_date is not None:
             result["appealFilingDate"] = serialize_date(self.appeal_filing_date)
@@ -862,7 +859,7 @@ class RequestorData:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
         for k, v in asdict(self).items():
             if v is not None:
                 result[to_camel_case(k)] = v
@@ -926,7 +923,7 @@ class AppealDocumentData:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         if self.document_filing_date is not None:
             result["documentFilingDate"] = serialize_date(self.document_filing_date)
@@ -991,7 +988,7 @@ class DecisionData:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
         for k, v in asdict(self).items():
             if v is not None:
                 if isinstance(v, date):
@@ -1082,7 +1079,7 @@ class PTABAppealDecision:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         # Manually process each field to preserve nested objects
         if self.appeal_number is not None:
@@ -1155,7 +1152,7 @@ class PTABAppealResponse:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         # Manually process each field
         if self.count is not None:
@@ -1229,7 +1226,7 @@ class InterferenceMetaData:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         if self.interference_style_name is not None:
             result["interferenceStyleName"] = self.interference_style_name
@@ -1305,7 +1302,7 @@ class AdditionalPartyData:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         if self.application_number_text is not None:
             result["applicationNumberText"] = self.application_number_text
@@ -1388,7 +1385,7 @@ class InterferenceDocumentData:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         if self.document_identifier is not None:
             result["documentIdentifier"] = self.document_identifier
@@ -1503,7 +1500,7 @@ class PTABInterferenceDecision:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         # Manually process each field to preserve nested objects
         if self.interference_number is not None:
@@ -1581,7 +1578,7 @@ class PTABInterferenceResponse:
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result = {}
+        result: Dict[str, Any] = {}
 
         # Manually process each field
         if self.count is not None:

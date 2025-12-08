@@ -226,10 +226,10 @@ class TestPTABTrialsClientSearchProceedings:
         assert isinstance(result, PTABTrialProceedingResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
-        assert "patentOwnerData.patentOwnerName:Test Owner" in params["q"]
-        assert "regularPetitionerData.realPartyInInterestName:Test Petitioner" in params["q"]
-        assert "respondentData.patentOwnerName:Test Respondent" in params["q"]
-        assert "trialMetaData.trialStatusCategory:Instituted" in params["q"]
+        assert 'patentOwnerData.patentOwnerName:"Test Owner"' in params["q"]
+        assert 'regularPetitionerData.realPartyInInterestName:"Test Petitioner"' in params["q"]
+        assert 'respondentData.patentOwnerName:"Test Respondent"' in params["q"]
+        assert 'trialMetaData.trialStatusCategory:"Instituted"' in params["q"]
 
     def test_search_proceedings_with_date_from_only(
         self,
@@ -429,13 +429,13 @@ class TestPTABTrialsClientSearchDocuments:
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert "trialNumber:IPR2023-00001" in params["q"]
-        assert "documentData.documentCategory:Paper" in params["q"]
-        assert "documentData.documentTypeDescriptionText:Patent Owner Response" in params["q"]
-        assert "regularPetitionerData.realPartyInInterestName:Test Petitioner" in params["q"]
-        assert "patentOwnerData.inventorName:Jane Inventor" in params["q"]
-        assert "regularPetitionerData.realPartyInInterestName:Real Party LLC" in params["q"]
+        assert 'documentData.documentCategory:"Paper"' in params["q"]
+        assert 'documentData.documentTypeDescriptionText:"Patent Owner Response"' in params["q"]
+        assert 'regularPetitionerData.realPartyInInterestName:"Test Petitioner"' in params["q"]
+        assert 'patentOwnerData.inventorName:"Jane Inventor"' in params["q"]
+        assert 'regularPetitionerData.realPartyInInterestName:"Real Party LLC"' in params["q"]
         assert "patentOwnerData.patentNumber:US1234567" in params["q"]
-        assert "patentOwnerData.patentOwnerName:Test Owner" in params["q"]
+        assert 'patentOwnerData.patentOwnerName:"Test Owner"' in params["q"]
         assert params["limit"] == 50
 
     def test_search_documents_with_date_from_only(
@@ -634,14 +634,14 @@ class TestPTABTrialsClientSearchDecisions:
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert "trialNumber:IPR2023-00001" in params["q"]
-        assert "decisionData.decisionTypeCategory:Final Written Decision" in params["q"]
+        assert 'decisionData.decisionTypeCategory:"Final Written Decision"' in params["q"]
         assert "trialTypeCode:IPR" in params["q"]
         assert "patentOwnerData.patentNumber:US1234567" in params["q"]
         assert "patentOwnerData.applicationNumberText:15/123456" in params["q"]
-        assert "patentOwnerData.patentOwnerName:Test Owner" in params["q"]
-        assert "trialMetaData.trialStatusCategory:Instituted" in params["q"]
-        assert "regularPetitionerData.realPartyInInterestName:Real Party LLC" in params["q"]
-        assert "documentData.documentCategory:Decision" in params["q"]
+        assert 'patentOwnerData.patentOwnerName:"Test Owner"' in params["q"]
+        assert 'trialMetaData.trialStatusCategory:"Instituted"' in params["q"]
+        assert 'regularPetitionerData.realPartyInInterestName:"Real Party LLC"' in params["q"]
+        assert 'documentData.documentCategory:"Decision"' in params["q"]
         assert "decisionData.decisionIssueDate:[2023-01-01 TO 2023-12-31]" in params["q"]
         assert params["limit"] == 50
 
@@ -692,6 +692,30 @@ class TestPTABTrialsClientSearchDecisions:
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert "decisionData.decisionIssueDate:<=2023-12-31" in params["q"]
+
+    def test_search_decisions_with_document_type_description_q(
+        self,
+        mock_ptab_trials_client: PTABTrialsClient,
+        trial_document_sample: Dict[str, Any],
+    ) -> None:
+        """Test search_decisions with document_type_description_q parameter."""
+        # Setup
+        mock_session = MagicMock()
+        mock_response = MagicMock()
+        mock_response.json.return_value = trial_document_sample
+        mock_session.get.return_value = mock_response
+        mock_ptab_trials_client.session = mock_session
+
+        # Test
+        result = mock_ptab_trials_client.search_decisions(
+            document_type_description_q="Final Written Decision"
+        )
+
+        # Verify
+        assert isinstance(result, PTABTrialDocumentResponse)
+        call_args = mock_session.get.call_args
+        params = call_args[1]["params"]
+        assert 'documentData.documentTypeDescriptionText:"*Final Written Decision*"' in params["q"]
 
     def test_search_decisions_post_with_body(
         self,
