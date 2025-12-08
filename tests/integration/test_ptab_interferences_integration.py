@@ -185,7 +185,7 @@ class TestPTABInterferencesIntegration:
         try:
             # Search for senior or junior party with wildcard to ensure results
             response = ptab_interferences_client.search_decisions(
-                senior_party_name_q="*",
+                senior_party_name_q="PATRICE",
                 limit=2,
             )
 
@@ -197,7 +197,7 @@ class TestPTABInterferencesIntegration:
                 assert response.patent_interference_data_bag is not None
 
         except USPTOApiError as e:
-            pytest.skip(f"PTAB Interferences API error during search by party: {e}")
+            pytest.fail(f"PTAB Interferences API error during search by party: {e}")
 
     def test_search_decisions_by_patent_number(
         self, ptab_interferences_client: PTABInterferencesClient
