@@ -1,5 +1,5 @@
 """
-models.base - Base model classes and protocols for USPTO API models
+models.base - Base model classes and protocols for USPTO API models.
 
 This module provides base model classes and protocols for USPTO API models.
 """

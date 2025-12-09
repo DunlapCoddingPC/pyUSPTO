@@ -1,5 +1,5 @@
 """
-models.ptab - Data models for USPTO PTAB (Patent Trial and Appeal Board) APIs
+models.ptab - Data models for USPTO PTAB (Patent Trial and Appeal Board) APIs.
 
 This module provides data models, primarily using frozen dataclasses, for
 representing responses from the USPTO PTAB APIs. These models cover:
@@ -9,7 +9,6 @@ representing responses from the USPTO PTAB APIs. These models cover:
 - Interference decisions
 """
 
-import json
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
@@ -24,7 +23,6 @@ from pyUSPTO.models.utils import (
     parse_to_date,
     parse_to_datetime_utc,
     serialize_date,
-    serialize_datetime_as_iso,
     serialize_datetime_as_naive,
     to_camel_case,
 )

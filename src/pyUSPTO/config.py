@@ -1,5 +1,5 @@
 """
-config - Configuration management for USPTO API clients
+config - Configuration management for USPTO API clients.
 
 This module provides configuration management for USPTO API clients,
 including API keys, base URLs, and HTTP transport settings.

@@ -1,5 +1,5 @@
 """
-clients - USPTO API client implementations
+clients - USPTO API client implementations.
 
 This package provides client implementations for USPTO APIs.
 """

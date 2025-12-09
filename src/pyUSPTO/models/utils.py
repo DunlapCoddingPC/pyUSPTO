@@ -1,5 +1,5 @@
 """
-models.utils - Utility functions for USPTO data models
+models.utils - Utility functions for USPTO data models.
 
 This module provides utility functions for parsing, serializing, and converting
 data used across USPTO API data models. These utilities handle date/datetime
@@ -46,7 +46,6 @@ def parse_to_date(date_str: Optional[str], fmt: str = "%Y-%m-%d") -> Optional[da
     Warns:
         USPTODateParseWarning: If the date string cannot be parsed.
     """
-
     if not date_str:
         return None
     try:
@@ -82,7 +81,6 @@ def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
         USPTOTimezoneWarning: If timezone localization fails.
 
     """
-
     if not datetime_str:
         return None
     dt_obj: Optional[datetime] = None
@@ -199,7 +197,6 @@ def parse_yn_to_bool(value: Optional[str]) -> Optional[bool]:
     Warns:
         USPTOBooleanParseWarning: If the value is not 'Y' or 'N'.
     """
-
     if value is None:
         return None
     if value == "":
@@ -226,7 +223,6 @@ def serialize_bool_to_yn(value: Optional[bool]) -> Optional[str]:
         Optional[str]: "Y" if `value` is True, "N" if `value` is False.
             Returns None if `value` is None.
     """
-
     if value is None:
         return None
     return "Y" if value else "N"

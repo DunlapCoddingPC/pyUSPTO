@@ -1,5 +1,5 @@
 """
-http_config - HTTP client configuration for USPTO API requests
+http_config - HTTP client configuration for USPTO API requests.
 
 This module provides configuration for HTTP transport-level settings including
 timeouts, retries, connection pooling, and custom headers.

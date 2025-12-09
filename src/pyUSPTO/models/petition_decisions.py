@@ -1,5 +1,5 @@
 """
-models.petition_decisions - Data models for USPTO Final Petition Decisions API
+models.petition_decisions - Data models for USPTO Final Petition Decisions API.
 
 This module provides data models, primarily using frozen dataclasses, for
 representing responses from the USPTO Final Petition Decisions API. These models

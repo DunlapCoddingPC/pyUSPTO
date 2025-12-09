@@ -1,5 +1,5 @@
 """
-base - Base client class for USPTO API clients
+base - Base client class for USPTO API clients.
 
 This module provides a base client class with common functionality for all USPTO API clients.
 """
@@ -15,10 +15,8 @@ from typing import (
     Protocol,
     Type,
     TypeVar,
-    Union,
     runtime_checkable,
 )
-from urllib.parse import urlparse
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -27,12 +25,10 @@ from urllib3.util.retry import Retry
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import (
     APIErrorArgs,
-    USPTOApiError,
     USPTOConnectionError,
     USPTOTimeout,
     get_api_exception,
 )
-from pyUSPTO.http_config import HTTPConfig
 
 
 @runtime_checkable
@@ -375,8 +371,6 @@ class BaseUSPTOClient(Generic[T]):
             FileExistsError: If file exists and overwrite=False
             ValueError: If file_path is a directory but no filename can be determined
         """
-        from pathlib import Path
-
         path = Path(file_path)
 
         # If path is a directory, try to extract filename from Content-Disposition

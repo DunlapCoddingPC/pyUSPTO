@@ -1,5 +1,5 @@
 """
-clients.ptab_interferences - Client for USPTO PTAB Interferences API
+clients.ptab_interferences - Client for USPTO PTAB Interferences API.
 
 This module provides a client for interacting with the USPTO PTAB (Patent Trial
 and Appeal Board) Interferences API. It allows you to search for patent interference decisions.

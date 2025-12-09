@@ -1,5 +1,5 @@
 """
-clients.ptab_trials - Client for USPTO PTAB Trials API
+clients.ptab_trials - Client for USPTO PTAB Trials API.
 
 This module provides a client for interacting with the USPTO PTAB (Patent Trial
 and Appeal Board) Trials API. It allows you to search for trial proceedings,

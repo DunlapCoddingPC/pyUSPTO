@@ -1,5 +1,5 @@
 """
-clients.patent_data - Client for USPTO patent data API
+clients.patent_data - Client for USPTO patent data API.
 
 This module provides a client for interacting with the USPTO Patent Data API.
 It allows you to search for and retrieve patent application data.
@@ -8,7 +8,6 @@ It allows you to search for and retrieve patent application data.
 import warnings
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
-from urllib.parse import urljoin, urlparse
 
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
@@ -16,19 +15,16 @@ from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
     ApplicationMetaData,
     Assignment,
-    ChildContinuity,
     DocumentBag,
     DocumentFormat,
     EventData,
     ForeignPriority,
-    ParentContinuity,
     PatentDataResponse,
     PatentFileWrapper,
     PatentTermAdjustmentData,
     PrintedMetaData,
     PrintedPublication,
     RecordAttorney,
-    StatusCodeCollection,
     StatusCodeSearchResponse,
 )
 from pyUSPTO.warnings import USPTODataMismatchWarning
@@ -1003,7 +999,6 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 comprehensive data if found using one of the identifiers,
                 otherwise None.
         """
-
         if application_number:
             return self.get_application_by_number(application_number=application_number)
         if patent_number:

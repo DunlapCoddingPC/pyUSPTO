@@ -1,5 +1,5 @@
 """
-clients.petition_decisions - Client for USPTO Final Petition Decisions API
+clients.petition_decisions - Client for USPTO Final Petition Decisions API.
 
 This module provides a client for interacting with the USPTO Final Petition
 Decisions API. It allows you to search for and retrieve final agency petition
@@ -8,7 +8,7 @@ decisions in publicly available patent applications and patents filed in 2001 or
 
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, Optional, Union
 
 import requests
 

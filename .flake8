@@ -1,0 +1,4 @@
+[flake8]
+ignore =
+    # Line too long — Black handles width
+    E501

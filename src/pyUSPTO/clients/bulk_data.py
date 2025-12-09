@@ -1,5 +1,5 @@
 """
-clients.bulk_data - Client for USPTO bulk data API
+clients.bulk_data - Client for USPTO bulk data API.
 
 This module provides a client for interacting with the USPTO Open Data Portal (ODP)
 Bulk Data API. It allows you to search for and download bulk data products.

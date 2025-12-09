@@ -1,5 +1,5 @@
 """
-utils.http - HTTP utilities for USPTO API clients
+utils.http - HTTP utilities for USPTO API clients.
 
 This module provides HTTP utilities for USPTO API clients.
 """

@@ -1,5 +1,5 @@
 """
-models.bulk_data - Data models for USPTO bulk data API
+models.bulk_data - Data models for USPTO bulk data API.
 
 This module provides data models for the USPTO Open Data Portal (ODP) Bulk Data API.
 """

@@ -1,5 +1,5 @@
 """
-clients.ptab_appeals - Client for USPTO PTAB Appeals API
+clients.ptab_appeals - Client for USPTO PTAB Appeals API.
 
 This module provides a client for interacting with the USPTO PTAB (Patent Trial
 and Appeal Board) Appeals API. It allows you to search for ex parte appeal decisions.

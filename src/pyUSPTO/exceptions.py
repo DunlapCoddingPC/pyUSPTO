@@ -1,5 +1,5 @@
 """
-exceptions - Exception classes for USPTO API clients
+exceptions - Exception classes for USPTO API clients.
 
 This module provides exception classes for USPTO API errors that correspond to
 the various response types from the USPTO API. It also includes helper

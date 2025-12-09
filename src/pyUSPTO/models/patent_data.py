@@ -1,5 +1,5 @@
 """
-models.patent_data - Data models for USPTO patent data API
+models.patent_data - Data models for USPTO patent data API.
 
 This module provides Pydantic-style data models, primarily using frozen
 dataclasses, for representing responses from the USPTO Patent Data API.
@@ -16,12 +16,10 @@ import warnings
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from enum import Enum
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional
 
 # Import utility functions from models.utils module
 from pyUSPTO.models.utils import (
-    ASSUMED_NAIVE_TIMEZONE,
-    ASSUMED_NAIVE_TIMEZONE_STR,
     parse_to_date,
     parse_to_datetime_utc,
     parse_yn_to_bool,
@@ -113,7 +111,6 @@ class DocumentFormat:
             DocumentFormat: An instance of `DocumentFormat` initialized with
                 data from the input dictionary.
         """
-
         return cls(
             mime_type_identifier=data.get("mimeTypeIdentifier"),
             download_url=data.get("downloadUrl"),
@@ -132,7 +129,6 @@ class DocumentFormat:
                 instance with keys "mimeTypeIdentifier", "downloadUrl", and
                 "pageTotalQuantity".
         """
-
         return {
             "mimeTypeIdentifier": self.mime_type_identifier,
             "downloadUrl": self.download_url,
@@ -188,7 +184,6 @@ class Document:
         Returns:
             Document: An instance of `Document`.
         """
-
         dl_formats = [
             DocumentFormat.from_dict(f)
             for f in data.get("downloadOptionBag", [])
@@ -224,7 +219,6 @@ class Document:
         Returns:
             Dict[str, Any]: A dictionary representation of the `Document`.
         """
-
         d = {
             "applicationNumberText": self.application_number_text,
             "officialDate": (
