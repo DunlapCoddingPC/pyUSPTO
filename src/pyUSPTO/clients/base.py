@@ -441,4 +441,9 @@ class BaseUSPTOClient(Generic[T]):
 
     @property
     def api_key(self) -> str:
+        """Return a masked representation of the API key for security purposes.
+
+        Returns:
+            str: A string of asterisks masking the actual API key.
+        """
         return "********"

@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 
 @dataclass
 class FileData:
-    """Represents a file in the bulk data API."""
+    """Represent a file in the bulk data API."""
 
     file_name: str
     file_size: int
@@ -60,7 +60,7 @@ class ProductFileBag:
 
 @dataclass
 class BulkDataProduct:
-    """Represents a product in the bulk data API."""
+    """Represent a product in the bulk data API."""
 
     product_identifier: str
     product_description_text: str

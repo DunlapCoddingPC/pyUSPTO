@@ -68,7 +68,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         response_data: PetitionDecisionResponse,
         petition_decision_record_identifier_for_validation: Optional[str] = None,
     ) -> Optional[PetitionDecision]:
-        """Helper to extract a single PetitionDecision from response.
+        """Extract a single PetitionDecision from the response.
 
         Args:
             response_data: The API response containing petition decisions.
@@ -123,7 +123,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         final_deciding_office_name_q: Optional[str] = None,
         additional_query_params: Optional[Dict[str, Any]] = None,
     ) -> PetitionDecisionResponse:
-        """Searches for final petition decisions.
+        """Return final petition decisions matching the given criteria.
 
         This method can perform either a GET request using query parameters or a POST
         request if post_body is specified. When using GET, you can provide either a
@@ -270,7 +270,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         petition_decision_record_identifier: str,
         include_documents: Optional[bool] = None,
     ) -> Optional[PetitionDecision]:
-        """Retrieves a specific petition decision by its record identifier.
+        """Retrieve a specific petition decision by its record identifier.
 
         Args:
             petition_decision_record_identifier: The unique identifier for the petition
@@ -336,7 +336,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         destination_path: Optional[str] = None,
         overwrite: bool = False,
     ) -> Union[PetitionDecisionDownloadResponse, requests.Response, str]:
-        """Downloads petition decisions data in the specified format.
+        """Download petition decisions data in the specified format.
 
         This endpoint is designed for bulk downloads of petition decisions data.
         It supports JSON and CSV formats.
@@ -479,7 +479,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
                 return result
 
     def paginate_decisions(self, **kwargs: Any) -> Iterator[PetitionDecision]:
-        """Provides an iterator to paginate through petition decision search results.
+        """Provide an iterator to paginate through petition decision search results.
 
         This method simplifies fetching all petition decisions matching a search query
         by automatically handling pagination. It internally calls the search_decisions
@@ -533,7 +533,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         destination_path: Optional[str] = None,
         overwrite: bool = False,
     ) -> str:
-        """Downloads a petition decision document in the specified format.
+        """Download a petition decision document in the specified format.
 
         Args:
             download_option: DocumentDownloadOption object containing the download

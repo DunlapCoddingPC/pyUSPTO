@@ -69,7 +69,7 @@ class DocumentDirectionCategory(Enum):
 # --- Data Models ---
 @dataclass(frozen=True)
 class DocumentDownloadOption:
-    """Represents a download option for a petition decision document.
+    """Represent a download option for a petition decision document.
 
     Attributes:
         mime_type_identifier: The document format type (e.g., "PDF", "XML", "MS_WORD").
@@ -83,7 +83,7 @@ class DocumentDownloadOption:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DocumentDownloadOption":
-        """Creates a DocumentDownloadOption instance from a dictionary.
+        """Create a DocumentDownloadOption instance from a dictionary.
 
         Args:
             data: Dictionary containing download option data from API response.
@@ -98,7 +98,7 @@ class DocumentDownloadOption:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the DocumentDownloadOption instance to a dictionary.
+        """Convert the DocumentDownloadOption instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.
@@ -113,7 +113,7 @@ class DocumentDownloadOption:
 
 @dataclass(frozen=True)
 class PetitionDecisionDocument:
-    """Represents a document associated with a petition decision.
+    """Represent a document associated with a petition decision.
 
     Attributes:
         application_number_text: The application number associated with the document.
@@ -135,7 +135,7 @@ class PetitionDecisionDocument:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PetitionDecisionDocument":
-        """Creates a PetitionDecisionDocument instance from a dictionary.
+        """Create a PetitionDecisionDocument instance from a dictionary.
 
         Args:
             data: Dictionary containing document data from API response.
@@ -166,7 +166,7 @@ class PetitionDecisionDocument:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the PetitionDecisionDocument instance to a dictionary.
+        """Convert the PetitionDecisionDocument instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.
@@ -193,7 +193,7 @@ class PetitionDecisionDocument:
 
 @dataclass(frozen=True)
 class PetitionDecision:
-    """Represents a final petition decision record.
+    """Represent a final petition decision record.
 
     This is the main data model representing a single petition decision from the
     USPTO Final Petition Decisions API. It contains comprehensive information about
@@ -260,7 +260,7 @@ class PetitionDecision:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PetitionDecision":
-        """Creates a PetitionDecision instance from a dictionary.
+        """Create a PetitionDecision instance from a dictionary.
 
         Args:
             data: Dictionary containing petition decision data from API response.
@@ -339,7 +339,7 @@ class PetitionDecision:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the PetitionDecision instance to a dictionary.
+        """Convert the PetitionDecision instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.
@@ -406,7 +406,7 @@ class PetitionDecisionResponse:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "PetitionDecisionResponse":
-        """Creates a PetitionDecisionResponse instance from a dictionary.
+        """Create a PetitionDecisionResponse instance from a dictionary.
 
         Args:
             data: Dictionary containing API response data.
@@ -435,7 +435,7 @@ class PetitionDecisionResponse:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the PetitionDecisionResponse instance to a dictionary.
+        """Convert the PetitionDecisionResponse instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.
@@ -470,7 +470,7 @@ class PetitionDecisionDownloadResponse:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PetitionDecisionDownloadResponse":
-        """Creates a PetitionDecisionDownloadResponse instance from a dictionary.
+        """Create a PetitionDecisionDownloadResponse instance from a dictionary.
 
         Args:
             data: Dictionary containing download API response data.
@@ -493,7 +493,7 @@ class PetitionDecisionDownloadResponse:
         return cls(petition_decision_data=decisions)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the PetitionDecisionDownloadResponse instance to a dictionary.
+        """Convert the PetitionDecisionDownloadResponse instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.

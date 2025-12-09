@@ -73,7 +73,11 @@ class PTABTrialsClient(
         range_filters: Optional[str],
         additional_params: Optional[Dict[str, Any]],
     ) -> Union[PTABTrialProceedingResponse, PTABTrialDocumentResponse]:
-        """Internal helper to execute search requests (GET or POST)."""
+        """Execute a PTAB trial search request using GET or POST.
+
+        If a POST body is provided, perform a POST request; otherwise, build
+        query parameters and send a GET request.
+        """
         endpoint = self.ENDPOINTS[endpoint_key]
 
         # Handle POST request
@@ -145,7 +149,7 @@ class PTABTrialsClient(
         petition_filing_date_to_q: Optional[str] = None,
         additional_query_params: Optional[Dict[str, Any]] = None,
     ) -> PTABTrialProceedingResponse:
-        """Searches for PTAB trial proceedings.
+        """Search for PTAB trial proceedings.
 
         This method can perform either a GET request using query parameters or a POST
         request if post_body is specified. When using GET, you can provide either a
@@ -257,7 +261,7 @@ class PTABTrialsClient(
         patent_owner_name_q: Optional[str] = None,
         additional_query_params: Optional[Dict[str, Any]] = None,
     ) -> PTABTrialDocumentResponse:
-        """Searches for PTAB trial documents.
+        """Search for PTAB trial documents.
 
         This method can perform either a GET request using query parameters or a POST
         request if post_body is specified. When using GET, you can provide either a
@@ -375,7 +379,7 @@ class PTABTrialsClient(
         document_category_q: Optional[str] = None,
         additional_query_params: Optional[Dict[str, Any]] = None,
     ) -> PTABTrialDocumentResponse:
-        """Searches for PTAB trial decisions.
+        """Search for PTAB trial decisions.
 
         This method can perform either a GET request using query parameters or a POST
         request if post_body is specified. When using GET, you can provide either a
@@ -478,7 +482,7 @@ class PTABTrialsClient(
         )  # type: ignore
 
     def paginate_proceedings(self, **kwargs: Any) -> Iterator[PTABTrialProceeding]:
-        """Provides an iterator to paginate through trial proceeding search results."""
+        """Provide an iterator to paginate through trial proceeding search results."""
         if "post_body" in kwargs:
             raise ValueError(
                 "paginate_proceedings uses GET requests and does not support 'post_body'. "

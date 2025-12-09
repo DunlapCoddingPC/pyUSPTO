@@ -41,7 +41,7 @@ class DirectionCategory(Enum):
 
 
 class ActiveIndicator(Enum):
-    """Represents an active or inactive status, often used for practitioners or entities.
+    """Represent an active or inactive status, often used for practitioners or entities.
 
     This Enum is designed to flexibly parse common string representations of
     active/inactive or true/false states (e.g., "Y", "N", "true", "false", "Active")
@@ -74,7 +74,7 @@ class ActiveIndicator(Enum):
 # --- Data Models ---
 @dataclass(frozen=True)
 class DocumentFormat:
-    """Represents an available download format for a specific document.
+    """Represent an available download format for a specific document.
 
     Attributes:
         mime_type_identifier: The MIME type of the downloadable file (e.g., "PDF").
@@ -87,16 +87,26 @@ class DocumentFormat:
     page_total_quantity: Optional[int] = None
 
     def __str__(self) -> str:
+        """Return a human-readable string representation of the DocumentFormat.
+
+        Returns:
+            str: A description of the format type and page count.
+        """
         return (
             f"{self.mime_type_identifier} format with {self.page_total_quantity} pages"
         )
 
     def __repr__(self) -> str:
+        """Return a developer-friendly string representation of the DocumentFormat.
+
+        Returns:
+            str: A string showing the mime type and page count.
+        """
         return f"DocumentFormat(mime_type={self.mime_type_identifier}, pages={self.page_total_quantity})"
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DocumentFormat":
-        """Creates a `DocumentFormat` instance from a dictionary representation.
+        """Create a `DocumentFormat` instance from a dictionary representation.
 
         This factory method is typically used to construct `DocumentFormat`
         objects from data parsed from an API JSON response. It maps
@@ -118,7 +128,7 @@ class DocumentFormat:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `DocumentFormat` instance to a dictionary.
+        """Convert the `DocumentFormat` instance to a dictionary.
 
         This method serializes the `DocumentFormat` object into a dictionary,
         mapping the instance's attributes to camelCase keys. This is typically
@@ -138,7 +148,7 @@ class DocumentFormat:
 
 @dataclass(frozen=True)
 class Document:
-    """Represents a single document associated with a patent application.
+    """Represent a single document associated with a patent application.
 
     This includes metadata such as its identifier, official date, code, description,
     direction (incoming/outgoing), and available download formats.
@@ -162,17 +172,27 @@ class Document:
     document_formats: List[DocumentFormat] = field(default_factory=list)
 
     def __str__(self) -> str:
+        """Return a human-readable string representation of the Document.
+
+        Returns:
+            str: A description including document ID, code, description, and date.
+        """
         date_str = (
             self.official_date.strftime("%Y-%m-%d") if self.official_date else "No date"
         )
         return f"Document {self.document_identifier} ({self.document_code}): {self.document_code_description_text} - {date_str}"
 
     def __repr__(self) -> str:
+        """Return a developer-friendly string representation of the Document.
+
+        Returns:
+            str: A string showing the document ID, code, and date.
+        """
         return f"Document(id={self.document_identifier}, code={self.document_code}, date={self.official_date.strftime('%Y-%m-%d') if self.official_date else 'None'})"
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Document":
-        """Creates a `Document` instance from a dictionary representation.
+        """Create a `Document` instance from a dictionary representation.
 
         Maps API JSON keys (camelCase) to class attributes, parsing nested
         objects like `DocumentFormat` and `DirectionCategory`.
@@ -211,7 +231,7 @@ class Document:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `Document` instance to a dictionary for API compatibility.
+        """Convert the `Document` instance to a dictionary for API compatibility.
 
         Serializes attributes to camelCase keys and handles nested objects.
         Omits keys with None values or empty lists.
@@ -252,7 +272,7 @@ class DocumentBag:
     """
 
     def __init__(self, documents: List[Document]):
-        """Initializes the DocumentBag with a list of documents.
+        """Initialize a DocumentBag with a list of documents.
 
         Args:
             documents (List[Document]): A list of `Document` instances.
@@ -261,20 +281,38 @@ class DocumentBag:
 
     @property
     def documents(self) -> tuple[Document, ...]:
-        """Provides access to the tuple of documents."""
+        """Provide access to the tuple of documents."""
         return self._documents
 
     def __iter__(self) -> Iterator[Document]:
+        """Return an iterator over the documents in the collection.
+
+        Returns:
+            Iterator[Document]: An iterator of Document instances.
+        """
         return iter(self._documents)
 
     def __len__(self) -> int:
+        """Return the number of documents in the collection.
+
+        Returns:
+            int: The count of documents.
+        """
         return len(self._documents)
 
     def __getitem__(self, index: int) -> Document:
+        """Return the document at the specified index.
+
+        Args:
+            index: The index of the document to retrieve.
+
+        Returns:
+            Document: The document at the specified index.
+        """
         return self._documents[index]
 
     def __str__(self) -> str:
-        """Returns a string representation showing document count and summary.
+        """Return a string representation showing document count and summary.
 
         Returns:
             str: Human-readable summary of the DocumentBag.
@@ -306,7 +344,7 @@ class DocumentBag:
             return f"DocumentBag({count} documents: {code_summary})"
 
     def __repr__(self) -> str:
-        """Returns a detailed string representation for debugging.
+        """Return a detailed string representation for debugging.
 
         Returns:
             str: Detailed representation of the DocumentBag.
@@ -315,7 +353,7 @@ class DocumentBag:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DocumentBag":
-        """Creates a `DocumentBag` instance from a dictionary representation.
+        """Create a `DocumentBag` instance from a dictionary representation.
 
         Expects a dictionary with a "documentBag" key containing a list of
         document data dictionaries.
@@ -336,7 +374,7 @@ class DocumentBag:
         return cls(documents=docs)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `DocumentBag` instance to a dictionary.
+        """Convert the `DocumentBag` instance to a dictionary.
 
         Serializes the collection into a dictionary with a "documentBag" key,
         containing a list of `Document` dictionaries.
@@ -349,7 +387,7 @@ class DocumentBag:
 
 @dataclass(frozen=True)
 class Address:
-    """Represents a postal address with fields for street, city, region, country, and postal code.
+    """Represent a postal address with fields for street, city, region, country, and postal code.
 
     It can be used for various entities like applicants, inventors, or correspondence.
 
@@ -393,7 +431,7 @@ class Address:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Address":
-        """Creates an `Address` instance from a dictionary representation.
+        """Create an `Address` instance from a dictionary representation.
 
         Maps camelCase keys from API data to class attributes.
 
@@ -424,7 +462,7 @@ class Address:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `Address` instance to a dictionary with camelCase keys.
+        """Convert the `Address` instance to a dictionary with camelCase keys.
 
         Returns:
             Dict[str, Any]: A dictionary representation of the address.
@@ -454,7 +492,7 @@ class Address:
 
 @dataclass(frozen=True)
 class Telecommunication:
-    """Represents telecommunication details, such as phone or fax numbers.
+    """Represent telecommunication details, such as phone or fax numbers.
 
     Attributes:
         telecommunication_number: The main number (e.g., phone number).
@@ -468,7 +506,7 @@ class Telecommunication:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Telecommunication":
-        """Creates a `Telecommunication` instance from a dictionary.
+        """Create a `Telecommunication` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with telecommunication data.
@@ -483,7 +521,7 @@ class Telecommunication:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `Telecommunication` instance to a dictionary.
+        """Convert the `Telecommunication` instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.
@@ -534,7 +572,7 @@ class Person:
         }
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `Person` instance to a dictionary with camelCase keys.
+        """Convert the `Person` instance to a dictionary with camelCase keys.
 
         Omits attributes that are None.
 
@@ -546,7 +584,7 @@ class Person:
 
 @dataclass(frozen=True)
 class Applicant(Person):
-    """Represents an applicant for a patent, inheriting from Person.
+    """Represent an applicant for a patent, inheriting from Person.
 
     Includes applicant-specific name text and a list of correspondence addresses.
 
@@ -560,7 +598,7 @@ class Applicant(Person):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Applicant":
-        """Creates an `Applicant` instance from a dictionary.
+        """Create an `Applicant` instance from a dictionary.
 
         Inherits person fields and adds applicant-specific fields.
 
@@ -583,7 +621,7 @@ class Applicant(Person):
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `Applicant` instance to a dictionary.
+        """Convert the `Applicant` instance to a dictionary.
 
         Includes inherited person fields and applicant-specific fields,
         using camelCase keys and omitting None values or empty lists.
@@ -609,7 +647,7 @@ class Applicant(Person):
 
 @dataclass(frozen=True)
 class Inventor(Person):
-    """Represents an inventor for a patent application, inheriting from Person.
+    """Represent an inventor for a patent application, inheriting from Person.
 
     Includes inventor-specific name text and a list of correspondence addresses.
 
@@ -623,7 +661,7 @@ class Inventor(Person):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Inventor":
-        """Creates an `Inventor` instance from a dictionary.
+        """Create an `Inventor` instance from a dictionary.
 
         Inherits person fields and adds inventor-specific fields.
 
@@ -646,7 +684,7 @@ class Inventor(Person):
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `Inventor` instance to a dictionary.
+        """Convert the `Inventor` instance to a dictionary.
 
         Includes inherited person fields and inventor-specific fields,
         using camelCase keys and omitting None values or empty lists.
@@ -672,7 +710,7 @@ class Inventor(Person):
 
 @dataclass(frozen=True)
 class Attorney(Person):
-    """Represents an attorney or agent associated with a patent application, inheriting from Person.
+    """Represent an attorney or agent associated with a patent application, inheriting from Person.
 
     Includes registration number, active status, practitioner category, addresses, and telecommunication details.
 
@@ -692,7 +730,7 @@ class Attorney(Person):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Attorney":
-        """Creates an `Attorney` instance from a dictionary.
+        """Create an `Attorney` instance from a dictionary.
 
         Inherits person fields and adds attorney-specific details.
 
@@ -723,7 +761,7 @@ class Attorney(Person):
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `Attorney` instance to a dictionary.
+        """Convert the `Attorney` instance to a dictionary.
 
         Includes inherited person fields and attorney-specific fields,
         using camelCase keys and omitting None values or empty lists.
@@ -764,7 +802,7 @@ class EntityStatus:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "EntityStatus":
-        """Creates an `EntityStatus` instance from a dictionary.
+        """Create an `EntityStatus` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with entity status data.
@@ -778,7 +816,7 @@ class EntityStatus:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `EntityStatus` instance to a dictionary.
+        """Convert the `EntityStatus` instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.
@@ -809,7 +847,7 @@ class CustomerNumberCorrespondence:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CustomerNumberCorrespondence":
-        """Creates a `CustomerNumberCorrespondence` instance from a dictionary.
+        """Create a `CustomerNumberCorrespondence` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with customer number correspondence data.
@@ -835,7 +873,7 @@ class CustomerNumberCorrespondence:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `CustomerNumberCorrespondence` instance to a dictionary.
+        """Convert the `CustomerNumberCorrespondence` instance to a dictionary.
 
         Omits keys with None values or empty lists.
 
@@ -877,7 +915,7 @@ class RecordAttorney:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "RecordAttorney":
-        """Creates a `RecordAttorney` instance from a dictionary.
+        """Create a `RecordAttorney` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with record attorney data.
@@ -908,7 +946,7 @@ class RecordAttorney:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `RecordAttorney` instance to a dictionary.
+        """Convert the `RecordAttorney` instance to a dictionary.
 
         Omits keys with None values. Includes empty lists to match API behavior.
 
@@ -929,7 +967,7 @@ class RecordAttorney:
 
 @dataclass(frozen=True)
 class Assignor:
-    """Represents an assignor in a patent assignment.
+    """Represent an assignor in a patent assignment.
 
     Attributes:
         assignor_name: The name of the assigning party.
@@ -941,7 +979,7 @@ class Assignor:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Assignor":
-        """Creates an `Assignor` instance from a dictionary.
+        """Create an `Assignor` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with assignor data.
@@ -955,7 +993,7 @@ class Assignor:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `Assignor` instance to a dictionary.
+        """Convert the `Assignor` instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.
@@ -968,7 +1006,7 @@ class Assignor:
 
 @dataclass(frozen=True)
 class Assignee:
-    """Represents an assignee in a patent assignment.
+    """Represent an assignee in a patent assignment.
 
     Attributes:
         assignee_name_text: The name of the party receiving the assignment.
@@ -980,7 +1018,7 @@ class Assignee:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Assignee":
-        """Creates an `Assignee` instance from a dictionary.
+        """Create an `Assignee` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with assignee data.
@@ -995,7 +1033,7 @@ class Assignee:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `Assignee` instance to a dictionary.
+        """Convert the `Assignee` instance to a dictionary.
 
         Omits keys with None values.
 
@@ -1013,7 +1051,7 @@ class Assignee:
 
 @dataclass(frozen=True)
 class Assignment:
-    """Represents a patent assignment, detailing the transfer of rights.
+    """Represent a patent assignment, detailing the transfer of rights.
 
     Includes information about the reel and frame, document location, dates, conveyance text,
     and bags of assignors, assignees, correspondence address, and domestic representative.
@@ -1054,7 +1092,7 @@ class Assignment:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Assignment":
-        """Creates an `Assignment` instance from a dictionary.
+        """Create an `Assignment` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with assignment data.
@@ -1106,7 +1144,7 @@ class Assignment:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `Assignment` instance to a dictionary.
+        """Convert the `Assignment` instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.
@@ -1142,7 +1180,7 @@ class Assignment:
 
 @dataclass(frozen=True)
 class ForeignPriority:
-    """Represents a foreign priority claim for a patent application.
+    """Represent a foreign priority claim for a patent application.
 
     Attributes:
         ip_office_name: The name of the intellectual property office of the priority application.
@@ -1156,7 +1194,7 @@ class ForeignPriority:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ForeignPriority":
-        """Creates a `ForeignPriority` instance from a dictionary.
+        """Create a `ForeignPriority` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with foreign priority data.
@@ -1171,7 +1209,7 @@ class ForeignPriority:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `ForeignPriority` instance to a dictionary.
+        """Convert the `ForeignPriority` instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.
@@ -1223,7 +1261,7 @@ class Continuity:
         return not self.first_inventor_to_file_indicator
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `Continuity` instance to a dictionary.
+        """Convert the `Continuity` instance to a dictionary.
 
         Omits attributes that are None and property-derived fields.
         Keys are converted to camelCase.
@@ -1240,7 +1278,7 @@ class Continuity:
 
 @dataclass(frozen=True)
 class ParentContinuity(Continuity):
-    """Represents a parent application in a patent application's continuity chain.
+    """Represent a parent application in a patent application's continuity chain.
 
     Inherits from Continuity and adds specific fields for parent application details.
 
@@ -1262,7 +1300,7 @@ class ParentContinuity(Continuity):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ParentContinuity":
-        """Creates a `ParentContinuity` instance from a dictionary.
+        """Create a `ParentContinuity` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with parent continuity data.
@@ -1293,7 +1331,7 @@ class ParentContinuity(Continuity):
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `ParentContinuity` instance to a dictionary.
+        """Convert the `ParentContinuity` instance to a dictionary.
 
         Maps attributes to specific camelCase keys expected by the API for parent continuity.
         Filters out None values to match the API response structure.
@@ -1319,7 +1357,7 @@ class ParentContinuity(Continuity):
 
 @dataclass(frozen=True)
 class ChildContinuity(Continuity):
-    """Represents a child application in a patent application's continuity chain.
+    """Represent a child application in a patent application's continuity chain.
 
     Inherits from Continuity and adds specific fields for child application details.
 
@@ -1341,7 +1379,7 @@ class ChildContinuity(Continuity):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ChildContinuity":
-        """Creates a `ChildContinuity` instance from a dictionary.
+        """Create a `ChildContinuity` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with child continuity data.
@@ -1372,7 +1410,7 @@ class ChildContinuity(Continuity):
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `ChildContinuity` instance to a dictionary.
+        """Convert the `ChildContinuity` instance to a dictionary.
 
         Maps attributes to specific camelCase keys expected by the API for child continuity.
         Filters out None values to match the API response structure.
@@ -1398,7 +1436,7 @@ class ChildContinuity(Continuity):
 
 @dataclass(frozen=True)
 class PatentTermAdjustmentHistoryData:
-    """Represents a single entry in the patent term adjustment (PTA) history for an application.
+    """Represent a single entry in the patent term adjustment (PTA) history for an application.
 
     Details specific events, dates, and day quantities affecting the patent term.
 
@@ -1422,7 +1460,7 @@ class PatentTermAdjustmentHistoryData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PatentTermAdjustmentHistoryData":
-        """Creates a `PatentTermAdjustmentHistoryData` instance from a dictionary.
+        """Create a `PatentTermAdjustmentHistoryData` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with PTA history event data.
@@ -1443,7 +1481,7 @@ class PatentTermAdjustmentHistoryData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `PatentTermAdjustmentHistoryData` instance to a dictionary.
+        """Convert the `PatentTermAdjustmentHistoryData` instance to a dictionary.
 
         Omits keys with None values.
 
@@ -1505,7 +1543,7 @@ class PatentTermAdjustmentData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PatentTermAdjustmentData":
-        """Creates a `PatentTermAdjustmentData` instance from a dictionary.
+        """Create a `PatentTermAdjustmentData` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with PTA data.
@@ -1536,7 +1574,7 @@ class PatentTermAdjustmentData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `PatentTermAdjustmentData` instance to a dictionary.
+        """Convert the `PatentTermAdjustmentData` instance to a dictionary.
 
         Omits keys with None values or empty lists, and converts field names to camelCase.
 
@@ -1556,7 +1594,7 @@ class PatentTermAdjustmentData:
 
 @dataclass(frozen=True)
 class EventData:
-    """Represents a single event in the transaction history of a patent application.
+    """Represent a single event in the transaction history of a patent application.
 
     Attributes:
         event_code: A code identifying the type of event.
@@ -1570,7 +1608,7 @@ class EventData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "EventData":
-        """Creates an `EventData` instance from a dictionary.
+        """Create an `EventData` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with event data.
@@ -1585,7 +1623,7 @@ class EventData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `EventData` instance to a dictionary.
+        """Convert the `EventData` instance to a dictionary.
 
         Omits keys with None values and converts field names to camelCase.
 
@@ -1617,7 +1655,7 @@ class PrintedMetaData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PrintedMetaData":
-        """Creates a `PrintedMetaData` instance from a dictionary.
+        """Create a `PrintedMetaData` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with printed metadata.
@@ -1634,7 +1672,7 @@ class PrintedMetaData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `PrintedMetaData` instance to a dictionary.
+        """Convert the `PrintedMetaData` instance to a dictionary.
 
         Omits keys with None values. Serializes datetime to ISO format with 'Z'.
 
@@ -1759,7 +1797,7 @@ class ApplicationMetaData:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "ApplicationMetaData":
-        """Creates an `ApplicationMetaData` instance from a dictionary.
+        """Create an `ApplicationMetaData` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with application metadata.
@@ -1842,7 +1880,7 @@ class ApplicationMetaData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `ApplicationMetaData` instance to a dictionary.
+        """Convert the `ApplicationMetaData` instance to a dictionary.
 
         Serializes attributes to camelCase keys suitable for API interaction or storage.
         Omits keys with None values or empty lists. Handles date and boolean serialization.
@@ -1959,7 +1997,7 @@ class PatentFileWrapper:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "PatentFileWrapper":
-        """Creates a `PatentFileWrapper` instance from a dictionary.
+        """Create a `PatentFileWrapper` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with patent file wrapper data.
@@ -2047,7 +2085,7 @@ class PatentFileWrapper:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `PatentFileWrapper` instance to a dictionary.
+        """Convert the `PatentFileWrapper` instance to a dictionary.
 
         Omits keys with None values or empty lists. Serializes nested objects.
 
@@ -2123,7 +2161,7 @@ class PatentDataResponse:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "PatentDataResponse":
-        """Creates a `PatentDataResponse` instance from a dictionary.
+        """Create a `PatentDataResponse` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with API response data.
@@ -2145,7 +2183,7 @@ class PatentDataResponse:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `PatentDataResponse` instance to a dictionary.
+        """Convert the `PatentDataResponse` instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary representation.
@@ -2164,7 +2202,7 @@ class PatentDataResponse:
         }
 
     def to_csv(self) -> str:
-        """Converts the patent data in this response to a CSV formatted string.
+        """Convert the patent data in this response to a CSV formatted string.
 
         The CSV will contain key metadata fields for each application,
         such as invention title, application number, filing date, status, etc.
@@ -2220,7 +2258,7 @@ class PatentDataResponse:
 
 @dataclass(frozen=True)
 class StatusCode:
-    """Represents a USPTO application status code and its textual description.
+    """Represent a USPTO application status code and its textual description.
 
     Attributes:
         code: The numeric status code.
@@ -2231,12 +2269,12 @@ class StatusCode:
     description: Optional[str] = None
 
     def __str__(self) -> str:
-        """Returns a user-friendly string representation of the status code."""
+        """Return a user-friendly string representation of the status code."""
         return f"{self.code}: {self.description}"
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "StatusCode":
-        """Creates a `StatusCode` instance from a dictionary.
+        """Create a `StatusCode` instance from a dictionary.
 
         Handles two possible key sets from the API for status information.
 
@@ -2258,7 +2296,7 @@ class StatusCode:
             )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `StatusCode` instance to a dictionary.
+        """Convert the `StatusCode` instance to a dictionary.
 
         Uses keys "applicationStatusCode" and "applicationStatusDescriptionText"
         for consistency with some API response parts.
@@ -2283,7 +2321,7 @@ class StatusCodeCollection:
     """
 
     def __init__(self, status_codes: List[StatusCode]):
-        """Initializes the StatusCodeCollection with a list of status codes.
+        """Initialize a StatusCodeCollection with a list of status codes.
 
         Args:
             status_codes (List[StatusCode]): A list of `StatusCode` instances.
@@ -2291,18 +2329,46 @@ class StatusCodeCollection:
         self._status_codes: tuple[StatusCode, ...] = tuple(status_codes)
 
     def __iter__(self) -> Iterator[StatusCode]:
+        """Return an iterator over the status codes in the collection.
+
+        Returns:
+            Iterator[StatusCode]: An iterator of StatusCode instances.
+        """
         return iter(self._status_codes)
 
     def __len__(self) -> int:
+        """Return the number of status codes in the collection.
+
+        Returns:
+            int: The count of status codes.
+        """
         return len(self._status_codes)
 
     def __getitem__(self, index: int) -> StatusCode:
+        """Return the status code at the specified index.
+
+        Args:
+            index: The index of the status code to retrieve.
+
+        Returns:
+            StatusCode: The status code at the specified index.
+        """
         return self._status_codes[index]
 
     def __str__(self) -> str:
+        """Return a human-readable string representation of the StatusCodeCollection.
+
+        Returns:
+            str: A description of the collection size.
+        """
         return f"StatusCodeCollection with {len(self)} status codes."
 
     def __repr__(self) -> str:
+        """Return a developer-friendly string representation of the StatusCodeCollection.
+
+        Returns:
+            str: A string showing the collection size and sample status codes.
+        """
         if not self._status_codes:
             return "StatusCodeCollection(empty)"
 
@@ -2314,7 +2380,7 @@ class StatusCodeCollection:
             return f"StatusCodeCollection({len(self)} status codes: {first_codes}, ...)"
 
     def find_by_code(self, code_to_find: int) -> Optional[StatusCode]:
-        """Finds a status code by its numeric code.
+        """Find a status code by its numeric code.
 
         Args:
             code_to_find (int): The numeric status code to search for.
@@ -2328,7 +2394,7 @@ class StatusCodeCollection:
         return None
 
     def search_by_description(self, text: str) -> "StatusCodeCollection":
-        """Searches for status codes by a case-insensitive text match in their description.
+        """Search for status codes by a case-insensitive text match in their description.
 
         Args:
             text (str): The text to search for within status code descriptions.
@@ -2344,7 +2410,7 @@ class StatusCodeCollection:
         return StatusCodeCollection(status_codes=matching)
 
     def to_dict(self) -> List[Dict[str, Any]]:
-        """Converts the collection of status codes to a list of dictionaries.
+        """Convert the collection of status codes to a list of dictionaries.
 
         Returns:
             List[Dict[str, Any]]: A list where each item is the dictionary
@@ -2369,7 +2435,7 @@ class StatusCodeSearchResponse:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "StatusCodeSearchResponse":
-        """Creates a `StatusCodeSearchResponse` instance from a dictionary.
+        """Create a `StatusCodeSearchResponse` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with API response data for status codes.
@@ -2391,7 +2457,7 @@ class StatusCodeSearchResponse:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `StatusCodeSearchResponse` instance to a dictionary.
+        """Convert the `StatusCodeSearchResponse` instance to a dictionary.
 
         Omits keys with None values or empty lists.
 
@@ -2427,7 +2493,7 @@ class ApplicationContinuityData:
 
     @classmethod
     def from_wrapper(cls, wrapper: PatentFileWrapper) -> "ApplicationContinuityData":
-        """Creates an `ApplicationContinuityData` instance from a `PatentFileWrapper`.
+        """Create an `ApplicationContinuityData` instance from a `PatentFileWrapper`.
 
         Extracts parent and child continuity bags from the wrapper.
 
@@ -2445,7 +2511,7 @@ class ApplicationContinuityData:
     def to_dict(
         self,
     ) -> Dict[str, Any]:
-        """Converts the `ApplicationContinuityData` instance to a dictionary.
+        """Convert the `ApplicationContinuityData` instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary representation with "parentContinuityBag"
@@ -2459,8 +2525,10 @@ class ApplicationContinuityData:
 
 @dataclass(frozen=True)
 class PrintedPublication:
-    """Holds metadata for associated documents like Pre-Grant Publications (PGPUB)
-    and Grant documents for a specific patent application.
+    """Represent metadata for associated documents such as PGPUB and Grant publications.
+
+    Note:
+        PGPUB refers to a Pre-Grant Publication.
 
     Attributes:
         pgpub_document_meta_data: `PrintedMetaData` for the Pre-Grant Publication, if any.
@@ -2472,7 +2540,7 @@ class PrintedPublication:
 
     @classmethod
     def from_wrapper(cls, wrapper: PatentFileWrapper) -> "PrintedPublication":
-        """Creates a `PrintedPublication` instance from a `PatentFileWrapper`.
+        """Create a `PrintedPublication` instance from a `PatentFileWrapper`.
 
         Extracts PGPUB and Grant document metadata from the wrapper.
 
@@ -2488,7 +2556,7 @@ class PrintedPublication:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the `PrintedPublication` instance to a dictionary.
+        """Convert the `PrintedPublication` instance to a dictionary.
 
         Omits keys if their corresponding metadata is None.
 

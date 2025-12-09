@@ -32,7 +32,7 @@ except ZoneInfoNotFoundError:
 
 
 def parse_to_date(date_str: Optional[str], fmt: str = "%Y-%m-%d") -> Optional[date]:
-    """Parses a string representation of a date into a date object.
+    """Parse a string representation of a date into a date object.
 
     Args:
         date_str (Optional[str]): The string to parse as a date.
@@ -60,7 +60,7 @@ def parse_to_date(date_str: Optional[str], fmt: str = "%Y-%m-%d") -> Optional[da
 
 
 def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
-    """Parses a string representation of a datetime into a UTC datetime object.
+    """Parse a string representation of a datetime into a UTC datetime object.
 
     Attempts to parse ISO format strings. If the input string contains timezone
     information, it's used. If the string is a naive datetime (no timezone),
@@ -131,7 +131,7 @@ def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
 
 
 def serialize_date(d: Optional[date]) -> Optional[str]:
-    """Serializes a date object into an ISO 8601 string (YYYY-MM-DD).
+    """Serialize a date object into an ISO 8601 string (YYYY-MM-DD).
 
     Args:
         d (Optional[date]): The date object to serialize.
@@ -145,7 +145,7 @@ def serialize_date(d: Optional[date]) -> Optional[str]:
 
 
 def serialize_datetime_as_iso(dt: Optional[datetime]) -> Optional[str]:
-    """Serializes a datetime object to a local-timezone ISO 8601 string.
+    """Serialize a datetime object to a local-timezone ISO 8601 string.
 
     If the input datetime object is timezone-aware, it is converted to the
     assumed local timezone defined by `ASSUMED_NAIVE_TIMEZONE`.
@@ -176,6 +176,17 @@ def serialize_datetime_as_iso(dt: Optional[datetime]) -> Optional[str]:
 
 
 def serialize_datetime_as_naive(dt: datetime) -> str:
+    """Serialize a datetime object to ISO format as a naive datetime.
+
+    Converts aware datetimes to the assumed timezone and strips timezone information
+    before serializing to ISO format.
+
+    Args:
+        dt: The datetime object to serialize.
+
+    Returns:
+        str: ISO formatted datetime string without timezone information.
+    """
     if dt.tzinfo is not None and dt.tzinfo.utcoffset(dt) is not None:
         dt = dt.astimezone(ASSUMED_NAIVE_TIMEZONE).replace(tzinfo=None)
     else:
@@ -184,7 +195,7 @@ def serialize_datetime_as_naive(dt: datetime) -> str:
 
 
 def parse_yn_to_bool(value: Optional[str]) -> Optional[bool]:
-    """Converts a 'Y'/'N' (case-insensitive) string to a boolean.
+    """Convert a 'Y'/'N' (case-insensitive) string to a boolean.
 
     Args:
         value (Optional[str]): The string value to convert. Expected to be
@@ -214,7 +225,7 @@ def parse_yn_to_bool(value: Optional[str]) -> Optional[bool]:
 
 
 def serialize_bool_to_yn(value: Optional[bool]) -> Optional[str]:
-    """Converts a boolean value to its 'Y'/'N' string representation.
+    """Convert a boolean value to its 'Y'/'N' string representation.
 
     Args:
         value (Optional[bool]): The boolean value to convert.
@@ -229,7 +240,7 @@ def serialize_bool_to_yn(value: Optional[bool]) -> Optional[str]:
 
 
 def to_camel_case(snake_str: str) -> str:
-    """Converts a snake_case string to lowerCamelCase.
+    """Convert a snake_case string to lowerCamelCase.
 
     For example, "example_snake_string" becomes "exampleSnakeString".
 

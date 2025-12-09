@@ -60,7 +60,7 @@ class PartyData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any], include_raw_data: bool = False) -> Self:
-        """Creates a PartyData instance from a dictionary.
+        """Create a PartyData instance from a dictionary.
 
         Args:
             data: Dictionary containing party data from API response.
@@ -84,7 +84,7 @@ class PartyData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the PartyData instance to a dictionary.
+        """Convert the PartyData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -136,7 +136,7 @@ class TrialMetaData:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "TrialMetaData":
-        """Creates a TrialMetaData instance from a dictionary.
+        """Create a TrialMetaData instance from a dictionary.
 
         Args:
             data: Dictionary containing trial metadata from API response.
@@ -165,7 +165,7 @@ class TrialMetaData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the TrialMetaData instance to a dictionary.
+        """Convert the TrialMetaData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -229,7 +229,7 @@ class RegularPetitionerData:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "RegularPetitionerData":
-        """Creates a RegularPetitionerData instance from a dictionary.
+        """Create a RegularPetitionerData instance from a dictionary.
 
         Args:
             data: Dictionary containing petitioner data from API response.
@@ -244,7 +244,7 @@ class RegularPetitionerData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the RegularPetitionerData instance to a dictionary.
+        """Convert the RegularPetitionerData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -311,7 +311,7 @@ class PTABTrialProceeding:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "PTABTrialProceeding":
-        """Creates a PTABTrialProceeding instance from a dictionary.
+        """Create a PTABTrialProceeding instance from a dictionary.
 
         Args:
             data: Dictionary containing trial proceeding data from API response.
@@ -359,7 +359,7 @@ class PTABTrialProceeding:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the PTABTrialProceeding instance to a dictionary.
+        """Convert the PTABTrialProceeding instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -413,7 +413,7 @@ class PTABTrialProceedingResponse:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "PTABTrialProceedingResponse":
-        """Creates a PTABTrialProceedingResponse instance from a dictionary.
+        """Create a PTABTrialProceedingResponse instance from a dictionary.
 
         Args:
             data: Dictionary containing response data from API.
@@ -436,7 +436,7 @@ class PTABTrialProceedingResponse:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the PTABTrialProceedingResponse instance to a dictionary.
+        """Convert the PTABTrialProceedingResponse instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -497,7 +497,7 @@ class TrialDocumentData:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "TrialDocumentData":
-        """Creates a TrialDocumentData instance from a dictionary.
+        """Create a TrialDocumentData instance from a dictionary.
 
         Args:
             data: Dictionary containing document data from API response.
@@ -525,7 +525,7 @@ class TrialDocumentData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the TrialDocumentData instance to a dictionary.
+        """Convert the TrialDocumentData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -584,6 +584,14 @@ class TrialDecisionData:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TrialDecisionData":
+        """Create a TrialDecisionData instance from a dictionary.
+
+        Args:
+            data: Dictionary with API response data containing trial decision information.
+
+        Returns:
+            TrialDecisionData: A new instance populated with data from the dictionary.
+        """
         return cls(
             statute_and_rule_bag=data.get("statuteAndRuleBag", []),
             decision_issue_date=parse_to_date(data.get("decisionIssueDate")),
@@ -593,7 +601,7 @@ class TrialDecisionData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the TrialDecisionData instance to a dictionary.
+        """Convert the TrialDecisionData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -655,6 +663,15 @@ class PTABTrialDocument:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "PTABTrialDocument":
+        """Create a PTABTrialDocument instance from a dictionary.
+
+        Args:
+            data: Dictionary with API response data containing PTAB trial document information.
+            include_raw_data: If True, includes the raw API response data in the instance.
+
+        Returns:
+            PTABTrialDocument: A new instance populated with data from the dictionary.
+        """
         trial_meta = data.get("trialMetaData")
         patent_owner = data.get("patentOwnerData")
         reg_petitioner = data.get("regularPetitionerData")
@@ -694,7 +711,7 @@ class PTABTrialDocument:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the PTABTrialDocument instance to a dictionary.
+        """Convert the PTABTrialDocument instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -744,6 +761,15 @@ class PTABTrialDocumentResponse:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "PTABTrialDocumentResponse":
+        """Create a PTABTrialDocumentResponse instance from a dictionary.
+
+        Args:
+            data: Dictionary with API response data containing PTAB trial document response information.
+            include_raw_data: If True, includes the raw API response data in the instance.
+
+        Returns:
+            PTABTrialDocumentResponse: A new instance populated with data from the dictionary.
+        """
         docs_data = data.get("patentTrialDocumentDataBag", [])
         docs = [
             PTABTrialDocument.from_dict(item, include_raw_data=include_raw_data)
@@ -757,7 +783,7 @@ class PTABTrialDocumentResponse:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the PTABTrialDocumentResponse instance to a dictionary.
+        """Convert the PTABTrialDocumentResponse instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -808,7 +834,7 @@ class AppealMetaData:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "AppealMetaData":
-        """Creates an AppealMetaData instance from a dictionary.
+        """Create an AppealMetaData instance from a dictionary.
 
         Args:
             data: Dictionary containing appeal metadata from API response.
@@ -831,7 +857,7 @@ class AppealMetaData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the AppealMetaData instance to a dictionary.
+        """Convert the AppealMetaData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -885,7 +911,7 @@ class RequestorData:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "RequestorData":
-        """Creates a RequestorData instance from a dictionary.
+        """Create a RequestorData instance from a dictionary.
 
         Args:
             data: Dictionary containing requestor data from API response.
@@ -899,7 +925,7 @@ class RequestorData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the RequestorData instance to a dictionary.
+        """Convert the RequestorData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -937,7 +963,7 @@ class AppealDocumentData:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "AppealDocumentData":
-        """Creates an AppealDocumentData instance from a dictionary.
+        """Create an AppealDocumentData instance from a dictionary.
 
         Args:
             data: Dictionary containing document data from API response.
@@ -963,7 +989,7 @@ class AppealDocumentData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the AppealDocumentData instance to a dictionary.
+        """Convert the AppealDocumentData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -1010,7 +1036,7 @@ class DecisionData:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "DecisionData":
-        """Creates a DecisionData instance from a dictionary.
+        """Create a DecisionData instance from a dictionary.
 
         Args:
             data: Dictionary containing decision data from API response.
@@ -1028,7 +1054,7 @@ class DecisionData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the DecisionData instance to a dictionary.
+        """Convert the DecisionData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -1076,7 +1102,7 @@ class PTABAppealDecision:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "PTABAppealDecision":
-        """Creates a PTABAppealDecision instance from a dictionary.
+        """Create a PTABAppealDecision instance from a dictionary.
 
         Args:
             data: Dictionary containing appeal decision data from API response.
@@ -1119,7 +1145,7 @@ class PTABAppealDecision:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the PTABAppealDecision instance to a dictionary.
+        """Convert the PTABAppealDecision instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -1169,7 +1195,7 @@ class PTABAppealResponse:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "PTABAppealResponse":
-        """Creates a PTABAppealResponse instance from a dictionary.
+        """Create a PTABAppealResponse instance from a dictionary.
 
         Args:
             data: Dictionary containing response data from API.
@@ -1192,7 +1218,7 @@ class PTABAppealResponse:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the PTABAppealResponse instance to a dictionary.
+        """Convert the PTABAppealResponse instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -1242,7 +1268,7 @@ class InterferenceMetaData:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "InterferenceMetaData":
-        """Creates an InterferenceMetaData instance from a dictionary.
+        """Create an InterferenceMetaData instance from a dictionary.
 
         Args:
             data: Dictionary containing interference metadata from API response.
@@ -1266,7 +1292,7 @@ class InterferenceMetaData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the InterferenceMetaData instance to a dictionary.
+        """Convert the InterferenceMetaData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -1333,7 +1359,7 @@ class AdditionalPartyData:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "AdditionalPartyData":
-        """Creates an AdditionalPartyData instance from a dictionary.
+        """Create an AdditionalPartyData instance from a dictionary.
 
         Args:
             data: Dictionary containing additional party data from API response.
@@ -1350,7 +1376,7 @@ class AdditionalPartyData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the AdditionalPartyData instance to a dictionary.
+        """Convert the AdditionalPartyData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -1405,7 +1431,7 @@ class InterferenceDocumentData:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "InterferenceDocumentData":
-        """Creates an InterferenceDocumentData instance from a dictionary.
+        """Create an InterferenceDocumentData instance from a dictionary.
 
         Args:
             data: Dictionary containing document data from API response.
@@ -1433,7 +1459,7 @@ class InterferenceDocumentData:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the InterferenceDocumentData instance to a dictionary.
+        """Convert the InterferenceDocumentData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -1496,7 +1522,7 @@ class PTABInterferenceDecision:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "PTABInterferenceDecision":
-        """Creates a PTABInterferenceDecision instance from a dictionary.
+        """Create a PTABInterferenceDecision instance from a dictionary.
 
         Args:
             data: Dictionary containing interference decision data from API response.
@@ -1548,7 +1574,7 @@ class PTABInterferenceDecision:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the PTABInterferenceDecision instance to a dictionary.
+        """Convert the PTABInterferenceDecision instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
@@ -1603,7 +1629,7 @@ class PTABInterferenceResponse:
     def from_dict(
         cls, data: Dict[str, Any], include_raw_data: bool = False
     ) -> "PTABInterferenceResponse":
-        """Creates a PTABInterferenceResponse instance from a dictionary.
+        """Create a PTABInterferenceResponse instance from a dictionary.
 
         Args:
             data: Dictionary containing response data from API.
@@ -1626,7 +1652,7 @@ class PTABInterferenceResponse:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts the PTABInterferenceResponse instance to a dictionary.
+        """Convert the PTABInterferenceResponse instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.

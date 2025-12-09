@@ -70,7 +70,7 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
         technology_center_number_q: Optional[str] = None,
         additional_query_params: Optional[Dict[str, Any]] = None,
     ) -> PTABAppealResponse:
-        """Searches for PTAB appeal decisions.
+        """Search for PTAB appeal decisions.
 
         This method can perform either a GET request using query parameters or a POST
         request if post_body is specified. When using GET, you can provide either a
@@ -195,7 +195,7 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
         return result
 
     def paginate_decisions(self, **kwargs: Any) -> Iterator[PTABAppealDecision]:
-        """Provides an iterator to paginate through appeal decision search results.
+        """Provide an iterator to paginate through appeal decision search results.
 
         This method simplifies fetching all appeal decisions matching a search query
         by automatically handling pagination. It internally calls the search_decisions

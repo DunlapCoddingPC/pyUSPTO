@@ -23,6 +23,12 @@ class BaseModel:
     raw_data: Optional[Any]
 
     def __init__(self, raw_data: Optional[Any] = None, **kwargs: Any) -> None:
+        """Initialize the BaseModel.
+
+        Args:
+            raw_data: The original API JSON data to store for reference.
+            **kwargs: Additional keyword arguments to set as attributes on the instance.
+        """
         # raw_data holds the original API JSON data.
         self.raw_data = raw_data
 
