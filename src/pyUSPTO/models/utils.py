@@ -80,6 +80,7 @@ def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
     Warns:
         USPTODateParseWarning: If the datetime string cannot be parsed.
         USPTOTimezoneWarning: If timezone localization fails.
+
     """
 
     if not datetime_str:
@@ -140,6 +141,7 @@ def serialize_date(d: Optional[date]) -> Optional[str]:
     Returns:
         Optional[str]: The date as an ISO 8601 formatted string, or None
             if the input is None.
+
     """
     return d.isoformat() if d else None
 
@@ -163,6 +165,7 @@ def serialize_datetime_as_iso(dt: Optional[datetime]) -> Optional[str]:
     Returns:
         Optional[str]: The datetime formatted in the assumed local timezone,
             or None if the input `dt` is None.
+
     """
     if not dt:
         return None

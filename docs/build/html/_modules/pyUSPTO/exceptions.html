@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pyUSPTO.exceptions &mdash; pyUSPTO 0.1.4.dev0+ga92fa00.d20250320 documentation</title>
+  <title>pyUSPTO.exceptions &mdash; pyUSPTO 0.2.3.dev1+g2c5d89b38.d20251125 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=109a12d6"></script>
+      <script src="../../_static/documentation_options.js?v=c5100f98"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -79,27 +79,112 @@
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">exceptions - Exception classes for USPTO API clients</span>
 
-<span class="sd">This module provides exception classes for USPTO API clients.</span>
+<span class="sd">This module provides exception classes for USPTO API errors that correspond to</span>
+<span class="sd">the various response types from the USPTO API. It also includes helper</span>
+<span class="sd">structures and functions for creating these exceptions.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="c1"># To avoid circular imports if requests is type-hinted directly,</span>
+<span class="c1"># use TYPE_CHECKING guard or a string literal for the type hint.</span>
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>  <span class="c1"># requests.exceptions.HTTPError</span>
 
 
+<span class="c1"># --- Exception Classes (largely unchanged) ---</span>
 <div class="viewcode-block" id="USPTOApiError">
 <a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.USPTOApiError">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">USPTOApiError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base exception for USPTO API errors.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base exception for USPTO API errors.</span>
+<span class="sd">    This is the parent class for all USPTO API-specific exceptions. It includes</span>
+<span class="sd">    information about the status code, API&#39;s short error message, detailed error</span>
+<span class="sd">    information, and request identifier from the API response.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">status_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="n">DEFAULT_UNKNOWN_MESSAGE</span> <span class="o">=</span> <span class="s2">&quot;UNK USPTO API ERROR&quot;</span>
+
+<div class="viewcode-block" id="USPTOApiError.__init__">
+<a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.USPTOApiError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>  <span class="c1"># Primary client-facing message for the exception context</span>
+        <span class="n">status_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">api_short_error</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+            <span class="nb">str</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># From API &#39;error&#39; or &#39;message&#39; (for 413) field</span>
+        <span class="n">error_details</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+            <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># From API &#39;errorDetails&#39; or &#39;detailedMessage&#39; field</span>
+        <span class="n">request_identifier</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the USPTOApiError.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            message: The primary message for the exception (often client-generated context).</span>
+<span class="sd">            status_code: The HTTP status code from the API response (e.g., 400, 403).</span>
+<span class="sd">            api_short_error: The short error description from the API (e.g., &quot;Bad Request&quot;, &quot;Forbidden&quot;).</span>
+<span class="sd">            error_details: The detailed error message or structure from the API.</span>
+<span class="sd">            request_identifier: The request identifier from the API response, if available.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">effective_message</span> <span class="o">=</span> <span class="n">message</span> <span class="k">if</span> <span class="n">message</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_UNKNOWN_MESSAGE</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">effective_message</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">status_code</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_short_error</span> <span class="o">=</span> <span class="n">api_short_error</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_details</span> <span class="o">=</span> <span class="n">error_details</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">request_identifier</span> <span class="o">=</span> <span class="n">request_identifier</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">message</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Provides direct access to the primary exception message.</span>
+<span class="sd">        This refers to the first argument passed to the exception,</span>
+<span class="sd">        which is conventionally the main human-readable message.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">object</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+<div class="viewcode-block" id="USPTOApiError.__str__">
+<a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.USPTOApiError.__str__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Provides a more informative string representation of the error.&quot;&quot;&quot;</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">status_code</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HTTP Status: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_short_error</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;API Error: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">api_short_error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_details</span><span class="p">:</span>
+            <span class="n">details_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_details</span><span class="p">)</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Details: </span><span class="si">{</span><span class="n">details_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request_identifier</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Request ID: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">request_identifier</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot; - &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">parts</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="USPTOApiBadRequestError">
+<a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.USPTOApiBadRequestError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">USPTOApiBadRequestError</span><span class="p">(</span><span class="n">USPTOApiError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Bad Request error (HTTP 400).&quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
 
 
 
 <div class="viewcode-block" id="USPTOApiAuthError">
 <a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.USPTOApiAuthError">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">USPTOApiAuthError</span><span class="p">(</span><span class="n">USPTOApiError</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Authentication error.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Authentication/Authorization error (HTTP 401/403).&quot;&quot;&quot;</span>
 
     <span class="k">pass</span></div>
 
@@ -108,7 +193,7 @@
 <div class="viewcode-block" id="USPTOApiRateLimitError">
 <a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.USPTOApiRateLimitError">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">USPTOApiRateLimitError</span><span class="p">(</span><span class="n">USPTOApiError</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Rate limit exceeded.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Rate limit exceeded error (HTTP 429).&quot;&quot;&quot;</span>
 
     <span class="k">pass</span></div>
 
@@ -117,9 +202,186 @@
 <div class="viewcode-block" id="USPTOApiNotFoundError">
 <a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.USPTOApiNotFoundError">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">USPTOApiNotFoundError</span><span class="p">(</span><span class="n">USPTOApiError</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resource not found.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resource not found error (HTTP 404).&quot;&quot;&quot;</span>
 
     <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="USPTOApiPayloadTooLargeError">
+<a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.USPTOApiPayloadTooLargeError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">USPTOApiPayloadTooLargeError</span><span class="p">(</span><span class="n">USPTOApiError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Payload Too Large error (HTTP 413).&quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="USPTOApiServerError">
+<a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.USPTOApiServerError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">USPTOApiServerError</span><span class="p">(</span><span class="n">USPTOApiError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Internal Server Error (HTTP 500 series).&quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="USPTOConnectionError">
+<a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.USPTOConnectionError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">USPTOConnectionError</span><span class="p">(</span><span class="n">USPTOApiError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Network-level connection error (DNS failure, refused connection, etc.).&quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="USPTOTimeout">
+<a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.USPTOTimeout">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">USPTOTimeout</span><span class="p">(</span><span class="n">USPTOApiError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Request to USPTO API timed out.&quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+
+<span class="c1"># --- Helper Structures and Functions ---</span>
+
+
+<div class="viewcode-block" id="APIErrorArgs">
+<a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.APIErrorArgs">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">APIErrorArgs</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Data structure to hold arguments for API exception constructors.&quot;&quot;&quot;</span>
+
+    <span class="n">message</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">status_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">api_short_error</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">error_details</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">request_identifier</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="APIErrorArgs.from_http_error">
+<a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.APIErrorArgs.from_http_error">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_http_error</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">http_error</span><span class="p">:</span> <span class="s2">&quot;requests.exceptions.HTTPError&quot;</span><span class="p">,</span>  <span class="c1"># String literal for type hint</span>
+        <span class="n">client_operation_message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;APIErrorArgs&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an APIErrorArgs instance by parsing a requests.exceptions.HTTPError.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            http_error: The HTTPError object from the requests library.</span>
+<span class="sd">            client_operation_message: A message describing the client operation that failed.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An instance of APIErrorArgs populated with details from the HTTPError.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">status_code</span> <span class="o">=</span> <span class="n">http_error</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span>
+
+        <span class="n">api_short_error_from_response</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">error_details_from_response</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">request_identifier_from_response</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">error_data</span> <span class="o">=</span> <span class="n">http_error</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">status_code</span> <span class="o">==</span> <span class="mi">413</span><span class="p">:</span>
+                <span class="n">api_short_error_from_response</span> <span class="o">=</span> <span class="n">error_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;message&quot;</span><span class="p">)</span>
+                <span class="n">error_details_from_response</span> <span class="o">=</span> <span class="n">error_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;detailedMessage&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">api_short_error_from_response</span> <span class="o">=</span> <span class="n">error_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
+                <span class="n">error_details_from_response</span> <span class="o">=</span> <span class="n">error_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;errorDetails&quot;</span><span class="p">)</span>
+            <span class="n">request_identifier_from_response</span> <span class="o">=</span> <span class="n">error_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;requestIdentifier&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># If response.json() fails (e.g., not JSON)</span>
+            <span class="k">pass</span>  <span class="c1"># Values remain None</span>
+
+        <span class="c1"># Fallback for api_short_error if not found in JSON response</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">api_short_error_from_response</span> <span class="ow">and</span> <span class="n">http_error</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">reason</span><span class="p">:</span>
+            <span class="n">api_short_error_from_response</span> <span class="o">=</span> <span class="n">http_error</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">reason</span>
+
+        <span class="c1"># Fallback for error_details if not found in JSON and response text is available</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">error_details_from_response</span> <span class="ow">and</span> <span class="n">http_error</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">text</span><span class="p">:</span>
+            <span class="c1"># Avoid setting very long HTML pages as error_details if JSON parsing failed</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="s2">&quot;content-type&quot;</span> <span class="ow">in</span> <span class="n">http_error</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">headers</span>
+                <span class="ow">and</span> <span class="s2">&quot;application/json&quot;</span>
+                <span class="ow">not</span> <span class="ow">in</span> <span class="n">http_error</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;content-type&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">http_error</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">text</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">500</span><span class="p">:</span>  <span class="c1"># Heuristic for &quot;too long&quot;</span>
+                    <span class="n">error_details_from_response</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Non-JSON error response (status </span><span class="si">{</span><span class="n">status_code</span><span class="si">}</span><span class="s2">). Check response text.&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">error_details_from_response</span> <span class="o">=</span> <span class="n">http_error</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">text</span>
+            <span class="k">elif</span> <span class="p">(</span>
+                <span class="n">http_error</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">text</span>
+            <span class="p">):</span>  <span class="c1"># If it might have been JSON but parsing failed</span>
+                <span class="n">error_details_from_response</span> <span class="o">=</span> <span class="n">http_error</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">text</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">message</span><span class="o">=</span><span class="n">client_operation_message</span><span class="p">,</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status_code</span><span class="p">,</span>
+            <span class="n">api_short_error</span><span class="o">=</span><span class="n">api_short_error_from_response</span><span class="p">,</span>
+            <span class="n">error_details</span><span class="o">=</span><span class="n">error_details_from_response</span><span class="p">,</span>
+            <span class="n">request_identifier</span><span class="o">=</span><span class="n">request_identifier_from_response</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="APIErrorArgs.from_request_exception">
+<a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.APIErrorArgs.from_request_exception">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_request_exception</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">request_exception</span><span class="p">:</span> <span class="s2">&quot;requests.exceptions.RequestException&quot;</span><span class="p">,</span>  <span class="c1"># String for type hint</span>
+        <span class="n">client_operation_message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;APIErrorArgs&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an APIErrorArgs instance from a generic requests.exceptions.RequestException</span>
+<span class="sd">        (e.g., ConnectionError, Timeout) that is not an HTTPError.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">message_prefix</span> <span class="o">=</span> <span class="n">client_operation_message</span> <span class="ow">or</span> <span class="s2">&quot;API request failed&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">message_prefix</span><span class="si">}</span><span class="s2"> due to a network or request issue: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">request_exception</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="c1"># status_code, api_short_error, etc., will be None</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="get_api_exception">
+<a class="viewcode-back" href="../../api/exceptions.html#pyUSPTO.exceptions.get_api_exception">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_api_exception</span><span class="p">(</span><span class="n">error_args</span><span class="p">:</span> <span class="n">APIErrorArgs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">USPTOApiError</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determines and instantiates the appropriate USPTOApiError subclass</span>
+<span class="sd">    based on the status code in error_args.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        error_args: An instance of APIErrorArgs containing all necessary</span>
+<span class="sd">                    information to construct the exception.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        An instance of a USPTOApiError subclass.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">status_code</span> <span class="o">=</span> <span class="n">error_args</span><span class="o">.</span><span class="n">status_code</span>
+    <span class="n">exception_class</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">USPTOApiError</span><span class="p">]</span>
+
+    <span class="k">match</span> <span class="n">status_code</span><span class="p">:</span>
+        <span class="k">case</span> <span class="mi">400</span><span class="p">:</span>
+            <span class="n">exception_class</span> <span class="o">=</span> <span class="n">USPTOApiBadRequestError</span>
+        <span class="k">case</span> <span class="mi">401</span> <span class="o">|</span> <span class="mi">403</span><span class="p">:</span>
+            <span class="n">exception_class</span> <span class="o">=</span> <span class="n">USPTOApiAuthError</span>
+        <span class="k">case</span> <span class="mi">404</span><span class="p">:</span>
+            <span class="n">exception_class</span> <span class="o">=</span> <span class="n">USPTOApiNotFoundError</span>
+        <span class="k">case</span> <span class="mi">413</span><span class="p">:</span>
+            <span class="n">exception_class</span> <span class="o">=</span> <span class="n">USPTOApiPayloadTooLargeError</span>
+        <span class="k">case</span> <span class="mi">429</span><span class="p">:</span>
+            <span class="n">exception_class</span> <span class="o">=</span> <span class="n">USPTOApiRateLimitError</span>
+        <span class="k">case</span><span class="w"> </span><span class="k">_</span> <span class="k">if</span> <span class="n">status_code</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">status_code</span> <span class="o">&gt;=</span> <span class="mi">500</span><span class="p">:</span>
+            <span class="n">exception_class</span> <span class="o">=</span> <span class="n">USPTOApiServerError</span>
+        <span class="k">case</span> <span class="p">(</span>
+            <span class="n">_</span>
+        <span class="p">):</span>  <span class="c1"># Default for other errors or if status_code is None (e.g. network error)</span>
+            <span class="n">exception_class</span> <span class="o">=</span> <span class="n">USPTOApiError</span>
+
+    <span class="k">return</span> <span class="n">exception_class</span><span class="p">(</span><span class="o">**</span><span class="n">asdict</span><span class="p">(</span><span class="n">error_args</span><span class="p">))</span></div>
 
 </pre></div>
 
@@ -130,7 +392,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Andrew Piechocki.</p>
+    <p>&#169; Copyright 2025, Dunlap Codding, P.C..</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.abspath("../.."))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "pyUSPTO"
-copyright = "2025, Dunlap Codding, PC"
+copyright = "2025, Dunlap Codding, P.C."
 author = "Andrew Piechocki"
 
 # The full version, including alpha/beta/rc tags
@@ -36,7 +36,6 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx_copybutton",
     "myst_parser",
-    "sphinx_immaterial",
 ]
 
 templates_path = ["_templates"]
@@ -47,7 +46,7 @@ language = "en"
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "sphinx_immaterial"
+html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 
 # -- Extension configuration -------------------------------------------------
