@@ -417,7 +417,7 @@ def sample_document_data(
     """Provides sample data for a Document."""
     return {
         "applicationNumberText": "16000001",
-        "officialDate": "2023-03-15T10:30:00Z",
+        "officialDate": "2024-12-10T00:00:00.000-0500",
         "documentIdentifier": "OFFICE_ACTION_NON_FINAL",
         "documentCode": "CTNF",
         "documentCodeDescriptionText": "Non-Final Rejection",
@@ -608,7 +608,7 @@ class TestDocument:
         data = {
             "documentIdentifier": "doc123",
             "documentCode": "CODE_X",
-            "officialDate": "2023-03-15T10:30:00Z",
+            "officialDate": "2024-12-10T00:00:00.000-0500",
             "documentDirectionCategory": "INCOMING",
             "downloadOptionBag": [
                 {
@@ -622,9 +622,7 @@ class TestDocument:
 
         assert doc.document_identifier == "doc123"
         assert doc.document_code == "CODE_X"
-        assert doc.official_date == datetime(
-            2023, 3, 15, 10, 30, 0, tzinfo=timezone.utc
-        )
+        assert doc.official_date == datetime(2024, 12, 10, 5, 0, 0, tzinfo=timezone.utc)
         assert doc.direction_category == DirectionCategory.INCOMING
         assert len(doc.document_formats) == 1
         assert doc.document_formats[0].mime_type_identifier == "application/pdf"
@@ -633,7 +631,7 @@ class TestDocument:
         doc = Document(
             document_identifier="doc123",
             document_code="CODE_X",
-            official_date=datetime(2023, 3, 15, 10, 30, 0, tzinfo=timezone.utc),
+            official_date=datetime(2024, 12, 10, 5, 0, 0, tzinfo=timezone.utc),
             direction_category=DirectionCategory.OUTGOING,
             document_formats=[
                 DocumentFormat(mime_type_identifier="image/tiff", page_total_quantity=5)
@@ -641,7 +639,7 @@ class TestDocument:
         )
         data = doc.to_dict()
         assert data["documentIdentifier"] == "doc123"
-        assert data["officialDate"] == "2023-03-15T06:30:00"
+        assert data["officialDate"] == "2024-12-10T00:00:00.000-0500"
         assert data["documentDirectionCategory"] == "OUTGOING"
         assert len(data["downloadOptionBag"]) == 1
         assert data["downloadOptionBag"][0]["mimeTypeIdentifier"] == "image/tiff"

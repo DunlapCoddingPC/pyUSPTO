@@ -95,14 +95,14 @@ class TestUtilityFunctions:
     def test_serialize_datetime_as_iso(self) -> None:
         """Test serialize_datetime_as_iso utility function."""
         dt_utc = datetime(2023, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
-        assert serialize_datetime_as_iso(dt_utc) == "2023-01-01T10:00:00Z"
+        assert serialize_datetime_as_iso(dt_utc) == "2023-01-01T05:00:00.000-0500"
 
-        dt_naive = datetime(2023, 1, 1, 10, 0, 0)
-        assert serialize_datetime_as_iso(dt_naive) == "2023-01-01T10:00:00Z"
+        dt_naive = datetime(2023, 1, 2, 17, 0, 0)
+        assert serialize_datetime_as_iso(dt_naive) == "2023-01-02T17:00:00.000-0500"
 
         minus_five = timezone(timedelta(hours=-5))
-        dt_est = datetime(2023, 1, 1, 10, 0, 0, tzinfo=minus_five)
-        assert serialize_datetime_as_iso(dt_est) == "2023-01-01T15:00:00Z"
+        dt_est = datetime(2023, 1, 3, 23, 0, 0, tzinfo=minus_five)
+        assert serialize_datetime_as_iso(dt_est) == "2023-01-03T23:00:00.000-0500"
 
         assert serialize_datetime_as_iso(None) is None
 

@@ -90,11 +90,22 @@ def parse_to_datetime_utc(datetime_str: Optional[str]) -> Optional[datetime]:
         try:
             if datetime_str.endswith("Z"):
                 dt_obj = datetime.fromisoformat(datetime_str.replace("Z", "+00:00"))
+                # Normalize offsets like -0500 → -05:00 for Python <3.11
+            elif (
+                len(datetime_str) > 5
+                and (datetime_str[-5] in "+-")
+                and datetime_str[-3] != ":"
+            ):
+                datetime_str = (
+                    datetime_str[:-5] + datetime_str[-5:-2] + ":" + datetime_str[-2:]
+                )
+                dt_obj = datetime.fromisoformat(datetime_str)
             else:
                 dt_obj = datetime.fromisoformat(datetime_str)
             parsed_successfully = True
         except ValueError:
             pass
+
     if not parsed_successfully or dt_obj is None:
         warnings.warn(
             f"Could not parse datetime string '{datetime_str}' with any known format",
@@ -134,29 +145,33 @@ def serialize_date(d: Optional[date]) -> Optional[str]:
 
 
 def serialize_datetime_as_iso(dt: Optional[datetime]) -> Optional[str]:
-    """Serializes a datetime object to an ISO 8601 string in UTC, using 'Z'.
+    """Serializes a datetime object to a local-timezone ISO 8601 string.
 
-    If the input datetime object is timezone-aware, it is converted to UTC.
-    If it is naive (lacks timezone information), it is assumed to be UTC.
-    The resulting UTC datetime is then formatted as an ISO 8601 string,
-    with the UTC timezone explicitly indicated by 'Z'.
+    If the input datetime object is timezone-aware, it is converted to the
+    assumed local timezone defined by `ASSUMED_NAIVE_TIMEZONE`.
+    If it is naive (lacks timezone information), it is first assigned that
+    assumed local timezone.
+
+    The resulting datetime is formatted as:
+        YYYY-MM-DDTHH:MM:SS.000±HHMM
+    (e.g., "2024-12-10T00:00:00.000-0500")
 
     Args:
         dt (Optional[datetime]): The datetime object to serialize.
             Can be naive or timezone-aware.
 
     Returns:
-        Optional[str]: The datetime as a UTC ISO 8601 formatted string
-            (e.g., "YYYY-MM-DDTHH:MM:SS.ffffffZ" or "YYYY-MM-DDTHH:MM:SSZ"),
+        Optional[str]: The datetime formatted in the assumed local timezone,
             or None if the input `dt` is None.
     """
-
     if not dt:
         return None
-    dt_utc = (
-        dt.astimezone(timezone.utc) if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
-    )
-    return dt_utc.isoformat().replace("+00:00", "Z")
+
+    if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+        dt = dt.replace(tzinfo=ASSUMED_NAIVE_TIMEZONE)
+
+    dt_local = dt.astimezone(ASSUMED_NAIVE_TIMEZONE)
+    return dt_local.strftime("%Y-%m-%dT%H:%M:%S.000%z")
 
 
 def serialize_datetime_as_naive(dt: datetime) -> str:

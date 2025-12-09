@@ -27,6 +27,7 @@ from pyUSPTO.models.utils import (
     parse_yn_to_bool,
     serialize_bool_to_yn,
     serialize_date,
+    serialize_datetime_as_iso,
     serialize_datetime_as_naive,
     to_camel_case,
 )
@@ -227,7 +228,7 @@ class Document:
         d = {
             "applicationNumberText": self.application_number_text,
             "officialDate": (
-                serialize_datetime_as_naive(self.official_date)
+                serialize_datetime_as_iso(self.official_date)
                 if self.official_date
                 else None
             ),

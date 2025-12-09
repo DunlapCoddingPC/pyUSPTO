@@ -36,6 +36,7 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinx_copybutton",
     "myst_parser",
+    "sphinx_immaterial",
 ]
 
 templates_path = ["_templates"]
@@ -46,7 +47,7 @@ language = "en"
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "sphinx_rtd_theme"
+html_theme = "sphinx_immaterial"
 html_static_path = ["_static"]
 
 # -- Extension configuration -------------------------------------------------
