@@ -206,7 +206,11 @@ class TrialMetaData:
 
 @dataclass(frozen=True)
 class PatentOwnerData(PartyData):
-    """Party data for a patent owner."""
+    """Party data for a patent owner in PTAB trial proceedings.
+
+    Inherits all attributes from PartyData. Used in IPR, PGR, CBM,
+    and DER proceedings to represent the patent holder.
+    """
 
     pass
 
@@ -259,14 +263,22 @@ class RegularPetitionerData:
 
 @dataclass(frozen=True)
 class RespondentData(PartyData):
-    """Respondent party data."""
+    """Respondent party data in derivation proceedings.
+
+    Inherits all attributes from PartyData. Used in DER proceedings
+    to represent the responding party.
+    """
 
     pass
 
 
 @dataclass(frozen=True)
 class DerivationPetitionerData(PartyData):
-    """Derivation petitioner data."""
+    """Derivation petitioner data in derivation proceedings.
+
+    Inherits all attributes from PartyData. Used in DER proceedings
+    to represent the petitioning party claiming derivation.
+    """
 
     pass
 
@@ -288,7 +300,7 @@ class PTABTrialProceeding:
     """
 
     trial_number: Optional[str] = None
-    # trial_record_identifier: Optional[str] = None
+    # trial_record_identifier: Optional[str] = None  # Removed: Documented but not in API.
     last_modified_date_time: Optional[datetime] = None
     trial_meta_data: Optional[TrialMetaData] = None
     patent_owner_data: Optional[PatentOwnerData] = None
@@ -358,6 +370,7 @@ class PTABTrialProceeding:
 
         if self.trial_number is not None:
             result["trialNumber"] = self.trial_number
+        # Removed: Documented but not in API.
         # if self.trial_record_identifier is not None:
         #     result["trialRecordIdentifier"] = self.trial_record_identifier
         if self.last_modified_date_time is not None:
@@ -468,7 +481,7 @@ class TrialDocumentData:
         document_status: Public status.
     """
 
-    # document_category: Optional[str] = None
+    # document_category: Optional[str] = None  # Removed: Documented but not in API.
     document_filing_date: Optional[date] = None
     document_identifier: Optional[str] = None
     document_name: Optional[str] = None
@@ -479,15 +492,26 @@ class TrialDocumentData:
     document_type_description_text: Optional[str] = None
     file_download_uri: Optional[str] = None
     filing_party_category: Optional[str] = None
-    # mime_type_identifier: Optional[str] = None
-    # document_status: Optional[str] = None
+    # mime_type_identifier: Optional[str] = None  # Removed: Documented but not in API.
+    # document_status: Optional[str] = None  # Removed: Documented but not in API.
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TrialDocumentData":
+    def from_dict(
+        cls, data: Dict[str, Any], include_raw_data: bool = False
+    ) -> "TrialDocumentData":
+        """Creates a TrialDocumentData instance from a dictionary.
+
+        Args:
+            data: Dictionary containing document data from API response.
+            include_raw_data: Ignored for this model.
+
+        Returns:
+            TrialDocumentData: An instance of TrialDocumentData.
+        """
         # Handle aliases
         file_download_uri = data.get("fileDownloadURI") or data.get("downloadURI")
         return cls(
-            # document_category=data.get("documentCategory"),
+            # document_category=data.get("documentCategory"),  # Removed: Documented but not in API.
             document_filing_date=parse_to_date(data.get("documentFilingDate")),
             document_identifier=data.get("documentIdentifier"),
             document_name=data.get("documentName"),
@@ -510,6 +534,7 @@ class TrialDocumentData:
         """
         result: Dict[str, Any] = {}
 
+        # Removed: Documented but not in API.
         # if self.document_category is not None:
         #     result["documentCategory"] = self.document_category
         if self.document_filing_date is not None:
@@ -532,6 +557,7 @@ class TrialDocumentData:
             result["fileDownloadURI"] = self.file_download_uri  # Uppercase URI
         if self.filing_party_category is not None:
             result["filingPartyCategory"] = self.filing_party_category
+        # Removed: Documented but not in API.
         # if self.mime_type_identifier is not None:
         #     result["mimeTypeIdentifier"] = self.mime_type_identifier
         # if self.document_status is not None:
@@ -592,10 +618,26 @@ class TrialDecisionData:
 
 @dataclass(frozen=True)
 class PTABTrialDocument:
-    """Record representing a Trial Document or Decision from the search APIs.
+    """Individual trial document or decision record from PTAB document/decision search APIs.
 
-    This differs from PTABTrialProceeding by including documentData/decisionData
-    and often omitting some proceeding-level details or structuring them differently.
+    Used by search_documents() and search_decisions() endpoints. Contains document-specific
+    metadata (documentData) or decision information (decisionData), plus trial context.
+    Differs from PTABTrialProceeding which represents the entire proceeding rather than
+    individual documents within it.
+
+    Attributes:
+        trial_document_category: Category (Document or Decision).
+        last_modified_date_time: Last modification timestamp.
+        trial_number: Trial number (e.g., "IPR2023-00123").
+        trial_type_code: Type of trial (IPR, PGR, CBM, DER).
+        trial_meta_data: Trial metadata.
+        patent_owner_data: Patent owner information.
+        regular_petitioner_data: Regular petitioner information.
+        respondent_data: Respondent information.
+        derivation_petitioner_data: Derivation petitioner information.
+        document_data: Document metadata (if document).
+        decision_data: Decision information (if decision).
+        raw_data: Raw JSON response data (if include_raw_data=True).
     """
 
     trial_document_category: Optional[str] = None
@@ -751,6 +793,7 @@ class AppealMetaData:
     Attributes:
         appeal_filing_date: Date the appeal was filed.
         appeal_last_modified_date: Last modification date.
+        appeal_last_modified_date_time: Last modification timestamp.
         application_type_category: Type of application.
         docket_notice_mailed_date: Date the docket notice was mailed.
         file_download_uri: URI to download ZIP of appeal documents.
@@ -821,7 +864,11 @@ class AppealMetaData:
 
 @dataclass(frozen=True)
 class AppellantData(PartyData):
-    """Appellant party data."""
+    """Appellant party data in PTAB appeals.
+
+    Inherits all attributes from PartyData. Used in appeal proceedings
+    to represent the party appealing an examiner decision.
+    """
 
     pass
 
@@ -1248,14 +1295,22 @@ class InterferenceMetaData:
 
 @dataclass(frozen=True)
 class SeniorPartyData(PartyData):
-    """Senior party information in an interference."""
+    """Senior party information in PTAB interference proceedings.
+
+    Inherits all attributes from PartyData. Represents the party with
+    the earlier effective filing date in an interference.
+    """
 
     pass
 
 
 @dataclass(frozen=True)
 class JuniorPartyData(PartyData):
-    """Junior party information in an interference."""
+    """Junior party information in PTAB interference proceedings.
+
+    Inherits all attributes from PartyData. Represents the party with
+    the later effective filing date in an interference.
+    """
 
     pass
 

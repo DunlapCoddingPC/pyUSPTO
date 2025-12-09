@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "pyUSPTO"
 description = "A Modern Python client for accessing United Stated Patent and Trademark Office (USPTO) Open Data Portal (ODP) APIs."
 authors = [
-    {name = "Andrew Piechocki", email = "apiechocki@dunlapcodding.com"}
+    { name = "Andrew Piechocki", email = "apiechocki@dunlapcodding.com" },
 ]
 readme = "README.md"
 requires-python = ">=3.10"
@@ -29,7 +29,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: Other Audience",
     "Natural Language :: English",
-    "Operating System :: OS Independent",
     "Operating System :: MacOS",
     "Operating System :: POSIX :: Linux",
     "Topic :: Software Development :: Libraries",
@@ -40,7 +39,7 @@ classifiers = [
     "Topic :: Office/Business",
     "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Utilities"
+    "Topic :: Utilities",
 ]
 
 keywords = ["uspto", "patent", "odp", "client", "bulk data", "patent data"]
@@ -61,7 +60,7 @@ Documentation = "https://pyuspto.readthedocs.io/en/latest/"
 [tool.setuptools]
 zip-safe = true
 
-[tool.setuptools.packages.find] 
+[tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
@@ -117,7 +116,7 @@ warn_unreachable = true
 
 # Per-module configs for production code
 [[tool.mypy.overrides]]
-module= "pyUSPTO.*"
+module = "pyUSPTO.*"
 disallow_untyped_defs = true
 
 # Less strict for tests - allow untyped test functions
@@ -132,5 +131,5 @@ warn_unreachable = false
 
 # Ignore missing stubs for third-party packages
 [[tool.mypy.overrides]]
-module = ["pytest.*","pytest", "requests.*", "urllib3.*"]
+module = ["pytest.*", "pytest", "requests.*", "urllib3.*"]
 ignore_missing_imports = true
