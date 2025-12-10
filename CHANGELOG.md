@@ -5,6 +5,28 @@ All notable changes to the pyUSPTO package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - TBD
+
+### Added
+
+- **PTAB API 3.0 Support**: New clients for PTAB trials, appeals, and interferences
+  - `PTABTrialsClient` - Search trial proceedings, documents, and decisions
+  - `PTABAppealsClient` - Search ex parte appeal decisions
+  - `PTABInterferencesClient` - Search interference decisions
+- New data models in `pyUSPTO.models.ptab` for PTAB responses:
+  - `PTABTrialProceeding`, `PTABAppealDecision`, `PTABInterferenceDecision`
+  - Supporting models for party data, metadata, and decision information
+- Configuration support for PTAB base URL in `USPTOConfig`
+- Comprehensive examples for all three PTAB clients (`examples/ptab_*.py`)
+- Additional convenience parameters for `PTABTrialsClient` search methods:
+  - `search_documents()`: petitioner name, inventor, patent details, real party in interest
+  - `search_decisions()`: trial type, patent/application numbers, status, party information, document category
+
+### Changed
+
+- Enhanced `PTABTrialsClient.search_documents()` with convenience parameters for petitioner, inventor, patent details
+- Enhanced `PTABTrialsClient.search_decisions()` with convenience parameters for trial type, status, and party information
+
 ## [0.2.2]
 
 ### Added

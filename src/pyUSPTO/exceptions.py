@@ -1,5 +1,4 @@
-"""
-exceptions - Exception classes for USPTO API clients
+"""exceptions - Exception classes for USPTO API clients.
 
 This module provides exception classes for USPTO API errors that correspond to
 the various response types from the USPTO API. It also includes helper
@@ -7,7 +6,7 @@ structures and functions for creating these exceptions.
 """
 
 from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING, Optional, Type, Union
+from typing import TYPE_CHECKING
 
 # To avoid circular imports if requests is type-hinted directly,
 # use TYPE_CHECKING guard or a string literal for the type hint.
@@ -18,6 +17,7 @@ if TYPE_CHECKING:
 # --- Exception Classes (largely unchanged) ---
 class USPTOApiError(Exception):
     """Base exception for USPTO API errors.
+
     This is the parent class for all USPTO API-specific exceptions. It includes
     information about the status code, API's short error message, detailed error
     information, and request identifier from the API response.
@@ -28,17 +28,16 @@ class USPTOApiError(Exception):
     def __init__(
         self,
         message: str,  # Primary client-facing message for the exception context
-        status_code: Optional[int] = None,
-        api_short_error: Optional[
-            str
-        ] = None,  # From API 'error' or 'message' (for 413) field
-        error_details: Optional[
-            Union[str, dict]
-        ] = None,  # From API 'errorDetails' or 'detailedMessage' field
-        request_identifier: Optional[str] = None,
+        status_code: int | None = None,
+        api_short_error: str
+        | None = None,  # From API 'error' or 'message' (for 413) field
+        error_details: str
+        | dict
+        | None = None,  # From API 'errorDetails' or 'detailedMessage' field
+        request_identifier: str | None = None,
     ):
-        """
-        Initializes the USPTOApiError.
+        """Initialize a USPTOApiError.
+
         Args:
             message: The primary message for the exception (often client-generated context).
             status_code: The HTTP status code from the API response (e.g., 400, 403).
@@ -55,15 +54,15 @@ class USPTOApiError(Exception):
 
     @property
     def message(self) -> str:
-        """
-        Provides direct access to the primary exception message.
+        """Provides direct access to the primary exception message.
+
         This refers to the first argument passed to the exception,
         which is conventionally the main human-readable message.
         """
         return str(object=self.args[0])
 
     def __str__(self) -> str:
-        """Provides a more informative string representation of the error."""
+        """Provide a more informative string representation of the error."""
         parts = [super().__str__()]
 
         if self.status_code:
@@ -141,10 +140,10 @@ class APIErrorArgs:
     """Data structure to hold arguments for API exception constructors."""
 
     message: str
-    status_code: Optional[int] = None
-    api_short_error: Optional[str] = None
-    error_details: Optional[Union[str, dict]] = None
-    request_identifier: Optional[str] = None
+    status_code: int | None = None
+    api_short_error: str | None = None
+    error_details: str | dict | None = None
+    request_identifier: str | None = None
 
     @classmethod
     def from_http_error(
@@ -152,8 +151,7 @@ class APIErrorArgs:
         http_error: "requests.exceptions.HTTPError",  # String literal for type hint
         client_operation_message: str,
     ) -> "APIErrorArgs":
-        """
-        Creates an APIErrorArgs instance by parsing a requests.exceptions.HTTPError.
+        """Create an APIErrorArgs instance by parsing a requests.exceptions.HTTPError.
 
         Args:
             http_error: The HTTPError object from the requests library.
@@ -213,10 +211,11 @@ class APIErrorArgs:
     def from_request_exception(
         cls,
         request_exception: "requests.exceptions.RequestException",  # String for type hint
-        client_operation_message: Optional[str] = None,
+        client_operation_message: str | None = None,
     ) -> "APIErrorArgs":
-        """
-        Creates an APIErrorArgs instance from a generic requests.exceptions.RequestException
+        """Create an APIErrorArgs instance.
+
+        Create an APIErrorArgs instance from a generic requests.exceptions.RequestException.
         (e.g., ConnectionError, Timeout) that is not an HTTPError.
         """
         message_prefix = client_operation_message or "API request failed"
@@ -227,9 +226,9 @@ class APIErrorArgs:
 
 
 def get_api_exception(error_args: APIErrorArgs) -> USPTOApiError:
-    """
-    Determines and instantiates the appropriate USPTOApiError subclass
-    based on the status code in error_args.
+    """Determine and instantiate the appropriate USPTOApiError subclass.
+
+    Based on the status code in error_args.
 
     Args:
         error_args: An instance of APIErrorArgs containing all necessary
@@ -239,7 +238,7 @@ def get_api_exception(error_args: APIErrorArgs) -> USPTOApiError:
         An instance of a USPTOApiError subclass.
     """
     status_code = error_args.status_code
-    exception_class: Type[USPTOApiError]
+    exception_class: type[USPTOApiError]
 
     match status_code:
         case 400:

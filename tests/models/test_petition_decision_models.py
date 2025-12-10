@@ -1,11 +1,10 @@
-"""
-Tests for the petition_decisions models.
+"""Tests for the petition_decisions models.
 
 This module contains comprehensive tests for all classes in pyUSPTO.models.petition_decisions.
 """
 
-from datetime import date, datetime, timezone
-from typing import Any, Dict
+from datetime import date, datetime
+from typing import Any
 
 import pytest
 
@@ -21,7 +20,7 @@ from pyUSPTO.models.petition_decisions import (
 
 
 @pytest.fixture
-def sample_download_option_dict() -> Dict[str, Any]:
+def sample_download_option_dict() -> dict[str, Any]:
     """Provide a sample download option dictionary."""
     return {
         "mimeTypeIdentifier": "PDF",
@@ -31,7 +30,7 @@ def sample_download_option_dict() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_document_dict() -> Dict[str, Any]:
+def sample_document_dict() -> dict[str, Any]:
     """Provide a sample petition decision document dictionary."""
     return {
         "applicationNumberText": "13815942",
@@ -39,7 +38,7 @@ def sample_document_dict() -> Dict[str, Any]:
         "documentIdentifier": "M98QOH0NWFYTX17",
         "documentCode": "PETDEC",
         "documentCodeDescriptionText": "Petition Decision",
-        "documentDirectionCategory": "OUTGOING",
+        "directionCategory": "OUTGOING",
         "downloadOptionBag": [
             {
                 "mimeTypeIdentifier": "PDF",
@@ -55,7 +54,7 @@ def sample_document_dict() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_petition_decision_dict() -> Dict[str, Any]:
+def sample_petition_decision_dict() -> dict[str, Any]:
     """Provide a sample petition decision dictionary."""
     return {
         "actionTakenByCourtName": "None",
@@ -87,8 +86,8 @@ def sample_petition_decision_dict() -> Dict[str, Any]:
 
 @pytest.fixture
 def sample_petition_response_dict(
-    sample_petition_decision_dict: Dict[str, Any],
-) -> Dict[str, Any]:
+    sample_petition_decision_dict: dict[str, Any],
+) -> dict[str, Any]:
     """Provide a sample petition decision response dictionary."""
     return {
         "count": 1,
@@ -99,8 +98,8 @@ def sample_petition_response_dict(
 
 @pytest.fixture
 def sample_download_response_dict(
-    sample_petition_decision_dict: Dict[str, Any],
-) -> Dict[str, Any]:
+    sample_petition_decision_dict: dict[str, Any],
+) -> dict[str, Any]:
     """Provide a sample download response dictionary."""
     return {"petitionDecisionData": [sample_petition_decision_dict]}
 
@@ -109,7 +108,7 @@ class TestDocumentDownloadOptionFromDict:
     """Tests for DocumentDownloadOption.from_dict method."""
 
     def test_from_dict_complete(
-        self, sample_download_option_dict: Dict[str, Any]
+        self, sample_download_option_dict: dict[str, Any]
     ) -> None:
         """Test from_dict with complete data."""
         option = DocumentDownloadOption.from_dict(sample_download_option_dict)
@@ -140,7 +139,7 @@ class TestDocumentDownloadOptionToDict:
     """Tests for DocumentDownloadOption.to_dict method."""
 
     def test_to_dict_complete(
-        self, sample_download_option_dict: Dict[str, Any]
+        self, sample_download_option_dict: dict[str, Any]
     ) -> None:
         """Test to_dict with complete data."""
         option = DocumentDownloadOption.from_dict(sample_download_option_dict)
@@ -164,14 +163,14 @@ class TestDocumentDownloadOptionToDict:
 class TestPetitionDecisionDocumentFromDict:
     """Tests for PetitionDecisionDocument.from_dict method."""
 
-    def test_from_dict_complete(self, sample_document_dict: Dict[str, Any]) -> None:
+    def test_from_dict_complete(self, sample_document_dict: dict[str, Any]) -> None:
         """Test from_dict with complete data."""
         doc = PetitionDecisionDocument.from_dict(sample_document_dict)
         assert doc.application_number_text == "13815942"
         assert doc.document_identifier == "M98QOH0NWFYTX17"
         assert doc.document_code == "PETDEC"
         assert doc.document_code_description_text == "Petition Decision"
-        assert doc.document_direction_category == "OUTGOING"
+        assert doc.direction_category == "OUTGOING"
         assert len(doc.download_option_bag) == 2
         assert doc.download_option_bag[0].mime_type_identifier == "PDF"
         assert doc.download_option_bag[1].mime_type_identifier == "XML"
@@ -201,7 +200,7 @@ class TestPetitionDecisionDocumentFromDict:
 class TestPetitionDecisionDocumentToDict:
     """Tests for PetitionDecisionDocument.to_dict method."""
 
-    def test_to_dict_complete(self, sample_document_dict: Dict[str, Any]) -> None:
+    def test_to_dict_complete(self, sample_document_dict: dict[str, Any]) -> None:
         """Test to_dict with complete data."""
         doc = PetitionDecisionDocument.from_dict(sample_document_dict)
         result = doc.to_dict()
@@ -216,7 +215,7 @@ class TestPetitionDecisionFromDict:
     """Tests for PetitionDecision.from_dict method."""
 
     def test_from_dict_complete(
-        self, sample_petition_decision_dict: Dict[str, Any]
+        self, sample_petition_decision_dict: dict[str, Any]
     ) -> None:
         """Test from_dict with complete data."""
         decision = PetitionDecision.from_dict(sample_petition_decision_dict)
@@ -285,7 +284,7 @@ class TestPetitionDecisionFromDict:
         assert decision.patent_number == "11000000"
 
     def test_from_dict_with_documents(
-        self, sample_document_dict: Dict[str, Any]
+        self, sample_document_dict: dict[str, Any]
     ) -> None:
         """Test from_dict with document bag."""
         data = {
@@ -364,7 +363,7 @@ class TestPetitionDecisionToDict:
     """Tests for PetitionDecision.to_dict method."""
 
     def test_to_dict_complete(
-        self, sample_petition_decision_dict: Dict[str, Any]
+        self, sample_petition_decision_dict: dict[str, Any]
     ) -> None:
         """Test to_dict with complete data."""
         decision = PetitionDecision.from_dict(sample_petition_decision_dict)
@@ -391,6 +390,7 @@ class TestPetitionDecisionToDict:
         """Test to_dict filters out None values and empty lists."""
         decision = PetitionDecision(
             application_number_text="12345678",
+            petition_decision_record_identifier="test-id",
             patent_number=None,
             inventor_bag=[],
         )
@@ -404,7 +404,7 @@ class TestPetitionDecisionResponseFromDict:
     """Tests for PetitionDecisionResponse.from_dict method."""
 
     def test_from_dict_complete(
-        self, sample_petition_response_dict: Dict[str, Any]
+        self, sample_petition_response_dict: dict[str, Any]
     ) -> None:
         """Test from_dict with complete data."""
         response = PetitionDecisionResponse.from_dict(sample_petition_response_dict)
@@ -418,7 +418,7 @@ class TestPetitionDecisionResponseFromDict:
     def test_from_dict_empty(self) -> None:
         """Test from_dict with empty data."""
         response = PetitionDecisionResponse.from_dict({})
-        assert response.count is None
+        assert response.count == 0
         assert response.request_identifier is None
         assert len(response.petition_decision_data_bag) == 0
 
@@ -447,7 +447,7 @@ class TestPetitionDecisionResponseToDict:
     """Tests for PetitionDecisionResponse.to_dict method."""
 
     def test_to_dict_complete(
-        self, sample_petition_response_dict: Dict[str, Any]
+        self, sample_petition_response_dict: dict[str, Any]
     ) -> None:
         """Test to_dict with complete data."""
         response = PetitionDecisionResponse.from_dict(sample_petition_response_dict)
@@ -462,7 +462,7 @@ class TestPetitionDecisionDownloadResponseFromDict:
     """Tests for PetitionDecisionDownloadResponse.from_dict method."""
 
     def test_from_dict_complete(
-        self, sample_download_response_dict: Dict[str, Any]
+        self, sample_download_response_dict: dict[str, Any]
     ) -> None:
         """Test from_dict with complete data."""
         response = PetitionDecisionDownloadResponse.from_dict(
@@ -481,7 +481,7 @@ class TestPetitionDecisionDownloadResponseToDict:
     """Tests for PetitionDecisionDownloadResponse.to_dict method."""
 
     def test_to_dict_complete(
-        self, sample_download_response_dict: Dict[str, Any]
+        self, sample_download_response_dict: dict[str, Any]
     ) -> None:
         """Test to_dict with complete data."""
         response = PetitionDecisionDownloadResponse.from_dict(

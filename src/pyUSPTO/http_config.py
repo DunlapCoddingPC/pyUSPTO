@@ -1,5 +1,4 @@
-"""
-http_config - HTTP client configuration for USPTO API requests
+"""http_config - HTTP client configuration for USPTO API requests.
 
 This module provides configuration for HTTP transport-level settings including
 timeouts, retries, connection pooling, and custom headers.
@@ -7,7 +6,6 @@ timeouts, retries, connection pooling, and custom headers.
 
 import os
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
 
 
 @dataclass
@@ -29,13 +27,13 @@ class HTTPConfig:
     """
 
     # Timeout configuration
-    timeout: Optional[float] = 30.0
-    connect_timeout: Optional[float] = 10.0
+    timeout: float | None = 30.0
+    connect_timeout: float | None = 10.0
 
     # Retry configuration
     max_retries: int = 3
     backoff_factor: float = 1.0
-    retry_status_codes: List[int] = field(
+    retry_status_codes: list[int] = field(
         default_factory=lambda: [429, 500, 502, 503, 504]
     )
 
@@ -44,7 +42,7 @@ class HTTPConfig:
     pool_maxsize: int = 10
 
     # Custom headers (User-Agent, tracking, etc.)
-    custom_headers: Optional[Dict[str, str]] = None
+    custom_headers: dict[str, str] | None = None
 
     @classmethod
     def from_env(cls) -> "HTTPConfig":
@@ -70,7 +68,7 @@ class HTTPConfig:
             pool_maxsize=int(os.environ.get("USPTO_POOL_MAXSIZE", "10")),
         )
 
-    def get_timeout_tuple(self) -> tuple[Optional[float], Optional[float]]:
+    def get_timeout_tuple(self) -> tuple[float | None, float | None]:
         """Get timeout as tuple for requests library.
 
         Returns:

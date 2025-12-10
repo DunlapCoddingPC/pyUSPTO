@@ -1,5 +1,4 @@
-"""
-models - Data models for USPTO APIs
+"""models - Data models for USPTO APIs.
 
 This package provides data models for USPTO APIs.
 """
@@ -18,6 +17,14 @@ from pyUSPTO.models.petition_decisions import (
     PetitionDecisionDownloadResponse,
     PetitionDecisionResponse,
 )
+from pyUSPTO.models.ptab import (
+    PTABAppealDecision,
+    PTABAppealResponse,
+    PTABInterferenceDecision,
+    PTABInterferenceResponse,
+    PTABTrialProceeding,
+    PTABTrialProceedingResponse,
+)
 
 __all__ = [
     "FromDictProtocol",
@@ -30,4 +37,11 @@ __all__ = [
     "PetitionDecisionResponse",
     "PetitionDecisionDownloadResponse",
     "DocumentDownloadOption",
+    # PTAB Models
+    "PTABTrialProceeding",
+    "PTABTrialProceedingResponse",
+    "PTABAppealDecision",
+    "PTABAppealResponse",
+    "PTABInterferenceDecision",
+    "PTABInterferenceResponse",
 ]

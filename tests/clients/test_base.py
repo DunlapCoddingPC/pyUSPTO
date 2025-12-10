@@ -4,7 +4,7 @@ Tests for the pyUSPTO.base module.
 This module contains tests for the BaseUSPTOClient class.
 """
 
-from typing import Any, Dict, cast
+from typing import Any, cast
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
@@ -12,7 +12,7 @@ import requests
 from requests.adapters import HTTPAdapter
 
 import pyUSPTO.models.base as BaseModels
-from pyUSPTO.clients.base import BaseUSPTOClient, FromDictProtocol
+from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.exceptions import (
     USPTOApiAuthError,
     USPTOApiBadRequestError,
@@ -78,11 +78,11 @@ class TestModelsBase:
 class TestResponseClass:
     """Test class implementing FromDictProtocol for testing."""
 
-    data: Dict[str, Any]
+    data: dict[str, Any]
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "TestResponseClass":
         """Create a TestResponseClass object from a dictionary."""
         instance = cls()
@@ -576,8 +576,8 @@ class TestBaseUSPTOClient:
 
     def test_base_client_with_http_config(self) -> None:
         """Test BaseUSPTOClient applies HTTPConfig settings"""
-        from pyUSPTO.http_config import HTTPConfig
         from pyUSPTO.config import USPTOConfig
+        from pyUSPTO.http_config import HTTPConfig
 
         http_cfg = HTTPConfig(
             max_retries=7,
@@ -619,8 +619,8 @@ class TestBaseUSPTOClient:
 
     def test_base_client_timeout_applied(self, mock_session: MagicMock) -> None:
         """Test that timeout is passed to requests"""
-        from pyUSPTO.http_config import HTTPConfig
         from pyUSPTO.config import USPTOConfig
+        from pyUSPTO.http_config import HTTPConfig
 
         http_cfg = HTTPConfig(timeout=45.0, connect_timeout=8.0)
         config = USPTOConfig(api_key="test", http_config=http_cfg)
@@ -788,7 +788,6 @@ class TestSaveResponseToFile:
         self, mock_file_open: MagicMock, tmp_path: Any
     ) -> None:
         """Test saving to directory extracts filename from Content-Disposition."""
-        from pathlib import Path
 
         # Create a test client
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
@@ -797,7 +796,9 @@ class TestSaveResponseToFile:
 
         # Mock response with Content-Disposition header
         mock_response = MagicMock()
-        mock_response.headers = {"Content-Disposition": 'attachment; filename="test_doc.pdf"'}
+        mock_response.headers = {
+            "Content-Disposition": 'attachment; filename="test_doc.pdf"'
+        }
         mock_response.iter_content.return_value = [b"data1", b"data2"]
 
         # Save to directory (using tmp_path from pytest fixture)
@@ -813,7 +814,6 @@ class TestSaveResponseToFile:
         self, mock_file_open: MagicMock, tmp_path: Any
     ) -> None:
         """Test saving to directory without Content-Disposition raises ValueError."""
-        from pathlib import Path
 
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
             api_key="test", base_url="https://test.com"

@@ -4,10 +4,8 @@ Tests for the pyUSPTO package initialization.
 This module contains tests for import paths, version handling, and import error scenarios.
 """
 
-import importlib
 import sys
-from importlib.metadata import PackageNotFoundError, version
-from typing import Any
+from importlib.metadata import PackageNotFoundError
 from unittest.mock import patch
 
 import pyUSPTO

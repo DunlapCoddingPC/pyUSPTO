@@ -1,5 +1,4 @@
-"""
-Example usage of the pyUSPTO module for Final Petition Decisions
+"""Example usage of the pyUSPTO module for Final Petition Decisions.
 
 This example demonstrates how to use the FinalPetitionDecisionsClient to interact with the
 USPTO Final Petition Decisions API. It shows how to search for petition decisions, retrieve
@@ -7,17 +6,15 @@ specific decisions by ID, download decision data, and access detailed informatio
 petitions and their associated documents.
 """
 
+import json
 import os
 
 from pyUSPTO.clients import FinalPetitionDecisionsClient
-from pyUSPTO.config import USPTOConfig
+from pyUSPTO.models.petition_decisions import PetitionDecisionDownloadResponse
 
 # --- Initialization ---
-# Choose one method to initialize the client.
-# For this example, Method 1 is active. Replace "YOUR_API_KEY_HERE" with your actual key.
-
-# Method 1: Initialize the client with direct API key
-print("Method 1: Initialize with direct API key")
+# Initialize the client with direct API key
+print("Initialize with direct API key")
 api_key = os.environ.get("USPTO_API_KEY", "YOUR_API_KEY_HERE")
 if api_key == "YOUR_API_KEY_HERE":
     raise ValueError(
@@ -25,19 +22,7 @@ if api_key == "YOUR_API_KEY_HERE":
     )
 client = FinalPetitionDecisionsClient(api_key=api_key)
 
-# Method 2: Initialize the client with USPTOConfig (alternative)
-# print("\nMethod 2: Initialize with USPTOConfig")
-# config_obj = USPTOConfig(
-#     api_key="YOUR_API_KEY_HERE",  # Replace with your actual API key
-#     petition_decisions_base_url="https://api.uspto.gov",  # Optional, uses default if not set
-# )
-# client = FinalPetitionDecisionsClient(config=config_obj)
-
-# Method 3: Initialize the client with environment variables (recommended for production)
-# print("\nMethod 3: Initialize with environment variables")
-# # Ensure USPTO_API_KEY is set in your environment
-# config_from_env = USPTOConfig.from_env()
-# client = FinalPetitionDecisionsClient(config=config_from_env)
+DEST_PATH = "./download-example"
 
 print("\nBeginning API requests with configured client:")
 
@@ -56,10 +41,10 @@ try:
         print(f"  Application Number: {decision.application_number_text}")
         print(f"  Decision Type: {decision.decision_type_code}")
         print(f"  Decision Date: {decision.decision_date}")
-        print(f"  Technology Center: {decision.technology_center_number}")
+        print(f"  Technology Center: {decision.technology_center}")
 
-        if decision.applicant_name:
-            print(f"  Applicant: {decision.applicant_name}")
+        if decision.first_applicant_name:
+            print(f"  Applicant: {decision.first_applicant_name}")
 
         if decision.patent_number:
             print(f"  Patent Number: {decision.patent_number}")
@@ -67,10 +52,7 @@ try:
         if decision.inventor_bag:
             print(f"  Inventors ({len(decision.inventor_bag)}):")
             for inventor in decision.inventor_bag[:3]:  # Show first 3
-                name_parts = [
-                    part for part in [inventor.first_name, inventor.last_name] if part
-                ]
-                print(f"    - {' '.join(name_parts).strip()}")
+                print(f"    - {inventor}")
 
         if decision.document_bag:
             print(f"  Documents: {len(decision.document_bag)}")
@@ -87,15 +69,14 @@ try:
     print("=" * 60)
 
     # Search for decisions mentioning specific terms
-    response = client.search_decisions(
-        query="decisionTypeCode:GRANT",
-        limit=3
-    )
-    print(f"Found {response.count} decisions with GRANT type.")
+    response = client.search_decisions(query="decisionTypeCode:C", limit=3)
+    print(f"Found {response.count} decisions with C type.")
     print(f"Showing {len(response.petition_decision_data_bag)} results:")
 
     for decision in response.petition_decision_data_bag:
-        print(f"  - {decision.petition_decision_record_identifier}: {decision.decision_type_code}")
+        print(
+            f"  - {decision.petition_decision_record_identifier}: {decision.decision_type_code}"
+        )
 
 except Exception as e:
     print(f"Error searching with query: {e}")
@@ -109,18 +90,13 @@ try:
     # Search by application number (if you have a specific one)
     print("\nSearching by date range...")
     response = client.search_decisions(
-        decision_date_from_q="2023-01-01",
-        decision_date_to_q="2023-12-31",
-        limit=5
+        decision_date_from_q="2023-01-01", decision_date_to_q="2023-12-31", limit=5
     )
     print(f"Found {response.count} decisions from 2023.")
 
     # Search by technology center
     print("\nSearching by technology center...")
-    response = client.search_decisions(
-        technology_center_q="2600",
-        limit=3
-    )
+    response = client.search_decisions(technology_center_q="2600", limit=3)
     print(f"Found {response.count} decisions from Technology Center 2600.")
 
 except Exception as e:
@@ -135,41 +111,46 @@ try:
     # First, get a decision ID from search results
     response = client.search_decisions(limit=1)
     if response.count > 0:
-        decision_id = response.petition_decision_data_bag[0].petition_decision_record_identifier
+        decision_id = response.petition_decision_data_bag[
+            0
+        ].petition_decision_record_identifier
+        if decision_id:
+            print(f"Retrieving decision: {decision_id}")
+            decision = client.get_decision_by_id(decision_id)
+            if decision:
+                print("\nDecision Details:")
+                print(f"  ID: {decision.petition_decision_record_identifier}")
+                print(f"  Application: {decision.application_number_text}")
+                print(f"  Patent: {decision.patent_number}")
+                print(f"  Decision Type: {decision.decision_type_code}")
+                print(f"  Decision Date: {decision.decision_date}")
+                print(f"  Technology Center: {decision.technology_center}")
+                print(f"  Group Art Unit: {decision.group_art_unit_number}")
 
-        print(f"Retrieving decision: {decision_id}")
-        decision = client.get_decision_by_id(decision_id)
+                if decision.rule_bag:
+                    print(f"\n  Rules Cited ({len(decision.rule_bag)}):")
+                    for rule in decision.rule_bag[:5]:  # Show first 5
+                        print(f"    - {rule}")
 
-        print(f"\nDecision Details:")
-        print(f"  ID: {decision.petition_decision_record_identifier}")
-        print(f"  Application: {decision.application_number_text}")
-        print(f"  Patent: {decision.patent_number}")
-        print(f"  Decision Type: {decision.decision_type_code}")
-        print(f"  Decision Date: {decision.decision_date}")
-        print(f"  Technology Center: {decision.technology_center_number}")
-        print(f"  Group Art Unit: {decision.group_art_unit_number}")
-        print(f"  Examiner: {decision.examiner_name_text}")
+                if decision.statute_bag:
+                    print(f"\n  Statutes Cited ({len(decision.statute_bag)}):")
+                    for statute in decision.statute_bag[:5]:  # Show first 5
+                        print(f"    - {statute}")
 
-        if decision.rule_bag:
-            print(f"\n  Rules Cited ({len(decision.rule_bag)}):")
-            for rule in decision.rule_bag[:5]:  # Show first 5
-                print(f"    - {rule}")
-
-        if decision.statute_bag:
-            print(f"\n  Statutes Cited ({len(decision.statute_bag)}):")
-            for statute in decision.statute_bag[:5]:  # Show first 5
-                print(f"    - {statute}")
-
-        if decision.document_bag:
-            print(f"\n  Associated Documents ({len(decision.document_bag)}):")
-            for doc in decision.document_bag[:3]:  # Show first 3
-                print(f"    - Doc ID: {doc.document_identifier}")
-                print(f"      Date: {doc.official_date}")
-                print(f"      Direction: {doc.document_direction_category}")
-                if doc.page_total_quantity:
-                    print(f"      Pages: {doc.page_total_quantity}")
-                if doc.download_option_bag:
-                    print(f"      Download Options: {len(doc.download_option_bag)}")
+                if decision.document_bag:
+                    print(f"\n  Associated Documents ({len(decision.document_bag)}):")
+                    for doc in decision.document_bag[:3]:  # Show first 3
+                        print(f"    - Doc ID: {doc.document_identifier}")
+                        print(f"      Date: {doc.official_date}")
+                        print(f"      Doc. Code: {doc.document_code_description_text}")
+                        print(f"      Direction: {doc.direction_category}")
+                        if doc.download_option_bag:
+                            print(
+                                f"      Download Options: {len(doc.download_option_bag)}"
+                            )
+                            for mime in doc.download_option_bag:
+                                print(f"       >Mime Type: {mime.mime_type_identifier}")
+                                print(f"       >>Pages: {mime.page_total_quantity}")
 
 except Exception as e:
     print(f"Error retrieving decision by ID: {e}")
@@ -183,11 +164,13 @@ try:
     # Download as JSON (returns response object)
     print("\nDownloading decisions as JSON...")
     response = client.download_decisions(
-        format="json",
-        decision_date_from_q="2023-01-01",
-        limit=5
+        format="json", decision_date_from_q="2023-01-01", limit=5
     )
-    print(f"Downloaded JSON with {len(response.petition_decision_data)} decision records")
+    if isinstance(response, PetitionDecisionDownloadResponse):
+        print(
+            f"Downloaded JSON with {len(response.petition_decision_data)} decision records"
+        )
+        print(json.dumps(response.to_dict(), indent=2))
 
     # Download as CSV (automatically saves to file)
     print("\nDownloading decisions as CSV...")
@@ -195,7 +178,7 @@ try:
         format="csv",
         decision_date_from_q="2023-01-01",
         limit=10,
-        destination_path="./downloads"
+        destination_path=DEST_PATH,
     )
     print(f"Downloaded CSV to: {csv_path}")
 
@@ -211,26 +194,25 @@ try:
     page_size = 10
     max_pages = 3  # Limit to 3 pages for example
 
-    print(f"Paginating through results ({page_size} per page, max {max_pages} pages)...")
+    print(
+        f"Paginating through results ({page_size} per page, max {max_pages} pages)..."
+    )
 
-    page_count = 0
     total_decisions = 0
 
-    for page_response in client.paginate_decisions(
-        limit=page_size,
-        query="decisionDate:[2023-01-01 TO 2023-12-31]"
+    for decision in client.paginate_decisions(
+        limit=page_size, query="decisionDate:[2023-01-01 TO 2023-12-31]"
     ):
-        page_count += 1
-        decisions_in_page = len(page_response.petition_decision_data_bag)
-        total_decisions += decisions_in_page
+        total_decisions += 1
 
-        print(f"  Page {page_count}: {decisions_in_page} decisions")
+        if total_decisions % page_size == 0:
+            print(f"  Retrieved {total_decisions} decisions so far...")
 
-        if page_count >= max_pages:
+        if total_decisions >= (page_size * max_pages):
             print(f"  (Stopping after {max_pages} pages for example)")
             break
 
-    print(f"\nTotal decisions retrieved: {total_decisions} across {page_count} pages")
+    print(f"\nTotal decisions retrieved: {total_decisions}")
 
 except Exception as e:
     print(f"Error during pagination: {e}")
@@ -246,21 +228,24 @@ try:
 
     document_found = False
     for decision in response.petition_decision_data_bag:
-        if decision.document_bag:
-            for doc in decision.document_bag:
+        d = client.get_decision_by_id(
+            decision.petition_decision_record_identifier, include_documents=True
+        )
+        print(f"Getting docs for patent: {d.invention_title} with id: {d.petition_decision_record_identifier}")  # type: ignore
+        if d and d.document_bag:
+            for doc in d.document_bag:
                 if doc.download_option_bag and len(doc.download_option_bag) > 0:
                     download_option = doc.download_option_bag[0]
 
-                    print(f"Found downloadable document:")
+                    print("Found downloadable document:")
                     print(f"  Document ID: {doc.document_identifier}")
                     print(f"  MIME Type: {download_option.mime_type_identifier}")
                     print(f"  Pages: {download_option.page_total_quantity}")
                     print(f"  URL: {download_option.download_url}")
 
-                    print(f"\nDownloading document...")
+                    print("\nDownloading document...")
                     file_path = client.download_petition_document(
-                        download_option,
-                        file_path="./downloads"
+                        download_option, destination_path=DEST_PATH
                     )
                     print(f"Downloaded to: {file_path}")
 
@@ -287,21 +272,23 @@ try:
         application_number_q="16*",  # Applications starting with 16
         decision_date_from_q="2020-01-01",
         technology_center_q="2600",
-        limit=10
+        limit=10,
     )
 
-    print(f"Search criteria:")
-    print(f"  - Application numbers starting with '16'")
-    print(f"  - Decision date from 2020-01-01")
-    print(f"  - Technology Center 2600")
+    print("Search criteria:")
+    print("  - Application numbers starting with '16'")
+    print("  - Decision date from 2020-01-01")
+    print("  - Technology Center 2600")
     print(f"\nFound {response.count} matching decisions")
 
     if response.count > 0:
         print(f"Showing first {len(response.petition_decision_data_bag)} results:")
         for decision in response.petition_decision_data_bag:
-            print(f"  - App: {decision.application_number_text}, "
-                  f"TC: {decision.technology_center_number}, "
-                  f"Date: {decision.decision_date}")
+            print(
+                f"  - App: {decision.application_number_text}, "
+                f"TC: {decision.technology_center}, "
+                f"Date: {decision.decision_date}"
+            )
 
 except Exception as e:
     print(f"Error in advanced search: {e}")

@@ -1,17 +1,16 @@
-"""
-models.bulk_data - Data models for USPTO bulk data API
+"""models.bulk_data - Data models for USPTO bulk data API.
 
 This module provides data models for the USPTO Open Data Portal (ODP) Bulk Data API.
 """
 
 import json
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
 class FileData:
-    """Represents a file in the bulk data API."""
+    """Represent a file in the bulk data API."""
 
     file_name: str
     file_size: int
@@ -19,12 +18,12 @@ class FileData:
     file_data_to_date: str
     file_type_text: str
     file_release_date: str
-    file_download_uri: Optional[str] = None
-    file_date: Optional[str] = None
-    file_last_modified_date_time: Optional[str] = None
+    file_download_uri: str | None = None
+    file_date: str | None = None
+    file_last_modified_date_time: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "FileData":
+    def from_dict(cls, data: dict[str, Any]) -> "FileData":
         """Create a FileData object from a dictionary."""
         return cls(
             file_name=data.get("fileName", ""),
@@ -44,10 +43,10 @@ class ProductFileBag:
     """Container for file data elements."""
 
     count: int
-    file_data_bag: List[FileData]
+    file_data_bag: list[FileData]
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ProductFileBag":
+    def from_dict(cls, data: dict[str, Any]) -> "ProductFileBag":
         """Create a ProductFileBag object from a dictionary."""
         return cls(
             count=data.get("count", 0),
@@ -60,26 +59,26 @@ class ProductFileBag:
 
 @dataclass
 class BulkDataProduct:
-    """Represents a product in the bulk data API."""
+    """Represent a product in the bulk data API."""
 
     product_identifier: str
     product_description_text: str
     product_title_text: str
     product_frequency_text: str
-    product_label_array_text: List[str]
-    product_dataset_array_text: List[str]
-    product_dataset_category_array_text: List[str]
+    product_label_array_text: list[str]
+    product_dataset_array_text: list[str]
+    product_dataset_category_array_text: list[str]
     product_from_date: str
     product_to_date: str
     product_total_file_size: int
     product_file_total_quantity: int
     last_modified_date_time: str
-    mime_type_identifier_array_text: List[str]
-    product_file_bag: Optional[ProductFileBag] = None
-    days_of_week_text: Optional[str] = None
+    mime_type_identifier_array_text: list[str]
+    product_file_bag: ProductFileBag | None = None
+    days_of_week_text: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "BulkDataProduct":
+    def from_dict(cls, data: dict[str, Any]) -> "BulkDataProduct":
         """Create a BulkDataProduct object from a dictionary."""
         return cls(
             product_identifier=data.get("productIdentifier", ""),
@@ -113,12 +112,12 @@ class BulkDataResponse:
     """
 
     count: int
-    bulk_data_product_bag: List[BulkDataProduct]
-    raw_data: Optional[str] = field(default=None, compare=False, repr=False)
+    bulk_data_product_bag: list[BulkDataProduct]
+    raw_data: str | None = field(default=None, compare=False, repr=False)
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "BulkDataResponse":
         """Create a BulkDataResponse object from a dictionary.
 
@@ -138,7 +137,7 @@ class BulkDataResponse:
             raw_data=json.dumps(data) if include_raw_data else None,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the BulkDataResponse object to a dictionary."""
         return {
             "count": self.count,

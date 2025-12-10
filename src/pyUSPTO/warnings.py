@@ -1,5 +1,4 @@
-"""
-warnings - Warning classes for pyUSPTO data parsing issues
+"""warnings - Warning classes for pyUSPTO data parsing issues.
 
 This module defines custom warning categories for different types of
 data parsing issues encountered when working with USPTO API responses.

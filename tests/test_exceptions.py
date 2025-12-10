@@ -5,7 +5,6 @@ This module contains tests for exception classes, helper structures,
 and functions defined in pyUSPTO.exceptions.
 """
 
-from typing import Optional, Type, Union
 from unittest.mock import MagicMock
 
 import pytest
@@ -205,14 +204,14 @@ class TestGetAPIException:
         ],
     )
     def test_returns_correct_exception_type(
-        self, status_code: Optional[int], expected_exception_type: USPTOApiError
+        self, status_code: int | None, expected_exception_type: USPTOApiError
     ) -> None:
         """Test that get_api_exception returns the correct type of exception."""
         message_val: str = "Test operation"
-        api_short_error_val: Optional[str] = "API Short Error"
+        api_short_error_val: str | None = "API Short Error"
         # Ensure error_details_val matches the Optional[Union[str, dict]] type
-        error_details_val: Optional[Union[str, dict]] = "Some details here."
-        request_identifier_val: Optional[str] = "req-id-test"
+        error_details_val: str | dict | None = "Some details here."
+        request_identifier_val: str | None = "req-id-test"
 
         if status_code is None:  # For non-HTTP errors, these fields might be None
             api_short_error_val = None

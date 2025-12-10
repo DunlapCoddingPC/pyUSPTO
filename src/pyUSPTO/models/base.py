@@ -1,10 +1,9 @@
-"""
-models.base - Base model classes and protocols for USPTO API models
+"""models.base - Base model classes and protocols for USPTO API models.
 
 This module provides base model classes and protocols for USPTO API models.
 """
 
-from typing import Any, Dict, Optional, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -12,7 +11,7 @@ class FromDictProtocol(Protocol):
     """Protocol for classes that can be created from a dictionary."""
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> Any:
+    def from_dict(cls, data: dict[str, Any]) -> Any:
         """Create an object from a dictionary."""
         ...
 
@@ -20,9 +19,15 @@ class FromDictProtocol(Protocol):
 class BaseModel:
     """A base model providing common functionality like raw data storage."""
 
-    raw_data: Optional[Any]
+    raw_data: Any | None
 
-    def __init__(self, raw_data: Optional[Any] = None, **kwargs: Any) -> None:
+    def __init__(self, raw_data: Any | None = None, **kwargs: Any) -> None:
+        """Initialize the BaseModel.
+
+        Args:
+            raw_data: The original API JSON data to store for reference.
+            **kwargs: Additional keyword arguments to set as attributes on the instance.
+        """
         # raw_data holds the original API JSON data.
         self.raw_data = raw_data
 

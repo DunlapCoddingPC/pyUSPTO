@@ -1,12 +1,12 @@
-"""
-clients.bulk_data - Client for USPTO bulk data API
+"""clients.bulk_data - Client for USPTO bulk data API.
 
 This module provides a client for interacting with the USPTO Open Data Portal (ODP)
 Bulk Data API. It allows you to search for and download bulk data products.
 """
 
 import os
-from typing import Any, Dict, Iterator, List, Optional
+from collections.abc import Iterator
+from typing import Any
 from urllib.parse import urlparse
 
 from pyUSPTO.clients.base import BaseUSPTOClient
@@ -28,12 +28,11 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        config: Optional[USPTOConfig] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        config: USPTOConfig | None = None,
     ):
-        """
-        Initialize the BulkDataClient.
+        """Initialize the BulkDataClient.
 
         Args:
             api_key: Optional API key for authentication
@@ -51,9 +50,8 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
 
         super().__init__(api_key=api_key, base_url=base_url, config=self.config)
 
-    def get_products(self, params: Optional[Dict[str, Any]] = None) -> BulkDataResponse:
-        """
-        Get a list of bulk data products.
+    def get_products(self, params: dict[str, Any] | None = None) -> BulkDataResponse:
+        """Get a list of bulk data products.
 
         This method is deprecated. Use search_products instead.
 
@@ -76,15 +74,14 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
     def get_product_by_id(
         self,
         product_id: str,
-        file_data_from_date: Optional[str] = None,
-        file_data_to_date: Optional[str] = None,
-        offset: Optional[int] = None,
-        limit: Optional[int] = None,
-        include_files: Optional[bool] = None,
-        latest: Optional[bool] = None,
+        file_data_from_date: str | None = None,
+        file_data_to_date: str | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+        include_files: bool | None = None,
+        latest: bool | None = None,
     ) -> BulkDataProduct:
-        """
-        Get a specific bulk data product by ID.
+        """Get a specific bulk data product by ID.
 
         Args:
             product_id: The product identifier
@@ -146,8 +143,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
                 raise TypeError(f"Expected dict, got {type(data)}")
 
     def download_file(self, file_data: FileData, destination: str) -> str:
-        """
-        Download a file from the API.
+        """Download a file from the API.
 
         Args:
             file_data: FileData object containing file information
@@ -202,8 +198,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         return file_path
 
     def paginate_products(self, **kwargs: Any) -> Iterator[BulkDataProduct]:
-        """
-        Paginate through all products matching the search criteria.
+        """Paginate through all products matching the search criteria.
 
         Args:
             **kwargs: Keyword arguments to pass to search_products
@@ -219,24 +214,23 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
 
     def search_products(
         self,
-        query: Optional[str] = None,
-        product_title: Optional[str] = None,
-        product_description: Optional[str] = None,
-        product_short_name: Optional[str] = None,
-        from_date: Optional[str] = None,
-        to_date: Optional[str] = None,
-        categories: Optional[List[str]] = None,
-        labels: Optional[List[str]] = None,
-        datasets: Optional[List[str]] = None,
-        file_types: Optional[List[str]] = None,
-        offset: Optional[int] = None,
-        limit: Optional[int] = None,
-        include_files: Optional[bool] = None,
-        latest: Optional[bool] = None,
-        facets: Optional[bool] = None,
+        query: str | None = None,
+        product_title: str | None = None,
+        product_description: str | None = None,
+        product_short_name: str | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+        categories: list[str] | None = None,
+        labels: list[str] | None = None,
+        datasets: list[str] | None = None,
+        file_types: list[str] | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+        include_files: bool | None = None,
+        latest: bool | None = None,
+        facets: bool | None = None,
     ) -> BulkDataResponse:
-        """
-        Search for products with various filters.
+        """Search for products with various filters.
 
         Args:
             query: Search text

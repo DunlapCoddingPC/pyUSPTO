@@ -1,19 +1,17 @@
-"""
-utils.http - HTTP utilities for USPTO API clients
+"""utils.http - HTTP utilities for USPTO API clients.
 
 This module provides HTTP utilities for USPTO API clients.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 
-def create_session(headers: Optional[Dict[str, str]] = None) -> requests.Session:
-    """
-    Create a requests session with retry configuration.
+def create_session(headers: dict[str, str] | None = None) -> requests.Session:
+    """Create a requests session with retry configuration.
 
     Args:
         headers: Optional headers to add to the session
@@ -39,9 +37,8 @@ def create_session(headers: Optional[Dict[str, str]] = None) -> requests.Session
     return session
 
 
-def parse_response(response: requests.Response) -> Dict[str, Any]:
-    """
-    Parse a response from the USPTO API.
+def parse_response(response: requests.Response) -> dict[str, Any]:
+    """Parse a response from the USPTO API.
 
     Args:
         response: Response from the USPTO API
@@ -49,5 +46,5 @@ def parse_response(response: requests.Response) -> Dict[str, Any]:
     Returns:
         Parsed response data
     """
-    json_response: Dict[str, Any] = response.json()
+    json_response: dict[str, Any] = response.json()
     return json_response

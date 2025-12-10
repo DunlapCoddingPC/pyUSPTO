@@ -8,3 +8,4 @@ API Reference
    models
    config
    exceptions
+   warnings

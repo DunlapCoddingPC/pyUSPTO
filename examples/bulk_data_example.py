@@ -1,20 +1,19 @@
-"""
-Example usage of the uspto_api module for bulk data
+"""Example usage of the uspto_api module for bulk data.
 
 This example demonstrates how to use the BulkDataClient to interact with the USPTO Bulk Data API.
 It shows how to retrieve product information, search for products, and download files.
 """
 
 import os
+
 import requests
-from typing import Union, List, Optional
+
 from pyUSPTO.clients import BulkDataClient  # Import from top-level package
 from pyUSPTO.config import USPTOConfig
 
 
-def format_size(size_bytes: Union[int, float]) -> str:
-    """
-    Format a size in bytes to a human-readable string (KB, MB, GB, etc.)
+def format_size(size_bytes: int | float) -> str:
+    """Format a size in bytes to a human-readable string (KB, MB, GB, etc.).
 
     Args:
         size_bytes: The size in bytes to format
@@ -91,7 +90,7 @@ for product in response.bulk_data_product_bag:
                 if file_data.file_download_uri:
                     print(f"    Download URI: {file_data.file_download_uri}")
         else:
-            print(f"\nNo files available for this product")
+            print("\nNo files available for this product")
     except Exception as e:
         print(f"\nError retrieving detailed product info: {e}")
 

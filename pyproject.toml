@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "pyUSPTO"
 description = "A Modern Python client for accessing United Stated Patent and Trademark Office (USPTO) Open Data Portal (ODP) APIs."
 authors = [
-    {name = "Andrew Piechocki", email = "apiechocki@dunlapcodding.com"}
+    { name = "Andrew Piechocki", email = "apiechocki@dunlapcodding.com" },
 ]
 readme = "README.md"
 requires-python = ">=3.10"
@@ -20,16 +20,54 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
     "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Legal Industry",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Other Audience",
+    "Natural Language :: English",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
     "Topic :: Software Development :: Libraries",
+    "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Education",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Office/Business",
+    "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
 ]
+
 keywords = ["uspto", "patent", "odp", "client", "bulk data", "patent data"]
 dependencies = [
     "requests>=2.32.5",
+    "typing-extensions>=4.15.0; python_version < '3.11'",
+    "tzdata>=2025.2",
 ]
 dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.15.1",
+    # Documentation
+    "sphinx==8.1.3",
+    "sphinx_immaterial>=0.13.8",
+    "sphinx-autodoc-typehints==3.0.1",
+    "sphinx-copybutton>=0.5.2",
+    "myst-parser>=4.0.1",
+    # Type checking
+    "mypy>=1.19.0",
+    "types-requests>=2.32.4",
+    # Code quality and formatting
+    "ruff>=0.8.0",
+]
 
 [project.urls]
 GitHub = "https://github.com/DunlapCoddingPC/pyUSPTO"
@@ -42,21 +80,39 @@ Documentation = "https://pyuspto.readthedocs.io/en/latest/"
 [tool.setuptools]
 zip-safe = true
 
-[tool.setuptools.packages.find] 
+[tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
 pyUSPTO = ["py.typed"]
 
-[tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-line_length = 88
-profile = "black"
-src_paths = ["src"]
-known_first_party = ["pyUSPTO"]
+[tool.ruff]
+line-length = 88
+target-version = "py310"
 
+[tool.ruff.lint]
+# Enable pycodestyle (E), Pyflakes (F), pydocstyle (D), isort (I), and pyupgrade (UP)
+select = ["E", "F", "W", "D", "I", "UP"]
+ignore = [
+    "D203", # one-blank-line-before-class (conflicts with D211)
+    "D213", # multi-line-summary-second-line (conflicts with D212)
+    "E501", # line-too-long (handled by formatter where possible)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"] # Ignore all pydocstyle rules in tests
+
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["pyUSPTO"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -83,7 +139,7 @@ exclude_lines = [
 
 [tool.mypy]
 mypy_path = "src"
-python_version = "3.10"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -98,7 +154,7 @@ warn_unreachable = true
 
 # Per-module configs for production code
 [[tool.mypy.overrides]]
-module= "pyUSPTO.*"
+module = "pyUSPTO.*"
 disallow_untyped_defs = true
 
 # Less strict for tests - allow untyped test functions
@@ -113,5 +169,5 @@ warn_unreachable = false
 
 # Ignore missing stubs for third-party packages
 [[tool.mypy.overrides]]
-module = ["pytest.*","pytest", "requests.*", "urllib3.*"]
+module = ["pytest.*", "pytest", "requests.*", "urllib3.*"]
 ignore_missing_imports = true

@@ -1,10 +1,9 @@
 """Tests for models.utils"""
 
-from datetime import date, datetime, timedelta, timezone, tzinfo
 import importlib
-from typing import Optional
-from unittest.mock import patch
 import warnings
+from datetime import date, datetime, timedelta, timezone, tzinfo
+from unittest.mock import patch
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pytest
@@ -13,17 +12,14 @@ from pyUSPTO.models import utils
 
 # Import utility functions from models.utils module
 from pyUSPTO.models.utils import (
-    ASSUMED_NAIVE_TIMEZONE,
     ASSUMED_NAIVE_TIMEZONE_STR,
-    parse_to_date,
     parse_to_datetime_utc,
     parse_yn_to_bool,
     serialize_bool_to_yn,
     serialize_date,
     serialize_datetime_as_iso,
-    to_camel_case,
+    serialize_datetime_as_naive,
 )
-
 from pyUSPTO.warnings import (
     USPTOBooleanParseWarning,
     USPTODateParseWarning,
@@ -94,28 +90,50 @@ class TestUtilityFunctions:
     def test_serialize_datetime_as_iso(self) -> None:
         """Test serialize_datetime_as_iso utility function."""
         dt_utc = datetime(2023, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
-        assert serialize_datetime_as_iso(dt_utc) == "2023-01-01T10:00:00Z"
+        assert serialize_datetime_as_iso(dt_utc) == "2023-01-01T05:00:00.000-0500"
 
-        dt_naive = datetime(2023, 1, 1, 10, 0, 0)
-        assert serialize_datetime_as_iso(dt_naive) == "2023-01-01T10:00:00Z"
+        dt_naive = datetime(2023, 1, 2, 17, 0, 0)
+        assert serialize_datetime_as_iso(dt_naive) == "2023-01-02T17:00:00.000-0500"
 
         minus_five = timezone(timedelta(hours=-5))
-        dt_est = datetime(2023, 1, 1, 10, 0, 0, tzinfo=minus_five)
-        assert serialize_datetime_as_iso(dt_est) == "2023-01-01T15:00:00Z"
+        dt_est = datetime(2023, 1, 3, 23, 0, 0, tzinfo=minus_five)
+        assert serialize_datetime_as_iso(dt_est) == "2023-01-03T23:00:00.000-0500"
 
         assert serialize_datetime_as_iso(None) is None
+
+    def test_serialize_datetime_as_naive(self) -> None:
+        """Test serialize_datetime_as_naive utility function with both aware and naive datetimes."""
+        # Test with timezone-aware datetime (hits if branch, line 163-164)
+        dt_utc = datetime(2023, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        result_aware = serialize_datetime_as_naive(dt_utc)
+        assert isinstance(result_aware, str)
+        # Should convert to ASSUMED_NAIVE_TIMEZONE and serialize as ISO
+        assert result_aware.startswith("2023-01-01")
+
+        # Test with naive datetime (hits else branch, line 165-166)
+        dt_naive = datetime(2023, 1, 1, 15, 30, 45)
+        result_naive = serialize_datetime_as_naive(dt_naive)
+        assert isinstance(result_naive, str)
+        assert result_naive == "2023-01-01T15:30:45"
+
+        # Test with timezone-aware datetime with offset
+        minus_five = timezone(timedelta(hours=-5))
+        dt_est = datetime(2023, 1, 1, 10, 0, 0, tzinfo=minus_five)
+        result_est = serialize_datetime_as_naive(dt_est)
+        assert isinstance(result_est, str)
+        assert result_est.startswith("2023-01-01")
 
     def test_parse_to_datetime_utc_localization_failure_and_fallback(self) -> None:
         """Triggers the except block by making astimezone() raise, and tests fallback path."""
 
         class FailingTZ(tzinfo):
-            def utcoffset(self, dt: Optional[datetime]) -> None:
+            def utcoffset(self, dt: datetime | None) -> None:
                 raise Exception("boom")
 
-            def dst(self, dt: Optional[datetime]) -> Optional[timedelta]:
+            def dst(self, dt: datetime | None) -> timedelta | None:
                 return None
 
-            def tzname(self, dt: Optional[datetime]) -> Optional[str]:
+            def tzname(self, dt: datetime | None) -> str | None:
                 return None
 
         dt_str = "2023-01-01T10:00:00"
@@ -130,13 +148,13 @@ class TestUtilityFunctions:
         """Triggers fallback to dt_obj.replace(tzinfo=timezone.utc) without touching datetime.*"""
 
         class FailingButEqualToUTC(tzinfo):
-            def utcoffset(self, dt: Optional[datetime]) -> None:
+            def utcoffset(self, dt: datetime | None) -> None:
                 raise Exception("boom")
 
-            def dst(self, dt: Optional[datetime]) -> Optional[timedelta]:
+            def dst(self, dt: datetime | None) -> timedelta | None:
                 return None
 
-            def tzname(self, dt: Optional[datetime]) -> Optional[str]:
+            def tzname(self, dt: datetime | None) -> str | None:
                 return None
 
             def __eq__(self, other: object) -> bool:

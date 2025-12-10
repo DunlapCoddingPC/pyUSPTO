@@ -4,17 +4,14 @@ Test fixtures for USPTO API client tests.
 This module provides pytest fixtures for testing the USPTO API clients.
 """
 
-from typing import Any, Dict, Generator
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from pyUSPTO.clients import BulkDataClient, PatentDataClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.models.patent_data import (
-    PatentDataResponse,
-    PatentFileWrapper,
-)
 
 
 @pytest.fixture
@@ -60,7 +57,7 @@ def mock_session() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
-def bulk_data_sample() -> Dict[str, Any]:
+def bulk_data_sample() -> dict[str, Any]:
     """
     Provide a sample bulk data API response.
 
@@ -142,7 +139,7 @@ def bulk_data_sample() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def patent_data_sample() -> Dict[str, Any]:
+def patent_data_sample() -> dict[str, Any]:
     """
     Provide a sample patent data API response.
 

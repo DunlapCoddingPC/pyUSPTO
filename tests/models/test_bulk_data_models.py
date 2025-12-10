@@ -4,7 +4,7 @@ Tests for the bulk_data models.
 This module contains consolidated tests for all classes in pyUSPTO.models.bulk_data.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from pyUSPTO.models.bulk_data import BulkDataProduct, BulkDataResponse
 
@@ -44,7 +44,7 @@ class TestBulkDataModelFromDict:
 class TestBulkDataModelToDict:
     """Tests for converting model objects to dictionaries."""
 
-    def test_bulk_data_response_to_dict(self, bulk_data_sample: Dict[str, Any]) -> None:
+    def test_bulk_data_response_to_dict(self, bulk_data_sample: dict[str, Any]) -> None:
         """Test BulkDataResponse.to_dict method."""
         # Create a BulkDataResponse from the sample data
         response = BulkDataResponse.from_dict(bulk_data_sample)

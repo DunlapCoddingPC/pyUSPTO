@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API Reference &mdash; pyUSPTO 0.1.4.dev0+ga92fa00.d20250320 documentation</title>
+  <title>API Reference &mdash; pyUSPTO 0.2.3.dev1+g2c5d89b38.d20251125 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=109a12d6"></script>
+      <script src="../_static/documentation_options.js?v=c5100f98"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -54,6 +54,7 @@
 <li class="toctree-l2"><a class="reference internal" href="models.html">Models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="config.html">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="exceptions.html">Exceptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="warnings.html">Warnings</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
@@ -91,6 +92,10 @@
 <li class="toctree-l1"><a class="reference internal" href="clients.html">Clients</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="clients.html#pyUSPTO.clients.bulk_data.BulkDataClient"><code class="docutils literal notranslate"><span class="pre">BulkDataClient</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="clients.html#pyUSPTO.clients.patent_data.PatentDataClient"><code class="docutils literal notranslate"><span class="pre">PatentDataClient</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="clients.html#pyUSPTO.clients.petition_decisions.FinalPetitionDecisionsClient"><code class="docutils literal notranslate"><span class="pre">FinalPetitionDecisionsClient</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="clients.html#pyUSPTO.clients.ptab_appeals.PTABAppealsClient"><code class="docutils literal notranslate"><span class="pre">PTABAppealsClient</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="clients.html#pyUSPTO.clients.ptab_interferences.PTABInterferencesClient"><code class="docutils literal notranslate"><span class="pre">PTABInterferencesClient</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="clients.html#pyUSPTO.clients.ptab_trials.PTABTrialsClient"><code class="docutils literal notranslate"><span class="pre">PTABTrialsClient</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="models.html">Models</a><ul>
@@ -98,8 +103,10 @@
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.bulk_data.BulkDataResponse"><code class="docutils literal notranslate"><span class="pre">BulkDataResponse</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.bulk_data.FileData"><code class="docutils literal notranslate"><span class="pre">FileData</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.bulk_data.ProductFileBag"><code class="docutils literal notranslate"><span class="pre">ProductFileBag</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.ActiveIndicator"><code class="docutils literal notranslate"><span class="pre">ActiveIndicator</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.Address"><code class="docutils literal notranslate"><span class="pre">Address</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.Applicant"><code class="docutils literal notranslate"><span class="pre">Applicant</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.ApplicationContinuityData"><code class="docutils literal notranslate"><span class="pre">ApplicationContinuityData</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.ApplicationMetaData"><code class="docutils literal notranslate"><span class="pre">ApplicationMetaData</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.Assignee"><code class="docutils literal notranslate"><span class="pre">Assignee</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.Assignment"><code class="docutils literal notranslate"><span class="pre">Assignment</span></code></a></li>
@@ -108,9 +115,12 @@
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.ChildContinuity"><code class="docutils literal notranslate"><span class="pre">ChildContinuity</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.Continuity"><code class="docutils literal notranslate"><span class="pre">Continuity</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.CustomerNumberCorrespondence"><code class="docutils literal notranslate"><span class="pre">CustomerNumberCorrespondence</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.DocumentMetaData"><code class="docutils literal notranslate"><span class="pre">DocumentMetaData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.DirectionCategory"><code class="docutils literal notranslate"><span class="pre">DirectionCategory</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.Document"><code class="docutils literal notranslate"><span class="pre">Document</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.DocumentBag"><code class="docutils literal notranslate"><span class="pre">DocumentBag</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.DocumentFormat"><code class="docutils literal notranslate"><span class="pre">DocumentFormat</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.EntityStatus"><code class="docutils literal notranslate"><span class="pre">EntityStatus</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.Event"><code class="docutils literal notranslate"><span class="pre">Event</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.EventData"><code class="docutils literal notranslate"><span class="pre">EventData</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.ForeignPriority"><code class="docutils literal notranslate"><span class="pre">ForeignPriority</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.Inventor"><code class="docutils literal notranslate"><span class="pre">Inventor</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.ParentContinuity"><code class="docutils literal notranslate"><span class="pre">ParentContinuity</span></code></a></li>
@@ -119,19 +129,74 @@
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentTermAdjustmentData"><code class="docutils literal notranslate"><span class="pre">PatentTermAdjustmentData</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PatentTermAdjustmentHistoryData"><code class="docutils literal notranslate"><span class="pre">PatentTermAdjustmentHistoryData</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.Person"><code class="docutils literal notranslate"><span class="pre">Person</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PrintedMetaData"><code class="docutils literal notranslate"><span class="pre">PrintedMetaData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.PrintedPublication"><code class="docutils literal notranslate"><span class="pre">PrintedPublication</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.RecordAttorney"><code class="docutils literal notranslate"><span class="pre">RecordAttorney</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.StatusCode"><code class="docutils literal notranslate"><span class="pre">StatusCode</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.StatusCodeCollection"><code class="docutils literal notranslate"><span class="pre">StatusCodeCollection</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.StatusCodeSearchResponse"><code class="docutils literal notranslate"><span class="pre">StatusCodeSearchResponse</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.patent_data.Telecommunication"><code class="docutils literal notranslate"><span class="pre">Telecommunication</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.AdditionalPartyData"><code class="docutils literal notranslate"><span class="pre">AdditionalPartyData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.AppealDocumentData"><code class="docutils literal notranslate"><span class="pre">AppealDocumentData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.AppealMetaData"><code class="docutils literal notranslate"><span class="pre">AppealMetaData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.AppellantData"><code class="docutils literal notranslate"><span class="pre">AppellantData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.DecisionData"><code class="docutils literal notranslate"><span class="pre">DecisionData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.DerivationPetitionerData"><code class="docutils literal notranslate"><span class="pre">DerivationPetitionerData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.InterferenceDocumentData"><code class="docutils literal notranslate"><span class="pre">InterferenceDocumentData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.InterferenceMetaData"><code class="docutils literal notranslate"><span class="pre">InterferenceMetaData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.JuniorPartyData"><code class="docutils literal notranslate"><span class="pre">JuniorPartyData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.PTABAppealDecision"><code class="docutils literal notranslate"><span class="pre">PTABAppealDecision</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.PTABAppealResponse"><code class="docutils literal notranslate"><span class="pre">PTABAppealResponse</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.PTABInterferenceDecision"><code class="docutils literal notranslate"><span class="pre">PTABInterferenceDecision</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.PTABInterferenceResponse"><code class="docutils literal notranslate"><span class="pre">PTABInterferenceResponse</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.PTABTrialDocument"><code class="docutils literal notranslate"><span class="pre">PTABTrialDocument</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.PTABTrialDocumentResponse"><code class="docutils literal notranslate"><span class="pre">PTABTrialDocumentResponse</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.PTABTrialProceeding"><code class="docutils literal notranslate"><span class="pre">PTABTrialProceeding</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.PTABTrialProceedingResponse"><code class="docutils literal notranslate"><span class="pre">PTABTrialProceedingResponse</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.PatentOwnerData"><code class="docutils literal notranslate"><span class="pre">PatentOwnerData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.RegularPetitionerData"><code class="docutils literal notranslate"><span class="pre">RegularPetitionerData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.RequestorData"><code class="docutils literal notranslate"><span class="pre">RequestorData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.RespondentData"><code class="docutils literal notranslate"><span class="pre">RespondentData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.SeniorPartyData"><code class="docutils literal notranslate"><span class="pre">SeniorPartyData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.TrialDecisionData"><code class="docutils literal notranslate"><span class="pre">TrialDecisionData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.TrialDocumentData"><code class="docutils literal notranslate"><span class="pre">TrialDocumentData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.ptab.TrialMetaData"><code class="docutils literal notranslate"><span class="pre">TrialMetaData</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.utils.parse_to_date"><code class="docutils literal notranslate"><span class="pre">parse_to_date()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.utils.parse_to_datetime_utc"><code class="docutils literal notranslate"><span class="pre">parse_to_datetime_utc()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.utils.parse_yn_to_bool"><code class="docutils literal notranslate"><span class="pre">parse_yn_to_bool()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.utils.serialize_bool_to_yn"><code class="docutils literal notranslate"><span class="pre">serialize_bool_to_yn()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.utils.serialize_date"><code class="docutils literal notranslate"><span class="pre">serialize_date()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.utils.serialize_datetime_as_iso"><code class="docutils literal notranslate"><span class="pre">serialize_datetime_as_iso()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.utils.serialize_datetime_as_naive"><code class="docutils literal notranslate"><span class="pre">serialize_datetime_as_naive()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#pyUSPTO.models.utils.to_camel_case"><code class="docutils literal notranslate"><span class="pre">to_camel_case()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="config.html">Configuration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="config.html#pyUSPTO.config.USPTOConfig"><code class="docutils literal notranslate"><span class="pre">USPTOConfig</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="config.html#pyUSPTO.http_config.HTTPConfig"><code class="docutils literal notranslate"><span class="pre">HTTPConfig</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="exceptions.html">Exceptions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="exceptions.html#pyUSPTO.exceptions.APIErrorArgs"><code class="docutils literal notranslate"><span class="pre">APIErrorArgs</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="exceptions.html#pyUSPTO.exceptions.USPTOApiAuthError"><code class="docutils literal notranslate"><span class="pre">USPTOApiAuthError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="exceptions.html#pyUSPTO.exceptions.USPTOApiBadRequestError"><code class="docutils literal notranslate"><span class="pre">USPTOApiBadRequestError</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="exceptions.html#pyUSPTO.exceptions.USPTOApiError"><code class="docutils literal notranslate"><span class="pre">USPTOApiError</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="exceptions.html#pyUSPTO.exceptions.USPTOApiNotFoundError"><code class="docutils literal notranslate"><span class="pre">USPTOApiNotFoundError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="exceptions.html#pyUSPTO.exceptions.USPTOApiPayloadTooLargeError"><code class="docutils literal notranslate"><span class="pre">USPTOApiPayloadTooLargeError</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="exceptions.html#pyUSPTO.exceptions.USPTOApiRateLimitError"><code class="docutils literal notranslate"><span class="pre">USPTOApiRateLimitError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="exceptions.html#pyUSPTO.exceptions.USPTOApiServerError"><code class="docutils literal notranslate"><span class="pre">USPTOApiServerError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="exceptions.html#pyUSPTO.exceptions.USPTOConnectionError"><code class="docutils literal notranslate"><span class="pre">USPTOConnectionError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="exceptions.html#pyUSPTO.exceptions.USPTOTimeout"><code class="docutils literal notranslate"><span class="pre">USPTOTimeout</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="exceptions.html#pyUSPTO.exceptions.get_api_exception"><code class="docutils literal notranslate"><span class="pre">get_api_exception()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="warnings.html">Warnings</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="warnings.html#pyUSPTO.warnings.USPTOBooleanParseWarning"><code class="docutils literal notranslate"><span class="pre">USPTOBooleanParseWarning</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="warnings.html#pyUSPTO.warnings.USPTODataMismatchWarning"><code class="docutils literal notranslate"><span class="pre">USPTODataMismatchWarning</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="warnings.html#pyUSPTO.warnings.USPTODataWarning"><code class="docutils literal notranslate"><span class="pre">USPTODataWarning</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="warnings.html#pyUSPTO.warnings.USPTODateParseWarning"><code class="docutils literal notranslate"><span class="pre">USPTODateParseWarning</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="warnings.html#pyUSPTO.warnings.USPTOEnumParseWarning"><code class="docutils literal notranslate"><span class="pre">USPTOEnumParseWarning</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="warnings.html#pyUSPTO.warnings.USPTOTimezoneWarning"><code class="docutils literal notranslate"><span class="pre">USPTOTimezoneWarning</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -149,7 +214,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Andrew Piechocki.</p>
+    <p>&#169; Copyright 2025, Dunlap Codding, P.C..</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

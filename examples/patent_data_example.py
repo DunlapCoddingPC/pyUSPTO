@@ -1,24 +1,19 @@
-"""
-Example usage of the uspto_api module for patent data
+"""Example usage of the uspto_api module for patent data.
 
 This example demonstrates how to use the PatentDataClient to interact with the USPTO Patent Data API.
 It shows how to retrieve patent applications, search for patents by various criteria, and access
 detailed patent information including inventors, applicants, assignments, and more.
 """
 
-import json  # For pretty printing dict
+import json
 import os
 
 from pyUSPTO.clients.patent_data import PatentDataClient
-from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.patent_data import ApplicationContinuityData
 
 # --- Initialization ---
-# Choose one method to initialize the client.
-# For this example, Method 1 is active. Replace "YOUR_API_KEY_HERE" with your actual key.
-
-# Method 1: Initialize the client with direct API key
-print("Method 1: Initialize with direct API key")
+# Initialize the client with API key from ENV Var.
+print("Initialize with direct API key")
 api_key = os.environ.get("USPTO_API_KEY", "YOUR_API_KEY_HERE")
 if api_key == "YOUR_API_KEY_HERE":
     raise ValueError(
@@ -26,31 +21,7 @@ if api_key == "YOUR_API_KEY_HERE":
     )
 client = PatentDataClient(api_key=api_key)
 
-# Method 2: Initialize the client with USPTOConfig (alternative)
-# print("\nMethod 2: Initialize with USPTOConfig")
-# config_obj = USPTOConfig(
-#     api_key="YOUR_API_KEY_HERE",  # Replace with your actual API key
-#     # bulk_data_base_url="https://api.uspto.gov/api/v1/datasets", # Optional, uses default if not set
-#     # patent_data_base_url="https://api.uspto.gov/api/v1/patent", # Optional, uses default if not set
-# )
-# client = PatentDataClient(config=config_obj)
-
-# Method 3: Initialize the client with environment variables (recommended for production)
-# print("\nMethod 3: Initialize with environment variables")
-# # Ensure USPTO_API_KEY is set in your environment
-# # os.environ["USPTO_API_KEY"] = "YOUR_API_KEY_HERE" # Example, should be set outside
-# try:
-#     config_from_env = USPTOConfig.from_env()
-#     client = PatentDataClient(config=config_from_env)
-# except ValueError as e:
-#     print(f"Error initializing from environment: {e}")
-#     print("Please ensure USPTO_API_KEY environment variable is set.")
-#     # Fallback to method 1 for the rest of the script if env var not set for example purposes
-#     if 'client' not in locals(): # If client wasn't set due to error
-#         api_key_fallback = "YOUR_API_KEY_HERE_FALLBACK"
-#         print(f"Falling back to placeholder API key for example: {api_key_fallback}")
-#         client = PatentDataClient(api_key=api_key_fallback)
-
+DEST_PATH = "./download-example"
 
 print("\nBeginning API requests with configured client:")
 
@@ -104,8 +75,6 @@ try:
     if response.count > 0:
         print("\nGenerating CSV for the current response (first few rows shown):")
         csv_data = response.to_csv()
-        # Print first 3 lines of CSV (header + 2 data rows if available)
-        print("\n".join(csv_data.splitlines()[:3]))
         # You could save this csv_data to a file:
         # with open("patent_search_results.csv", "w", newline="", encoding="utf-8") as f:
         # f.write(csv_data)
@@ -175,7 +144,7 @@ try:
 
         if documents_bag.documents:
             document_to_download = documents_bag.documents[0]  # Example: first document
-            print(f"\nFirst document details:")
+            print("\nFirst document details:")
             print(f"  Document ID: {document_to_download.document_identifier}")
             print(
                 f"  Document Type: {document_to_download.document_code} - {document_to_download.document_code_description_text}"
@@ -188,11 +157,10 @@ try:
                 and document_to_download.document_identifier
             ):
                 print("\nAttempting to download first document...")
-                download_path = "./download-example"
-                print(document_to_download.to_dict())
+                print(json.dumps(document_to_download.to_dict(), indent=2))
                 downloaded_path = client.download_document(
                     document_format=document_to_download.document_formats[0],
-                    destination_path=download_path,
+                    destination_path=DEST_PATH,
                     overwrite=True,
                 )
                 print(f"Downloaded document to: {downloaded_path}")
@@ -215,7 +183,7 @@ try:
             print("\nDownloading grant XML...")
             grant_path = client.download_publication(
                 printed_metadata=grant_metadata,
-                destination_path="./download-example",
+                destination_path=DEST_PATH,
                 overwrite=True,
             )
             print(f"Downloaded grant XML to: {grant_path}")
@@ -228,7 +196,7 @@ try:
             pgpub_path = client.download_publication(
                 printed_metadata=pgpub_metadata,
                 file_name="my_pgpub.xml",
-                destination_path="./download-example",
+                destination_path=DEST_PATH,
                 overwrite=True,
             )
             print(f"Downloaded pgpub XML to: {pgpub_path}")

@@ -1,24 +1,18 @@
-"""
-base - Base client class for USPTO API clients
+"""base - Base client class for USPTO API clients.
 
 This module provides a base client class with common functionality for all USPTO API clients.
 """
 
 import re
+from collections.abc import Generator
 from pathlib import Path
 from typing import (
     Any,
-    Dict,
-    Generator,
     Generic,
-    Optional,
     Protocol,
-    Type,
     TypeVar,
-    Union,
     runtime_checkable,
 )
-from urllib.parse import urlparse
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -27,12 +21,10 @@ from urllib3.util.retry import Retry
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import (
     APIErrorArgs,
-    USPTOApiError,
     USPTOConnectionError,
     USPTOTimeout,
     get_api_exception,
 )
-from pyUSPTO.http_config import HTTPConfig
 
 
 @runtime_checkable
@@ -40,7 +32,7 @@ class FromDictProtocol(Protocol):
     """Protocol for classes that can be created from a dictionary."""
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any], include_raw_data: bool = False) -> Any:
+    def from_dict(cls, data: dict[str, Any], include_raw_data: bool = False) -> Any:
         """Create an object from a dictionary."""
         ...
 
@@ -54,9 +46,9 @@ class BaseUSPTOClient(Generic[T]):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         base_url: str = "",
-        config: Optional[USPTOConfig] = None,
+        config: USPTOConfig | None = None,
     ):
         """Initialize the BaseUSPTOClient.
 
@@ -123,15 +115,14 @@ class BaseUSPTOClient(Generic[T]):
         self,
         method: str,
         endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-        json_data: Optional[Dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
         stream: bool = False,
-        response_class: Optional[Type[T]] = None,
-        custom_url: Optional[str] = None,
-        custom_base_url: Optional[str] = None,
-    ) -> Dict[str, Any] | T | requests.Response:
-        """
-        Make an HTTP request to the USPTO API.
+        response_class: type[T] | None = None,
+        custom_url: str | None = None,
+        custom_base_url: str | None = None,
+    ) -> dict[str, Any] | T | requests.Response:
+        """Make an HTTP request to the USPTO API.
 
         Args:
             method: HTTP method (GET, POST, etc.)
@@ -140,6 +131,7 @@ class BaseUSPTOClient(Generic[T]):
             json_data: Optional JSON body for POST requests
             stream: Whether to stream the response
             response_class: Class to use for parsing the response
+            custom_url: Optional full custom URL to use (overrides endpoint and base URL)
             custom_base_url: Optional custom base URL to use instead of self.base_url
 
         Returns:
@@ -188,7 +180,7 @@ class BaseUSPTOClient(Generic[T]):
                 return parsed_response
 
             # Return the raw JSON for other requests
-            json_response: Dict[str, Any] = response.json()
+            json_response: dict[str, Any] = response.json()
             return json_response
 
         except requests.exceptions.HTTPError as http_err:
@@ -239,8 +231,7 @@ class BaseUSPTOClient(Generic[T]):
     def paginate_results(
         self, method_name: str, response_container_attr: str, **kwargs: Any
     ) -> Generator[Any, None, None]:
-        """
-        Paginate through all results of a method.
+        """Paginate through all results of a method.
 
         Args:
             method_name: Name of the method to call
@@ -264,8 +255,7 @@ class BaseUSPTOClient(Generic[T]):
                 break
 
             container = getattr(response, response_container_attr)
-            for item in container:
-                yield item
+            yield from container
 
             if response.count < limit:
                 break
@@ -274,8 +264,8 @@ class BaseUSPTOClient(Generic[T]):
 
     @staticmethod
     def _extract_filename_from_content_disposition(
-        content_disposition: Optional[str],
-    ) -> Optional[str]:
+        content_disposition: str | None,
+    ) -> str | None:
         """Extract filename from Content-Disposition header.
 
         Supports both RFC 2231 (filename*) and simple filename formats.
@@ -314,7 +304,7 @@ class BaseUSPTOClient(Generic[T]):
         return None
 
     @staticmethod
-    def _get_extension_from_mime_type(mime_type: Optional[str]) -> Optional[str]:
+    def _get_extension_from_mime_type(mime_type: str | None) -> str | None:
         """Map MIME type to file extension.
 
         Maps common USPTO file formats to their appropriate extensions.
@@ -375,8 +365,6 @@ class BaseUSPTOClient(Generic[T]):
             FileExistsError: If file exists and overwrite=False
             ValueError: If file_path is a directory but no filename can be determined
         """
-        from pathlib import Path
-
         path = Path(file_path)
 
         # If path is a directory, try to extract filename from Content-Disposition
@@ -447,4 +435,9 @@ class BaseUSPTOClient(Generic[T]):
 
     @property
     def api_key(self) -> str:
+        """Return a masked representation of the API key for security purposes.
+
+        Returns:
+            str: A string of asterisks masking the actual API key.
+        """
         return "********"
