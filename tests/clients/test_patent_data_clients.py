@@ -1,5 +1,4 @@
-"""
-Consolidated tests for the pyUSPTO.clients.patent_data.PatentDataClient.
+"""Consolidated tests for the pyUSPTO.clients.patent_data.PatentDataClient.
 
 This module combines tests for initialization, core functionality, document handling,
 metadata retrieval, status codes, return type validation, and edge cases for the
@@ -8,13 +7,11 @@ PatentDataClient.
 
 import csv
 import io
-import os
-import re
+from collections.abc import Iterator
 from datetime import date, datetime, timezone
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 from unittest import mock
-from unittest.mock import MagicMock, Mock, mock_open, patch
-from urllib.parse import unquote, urlparse
+from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 import requests
@@ -22,8 +19,7 @@ import requests
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.clients.patent_data import PatentDataClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.exceptions import USPTOApiBadRequestError, USPTOApiError
-from pyUSPTO.warnings import USPTODataMismatchWarning
+from pyUSPTO.exceptions import USPTOApiBadRequestError
 from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
     ApplicationMetaData,
@@ -49,6 +45,7 @@ from pyUSPTO.models.patent_data import (
     StatusCodeSearchResponse,
     serialize_date,
 )
+from pyUSPTO.warnings import USPTODataMismatchWarning
 
 # --- Fixtures ---
 
@@ -174,8 +171,8 @@ def mock_patent_file_wrapper(
     mock_pgpub_document_meta_data: PrintedMetaData,
     mock_grant_document_meta_data: PrintedMetaData,
 ) -> PatentFileWrapper:
-    """
-    Provides a comprehensive mock PatentFileWrapper instance.
+    """Provides a comprehensive mock PatentFileWrapper instance.
+
     Application number is set to '12345678'.
     """
     return PatentFileWrapper(
@@ -203,9 +200,7 @@ def mock_patent_file_wrapper_minimal() -> PatentFileWrapper:
 def mock_patent_data_response_with_data(
     mock_patent_file_wrapper: PatentFileWrapper,
 ) -> PatentDataResponse:
-    """
-    Provides a mock PatentDataResponse instance containing one mock_patent_file_wrapper.
-    """
+    """Provides a mock PatentDataResponse instance containing one mock_patent_file_wrapper."""
     return PatentDataResponse(
         count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
     )
@@ -218,7 +213,7 @@ def mock_patent_data_response_empty() -> PatentDataResponse:
 
 
 @pytest.fixture
-def mock_get_search_results_empty() -> Dict:
+def mock_get_search_results_empty() -> dict:
     """Provides an empty mock PatentDataResponse instance."""
     return {"patentdata": {}}
 
@@ -227,8 +222,8 @@ def mock_get_search_results_empty() -> Dict:
 def client_with_mocked_request(
     patent_data_client: PatentDataClient,
 ) -> Iterator[tuple[PatentDataClient, MagicMock]]:
-    """
-    Provides a PatentDataClient instance with its _make_request method mocked.
+    """Provides a PatentDataClient instance with its _make_request method mocked.
+
     Returns a tuple (client, mock_make_request).
     """
     with patch.object(
@@ -303,8 +298,8 @@ class TestPatentApplicationSearch:
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = mock_patent_data_response_with_data
 
-        params_to_send: Dict[str, Any] = {"query": "Test", "limit": 10, "offset": 0}
-        expected_api_params: Dict[str, Any] = {"q": "Test", "limit": 10, "offset": 0}
+        params_to_send: dict[str, Any] = {"query": "Test", "limit": 10, "offset": 0}
+        expected_api_params: dict[str, Any] = {"q": "Test", "limit": 10, "offset": 0}
 
         result = client.search_applications(**params_to_send)
 
@@ -425,7 +420,7 @@ class TestPatentApplicationSearch:
     )
     def test_search_applications_get_various_q_convenience_filters(
         self,
-        search_q_params: Dict[str, Any],
+        search_q_params: dict[str, Any],
         expected_q_part: str,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
         mock_patent_data_response_empty: PatentDataResponse,
@@ -549,7 +544,7 @@ class TestPatentApplicationSearch:
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = mock_patent_data_response_empty
 
-        method_kwargs: Dict[str, Any] = {
+        method_kwargs: dict[str, Any] = {
             api_param_name: api_param_value,
             "limit": 5,
             "offset": 0,
@@ -1142,7 +1137,7 @@ class TestDownloadFile:
         mock_response.iter_content.return_value = [b"data", b"", None, b"more"]
         mock_make_request.return_value = mock_response
 
-        result = patent_data_client._download_file("https://test.com", "/tmp/file")
+        patent_data_client._download_file("https://test.com", "/tmp/file")
 
         # Should only write non-empty chunks
         mock_file_open().write.assert_has_calls(
@@ -1255,7 +1250,7 @@ class TestGetIFW:
         # Should call get_application_by_number
         mock_make_request.assert_called_once_with(
             method="GET",
-            endpoint=f"api/v1/patent/applications/PCTUS24012345",
+            endpoint="api/v1/patent/applications/PCTUS24012345",
             response_class=PatentDataResponse,
         )
         assert result is mock_patent_file_wrapper
@@ -1288,7 +1283,7 @@ class TestGetIFW:
         # Should call get_application_by_number
         mock_make_request.assert_called_once_with(
             method="GET",
-            endpoint=f"api/v1/patent/applications/PCTUS24012345",
+            endpoint="api/v1/patent/applications/PCTUS24012345",
             response_class=PatentDataResponse,
         )
         assert result is mock_patent_file_wrapper
@@ -1493,7 +1488,7 @@ class TestDownloadArchive:
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
         sample_printed_metadata: PrintedMetaData,
     ) -> None:
-        """Test basic archive download."""
+        """Test basic archive download with default overwrite=False."""
         client, mock_download_file = client_with_mocked_download
         mock_exists.return_value = False
 
@@ -1504,8 +1499,11 @@ class TestDownloadArchive:
             printed_metadata=sample_printed_metadata, destination_path="/printedmeta"
         )
 
+        # Verify overwrite=False is passed by default
         mock_download_file.assert_called_once_with(
-            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+            url=sample_printed_metadata.file_location_uri,
+            file_path=expected_path,
+            overwrite=False,
         )
         assert result == expected_path
 
@@ -1533,7 +1531,9 @@ class TestDownloadArchive:
         )
 
         mock_download_file.assert_called_once_with(
-            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+            url=sample_printed_metadata.file_location_uri,
+            file_path=expected_path,
+            overwrite=False,
         )
         assert result == expected_path
 
@@ -1554,7 +1554,9 @@ class TestDownloadArchive:
         result = client.download_archive(printed_metadata=sample_printed_metadata)
 
         mock_download_file.assert_called_once_with(
-            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+            url=sample_printed_metadata.file_location_uri,
+            file_path=expected_path,
+            overwrite=False,
         )
         assert result == expected_path
 
@@ -1611,7 +1613,10 @@ class TestDownloadArchive:
             printed_metadata=sample_printed_metadata, overwrite=True
         )
 
+        # Verify overwrite=True is passed to _download_file
         mock_download_file.assert_called_once()
+        call_kwargs = mock_download_file.call_args[1]
+        assert call_kwargs["overwrite"] is True
         assert result == expected_path
 
     @patch("pathlib.Path.exists")
@@ -1636,7 +1641,9 @@ class TestDownloadArchive:
         result = client.download_archive(printed_metadata=metadata)
 
         mock_download_file.assert_called_once_with(
-            url=metadata.file_location_uri, file_path=expected_path
+            url=metadata.file_location_uri,
+            file_path=expected_path,
+            overwrite=False,
         )
         assert result == expected_path
 
@@ -1662,7 +1669,9 @@ class TestDownloadArchive:
         result = client.download_archive(printed_metadata=metadata)
 
         mock_download_file.assert_called_once_with(
-            url=metadata.file_location_uri, file_path=expected_path
+            url=metadata.file_location_uri,
+            file_path=expected_path,
+            overwrite=False,
         )
         assert result == expected_path
 
@@ -1676,7 +1685,7 @@ class TestDownloadArchive:
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
         sample_printed_metadata: PrintedMetaData,
     ) -> None:
-        """Test basic publication download."""
+        """Test basic publication download with default overwrite=False."""
         client, mock_download_file = client_with_mocked_download
         mock_exists.return_value = False
 
@@ -1687,8 +1696,11 @@ class TestDownloadArchive:
             printed_metadata=sample_printed_metadata, destination_path="/downloads"
         )
 
+        # Verify overwrite=False is passed by default
         mock_download_file.assert_called_once_with(
-            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+            url=sample_printed_metadata.file_location_uri,
+            file_path=expected_path,
+            overwrite=False,
         )
         assert result == expected_path
 
@@ -1716,7 +1728,9 @@ class TestDownloadArchive:
         )
 
         mock_download_file.assert_called_once_with(
-            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+            url=sample_printed_metadata.file_location_uri,
+            file_path=expected_path,
+            overwrite=False,
         )
         assert result == expected_path
 
@@ -1737,7 +1751,9 @@ class TestDownloadArchive:
         result = client.download_publication(printed_metadata=sample_printed_metadata)
 
         mock_download_file.assert_called_once_with(
-            url=sample_printed_metadata.file_location_uri, file_path=expected_path
+            url=sample_printed_metadata.file_location_uri,
+            file_path=expected_path,
+            overwrite=False,
         )
         assert result == expected_path
 
@@ -1794,7 +1810,10 @@ class TestDownloadArchive:
             printed_metadata=sample_printed_metadata, overwrite=True
         )
 
+        # Verify overwrite=True is passed to _download_file
         mock_download_file.assert_called_once()
+        call_kwargs = mock_download_file.call_args[1]
+        assert call_kwargs["overwrite"] is True
         assert result == expected_path
 
 
@@ -1804,13 +1823,13 @@ class TestPatentApplicationDataRetrieval:
     def test_get_search_results_get_direct_query(
         self,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_get_search_results_empty: List[ApplicationMetaData],
+        mock_get_search_results_empty: list[ApplicationMetaData],
     ) -> None:
         """Test GET path of get_search_results with direct query, always requests JSON."""
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = mock_get_search_results_empty
 
-        method_params: Dict[str, Any] = {"query": "bulk test"}
+        method_params: dict[str, Any] = {"query": "bulk test"}
         expected_api_params = {
             "q": "bulk test",
             "format": "json",
@@ -1830,7 +1849,7 @@ class TestPatentApplicationDataRetrieval:
     def test_get_search_results_get_with_combined_q_convenience_params(
         self,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_get_search_results_empty: List[ApplicationMetaData],
+        mock_get_search_results_empty: list[ApplicationMetaData],
     ) -> None:
         """Test get_search_results GET path with a combination of _q convenience params."""
         client, mock_make_request = client_with_mocked_request
@@ -1901,10 +1920,10 @@ class TestPatentApplicationDataRetrieval:
     )
     def test_get_search_results_get_various_q_convenience_filters(
         self,
-        search_q_params: Dict[str, Any],
+        search_q_params: dict[str, Any],
         expected_q_part: str,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_get_search_results_empty: List[ApplicationMetaData],
+        mock_get_search_results_empty: list[ApplicationMetaData],
     ) -> None:
         """Test get_search_results GET path with various individual _q convenience filters."""
         client, mock_make_request = client_with_mocked_request
@@ -1953,13 +1972,13 @@ class TestPatentApplicationDataRetrieval:
         param_value: str,
         expected_api_key: str,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_get_search_results_empty: List[ApplicationMetaData],
+        mock_get_search_results_empty: list[ApplicationMetaData],
     ) -> None:
         """Test get_search_results GET path with various direct OpenAPI parameters."""
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = mock_get_search_results_empty
 
-        method_kwargs: Dict[str, Any] = {
+        method_kwargs: dict[str, Any] = {
             method_param_name: param_value,
             "limit": 7,
             "offset": 1,
@@ -1982,7 +2001,7 @@ class TestPatentApplicationDataRetrieval:
     def test_get_search_results_get_with_additional_query_params(  # New test
         self,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_get_search_results_empty: List[ApplicationMetaData],
+        mock_get_search_results_empty: list[ApplicationMetaData],
     ) -> None:
         """Test get_search_results GET path with additional_query_params."""
         client, mock_make_request = client_with_mocked_request
@@ -2451,7 +2470,7 @@ class TestRawDataFeature:
     ) -> None:
         """Test that raw_data is populated when config.include_raw_data=True."""
         config = USPTOConfig(api_key="test_key", include_raw_data=True)
-        client = PatentDataClient(config=config)
+        PatentDataClient(config=config)
 
         # Create a response with raw_data enabled
         test_data = {
@@ -2698,7 +2717,7 @@ class TestPatentDataResponseCSVExport:
 
         csv_string = response.to_csv()
         reader = csv.reader(io.StringIO(csv_string))
-        header_row = next(reader)
+        next(reader)
         data_rows = list(reader)
 
         assert len(data_rows) == response.count

@@ -66,10 +66,7 @@ dev = [
     "mypy>=1.19.0",
     "types-requests>=2.32.4",
     # Code quality and formatting
-    "flake8>=7.3.0",
-    "black>=25.12.0",
-    "isort>=7.0.0",
-    "flake8-docstrings>=1.7.0",
+    "ruff>=0.8.0",
 ]
 
 [project.urls]
@@ -89,15 +86,33 @@ where = ["src"]
 [tool.setuptools.package-data]
 pyUSPTO = ["py.typed"]
 
-[tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-line_length = 88
-profile = "black"
-src_paths = ["src"]
-known_first_party = ["pyUSPTO"]
+[tool.ruff]
+line-length = 88
+target-version = "py310"
 
+[tool.ruff.lint]
+# Enable pycodestyle (E), Pyflakes (F), pydocstyle (D), isort (I), and pyupgrade (UP)
+select = ["E", "F", "W", "D", "I", "UP"]
+ignore = [
+    "D203", # one-blank-line-before-class (conflicts with D211)
+    "D213", # multi-line-summary-second-line (conflicts with D212)
+    "E501", # line-too-long (handled by formatter where possible)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"] # Ignore all pydocstyle rules in tests
+
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["pyUSPTO"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

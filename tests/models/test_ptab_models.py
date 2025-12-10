@@ -4,51 +4,50 @@ Tests for PTAB models.
 This module contains unit tests for the PTAB model classes with full coverage.
 """
 
-from datetime import date, datetime, timezone
-from typing import Any, Dict
 import importlib
-from unittest.mock import patch
+from datetime import date, datetime, timezone
+from typing import Any
 
 import pytest
 
 from pyUSPTO.models.ptab import (
-    # Base and shared models
-    PartyData,
-    # Trial Proceedings Models
-    TrialMetaData,
-    PatentOwnerData,
-    RegularPetitionerData,
-    RespondentData,
-    DerivationPetitionerData,
-    PTABTrialProceeding,
-    PTABTrialProceedingResponse,
-    # Trial Documents/Decisions Models
-    TrialDocumentData,
-    TrialDecisionData,
-    PTABTrialDocument,
-    PTABTrialDocumentResponse,
+    AdditionalPartyData,
+    AppealDocumentData,
     # Appeal Decisions Models
     AppealMetaData,
     AppellantData,
-    RequestorData,
-    AppealDocumentData,
     DecisionData,
-    PTABAppealDecision,
-    PTABAppealResponse,
+    DerivationPetitionerData,
+    InterferenceDocumentData,
     # Interference Decisions Models
     InterferenceMetaData,
-    SeniorPartyData,
     JuniorPartyData,
-    AdditionalPartyData,
-    InterferenceDocumentData,
+    # Base and shared models
+    PartyData,
+    PatentOwnerData,
+    PTABAppealDecision,
+    PTABAppealResponse,
     PTABInterferenceDecision,
     PTABInterferenceResponse,
+    PTABTrialDocument,
+    PTABTrialDocumentResponse,
+    PTABTrialProceeding,
+    PTABTrialProceedingResponse,
+    RegularPetitionerData,
+    RequestorData,
+    RespondentData,
+    SeniorPartyData,
+    TrialDecisionData,
+    # Trial Documents/Decisions Models
+    TrialDocumentData,
+    # Trial Proceedings Models
+    TrialMetaData,
 )
 
 
 # Sample API response fixtures for round-trip testing
 @pytest.fixture
-def trial_proceeding_api_sample() -> Dict[str, Any]:
+def trial_proceeding_api_sample() -> dict[str, Any]:
     """Sample trial proceeding API response for testing."""
     return {
         "count": 1,
@@ -99,7 +98,7 @@ def trial_proceeding_api_sample() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def trial_decision_api_sample() -> Dict[str, Any]:
+def trial_decision_api_sample() -> dict[str, Any]:
     """Sample trial decision API response for testing."""
     return {
         "count": 1,
@@ -158,7 +157,7 @@ def trial_decision_api_sample() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def trial_document_api_sample() -> Dict[str, Any]:
+def trial_document_api_sample() -> dict[str, Any]:
     """Sample trial document API response for testing."""
     return {
         "count": 2,
@@ -295,7 +294,7 @@ def trial_document_api_sample() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def appeal_decision_api_sample() -> Dict[str, Any]:
+def appeal_decision_api_sample() -> dict[str, Any]:
     """Sample appeal decision API response for testing."""
     return {
         "count": 1,
@@ -347,7 +346,7 @@ def appeal_decision_api_sample() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def interference_decision_api_sample() -> Dict[str, Any]:
+def interference_decision_api_sample() -> dict[str, Any]:
     """Sample interference decision API response for testing."""
     return {
         "count": 2,
@@ -478,7 +477,6 @@ class TestSelfImport:
         # This test verifies the try/except import pattern works
         # by importing the module (which happens at test module import time)
         # and using a from_dict method that relies on Self type hints
-        import sys
 
         # Verify the import succeeded (module is already imported)
         import pyUSPTO.models.ptab as ptab_module
@@ -490,10 +488,10 @@ class TestSelfImport:
         Tests that the module falls back to typing_extensions.Self if typing.Self fails.
         Uses builtins.__import__ patching to avoid corrupting the global typing module.
         """
-        import sys
-        import importlib
         import builtins
+        import sys
         from unittest.mock import patch
+
         import typing_extensions
 
         module_name = "pyUSPTO.models.ptab"
@@ -540,17 +538,14 @@ class TestSelfImport:
         trial_data = {"trialNumber": "IPR2023-00001"}
         trial_result = PTABTrialProceeding.from_dict(trial_data)
         assert isinstance(trial_result, PTABTrialProceeding)
-        assert type(trial_result) == PTABTrialProceeding
 
         appeal_data = {"appealNumber": "2023-001234"}
         appeal_result = PTABAppealDecision.from_dict(appeal_data)
         assert isinstance(appeal_result, PTABAppealDecision)
-        assert type(appeal_result) == PTABAppealDecision
 
         interference_data = {"interferenceNumber": "106123"}
         interference_result = PTABInterferenceDecision.from_dict(interference_data)
         assert isinstance(interference_result, PTABInterferenceDecision)
-        assert type(interference_result) == PTABInterferenceDecision
 
 
 class TestPartyData:
@@ -710,7 +705,7 @@ class TestPTABTrialModels:
         assert result.patent_owner_name == "Derivation Owner"
 
     def test_trial_proceeding_from_dict_full(
-        self, trial_proceeding_api_sample: Dict[str, Any]
+        self, trial_proceeding_api_sample: dict[str, Any]
     ) -> None:
         """Test PTABTrialProceeding.from_dict() with all nested objects using real API data."""
         data = trial_proceeding_api_sample["patentTrialProceedingDataBag"][0]
@@ -755,7 +750,7 @@ class TestPTABTrialModels:
         assert result.raw_data is None
 
     def test_trial_proceeding_response_from_dict_full(
-        self, trial_proceeding_api_sample: Dict[str, Any]
+        self, trial_proceeding_api_sample: dict[str, Any]
     ) -> None:
         """Test PTABTrialProceedingResponse.from_dict() using real API data."""
         result = PTABTrialProceedingResponse.from_dict(trial_proceeding_api_sample)
@@ -873,7 +868,7 @@ class TestPTABTrialDocumentModels:
         assert result.trial_outcome_category is None
 
     def test_trial_document_from_dict_full(
-        self, trial_document_api_sample: Dict[str, Any]
+        self, trial_document_api_sample: dict[str, Any]
     ) -> None:
         """Test PTABTrialDocument.from_dict() with all nested objects using real API data."""
         data = trial_document_api_sample["patentTrialDocumentDataBag"][0]
@@ -884,7 +879,7 @@ class TestPTABTrialDocumentModels:
         assert result.trial_meta_data is not None
         assert result.trial_meta_data.trial_status_category == "Pending"
         assert result.patent_owner_data is not None
-        assert result.patent_owner_data.patent_number == None
+        assert result.patent_owner_data.patent_number is None
         assert result.regular_petitioner_data is not None
         assert (
             result.regular_petitioner_data.real_party_in_interest_name
@@ -1115,12 +1110,14 @@ class TestPTABAppealModels:
     def test_decision_data_to_dict_with_empty_lists(self) -> None:
         """Test DecisionData.to_dict() filters out empty lists."""
         # Create DecisionData with empty lists
-        result = DecisionData.from_dict({
-            "appealOutcomeCategory": "Affirmed",
-            "decisionIssueDate": "2023-12-15",
-            "statuteAndRuleBag": [],
-            "issueTypeBag": []
-        })
+        result = DecisionData.from_dict(
+            {
+                "appealOutcomeCategory": "Affirmed",
+                "decisionIssueDate": "2023-12-15",
+                "statuteAndRuleBag": [],
+                "issueTypeBag": [],
+            }
+        )
 
         # Convert to dict - empty lists should be filtered out
         result_dict = result.to_dict()
@@ -1546,7 +1543,7 @@ class TestToDictRoundTripping:
     """Tests for to_dict() methods via round-trip serialization using real API response data."""
 
     def test_trial_proceeding_response_round_trip(
-        self, trial_proceeding_api_sample: Dict[str, Any]
+        self, trial_proceeding_api_sample: dict[str, Any]
     ) -> None:
         """Test PTABTrialProceedingResponse round-trip: from_dict → to_dict."""
         # Parse the API response
@@ -1580,7 +1577,7 @@ class TestToDictRoundTripping:
         )
 
     def test_trial_decision_response_round_trip(
-        self, trial_decision_api_sample: Dict[str, Any]
+        self, trial_decision_api_sample: dict[str, Any]
     ) -> None:
         """Test PTABTrialDocumentResponse round-trip with decision data."""
         # Parse the API response
@@ -1612,7 +1609,7 @@ class TestToDictRoundTripping:
         )
 
     def test_trial_document_response_round_trip(
-        self, trial_document_api_sample: Dict[str, Any]
+        self, trial_document_api_sample: dict[str, Any]
     ) -> None:
         """Test PTABTrialDocumentResponse round-trip with document data."""
         # Parse the API response
@@ -1640,7 +1637,7 @@ class TestToDictRoundTripping:
         )
 
     def test_party_data_with_dates_round_trip(
-        self, trial_proceeding_api_sample: Dict[str, Any]
+        self, trial_proceeding_api_sample: dict[str, Any]
     ) -> None:
         """Test that PartyData properly serializes dates in to_dict()."""
         # Get patent owner data which has dates
@@ -1672,7 +1669,7 @@ class TestToDictRoundTripping:
         assert "grantDate" not in result
 
     def test_appeal_decision_response_round_trip(
-        self, appeal_decision_api_sample: Dict[str, Any]
+        self, appeal_decision_api_sample: dict[str, Any]
     ) -> None:
         """Test PTABAppealResponse round-trip: from_dict → to_dict."""
         # Parse the API response
@@ -1746,7 +1743,7 @@ class TestToDictRoundTripping:
         )
 
     def test_interference_decision_response_round_trip(
-        self, interference_decision_api_sample: Dict[str, Any]
+        self, interference_decision_api_sample: dict[str, Any]
     ) -> None:
         """Test PTABInterferenceResponse round-trip: from_dict → to_dict."""
         # Parse the API response

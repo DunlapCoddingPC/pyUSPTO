@@ -1,7 +1,4 @@
 """Tests for USPTOConfig"""
-import os
-
-import pytest
 
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.http_config import HTTPConfig
@@ -64,7 +61,7 @@ class TestUSPTOConfig:
             api_key="test",
             bulk_data_base_url="https://bulk.example.com",
             patent_data_base_url="https://patent.example.com",
-            petition_decisions_base_url="https://petition.example.com"
+            petition_decisions_base_url="https://petition.example.com",
         )
         assert config.bulk_data_base_url == "https://bulk.example.com"
         assert config.patent_data_base_url == "https://patent.example.com"
@@ -75,7 +72,9 @@ class TestUSPTOConfig:
         monkeypatch.setenv("USPTO_API_KEY", "test_key")
         monkeypatch.setenv("USPTO_BULK_DATA_BASE_URL", "https://bulk.example.com")
         monkeypatch.setenv("USPTO_PATENT_DATA_BASE_URL", "https://patent.example.com")
-        monkeypatch.setenv("USPTO_PETITION_DECISIONS_BASE_URL", "https://petition.example.com")
+        monkeypatch.setenv(
+            "USPTO_PETITION_DECISIONS_BASE_URL", "https://petition.example.com"
+        )
 
         config = USPTOConfig.from_env()
         assert config.bulk_data_base_url == "https://bulk.example.com"

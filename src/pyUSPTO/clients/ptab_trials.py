@@ -1,12 +1,12 @@
-"""
-clients.ptab_trials - Client for USPTO PTAB Trials API.
+"""clients.ptab_trials - Client for USPTO PTAB Trials API.
 
 This module provides a client for interacting with the USPTO PTAB (Patent Trial
 and Appeal Board) Trials API. It allows you to search for trial proceedings,
 documents, and decisions.
 """
 
-from typing import Any, Dict, Iterator, List, Optional, Union
+from collections.abc import Iterator
+from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
@@ -18,7 +18,7 @@ from pyUSPTO.models.ptab import (
 
 
 class PTABTrialsClient(
-    BaseUSPTOClient[Union[PTABTrialProceedingResponse, PTABTrialDocumentResponse]]
+    BaseUSPTOClient[PTABTrialProceedingResponse | PTABTrialDocumentResponse]
 ):
     """Client for interacting with the USPTO PTAB Trials API.
 
@@ -37,9 +37,9 @@ class PTABTrialsClient(
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        config: Optional[USPTOConfig] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        config: USPTOConfig | None = None,
     ):
         """Initialize the PTABTrialsClient.
 
@@ -61,18 +61,18 @@ class PTABTrialsClient(
         self,
         endpoint_key: str,
         response_class: Any,
-        query: Optional[str],
-        query_parts: List[str],
-        post_body: Optional[Dict[str, Any]],
-        sort: Optional[str],
-        offset: Optional[int],
-        limit: Optional[int],
-        facets: Optional[str],
-        fields: Optional[str],
-        filters: Optional[str],
-        range_filters: Optional[str],
-        additional_params: Optional[Dict[str, Any]],
-    ) -> Union[PTABTrialProceedingResponse, PTABTrialDocumentResponse]:
+        query: str | None,
+        query_parts: list[str],
+        post_body: dict[str, Any] | None,
+        sort: str | None,
+        offset: int | None,
+        limit: int | None,
+        facets: str | None,
+        fields: str | None,
+        filters: str | None,
+        range_filters: str | None,
+        additional_params: dict[str, Any] | None,
+    ) -> PTABTrialProceedingResponse | PTABTrialDocumentResponse:
         """Execute a PTAB trial search request using GET or POST.
 
         If a POST body is provided, perform a POST request; otherwise, build
@@ -92,7 +92,7 @@ class PTABTrialsClient(
             return result  # type: ignore
 
         # Handle GET request
-        params: Dict[str, Any] = {}
+        params: dict[str, Any] = {}
         final_q = query
 
         # Combine specific convenience query parts if no direct query is provided
@@ -129,25 +129,25 @@ class PTABTrialsClient(
 
     def search_proceedings(
         self,
-        query: Optional[str] = None,
-        sort: Optional[str] = None,
-        offset: Optional[int] = 0,
-        limit: Optional[int] = 25,
-        facets: Optional[str] = None,
-        fields: Optional[str] = None,
-        filters: Optional[str] = None,
-        range_filters: Optional[str] = None,
-        post_body: Optional[Dict[str, Any]] = None,
+        query: str | None = None,
+        sort: str | None = None,
+        offset: int | None = 0,
+        limit: int | None = 25,
+        facets: str | None = None,
+        fields: str | None = None,
+        filters: str | None = None,
+        range_filters: str | None = None,
+        post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        trial_number_q: Optional[str] = None,
-        patent_owner_name_q: Optional[str] = None,
-        petitioner_real_party_in_interest_name_q: Optional[str] = None,
-        respondent_name_q: Optional[str] = None,
-        trial_type_code_q: Optional[str] = None,
-        trial_status_category_q: Optional[str] = None,
-        petition_filing_date_from_q: Optional[str] = None,
-        petition_filing_date_to_q: Optional[str] = None,
-        additional_query_params: Optional[Dict[str, Any]] = None,
+        trial_number_q: str | None = None,
+        patent_owner_name_q: str | None = None,
+        petitioner_real_party_in_interest_name_q: str | None = None,
+        respondent_name_q: str | None = None,
+        trial_type_code_q: str | None = None,
+        trial_status_category_q: str | None = None,
+        petition_filing_date_from_q: str | None = None,
+        petition_filing_date_to_q: str | None = None,
+        additional_query_params: dict[str, Any] | None = None,
     ) -> PTABTrialProceedingResponse:
         """Search for PTAB trial proceedings.
 
@@ -239,27 +239,27 @@ class PTABTrialsClient(
 
     def search_documents(
         self,
-        query: Optional[str] = None,
-        sort: Optional[str] = None,
-        offset: Optional[int] = 0,
-        limit: Optional[int] = 25,
-        facets: Optional[str] = None,
-        fields: Optional[str] = None,
-        filters: Optional[str] = None,
-        range_filters: Optional[str] = None,
-        post_body: Optional[Dict[str, Any]] = None,
+        query: str | None = None,
+        sort: str | None = None,
+        offset: int | None = 0,
+        limit: int | None = 25,
+        facets: str | None = None,
+        fields: str | None = None,
+        filters: str | None = None,
+        range_filters: str | None = None,
+        post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        trial_number_q: Optional[str] = None,
-        document_category_q: Optional[str] = None,
-        document_type_name_q: Optional[str] = None,
-        filing_date_from_q: Optional[str] = None,
-        filing_date_to_q: Optional[str] = None,
-        petitioner_real_party_in_interest_name_q: Optional[str] = None,
-        inventor_name_q: Optional[str] = None,
-        real_party_in_interest_name_q: Optional[str] = None,
-        patent_number_q: Optional[str] = None,
-        patent_owner_name_q: Optional[str] = None,
-        additional_query_params: Optional[Dict[str, Any]] = None,
+        trial_number_q: str | None = None,
+        document_category_q: str | None = None,
+        document_type_name_q: str | None = None,
+        filing_date_from_q: str | None = None,
+        filing_date_to_q: str | None = None,
+        petitioner_real_party_in_interest_name_q: str | None = None,
+        inventor_name_q: str | None = None,
+        real_party_in_interest_name_q: str | None = None,
+        patent_number_q: str | None = None,
+        patent_owner_name_q: str | None = None,
+        additional_query_params: dict[str, Any] | None = None,
     ) -> PTABTrialDocumentResponse:
         """Search for PTAB trial documents.
 
@@ -355,29 +355,29 @@ class PTABTrialsClient(
 
     def search_decisions(
         self,
-        query: Optional[str] = None,
-        sort: Optional[str] = None,
-        offset: Optional[int] = 0,
-        limit: Optional[int] = 25,
-        facets: Optional[str] = None,
-        fields: Optional[str] = None,
-        filters: Optional[str] = None,
-        range_filters: Optional[str] = None,
-        post_body: Optional[Dict[str, Any]] = None,
+        query: str | None = None,
+        sort: str | None = None,
+        offset: int | None = 0,
+        limit: int | None = 25,
+        facets: str | None = None,
+        fields: str | None = None,
+        filters: str | None = None,
+        range_filters: str | None = None,
+        post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        trial_number_q: Optional[str] = None,
-        decision_type_category_q: Optional[str] = None,
-        document_type_description_q: Optional[str] = None,
-        decision_date_from_q: Optional[str] = None,
-        decision_date_to_q: Optional[str] = None,
-        trial_type_code_q: Optional[str] = None,
-        patent_number_q: Optional[str] = None,
-        application_number_q: Optional[str] = None,
-        patent_owner_name_q: Optional[str] = None,
-        trial_status_category_q: Optional[str] = None,
-        real_party_in_interest_name_q: Optional[str] = None,
-        document_category_q: Optional[str] = None,
-        additional_query_params: Optional[Dict[str, Any]] = None,
+        trial_number_q: str | None = None,
+        decision_type_category_q: str | None = None,
+        document_type_description_q: str | None = None,
+        decision_date_from_q: str | None = None,
+        decision_date_to_q: str | None = None,
+        trial_type_code_q: str | None = None,
+        patent_number_q: str | None = None,
+        application_number_q: str | None = None,
+        patent_owner_name_q: str | None = None,
+        trial_status_category_q: str | None = None,
+        real_party_in_interest_name_q: str | None = None,
+        document_category_q: str | None = None,
+        additional_query_params: dict[str, Any] | None = None,
     ) -> PTABTrialDocumentResponse:
         """Search for PTAB trial decisions.
 
@@ -485,7 +485,7 @@ class PTABTrialsClient(
         """Provide an iterator to paginate through trial proceeding search results."""
         if "post_body" in kwargs:
             raise ValueError(
-                "paginate_proceedings uses GET requests and does not support 'post_body'. "
+                "paginate_proceedings uses GET requests and does not support 'post_body'."
                 "Use keyword arguments for search criteria."
             )
 

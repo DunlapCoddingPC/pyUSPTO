@@ -5,20 +5,13 @@ This module contains consolidated tests for classes in pyUSPTO.models.patent_dat
 """
 
 import csv
-import importlib
 import io
-from datetime import date, datetime, timedelta, timezone, tzinfo
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, patch
 import warnings
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from datetime import date, datetime, timezone
+from typing import Any
 
 import pytest
 
-from pyUSPTO.warnings import (
-    USPTODateParseWarning,
-    USPTOEnumParseWarning,
-)
 from pyUSPTO.models.patent_data import (
     ActiveIndicator,
     Address,
@@ -54,19 +47,18 @@ from pyUSPTO.models.patent_data import (
     StatusCodeSearchResponse,
     Telecommunication,
     parse_to_date,
-    parse_to_datetime_utc,
-    parse_yn_to_bool,
-    serialize_bool_to_yn,
     serialize_date,
-    serialize_datetime_as_naive,
-    to_camel_case,
+)
+from pyUSPTO.warnings import (
+    USPTODateParseWarning,
+    USPTOEnumParseWarning,
 )
 
 # --- Pytest Fixtures ---
 
 
 @pytest.fixture
-def sample_address_data() -> Dict[str, Any]:
+def sample_address_data() -> dict[str, Any]:
     return {
         "nameLineOneText": "Test Name",
         "nameLineTwoText": "Test Name 2",
@@ -86,7 +78,7 @@ def sample_address_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_telecommunication_data() -> Dict[str, Any]:
+def sample_telecommunication_data() -> dict[str, Any]:
     return {
         "telecommunicationNumber": "555-123-4567",
         "extensionNumber": "123",
@@ -95,7 +87,7 @@ def sample_telecommunication_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_person_base_data() -> Dict[str, Any]:
+def sample_person_base_data() -> dict[str, Any]:
     return {
         "firstName": "Test",
         "lastName": "Person",
@@ -108,8 +100,8 @@ def sample_person_base_data() -> Dict[str, Any]:
 
 @pytest.fixture
 def sample_applicant_data(
-    sample_person_base_data: Dict[str, Any], sample_address_data: Dict[str, Any]
-) -> Dict[str, Any]:
+    sample_person_base_data: dict[str, Any], sample_address_data: dict[str, Any]
+) -> dict[str, Any]:
     data = sample_person_base_data.copy()
     data.update(
         {
@@ -122,8 +114,8 @@ def sample_applicant_data(
 
 @pytest.fixture
 def sample_inventor_data(
-    sample_person_base_data: Dict[str, Any], sample_address_data: Dict[str, Any]
-) -> Dict[str, Any]:
+    sample_person_base_data: dict[str, Any], sample_address_data: dict[str, Any]
+) -> dict[str, Any]:
     data = sample_person_base_data.copy()
     data.update(
         {
@@ -136,10 +128,10 @@ def sample_inventor_data(
 
 @pytest.fixture
 def sample_attorney_data(
-    sample_person_base_data: Dict[str, Any],
-    sample_address_data: Dict[str, Any],
-    sample_telecommunication_data: Dict[str, Any],
-) -> Dict[str, Any]:
+    sample_person_base_data: dict[str, Any],
+    sample_address_data: dict[str, Any],
+    sample_telecommunication_data: dict[str, Any],
+) -> dict[str, Any]:
     data = sample_person_base_data.copy()
     data.update(
         {
@@ -154,7 +146,7 @@ def sample_attorney_data(
 
 
 @pytest.fixture
-def sample_document_download_format_data() -> Dict[str, Any]:
+def sample_document_download_format_data() -> dict[str, Any]:
     return {
         "mimeTypeIdentifier": "application/pdf",
         "downloadUrl": "https://example.com/doc.pdf",
@@ -163,7 +155,7 @@ def sample_document_download_format_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_document_meta_data_data() -> Dict[str, Any]:
+def sample_document_meta_data_data() -> dict[str, Any]:
     return {
         "zipFileName": "test.zip",
         "productIdentifier": "PRODUCT1",
@@ -174,7 +166,7 @@ def sample_document_meta_data_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_parent_continuity_data() -> Dict[str, Any]:
+def sample_parent_continuity_data() -> dict[str, Any]:
     return {
         "firstInventorToFileIndicator": True,
         "parentApplicationStatusCode": 150,
@@ -189,7 +181,7 @@ def sample_parent_continuity_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_child_continuity_data() -> Dict[str, Any]:
+def sample_child_continuity_data() -> dict[str, Any]:
     return {
         "firstInventorToFileIndicator": True,
         "childApplicationStatusCode": 30,
@@ -204,10 +196,10 @@ def sample_child_continuity_data() -> Dict[str, Any]:
 
 @pytest.fixture
 def sample_application_meta_data(
-    sample_applicant_data: Dict[str, Any],
-    sample_inventor_data: Dict[str, Any],
-    sample_address_data: Dict[str, Any],
-) -> Dict[str, Any]:
+    sample_applicant_data: dict[str, Any],
+    sample_inventor_data: dict[str, Any],
+    sample_address_data: dict[str, Any],
+) -> dict[str, Any]:
     """
     Provides a comprehensive dictionary of data for ApplicationMetaData,
     suitable for round-trip (from_dict -> to_dict) testing.
@@ -275,8 +267,8 @@ def sample_application_meta_data(
 
 @pytest.fixture
 def patent_data_sample(
-    sample_application_meta_data: Dict[str, Any],
-) -> Dict[str, Any]:
+    sample_application_meta_data: dict[str, Any],
+) -> dict[str, Any]:
     """
     Provides a sample dictionary representing a PatentDataResponse,
     suitable for testing.
@@ -349,7 +341,7 @@ def patent_data_sample(
 
 
 @pytest.fixture
-def sample_assignor_data() -> Dict[str, Any]:
+def sample_assignor_data() -> dict[str, Any]:
     """Provides sample data for an Assignor."""
     return {
         "assignorName": "Original Tech Holder Inc.",
@@ -358,7 +350,7 @@ def sample_assignor_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_assignee_data(sample_address_data: Dict[str, Any]) -> Dict[str, Any]:
+def sample_assignee_data(sample_address_data: dict[str, Any]) -> dict[str, Any]:
     """Provides sample data for an Assignee."""
     return {
         "assigneeNameText": "New Tech Acquirer LLC",
@@ -368,10 +360,10 @@ def sample_assignee_data(sample_address_data: Dict[str, Any]) -> Dict[str, Any]:
 
 @pytest.fixture
 def sample_assignment_data(
-    sample_assignor_data: Dict[str, Any],
-    sample_assignee_data: Dict[str, Any],
-    sample_address_data: Dict[str, Any],
-) -> Dict[str, Any]:
+    sample_assignor_data: dict[str, Any],
+    sample_assignee_data: dict[str, Any],
+    sample_address_data: dict[str, Any],
+) -> dict[str, Any]:
     """Provides sample data for an Assignment."""
     return {
         "reelNumber": "R00123",
@@ -401,7 +393,7 @@ def sample_assignment_data(
 
 
 @pytest.fixture
-def sample_document_download_format_data_for_doc_fixture() -> Dict[str, Any]:
+def sample_document_download_format_data_for_doc_fixture() -> dict[str, Any]:
     """Provides sample data for DocumentDownloadFormat, specifically for the Document fixture."""
     return {
         "mimeTypeIdentifier": "application/pdf",
@@ -412,8 +404,8 @@ def sample_document_download_format_data_for_doc_fixture() -> Dict[str, Any]:
 
 @pytest.fixture
 def sample_document_data(
-    sample_document_download_format_data_for_doc_fixture: Dict[str, Any],
-) -> Dict[str, Any]:
+    sample_document_download_format_data_for_doc_fixture: dict[str, Any],
+) -> dict[str, Any]:
     """Provides sample data for a Document."""
     return {
         "applicationNumberText": "16000001",
@@ -434,7 +426,7 @@ def sample_document_data(
 
 
 @pytest.fixture
-def sample_pta_history_data() -> Dict[str, Any]:
+def sample_pta_history_data() -> dict[str, Any]:
     """Provides sample data for PatentTermAdjustmentHistoryData."""
     return {
         "eventDate": "2022-05-01",
@@ -449,8 +441,8 @@ def sample_pta_history_data() -> Dict[str, Any]:
 
 @pytest.fixture
 def sample_patent_term_adjustment_data(
-    sample_pta_history_data: Dict[str, Any],
-) -> Dict[str, Any]:
+    sample_pta_history_data: dict[str, Any],
+) -> dict[str, Any]:
     """Provides sample data for PatentTermAdjustmentData."""
     return {
         "aDelayQuantity": 100.0,
@@ -480,8 +472,8 @@ def sample_patent_term_adjustment_data(
 
 @pytest.fixture
 def sample_customer_number_correspondence_data(
-    sample_address_data: Dict[str, Any], sample_telecommunication_data: Dict[str, Any]
-) -> Dict[str, Any]:
+    sample_address_data: dict[str, Any], sample_telecommunication_data: dict[str, Any]
+) -> dict[str, Any]:
     """Provides sample data for CustomerNumberCorrespondence."""
     return {
         "patronIdentifier": 778899,
@@ -493,9 +485,9 @@ def sample_customer_number_correspondence_data(
 
 @pytest.fixture
 def sample_record_attorney_data(
-    sample_customer_number_correspondence_data: Dict[str, Any],
-    sample_attorney_data: Dict[str, Any],
-) -> Dict[str, Any]:
+    sample_customer_number_correspondence_data: dict[str, Any],
+    sample_attorney_data: dict[str, Any],
+) -> dict[str, Any]:
     """Provides sample data for RecordAttorney."""
     attorney_2_data = sample_attorney_data.copy()
     attorney_2_data["registrationNumber"] = "67890"
@@ -548,7 +540,7 @@ class TestDocumentDownloadFormat:
     """Tests for the DocumentDownloadFormat class."""
 
     def test_document_download_format_from_dict(
-        self, sample_document_download_format_data: Dict[str, Any]
+        self, sample_document_download_format_data: dict[str, Any]
     ) -> None:
         fmt = DocumentFormat.from_dict(sample_document_download_format_data)
         assert (
@@ -562,7 +554,7 @@ class TestDocumentDownloadFormat:
         )
 
     def test_document_download_format_to_dict(
-        self, sample_document_download_format_data: Dict[str, Any]
+        self, sample_document_download_format_data: dict[str, Any]
     ) -> None:
         fmt = DocumentFormat(
             mime_type_identifier=sample_document_download_format_data[
@@ -679,7 +671,7 @@ class TestDocument:
         expected = "Document(id=doc123, code=CODE_X, date=2023-03-15)"
         assert repr(doc) == expected
 
-    def test_document_roundtrip(self, sample_document_data: Dict[str, Any]) -> None:
+    def test_document_roundtrip(self, sample_document_data: dict[str, Any]) -> None:
         """
         Tests the round-trip serialization for the Document class.
         """
@@ -835,7 +827,7 @@ class TestDocumentBag:
 class TestAddress:
     """Tests for the Address class."""
 
-    def test_address_from_dict(self, sample_address_data: Dict[str, Any]) -> None:
+    def test_address_from_dict(self, sample_address_data: dict[str, Any]) -> None:
         address = Address.from_dict(sample_address_data)
         for key, value in sample_address_data.items():
             snake_case_key = "".join(
@@ -843,7 +835,7 @@ class TestAddress:
             ).lstrip("_")
             assert getattr(address, snake_case_key) == value
 
-    def test_address_to_dict(self, sample_address_data: Dict[str, Any]) -> None:
+    def test_address_to_dict(self, sample_address_data: dict[str, Any]) -> None:
         address = Address(
             **{
                 "".join(["_" + i.lower() if i.isupper() else i for i in k]).lstrip(
@@ -869,7 +861,7 @@ class TestTelecommunication:
     """Tests for the Telecommunication class."""
 
     def test_telecommunication_from_dict(
-        self, sample_telecommunication_data: Dict[str, Any]
+        self, sample_telecommunication_data: dict[str, Any]
     ) -> None:
         telecom = Telecommunication.from_dict(sample_telecommunication_data)
         assert (
@@ -885,7 +877,7 @@ class TestTelecommunication:
         )
 
     def test_telecommunication_to_dict(
-        self, sample_telecommunication_data: Dict[str, Any]
+        self, sample_telecommunication_data: dict[str, Any]
     ) -> None:
         telecom = Telecommunication(
             telecommunication_number=sample_telecommunication_data[
@@ -911,7 +903,7 @@ class TestTelecommunication:
 class TestPerson:
     """Tests for the Person base class."""
 
-    def test_person_to_dict(self, sample_person_base_data: Dict[str, Any]) -> None:
+    def test_person_to_dict(self, sample_person_base_data: dict[str, Any]) -> None:
         data_snake = {
             "first_name": sample_person_base_data["firstName"],
             "middle_name": sample_person_base_data.get("middleName"),
@@ -938,7 +930,7 @@ class TestPerson:
 class TestApplicant:
     """Tests for the Applicant class."""
 
-    def test_applicant_from_dict(self, sample_applicant_data: Dict[str, Any]) -> None:
+    def test_applicant_from_dict(self, sample_applicant_data: dict[str, Any]) -> None:
         applicant = Applicant.from_dict(sample_applicant_data)
         assert applicant.first_name == sample_applicant_data["firstName"]
         assert applicant.last_name == sample_applicant_data["lastName"]
@@ -952,7 +944,7 @@ class TestApplicant:
         )
 
     def test_applicant_to_dict(
-        self, sample_applicant_data: Dict[str, Any], sample_address_data: Dict[str, Any]
+        self, sample_applicant_data: dict[str, Any], sample_address_data: dict[str, Any]
     ) -> None:
         applicant = Applicant(
             first_name=sample_applicant_data["firstName"],
@@ -986,7 +978,7 @@ class TestApplicant:
 class TestInventor:
     """Tests for the Inventor class."""
 
-    def test_inventor_from_dict(self, sample_inventor_data: Dict[str, Any]) -> None:
+    def test_inventor_from_dict(self, sample_inventor_data: dict[str, Any]) -> None:
         inventor = Inventor.from_dict(sample_inventor_data)
         assert inventor.first_name == sample_inventor_data["firstName"]
         assert inventor.last_name == sample_inventor_data["lastName"]
@@ -998,7 +990,7 @@ class TestInventor:
         )
 
     def test_inventor_to_dict(
-        self, sample_inventor_data: Dict[str, Any], sample_address_data: Dict[str, Any]
+        self, sample_inventor_data: dict[str, Any], sample_address_data: dict[str, Any]
     ) -> None:
         inventor = Inventor(
             first_name=sample_inventor_data["firstName"],
@@ -1026,7 +1018,7 @@ class TestInventor:
 class TestAttorney:
     """Tests for the Attorney class."""
 
-    def test_attorney_from_dict(self, sample_attorney_data: Dict[str, Any]) -> None:
+    def test_attorney_from_dict(self, sample_attorney_data: dict[str, Any]) -> None:
         attorney = Attorney.from_dict(sample_attorney_data)
         assert attorney.first_name == sample_attorney_data["firstName"]
         assert (
@@ -1048,9 +1040,9 @@ class TestAttorney:
 
     def test_attorney_to_dict(
         self,
-        sample_attorney_data: Dict[str, Any],
-        sample_address_data: Dict[str, Any],
-        sample_telecommunication_data: Dict[str, Any],
+        sample_attorney_data: dict[str, Any],
+        sample_address_data: dict[str, Any],
+        sample_telecommunication_data: dict[str, Any],
     ) -> None:
         attorney = Attorney(
             first_name=sample_attorney_data["firstName"],
@@ -1118,8 +1110,8 @@ class TestCustomerNumberCorrespondence:
 
     def test_customer_number_correspondence_from_dict(
         self,
-        sample_address_data: Dict[str, Any],
-        sample_telecommunication_data: Dict[str, Any],
+        sample_address_data: dict[str, Any],
+        sample_telecommunication_data: dict[str, Any],
     ) -> None:
         data = {
             "patronIdentifier": 12345,
@@ -1143,8 +1135,8 @@ class TestCustomerNumberCorrespondence:
 
     def test_customer_number_correspondence_to_dict(
         self,
-        sample_address_data: Dict[str, Any],
-        sample_telecommunication_data: Dict[str, Any],
+        sample_address_data: dict[str, Any],
+        sample_telecommunication_data: dict[str, Any],
     ) -> None:
         cust_corr = CustomerNumberCorrespondence(
             patron_identifier=54321,
@@ -1174,7 +1166,7 @@ class TestRecordAttorney:
     """Tests for the RecordAttorney class."""
 
     def test_record_attorney_from_dict(
-        self, sample_attorney_data: Dict[str, Any]
+        self, sample_attorney_data: dict[str, Any]
     ) -> None:
         data = {
             "customerNumberCorrespondenceData": {
@@ -1202,7 +1194,7 @@ class TestRecordAttorney:
         )
 
     def test_record_attorney_to_dict(
-        self, sample_attorney_data: Dict[str, Any]
+        self, sample_attorney_data: dict[str, Any]
     ) -> None:
         attorney_obj = Attorney.from_dict(sample_attorney_data)
         cust_corr_obj = CustomerNumberCorrespondence(patron_identifier=999)
@@ -1233,7 +1225,7 @@ class TestRecordAttorney:
         assert data == {"powerOfAttorneyBag": [], "attorneyBag": []}
 
     def test_record_attorney_roundtrip(
-        self, sample_record_attorney_data: Dict[str, Any]
+        self, sample_record_attorney_data: dict[str, Any]
     ) -> None:
         """
         Tests the round-trip serialization for the RecordAttorney class.
@@ -1265,7 +1257,7 @@ class TestAssignor:
 class TestAssignee:
     """Tests for the Assignee class."""
 
-    def test_assignee_from_dict(self, sample_address_data: Dict[str, Any]) -> None:
+    def test_assignee_from_dict(self, sample_address_data: dict[str, Any]) -> None:
         data = {
             "assigneeNameText": "Test Company Inc.",
             "assigneeAddress": sample_address_data,
@@ -1275,7 +1267,7 @@ class TestAssignee:
         assert assignee.assignee_address is not None
         assert assignee.assignee_address.city_name == sample_address_data["cityName"]
 
-    def test_assignee_to_dict(self, sample_address_data: Dict[str, Any]) -> None:
+    def test_assignee_to_dict(self, sample_address_data: dict[str, Any]) -> None:
         address_obj = Address.from_dict(sample_address_data)
         assignee = Assignee(
             assignee_name_text="Another Co.", assignee_address=address_obj
@@ -1293,7 +1285,7 @@ class TestAssignee:
 class TestAssignment:
     """Tests for the Assignment class."""
 
-    def test_assignment_from_dict(self, sample_address_data: Dict[str, Any]) -> None:
+    def test_assignment_from_dict(self, sample_address_data: dict[str, Any]) -> None:
         data = {
             "reelNumber": 12345,
             "frameNumber": 67890,
@@ -1340,7 +1332,7 @@ class TestAssignment:
             == sample_address_data["cityName"]
         )
 
-    def test_assignment_to_dict(self, sample_address_data: Dict[str, Any]) -> None:
+    def test_assignment_to_dict(self, sample_address_data: dict[str, Any]) -> None:
         address_obj = Address.from_dict(sample_address_data)
         assignor_obj = Assignor(assignor_name="Signer", execution_date=date(2023, 1, 1))
         assignee_obj = Assignee(
@@ -1396,7 +1388,7 @@ class TestAssignment:
 
     def test_assignment_roundtrip(
         self,
-        sample_assignment_data: Dict[str, Any],
+        sample_assignment_data: dict[str, Any],
     ) -> None:
         """
         Tests the round-trip serialization for the Assignment class.
@@ -1464,14 +1456,14 @@ class TestContinuity:
         # This is different from other to_dict methods that use serialize_date.
         # For this test, we compare against the raw asdict output after filtering.
         expected_camel_asdict = cont.to_dict()
-        assert cont.to_dict() == expected_camel_asdict
+        assert expected_data == expected_camel_asdict
 
 
 class TestParentContinuity:
     """Tests for the ParentContinuity class."""
 
     def test_parent_continuity_from_dict(
-        self, sample_parent_continuity_data: Dict[str, Any]
+        self, sample_parent_continuity_data: dict[str, Any]
     ) -> None:
         pc = ParentContinuity.from_dict(sample_parent_continuity_data)
         assert pc.first_inventor_to_file_indicator is True
@@ -1482,7 +1474,7 @@ class TestParentContinuity:
         assert pc.application_number_text == "12345678"
 
     def test_parent_continuity_to_dict(
-        self, sample_parent_continuity_data: Dict[str, Any]
+        self, sample_parent_continuity_data: dict[str, Any]
     ) -> None:
         pc_instance = ParentContinuity.from_dict(sample_parent_continuity_data)
         data = pc_instance.to_dict()
@@ -1498,7 +1490,7 @@ class TestChildContinuity:
     """Tests for the ChildContinuity class."""
 
     def test_child_continuity_from_dict(
-        self, sample_child_continuity_data: Dict[str, Any]
+        self, sample_child_continuity_data: dict[str, Any]
     ) -> None:
         cc = ChildContinuity.from_dict(sample_child_continuity_data)
         assert cc.first_inventor_to_file_indicator is True
@@ -1509,7 +1501,7 @@ class TestChildContinuity:
         assert cc.application_number_text == "87654321"
 
     def test_child_continuity_to_dict(
-        self, sample_child_continuity_data: Dict[str, Any]
+        self, sample_child_continuity_data: dict[str, Any]
     ) -> None:
         cc_instance = ChildContinuity.from_dict(sample_child_continuity_data)
         data = cc_instance.to_dict()
@@ -1605,7 +1597,7 @@ class TestPatentTermAdjustmentData:
         assert "patentTermAdjustmentHistoryDataBag" not in data
 
     def test_patent_term_adjustment_data_roundtrip(
-        self, sample_patent_term_adjustment_data: Dict[str, Any]
+        self, sample_patent_term_adjustment_data: dict[str, Any]
     ) -> None:
         """
         Tests the round-trip serialization for the PatentTermAdjustmentData class.
@@ -1650,7 +1642,7 @@ class TestDocumentMetaData:
     """Tests for the DocumentMetaData class."""
 
     def test_document_meta_data_from_dict(
-        self, sample_document_meta_data_data: Dict[str, Any]
+        self, sample_document_meta_data_data: dict[str, Any]
     ) -> None:
         doc_meta = PrintedMetaData.from_dict(sample_document_meta_data_data)
         assert doc_meta.zip_file_name == sample_document_meta_data_data["zipFileName"]
@@ -1659,7 +1651,7 @@ class TestDocumentMetaData:
         )
 
     def test_document_meta_data_to_dict(
-        self, sample_document_meta_data_data: Dict[str, Any]
+        self, sample_document_meta_data_data: dict[str, Any]
     ) -> None:
         doc_meta = PrintedMetaData(
             zip_file_name=sample_document_meta_data_data["zipFileName"],
@@ -1767,11 +1759,11 @@ class TestApplicationMetaData:
         }
 
         app_meta_aia = ApplicationMetaData(first_inventor_to_file_indicator=True)
-        data_aia = app_meta_aia.to_dict()
+        app_meta_aia.to_dict()
 
     def test_application_meta_data_roundtrip_object_comparison(
         self,
-        sample_application_meta_data: Dict[str, Any],
+        sample_application_meta_data: dict[str, Any],
     ) -> None:
         original_app_meta = ApplicationMetaData.from_dict(
             data=sample_application_meta_data
@@ -1798,7 +1790,7 @@ class TestPatentFileWrapper:
     """Tests for the PatentFileWrapper class."""
 
     def test_patent_file_wrapper_from_dict(
-        self, sample_document_meta_data_data: Dict[str, Any]
+        self, sample_document_meta_data_data: dict[str, Any]
     ) -> None:
         data = {
             "applicationNumberText": "12345678",
@@ -1823,7 +1815,7 @@ class TestPatentFileWrapper:
         )
 
     def test_patent_file_wrapper_to_dict(
-        self, sample_document_meta_data_data: Dict[str, Any]
+        self, sample_document_meta_data_data: dict[str, Any]
     ) -> None:
         app_meta_obj = ApplicationMetaData(invention_title="Title")
         pgpub_obj = PrintedMetaData.from_dict(sample_document_meta_data_data)
@@ -1846,7 +1838,7 @@ class TestPatentFileWrapper:
         assert data["lastIngestionDateTime"] == "2023-02-02T06:00:00"
 
     def test_patent_file_wrapper_with_grant_document_meta_data(
-        self, sample_document_meta_data_data: Dict[str, Any]
+        self, sample_document_meta_data_data: dict[str, Any]
     ) -> None:
         data = {
             "applicationNumberText": "12345678",
@@ -1872,7 +1864,7 @@ class TestPatentFileWrapper:
 
     def test_patent_file_wrapper_roundtrip(
         self,
-        patent_data_sample: Dict[str, Any],
+        patent_data_sample: dict[str, Any],
     ) -> None:
         """
         Tests the round-trip serialization (from_dict -> to_dict -> from_dict)
@@ -1922,7 +1914,7 @@ class TestPatentDataResponse:
         )
 
     def test_patent_data_response_to_dict_with_sample(
-        self, patent_data_sample: Dict[str, Any]
+        self, patent_data_sample: dict[str, Any]
     ) -> None:
         response = PatentDataResponse.from_dict(patent_data_sample)
         result = response.to_dict()
@@ -1950,7 +1942,7 @@ class TestPatentDataResponse:
         assert "patentFileWrapperDataBag" not in result
 
     def test_patent_data_response_to_csv(
-        self, patent_data_sample: Dict[str, Any]
+        self, patent_data_sample: dict[str, Any]
     ) -> None:
         """Tests the to_csv method of PatentDataResponse."""
         response = PatentDataResponse.from_dict(patent_data_sample)
@@ -2036,7 +2028,7 @@ class TestPatentDataResponse:
         )
         csv_string = response.to_csv()
         reader = csv.reader(io.StringIO(csv_string))
-        header_row = next(reader)  # Skip header
+        next(reader)  # Skip header
         with pytest.raises(StopIteration):  # Should skip the row with missing meta
             next(reader)
 
@@ -2210,8 +2202,8 @@ class TestApplicationContinuityData:
 
     def test_from_wrapper_with_data(
         self,
-        sample_parent_continuity_data: Dict[str, Any],
-        sample_child_continuity_data: Dict[str, Any],
+        sample_parent_continuity_data: dict[str, Any],
+        sample_child_continuity_data: dict[str, Any],
     ) -> None:
         parent_cont = ParentContinuity.from_dict(sample_parent_continuity_data)
         child_cont = ChildContinuity.from_dict(sample_child_continuity_data)
@@ -2233,8 +2225,8 @@ class TestApplicationContinuityData:
 
     def test_to_dict(
         self,
-        sample_parent_continuity_data: Dict[str, Any],
-        sample_child_continuity_data: Dict[str, Any],
+        sample_parent_continuity_data: dict[str, Any],
+        sample_child_continuity_data: dict[str, Any],
     ) -> None:
         parent = ParentContinuity.from_dict(sample_parent_continuity_data)
         child = ChildContinuity.from_dict(sample_child_continuity_data)
@@ -2260,7 +2252,7 @@ class TestAssociatedDocumentsData:
     """Tests for the AssociatedDocumentsData helper class."""
 
     def test_from_wrapper_with_data(
-        self, sample_document_meta_data_data: Dict[str, Any]
+        self, sample_document_meta_data_data: dict[str, Any]
     ) -> None:
         pgpub_meta_data = sample_document_meta_data_data.copy()
         pgpub_meta_data["productIdentifier"] = "PGPUB"
@@ -2278,7 +2270,7 @@ class TestAssociatedDocumentsData:
         assert assoc_docs.grant_document_meta_data is grant_meta
 
     def test_from_wrapper_with_partial_data(
-        self, sample_document_meta_data_data: Dict[str, Any]
+        self, sample_document_meta_data_data: dict[str, Any]
     ) -> None:
         pgpub_meta = PrintedMetaData.from_dict(sample_document_meta_data_data)
         wrapper = PatentFileWrapper(
@@ -2296,7 +2288,7 @@ class TestAssociatedDocumentsData:
         assert assoc_docs.pgpub_document_meta_data is None
         assert assoc_docs.grant_document_meta_data is None
 
-    def test_to_dict(self, sample_document_meta_data_data: Dict[str, Any]) -> None:
+    def test_to_dict(self, sample_document_meta_data_data: dict[str, Any]) -> None:
         pgpub_meta_dict = sample_document_meta_data_data.copy()
         pgpub_meta_dict["zipFileName"] = "pgpub.zip"
         grant_meta_dict = sample_document_meta_data_data.copy()
@@ -2315,7 +2307,7 @@ class TestAssociatedDocumentsData:
         assert data_dict["grantDocumentMetaData"]["zipFileName"] == "grant.zip"
 
     def test_to_dict_with_partial_data(
-        self, sample_document_meta_data_data: Dict[str, Any]
+        self, sample_document_meta_data_data: dict[str, Any]
     ) -> None:
         pgpub_meta = PrintedMetaData.from_dict(sample_document_meta_data_data)
         assoc_docs = PrintedPublication(

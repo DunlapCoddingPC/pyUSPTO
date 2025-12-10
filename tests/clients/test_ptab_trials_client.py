@@ -4,16 +4,15 @@ Tests for PTABTrialsClient.
 This module contains unit tests for the PTABTrialsClient class.
 """
 
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from pyUSPTO import PTABTrialsClient, USPTOConfig
 from pyUSPTO.models.ptab import (
-    PTABTrialProceeding,
-    PTABTrialProceedingResponse,
     PTABTrialDocumentResponse,
+    PTABTrialProceedingResponse,
 )
 
 
@@ -24,7 +23,7 @@ def api_key_fixture() -> str:
 
 
 @pytest.fixture
-def trial_proceeding_sample() -> Dict[str, Any]:
+def trial_proceeding_sample() -> dict[str, Any]:
     """Sample trial proceeding data for testing."""
     return {
         "count": 2,
@@ -59,7 +58,7 @@ def trial_proceeding_sample() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def trial_document_sample() -> Dict[str, Any]:
+def trial_document_sample() -> dict[str, Any]:
     """Sample trial document data for testing."""
     return {
         "count": 2,
@@ -140,7 +139,7 @@ class TestPTABTrialsClientSearchProceedings:
     def test_search_proceedings_get_with_query(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_proceeding_sample: dict[str, Any],
     ) -> None:
         """Test search_proceedings with GET and direct query."""
         # Setup
@@ -167,7 +166,7 @@ class TestPTABTrialsClientSearchProceedings:
     def test_search_proceedings_get_with_convenience_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_proceeding_sample: dict[str, Any],
     ) -> None:
         """Test search_proceedings with convenience parameters."""
         # Setup
@@ -200,7 +199,7 @@ class TestPTABTrialsClientSearchProceedings:
     def test_search_proceedings_with_all_convenience_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_proceeding_sample: dict[str, Any],
     ) -> None:
         """Test search_proceedings with all convenience parameters."""
         # Setup
@@ -227,14 +226,17 @@ class TestPTABTrialsClientSearchProceedings:
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert 'patentOwnerData.patentOwnerName:"Test Owner"' in params["q"]
-        assert 'regularPetitionerData.realPartyInInterestName:"Test Petitioner"' in params["q"]
+        assert (
+            'regularPetitionerData.realPartyInInterestName:"Test Petitioner"'
+            in params["q"]
+        )
         assert 'respondentData.patentOwnerName:"Test Respondent"' in params["q"]
         assert 'trialMetaData.trialStatusCategory:"Instituted"' in params["q"]
 
     def test_search_proceedings_with_date_from_only(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_proceeding_sample: dict[str, Any],
     ) -> None:
         """Test search_proceedings with only petition_filing_date_from."""
         # Setup
@@ -258,7 +260,7 @@ class TestPTABTrialsClientSearchProceedings:
     def test_search_proceedings_with_date_to_only(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_proceeding_sample: dict[str, Any],
     ) -> None:
         """Test search_proceedings with only petition_filing_date_to."""
         # Setup
@@ -282,7 +284,7 @@ class TestPTABTrialsClientSearchProceedings:
     def test_search_proceedings_with_optional_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_proceeding_sample: dict[str, Any],
     ) -> None:
         """Test search_proceedings with optional parameters."""
         # Setup
@@ -321,7 +323,7 @@ class TestPTABTrialsClientSearchProceedings:
     def test_search_proceedings_post_with_body(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_proceeding_sample: Dict[str, Any],
+        trial_proceeding_sample: dict[str, Any],
     ) -> None:
         """Test search_proceedings with POST body."""
         # Setup
@@ -349,7 +351,7 @@ class TestPTABTrialsClientSearchDocuments:
     def test_search_documents_get_with_query(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_documents with GET and direct query."""
         # Setup
@@ -371,7 +373,7 @@ class TestPTABTrialsClientSearchDocuments:
     def test_search_documents_with_convenience_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_documents with convenience parameters."""
         # Setup
@@ -394,12 +396,14 @@ class TestPTABTrialsClientSearchDocuments:
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert "q" in params
-        assert "documentData.documentFilingDate:[2023-01-01 TO 2023-12-31]" in params["q"]
+        assert (
+            "documentData.documentFilingDate:[2023-01-01 TO 2023-12-31]" in params["q"]
+        )
 
     def test_search_documents_with_all_convenience_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_documents with all convenience parameters."""
         # Setup
@@ -430,10 +434,19 @@ class TestPTABTrialsClientSearchDocuments:
         params = call_args[1]["params"]
         assert "trialNumber:IPR2023-00001" in params["q"]
         assert 'documentData.documentCategory:"Paper"' in params["q"]
-        assert 'documentData.documentTypeDescriptionText:"Patent Owner Response"' in params["q"]
-        assert 'regularPetitionerData.realPartyInInterestName:"Test Petitioner"' in params["q"]
+        assert (
+            'documentData.documentTypeDescriptionText:"Patent Owner Response"'
+            in params["q"]
+        )
+        assert (
+            'regularPetitionerData.realPartyInInterestName:"Test Petitioner"'
+            in params["q"]
+        )
         assert 'patentOwnerData.inventorName:"Jane Inventor"' in params["q"]
-        assert 'regularPetitionerData.realPartyInInterestName:"Real Party LLC"' in params["q"]
+        assert (
+            'regularPetitionerData.realPartyInInterestName:"Real Party LLC"'
+            in params["q"]
+        )
         assert "patentOwnerData.patentNumber:US1234567" in params["q"]
         assert 'patentOwnerData.patentOwnerName:"Test Owner"' in params["q"]
         assert params["limit"] == 50
@@ -441,7 +454,7 @@ class TestPTABTrialsClientSearchDocuments:
     def test_search_documents_with_date_from_only(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_documents with only filing_date_from."""
         # Setup
@@ -465,7 +478,7 @@ class TestPTABTrialsClientSearchDocuments:
     def test_search_documents_with_date_to_only(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_documents with only filing_date_to."""
         # Setup
@@ -487,7 +500,7 @@ class TestPTABTrialsClientSearchDocuments:
     def test_search_documents_post_with_body(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_documents with POST body."""
         # Setup
@@ -511,7 +524,7 @@ class TestPTABTrialsClientSearchDocuments:
     def test_search_documents_with_optional_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_documents with optional parameters."""
         # Setup
@@ -554,7 +567,7 @@ class TestPTABTrialsClientSearchDecisions:
     def test_search_decisions_get_with_query(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with GET and direct query."""
         # Setup
@@ -576,7 +589,7 @@ class TestPTABTrialsClientSearchDecisions:
     def test_search_decisions_with_convenience_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with convenience parameters."""
         # Setup
@@ -603,7 +616,7 @@ class TestPTABTrialsClientSearchDecisions:
     def test_search_decisions_with_all_convenience_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with all convenience parameters."""
         # Setup
@@ -634,21 +647,28 @@ class TestPTABTrialsClientSearchDecisions:
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert "trialNumber:IPR2023-00001" in params["q"]
-        assert 'decisionData.decisionTypeCategory:"Final Written Decision"' in params["q"]
+        assert (
+            'decisionData.decisionTypeCategory:"Final Written Decision"' in params["q"]
+        )
         assert "trialTypeCode:IPR" in params["q"]
         assert "patentOwnerData.patentNumber:US1234567" in params["q"]
         assert "patentOwnerData.applicationNumberText:15/123456" in params["q"]
         assert 'patentOwnerData.patentOwnerName:"Test Owner"' in params["q"]
         assert 'trialMetaData.trialStatusCategory:"Instituted"' in params["q"]
-        assert 'regularPetitionerData.realPartyInInterestName:"Real Party LLC"' in params["q"]
+        assert (
+            'regularPetitionerData.realPartyInInterestName:"Real Party LLC"'
+            in params["q"]
+        )
         assert 'documentData.documentCategory:"Decision"' in params["q"]
-        assert "decisionData.decisionIssueDate:[2023-01-01 TO 2023-12-31]" in params["q"]
+        assert (
+            "decisionData.decisionIssueDate:[2023-01-01 TO 2023-12-31]" in params["q"]
+        )
         assert params["limit"] == 50
 
     def test_search_decisions_with_date_from_only(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with only decision_date_from."""
         # Setup
@@ -672,7 +692,7 @@ class TestPTABTrialsClientSearchDecisions:
     def test_search_decisions_with_date_to_only(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with only decision_date_to."""
         # Setup
@@ -696,7 +716,7 @@ class TestPTABTrialsClientSearchDecisions:
     def test_search_decisions_with_document_type_description_q(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with document_type_description_q parameter."""
         # Setup
@@ -715,12 +735,15 @@ class TestPTABTrialsClientSearchDecisions:
         assert isinstance(result, PTABTrialDocumentResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
-        assert 'documentData.documentTypeDescriptionText:"*Final Written Decision*"' in params["q"]
+        assert (
+            'documentData.documentTypeDescriptionText:"*Final Written Decision*"'
+            in params["q"]
+        )
 
     def test_search_decisions_post_with_body(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with POST body."""
         # Setup
@@ -744,7 +767,7 @@ class TestPTABTrialsClientSearchDecisions:
     def test_search_decisions_with_optional_params(
         self,
         mock_ptab_trials_client: PTABTrialsClient,
-        trial_document_sample: Dict[str, Any],
+        trial_document_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with optional parameters."""
         # Setup

@@ -1,5 +1,4 @@
-"""
-Example usage of the pyUSPTO module for PTAB Appeals API
+"""Example usage of the pyUSPTO module for PTAB Appeals API.
 
 This example demonstrates how to use the PTABAppealsClient to interact with the USPTO PTAB
 (Patent Trial and Appeal Board) Appeals API. It shows how to search for ex parte appeal
@@ -10,13 +9,10 @@ PTAB Appeals include ex parte appeals from patent application examinations to th
 
 import os
 
-from pyUSPTO import PTABAppealsClient, USPTOConfig
+from pyUSPTO import PTABAppealsClient
 
 # --- Initialization ---
-# Choose one method to initialize the client.
-# For this example, Method 1 is active. Replace "YOUR_API_KEY_HERE" with your actual key.
-
-# Method 1: Initialize the client with direct API key
+# Initialize the client with direct API key
 print("Method 1: Initialize with direct API key")
 api_key = os.environ.get("USPTO_API_KEY", "YOUR_API_KEY_HERE")
 if api_key == "YOUR_API_KEY_HERE":
@@ -25,26 +21,8 @@ if api_key == "YOUR_API_KEY_HERE":
     )
 client = PTABAppealsClient(api_key=api_key)
 
-# Method 2: Initialize the client with USPTOConfig (alternative)
-# print("\nMethod 2: Initialize with USPTOConfig")
-# config_obj = USPTOConfig(
-#     api_key="YOUR_API_KEY_HERE",  # Replace with your actual API key
-#     ptab_base_url="https://api.uspto.gov",  # Optional, uses default if not set
-# )
-# client = PTABAppealsClient(config=config_obj)
-
-# Method 3: Initialize the client with environment variables (recommended for production)
-# print("\nMethod 3: Initialize with environment variables")
-# # Ensure USPTO_API_KEY is set in your environment
-# try:
-#     config_from_env = USPTOConfig.from_env()
-#     client = PTABAppealsClient(config=config_from_env)
-# except ValueError as e:
-#     print(f"Error initializing from environment: {e}")
-#     print("Please ensure USPTO_API_KEY environment variable is set.")
 
 print("\nBeginning PTAB Appeals API requests with configured client:")
-
 # =============================================================================
 # 1. Search Appeal Decisions by Technology Center
 # =============================================================================
@@ -100,12 +78,12 @@ print("=" * 80)
 try:
     # Search for decisions where the examiner was affirmed
     response = client.search_decisions(
-        decision_type_category_q="Affirmed",
+        decision_type_category_q="Decision",
         decision_date_from_q="2024-01-01",
         limit=5,
     )
 
-    print(f"\nFound {response.count} 'Affirmed' decisions since 2024")
+    print(f"\nFound {response.count} 'Decision's since 2024")
     print(f"Displaying first {len(response.patent_appeal_data_bag)} results:")
 
     for decision in response.patent_appeal_data_bag:
@@ -117,6 +95,7 @@ try:
 
         if decision.decision_data:
             print(f"  Decision: {decision.decision_data.decision_type_category}")
+            print(f"  Outcome: {decision.decision_data.appeal_outcome_category}")
             print(f"  Date: {decision.decision_data.decision_issue_date}")
 
 except Exception as e:
@@ -131,9 +110,9 @@ print("3. Searching for decisions by application number pattern")
 print("=" * 80)
 
 try:
-    # Search for decisions related to applications starting with "15/"
+    # Search for decisions related to applications starting with "15"
     response = client.search_decisions(
-        application_number_text_q="15/*",
+        application_number_text_q="15*",
         decision_date_from_q="2023-01-01",
         limit=3,
     )
@@ -200,16 +179,14 @@ try:
     # Search with multiple convenience parameters
     response = client.search_decisions(
         technology_center_number_q="2100",  # Electronics
-        decision_type_category_q="Reversed",
+        decision_type_category_q="Decision",
         decision_date_from_q="2023-01-01",
         decision_date_to_q="2023-12-31",
         sort="decisionDate desc",
         limit=3,
     )
 
-    print(
-        f"\nFound {response.count} 'Reversed' decisions from TC 2100 (Electronics) in 2023"
-    )
+    print(f"\nFound {response.count} 'Decision's from TC 2100 (Electronics) in 2023")
     print(f"Displaying first {len(response.patent_appeal_data_bag)} results:")
 
     for decision in response.patent_appeal_data_bag:
@@ -236,8 +213,8 @@ print("=" * 80)
 try:
     # Use a direct query string for more complex searches
     response = client.search_decisions(
-        query="technologyCenterNumber:3600 AND decisionTypeCategory:(Affirmed OR Reversed)",
-        limit=3,
+        query="appellantData.technologyCenterNumber:3600 AND decisionData.appealOutcomeCategory:(Affirmed OR Reversed)",
+        limit=10,
     )
 
     print(f"\nFound {response.count} Affirmed/Reversed decisions from TC 3600")
@@ -245,9 +222,10 @@ try:
 
     for decision in response.patent_appeal_data_bag:
         print(f"\n  Appeal Number: {decision.appeal_number}")
-
+        print(f"  >App. Number: {decision.appellant_data.application_number_text}")  # type: ignore
         if decision.decision_data:
-            print(f"  Decision: {decision.decision_data.decision_type_category}")
+            print(f"  >Decision: {decision.decision_data.decision_type_category}")
+            print(f"  >Outcome: {decision.decision_data.appeal_outcome_category}")
 
 except Exception as e:
     print(f"Error with direct query: {e}")

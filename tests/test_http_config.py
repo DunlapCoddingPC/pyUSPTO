@@ -1,7 +1,6 @@
 """Tests for HTTPConfig"""
-import os
 
-import pytest
+import os
 
 from pyUSPTO.http_config import HTTPConfig
 
@@ -31,7 +30,7 @@ class TestHTTPConfig:
             retry_status_codes=[500, 503],
             pool_connections=20,
             pool_maxsize=30,
-            custom_headers={"User-Agent": "TestApp/1.0"}
+            custom_headers={"User-Agent": "TestApp/1.0"},
         )
         assert config.timeout == 60.0
         assert config.connect_timeout == 15.0
@@ -62,8 +61,14 @@ class TestHTTPConfig:
     def test_from_env_with_defaults(self):
         """Test HTTPConfig.from_env() uses defaults when env vars not set"""
         # Clear any existing env vars
-        for key in ["USPTO_REQUEST_TIMEOUT", "USPTO_CONNECT_TIMEOUT", "USPTO_MAX_RETRIES",
-                    "USPTO_BACKOFF_FACTOR", "USPTO_POOL_CONNECTIONS", "USPTO_POOL_MAXSIZE"]:
+        for key in [
+            "USPTO_REQUEST_TIMEOUT",
+            "USPTO_CONNECT_TIMEOUT",
+            "USPTO_MAX_RETRIES",
+            "USPTO_BACKOFF_FACTOR",
+            "USPTO_POOL_CONNECTIONS",
+            "USPTO_POOL_MAXSIZE",
+        ]:
             os.environ.pop(key, None)
 
         config = HTTPConfig.from_env()
@@ -93,10 +98,7 @@ class TestHTTPConfig:
 
     def test_custom_headers_can_be_set(self):
         """Test custom_headers can be set"""
-        headers = {
-            "User-Agent": "MyApp/2.0",
-            "X-Custom-Header": "custom-value"
-        }
+        headers = {"User-Agent": "MyApp/2.0", "X-Custom-Header": "custom-value"}
         config = HTTPConfig(custom_headers=headers)
         assert config.custom_headers == headers
 

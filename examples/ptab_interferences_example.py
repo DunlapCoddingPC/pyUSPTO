@@ -1,5 +1,4 @@
-"""
-Example usage of the pyUSPTO module for PTAB Interferences API
+"""Example usage of the pyUSPTO module for PTAB Interferences API.
 
 This example demonstrates how to use the PTABInterferencesClient to interact with the USPTO PTAB
 (Patent Trial and Appeal Board) Interferences API. It shows how to search for interference
@@ -11,38 +10,17 @@ claim the same patentable invention.
 
 import os
 
-from pyUSPTO import PTABInterferencesClient, USPTOConfig
+from pyUSPTO import PTABInterferencesClient
 
 # --- Initialization ---
-# Choose one method to initialize the client.
-# For this example, Method 1 is active. Replace "YOUR_API_KEY_HERE" with your actual key.
-
-# Method 1: Initialize the client with direct API key
-print("Method 1: Initialize with direct API key")
+# Initialize the client with direct API key
+print("Initialize with direct API key")
 api_key = os.environ.get("USPTO_API_KEY", "YOUR_API_KEY_HERE")
 if api_key == "YOUR_API_KEY_HERE":
     raise ValueError(
         "WARNING: API key is not set. Please replace 'YOUR_API_KEY_HERE' or set USPTO_API_KEY environment variable."
     )
 client = PTABInterferencesClient(api_key=api_key)
-
-# Method 2: Initialize the client with USPTOConfig (alternative)
-# print("\nMethod 2: Initialize with USPTOConfig")
-# config_obj = USPTOConfig(
-#     api_key="YOUR_API_KEY_HERE",  # Replace with your actual API key
-#     ptab_base_url="https://api.uspto.gov",  # Optional, uses default if not set
-# )
-# client = PTABInterferencesClient(config=config_obj)
-
-# Method 3: Initialize the client with environment variables (recommended for production)
-# print("\nMethod 3: Initialize with environment variables")
-# # Ensure USPTO_API_KEY is set in your environment
-# try:
-#     config_from_env = USPTOConfig.from_env()
-#     client = PTABInterferencesClient(config=config_from_env)
-# except ValueError as e:
-#     print(f"Error initializing from environment: {e}")
-#     print("Please ensure USPTO_API_KEY environment variable is set.")
 
 print("\nBeginning PTAB Interferences API requests with configured client:")
 
@@ -103,14 +81,12 @@ print("=" * 80)
 try:
     # Search for decisions with specific outcomes
     response = client.search_decisions(
-        interference_outcome_category_q="Priority to Senior Party",
-        decision_date_from_q="2022-01-01",
+        interference_outcome_category_q="Final Decision",
+        decision_date_from_q="2012-01-01",
         limit=3,
     )
 
-    print(
-        f"\nFound {response.count} decisions awarding priority to the senior party since 2022"
-    )
+    print(f"\nFound {response.count} final decisions since 2012")
     print(f"Displaying first {len(response.patent_interference_data_bag)} results:")
 
     for decision in response.patent_interference_data_bag:
@@ -179,12 +155,12 @@ print("=" * 80)
 try:
     # Search for decisions involving specific application numbers
     response = client.search_decisions(
-        senior_party_application_number_q="12/*",  # Applications starting with 12/
+        senior_party_application_number_q="12*",  # Applications starting with 12/
         limit=3,
     )
 
     print(
-        f"\nFound {response.count} decisions with senior applications starting with '12/'"
+        f"\nFound {response.count} decisions with senior applications starting with '12'"
     )
     print(f"Displaying first {len(response.patent_interference_data_bag)} results:")
 
@@ -249,14 +225,14 @@ print("=" * 80)
 try:
     # Search with multiple convenience parameters
     response = client.search_decisions(
-        decision_type_category_q="Final Decision",
+        decision_type_category_q="Decision",
         decision_date_from_q="2020-01-01",
         decision_date_to_q="2023-12-31",
-        sort="decisionDate desc",
+        sort="documentData.decisionIssueDate desc",
         limit=3,
     )
 
-    print(f"\nFound {response.count} Final Decisions between 2020-2023")
+    print(f"\nFound {response.count} Decisions between 2020-2023")
     print(f"Displaying first {len(response.patent_interference_data_bag)} results:")
 
     for decision in response.patent_interference_data_bag:
@@ -290,11 +266,11 @@ print("=" * 80)
 try:
     # Use a direct query string for more complex searches
     response = client.search_decisions(
-        query='interferenceOutcomeCategory:"Priority to Senior Party" OR interferenceOutcomeCategory:"Priority to Junior Party"',
+        query='documentData.interferenceOutcomeCategory:"Final Decision"',
         limit=3,
     )
 
-    print(f"\nFound {response.count} decisions awarding priority to either party")
+    print(f"\nFound {response.count} final decisions.")
     print(f"Displaying first {len(response.patent_interference_data_bag)} results:")
 
     for decision in response.patent_interference_data_bag:
@@ -305,30 +281,6 @@ try:
 
 except Exception as e:
     print(f"Error with direct query: {e}")
-
-# =============================================================================
-# 8. Error Handling Example
-# =============================================================================
-
-print("\n" + "=" * 80)
-print("8. Error handling demonstration")
-print("=" * 80)
-
-try:
-    # Attempt a search that might return no results
-    print("\nAttempting search with unlikely parameters...")
-    response = client.search_decisions(
-        interference_number_q="999999",  # Very unlikely interference number
-        limit=1,
-    )
-
-    if response.count == 0:
-        print("No results found for the given search criteria")
-    else:
-        print(f"Found {response.count} results")
-
-except Exception as e:
-    print(f"Expected error occurred: {type(e).__name__}: {e}")
 
 print("\n" + "=" * 80)
 print("PTAB Interferences API example completed successfully!")

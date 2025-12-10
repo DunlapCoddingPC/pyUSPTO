@@ -4,13 +4,13 @@ Tests for PTABInterferencesClient.
 This module contains unit tests for the PTABInterferencesClient class.
 """
 
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from pyUSPTO import PTABInterferencesClient, USPTOConfig
-from pyUSPTO.models.ptab import PTABInterferenceDecision, PTABInterferenceResponse
+from pyUSPTO.models.ptab import PTABInterferenceResponse
 
 
 @pytest.fixture
@@ -20,7 +20,7 @@ def api_key_fixture() -> str:
 
 
 @pytest.fixture
-def interference_decision_sample() -> Dict[str, Any]:
+def interference_decision_sample() -> dict[str, Any]:
     """Sample interference decision data for testing."""
     return {
         "count": 2,
@@ -159,7 +159,7 @@ class TestPTABInterferencesClientSearchDecisions:
     def test_search_decisions_get_with_query(
         self,
         mock_ptab_interferences_client: PTABInterferencesClient,
-        interference_decision_sample: Dict[str, Any],
+        interference_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with GET and direct query."""
         # Setup
@@ -186,7 +186,7 @@ class TestPTABInterferencesClientSearchDecisions:
     def test_search_decisions_get_with_convenience_params(
         self,
         mock_ptab_interferences_client: PTABInterferencesClient,
-        interference_decision_sample: Dict[str, Any],
+        interference_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with convenience parameters."""
         # Setup
@@ -230,7 +230,7 @@ class TestPTABInterferencesClientSearchDecisions:
     def test_search_decisions_get_with_date_from_only(
         self,
         mock_ptab_interferences_client: PTABInterferencesClient,
-        interference_decision_sample: Dict[str, Any],
+        interference_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with only date_from parameter."""
         # Setup
@@ -254,7 +254,7 @@ class TestPTABInterferencesClientSearchDecisions:
     def test_search_decisions_get_with_date_to_only(
         self,
         mock_ptab_interferences_client: PTABInterferencesClient,
-        interference_decision_sample: Dict[str, Any],
+        interference_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with only date_to parameter."""
         # Setup
@@ -278,7 +278,7 @@ class TestPTABInterferencesClientSearchDecisions:
     def test_search_decisions_get_with_all_convenience_params(
         self,
         mock_ptab_interferences_client: PTABInterferencesClient,
-        interference_decision_sample: Dict[str, Any],
+        interference_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with all convenience parameters."""
         # Setup
@@ -319,7 +319,7 @@ class TestPTABInterferencesClientSearchDecisions:
     def test_search_decisions_with_real_party_in_interest_q(
         self,
         mock_ptab_interferences_client: PTABInterferencesClient,
-        interference_decision_sample: Dict[str, Any],
+        interference_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with real_party_in_interest_q parameter."""
         # Setup
@@ -346,7 +346,7 @@ class TestPTABInterferencesClientSearchDecisions:
     def test_search_decisions_post_with_body(
         self,
         mock_ptab_interferences_client: PTABInterferencesClient,
-        interference_decision_sample: Dict[str, Any],
+        interference_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with POST body."""
         # Setup
@@ -373,7 +373,7 @@ class TestPTABInterferencesClientSearchDecisions:
     def test_search_decisions_with_optional_params(
         self,
         mock_ptab_interferences_client: PTABInterferencesClient,
-        interference_decision_sample: Dict[str, Any],
+        interference_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with optional parameters like sort, facets, etc."""
         # Setup

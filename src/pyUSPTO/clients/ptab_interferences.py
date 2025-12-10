@@ -1,11 +1,11 @@
-"""
-clients.ptab_interferences - Client for USPTO PTAB Interferences API.
+"""clients.ptab_interferences - Client for USPTO PTAB Interferences API.
 
 This module provides a client for interacting with the USPTO PTAB (Patent Trial
 and Appeal Board) Interferences API. It allows you to search for patent interference decisions.
 """
 
-from typing import Any, Dict, Iterator, Optional
+from collections.abc import Iterator
+from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
@@ -28,9 +28,9 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        config: Optional[USPTOConfig] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        config: USPTOConfig | None = None,
     ):
         """Initialize the PTABInterferencesClient.
 
@@ -50,27 +50,27 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
 
     def search_decisions(
         self,
-        query: Optional[str] = None,
-        sort: Optional[str] = None,
-        offset: Optional[int] = 0,
-        limit: Optional[int] = 25,
-        facets: Optional[str] = None,
-        fields: Optional[str] = None,
-        filters: Optional[str] = None,
-        range_filters: Optional[str] = None,
-        post_body: Optional[Dict[str, Any]] = None,
+        query: str | None = None,
+        sort: str | None = None,
+        offset: int | None = 0,
+        limit: int | None = 25,
+        facets: str | None = None,
+        fields: str | None = None,
+        filters: str | None = None,
+        range_filters: str | None = None,
+        post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        interference_number_q: Optional[str] = None,
-        senior_party_application_number_q: Optional[str] = None,
-        junior_party_application_number_q: Optional[str] = None,
-        senior_party_name_q: Optional[str] = None,
-        junior_party_name_q: Optional[str] = None,
-        real_party_in_interest_q: Optional[str] = None,
-        interference_outcome_category_q: Optional[str] = None,
-        decision_type_category_q: Optional[str] = None,
-        decision_date_from_q: Optional[str] = None,
-        decision_date_to_q: Optional[str] = None,
-        additional_query_params: Optional[Dict[str, Any]] = None,
+        interference_number_q: str | None = None,
+        senior_party_application_number_q: str | None = None,
+        junior_party_application_number_q: str | None = None,
+        senior_party_name_q: str | None = None,
+        junior_party_name_q: str | None = None,
+        real_party_in_interest_q: str | None = None,
+        interference_outcome_category_q: str | None = None,
+        decision_type_category_q: str | None = None,
+        decision_date_from_q: str | None = None,
+        decision_date_to_q: str | None = None,
+        additional_query_params: dict[str, Any] | None = None,
     ) -> PTABInterferenceResponse:
         """Search for PTAB interference decisions.
 
@@ -133,7 +133,7 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
             )
         else:
             # GET request path
-            params: Dict[str, Any] = {}
+            params: dict[str, Any] = {}
             final_q = query
 
             # Build query from convenience parameters

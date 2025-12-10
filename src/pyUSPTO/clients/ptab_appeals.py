@@ -1,11 +1,11 @@
-"""
-clients.ptab_appeals - Client for USPTO PTAB Appeals API.
+"""clients.ptab_appeals - Client for USPTO PTAB Appeals API.
 
 This module provides a client for interacting with the USPTO PTAB (Patent Trial
 and Appeal Board) Appeals API. It allows you to search for ex parte appeal decisions.
 """
 
-from typing import Any, Dict, Iterator, Optional
+from collections.abc import Iterator
+from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
@@ -28,9 +28,9 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        config: Optional[USPTOConfig] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        config: USPTOConfig | None = None,
     ):
         """Initialize the PTABAppealsClient.
 
@@ -50,25 +50,25 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
 
     def search_decisions(
         self,
-        query: Optional[str] = None,
-        sort: Optional[str] = None,
-        offset: Optional[int] = 0,
-        limit: Optional[int] = 25,
-        facets: Optional[str] = None,
-        fields: Optional[str] = None,
-        filters: Optional[str] = None,
-        range_filters: Optional[str] = None,
-        post_body: Optional[Dict[str, Any]] = None,
+        query: str | None = None,
+        sort: str | None = None,
+        offset: int | None = 0,
+        limit: int | None = 25,
+        facets: str | None = None,
+        fields: str | None = None,
+        filters: str | None = None,
+        range_filters: str | None = None,
+        post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        appeal_number_q: Optional[str] = None,
-        application_number_text_q: Optional[str] = None,
-        appellant_name_q: Optional[str] = None,
-        requestor_name_q: Optional[str] = None,
-        decision_type_category_q: Optional[str] = None,
-        decision_date_from_q: Optional[str] = None,
-        decision_date_to_q: Optional[str] = None,
-        technology_center_number_q: Optional[str] = None,
-        additional_query_params: Optional[Dict[str, Any]] = None,
+        appeal_number_q: str | None = None,
+        application_number_text_q: str | None = None,
+        appellant_name_q: str | None = None,
+        requestor_name_q: str | None = None,
+        decision_type_category_q: str | None = None,
+        decision_date_from_q: str | None = None,
+        decision_date_to_q: str | None = None,
+        technology_center_number_q: str | None = None,
+        additional_query_params: dict[str, Any] | None = None,
     ) -> PTABAppealResponse:
         """Search for PTAB appeal decisions.
 
@@ -129,7 +129,7 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
             )
         else:
             # GET request path
-            params: Dict[str, Any] = {}
+            params: dict[str, Any] = {}
             final_q = query
 
             # Build query from convenience parameters
@@ -138,27 +138,37 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
                 if appeal_number_q:
                     q_parts.append(f"appealNumber:{appeal_number_q}")
                 if application_number_text_q:
-                    q_parts.append(f"applicationNumberText:{application_number_text_q}")
+                    q_parts.append(
+                        f"appellantData.applicationNumberText:{application_number_text_q}"
+                    )
                 if appellant_name_q:
-                    q_parts.append(f"appellantName:{appellant_name_q}")
+                    q_parts.append(
+                        f"appellantData.realPartyInInterestName:{appellant_name_q}"
+                    )
                 if requestor_name_q:
-                    q_parts.append(f"requestorName:{requestor_name_q}")
+                    q_parts.append(f"appellantData.counselName:{requestor_name_q}")
                 if decision_type_category_q:
-                    q_parts.append(f"decisionTypeCategory:{decision_type_category_q}")
+                    q_parts.append(
+                        f"decisionData.decisionTypeCategory:{decision_type_category_q}"
+                    )
                 if technology_center_number_q:
                     q_parts.append(
-                        f"technologyCenterNumber:{technology_center_number_q}"
+                        f"appellantData.technologyCenterNumber:{technology_center_number_q}"
                     )
 
                 # Handle decision date range
                 if decision_date_from_q and decision_date_to_q:
                     q_parts.append(
-                        f"decisionDate:[{decision_date_from_q} TO {decision_date_to_q}]"
+                        f"decisionData.decisionIssueDate:[{decision_date_from_q} TO {decision_date_to_q}]"
                     )
                 elif decision_date_from_q:
-                    q_parts.append(f"decisionDate:>={decision_date_from_q}")
+                    q_parts.append(
+                        f"decisionData.decisionIssueDate:>={decision_date_from_q}"
+                    )
                 elif decision_date_to_q:
-                    q_parts.append(f"decisionDate:<={decision_date_to_q}")
+                    q_parts.append(
+                        f"decisionData.decisionIssueDate:<={decision_date_to_q}"
+                    )
 
                 if q_parts:
                     final_q = " AND ".join(q_parts)

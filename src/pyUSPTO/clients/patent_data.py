@@ -1,13 +1,13 @@
-"""
-clients.patent_data - Client for USPTO patent data API.
+"""clients.patent_data - Client for USPTO patent data API.
 
 This module provides a client for interacting with the USPTO Patent Data API.
 It allows you to search for and retrieve patent application data.
 """
 
 import warnings
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
@@ -52,9 +52,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        config: Optional[USPTOConfig] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        config: USPTOConfig | None = None,
     ):
         """Initialize the PatentDataClient.
 
@@ -184,8 +184,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         if len(cleaned) != 8:
             raise ValueError(
-                f"Invalid application number format: {input_number}. "
-                "Expected 8 digits."
+                f"Invalid application number format: {input_number}. Expected 8 digits."
             )
 
         return cleaned
@@ -193,8 +192,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def _get_wrapper_from_response(
         self,
         response_data: PatentDataResponse,
-        application_number_for_validation: Optional[str] = None,
-    ) -> Optional[PatentFileWrapper]:
+        application_number_for_validation: str | None = None,
+    ) -> PatentFileWrapper | None:
         """Extract a single PatentFileWrapper, optionally validating the app number."""
         if not response_data or not response_data.patent_file_wrapper_data_bag:
             return None
@@ -217,28 +216,28 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def search_applications(
         self,
-        query: Optional[str] = None,
-        sort: Optional[str] = None,
-        offset: Optional[int] = 0,
-        limit: Optional[int] = 25,
-        facets: Optional[str] = None,
-        fields: Optional[str] = None,
-        filters: Optional[str] = None,
-        range_filters: Optional[str] = None,
-        post_body: Optional[Dict[str, Any]] = None,
-        application_number_q: Optional[str] = None,
-        patent_number_q: Optional[str] = None,
-        inventor_name_q: Optional[str] = None,
-        applicant_name_q: Optional[str] = None,
-        assignee_name_q: Optional[str] = None,
-        filing_date_from_q: Optional[str] = None,
-        filing_date_to_q: Optional[str] = None,
-        grant_date_from_q: Optional[str] = None,
-        grant_date_to_q: Optional[str] = None,
-        classification_q: Optional[str] = None,
-        earliestPublicationNumber_q: Optional[str] = None,
-        pctPublicationNumber_q: Optional[str] = None,
-        additional_query_params: Optional[Dict[str, Any]] = None,
+        query: str | None = None,
+        sort: str | None = None,
+        offset: int | None = 0,
+        limit: int | None = 25,
+        facets: str | None = None,
+        fields: str | None = None,
+        filters: str | None = None,
+        range_filters: str | None = None,
+        post_body: dict[str, Any] | None = None,
+        application_number_q: str | None = None,
+        patent_number_q: str | None = None,
+        inventor_name_q: str | None = None,
+        applicant_name_q: str | None = None,
+        assignee_name_q: str | None = None,
+        filing_date_from_q: str | None = None,
+        filing_date_to_q: str | None = None,
+        grant_date_from_q: str | None = None,
+        grant_date_to_q: str | None = None,
+        classification_q: str | None = None,
+        earliestPublicationNumber_q: str | None = None,
+        pctPublicationNumber_q: str | None = None,
+        additional_query_params: dict[str, Any] | None = None,
     ) -> PatentDataResponse:
         """Search for patent applications.
 
@@ -255,7 +254,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 response_class=PatentDataResponse,
             )
         else:
-            params: Dict[str, Any] = {}
+            params: dict[str, Any] = {}
             final_q = query
 
             if final_q is None:
@@ -347,28 +346,27 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_search_results(
         self,
-        query: Optional[str] = None,
-        sort: Optional[str] = None,
-        offset: Optional[int] = 0,
-        limit: Optional[int] = 25,
-        fields_param: Optional[str] = None,
-        filters_param: Optional[str] = None,
-        range_filters_param: Optional[str] = None,
-        post_body: Optional[Dict[str, Any]] = None,
-        application_number_q: Optional[str] = None,
-        patent_number_q: Optional[str] = None,
-        inventor_name_q: Optional[str] = None,
-        applicant_name_q: Optional[str] = None,
-        assignee_name_q: Optional[str] = None,
-        filing_date_from_q: Optional[str] = None,
-        filing_date_to_q: Optional[str] = None,
-        grant_date_from_q: Optional[str] = None,
-        grant_date_to_q: Optional[str] = None,
-        classification_q: Optional[str] = None,
-        additional_query_params: Optional[Dict[str, Any]] = None,
+        query: str | None = None,
+        sort: str | None = None,
+        offset: int | None = 0,
+        limit: int | None = 25,
+        fields_param: str | None = None,
+        filters_param: str | None = None,
+        range_filters_param: str | None = None,
+        post_body: dict[str, Any] | None = None,
+        application_number_q: str | None = None,
+        patent_number_q: str | None = None,
+        inventor_name_q: str | None = None,
+        applicant_name_q: str | None = None,
+        assignee_name_q: str | None = None,
+        filing_date_from_q: str | None = None,
+        filing_date_to_q: str | None = None,
+        grant_date_from_q: str | None = None,
+        grant_date_to_q: str | None = None,
+        classification_q: str | None = None,
+        additional_query_params: dict[str, Any] | None = None,
     ) -> list[ApplicationMetaData]:
-        """
-        Fetch a dataset of patent applications based on search criteria, always requesting JSON format.
+        """Fetch a dataset of patent applications based on search criteria, always requesting JSON format.
 
         For GET, parameters align with OpenAPI for /api/v1/patent/applications/search/download.
         For POST, post_body should conform to PatentDownloadRequest schema.
@@ -386,7 +384,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 params=additional_query_params,
             )
         else:
-            params: Dict[str, Any] = {}
+            params: dict[str, Any] = {}
             final_q = query
 
             if final_q is None:
@@ -466,7 +464,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 endpoint=endpoint,
                 params=params,
             )
-        assert isinstance(result, Dict)
+        assert isinstance(result, dict)
         amd_list = [
             ApplicationMetaData.from_dict(item["applicationMetaData"])
             for item in result["patentdata"]
@@ -475,7 +473,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_application_by_number(
         self, application_number: str
-    ) -> Optional[PatentFileWrapper]:
+    ) -> PatentFileWrapper | None:
         """Retrieve the full details for a specific patent application by its number.
 
         This method fetches comprehensive information for a single patent application
@@ -509,7 +507,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_application_metadata(
         self, application_number: str
-    ) -> Optional[ApplicationMetaData]:
+    ) -> ApplicationMetaData | None:
         """Retrieve key metadata for a specific patent application.
 
         This method fetches the `ApplicationMetaData` component from the full
@@ -541,7 +539,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_application_adjustment(
         self, application_number: str
-    ) -> Optional[PatentTermAdjustmentData]:
+    ) -> PatentTermAdjustmentData | None:
         """Retrieve patent term adjustment (PTA) data for a specific application.
 
         This method fetches the `PatentTermAdjustmentData` component from the
@@ -572,7 +570,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_application_assignment(
         self, application_number: str
-    ) -> Optional[List[Assignment]]:
+    ) -> list[Assignment] | None:
         """Retrieve a list of patent assignments for a specific application.
 
         This method fetches the `assignment_bag` from the patent file wrapper,
@@ -604,7 +602,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_application_attorney(
         self, application_number: str
-    ) -> Optional[RecordAttorney]:
+    ) -> RecordAttorney | None:
         """Retrieve data for the attorney(s) of record for a specific application.
 
         This method fetches the `RecordAttorney` object associated with the
@@ -634,7 +632,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_application_continuity(
         self, application_number: str
-    ) -> Optional[ApplicationContinuityData]:
+    ) -> ApplicationContinuityData | None:
         """Retrieve continuity data (parent/child applications) for a specific application.
 
         This method fetches the lineage of the specified application, returning an
@@ -667,7 +665,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_application_foreign_priority(
         self, application_number: str
-    ) -> Optional[List[ForeignPriority]]:
+    ) -> list[ForeignPriority] | None:
         """Retrieve a list of foreign priority claims for a specific application.
 
         This method fetches the `foreign_priority_bag` from the patent file
@@ -699,7 +697,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_application_transactions(
         self, application_number: str
-    ) -> Optional[List[EventData]]:
+    ) -> list[EventData] | None:
         """Retrieve the transaction history (events) for a specific application.
 
         This method fetches the `event_data_bag` from the patent file wrapper.
@@ -732,9 +730,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def get_application_documents(
         self,
         application_number: str,
-        document_codes: Optional[List[str]] = None,
-        official_date_from: Optional[str] = None,
-        official_date_to: Optional[str] = None,
+        document_codes: list[str] | None = None,
+        official_date_from: str | None = None,
+        official_date_to: str | None = None,
     ) -> DocumentBag:
         """Retrieve metadata for documents associated with a specific application.
 
@@ -784,7 +782,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_application_associated_documents(
         self, application_number: str
-    ) -> Optional[PrintedPublication]:
+    ) -> PrintedPublication | None:
         """Retrieve metadata for Pre-Grant Publication and Grant documents.
 
         This method fetches metadata specifically for published documents associated
@@ -862,7 +860,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         )
 
     def get_status_codes(
-        self, params: Optional[Dict[str, Any]] = None
+        self, params: dict[str, Any] | None = None
     ) -> StatusCodeSearchResponse:
         """Retrieve USPTO patent application status codes and their descriptions.
 
@@ -890,7 +888,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         return StatusCodeSearchResponse.from_dict(result_dict)
 
     def search_status_codes(
-        self, search_request: Dict[str, Any]
+        self, search_request: dict[str, Any]
     ) -> StatusCodeSearchResponse:
         """Search USPTO patent application status codes using POST criteria.
 
@@ -921,8 +919,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def download_document(
         self,
         document_format: DocumentFormat,
-        file_name: Optional[str] = None,
-        destination_path: Optional[str] = None,
+        file_name: str | None = None,
+        destination_path: str | None = None,
         overwrite: bool = False,
         stream: bool = True,
     ) -> str:
@@ -977,12 +975,12 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_IFW_metadata(
         self,
-        application_number: Optional[str] = None,
-        publication_number: Optional[str] = None,
-        patent_number: Optional[str] = None,
-        PCT_app_number: Optional[str] = None,
-        PCT_pub_number: Optional[str] = None,
-    ) -> Optional[PatentFileWrapper]:
+        application_number: str | None = None,
+        publication_number: str | None = None,
+        patent_number: str | None = None,
+        PCT_app_number: str | None = None,
+        PCT_pub_number: str | None = None,
+    ) -> PatentFileWrapper | None:
         """Retrieve complete patent file wrapper data using common identifiers.
 
         This utility fetches the `PatentFileWrapper`, which contains comprehensive
@@ -1032,8 +1030,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def download_archive(
         self,
         printed_metadata: PrintedMetaData,
-        file_name: Optional[str] = None,
-        destination_path: Optional[str] = None,
+        file_name: str | None = None,
+        destination_path: str | None = None,
         overwrite: bool = False,
     ) -> str:
         """Download Printed Metadata (XML data).
@@ -1090,14 +1088,16 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         # Download the Printed Metadata
         return self._download_file(
-            url=printed_metadata.file_location_uri, file_path=final_file_path.as_posix()
+            url=printed_metadata.file_location_uri,
+            file_path=final_file_path.as_posix(),
+            overwrite=overwrite,
         )
 
     def download_publication(
         self,
         printed_metadata: PrintedMetaData,
-        file_name: Optional[str] = None,
-        destination_path: Optional[str] = None,
+        file_name: str | None = None,
+        destination_path: str | None = None,
         overwrite: bool = False,
     ) -> str:
         """Download a publication XML file (grant or pre-grant publication).

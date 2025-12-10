@@ -1,10 +1,9 @@
 """Tests for models.utils"""
 
-from datetime import date, datetime, timedelta, timezone, tzinfo
 import importlib
-from typing import Optional
-from unittest.mock import patch
 import warnings
+from datetime import date, datetime, timedelta, timezone, tzinfo
+from unittest.mock import patch
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pytest
@@ -13,18 +12,14 @@ from pyUSPTO.models import utils
 
 # Import utility functions from models.utils module
 from pyUSPTO.models.utils import (
-    ASSUMED_NAIVE_TIMEZONE,
     ASSUMED_NAIVE_TIMEZONE_STR,
-    parse_to_date,
     parse_to_datetime_utc,
     parse_yn_to_bool,
     serialize_bool_to_yn,
     serialize_date,
     serialize_datetime_as_iso,
     serialize_datetime_as_naive,
-    to_camel_case,
 )
-
 from pyUSPTO.warnings import (
     USPTOBooleanParseWarning,
     USPTODateParseWarning,
@@ -132,13 +127,13 @@ class TestUtilityFunctions:
         """Triggers the except block by making astimezone() raise, and tests fallback path."""
 
         class FailingTZ(tzinfo):
-            def utcoffset(self, dt: Optional[datetime]) -> None:
+            def utcoffset(self, dt: datetime | None) -> None:
                 raise Exception("boom")
 
-            def dst(self, dt: Optional[datetime]) -> Optional[timedelta]:
+            def dst(self, dt: datetime | None) -> timedelta | None:
                 return None
 
-            def tzname(self, dt: Optional[datetime]) -> Optional[str]:
+            def tzname(self, dt: datetime | None) -> str | None:
                 return None
 
         dt_str = "2023-01-01T10:00:00"
@@ -153,13 +148,13 @@ class TestUtilityFunctions:
         """Triggers fallback to dt_obj.replace(tzinfo=timezone.utc) without touching datetime.*"""
 
         class FailingButEqualToUTC(tzinfo):
-            def utcoffset(self, dt: Optional[datetime]) -> None:
+            def utcoffset(self, dt: datetime | None) -> None:
                 raise Exception("boom")
 
-            def dst(self, dt: Optional[datetime]) -> Optional[timedelta]:
+            def dst(self, dt: datetime | None) -> timedelta | None:
                 return None
 
-            def tzname(self, dt: Optional[datetime]) -> Optional[str]:
+            def tzname(self, dt: datetime | None) -> str | None:
                 return None
 
             def __eq__(self, other: object) -> bool:

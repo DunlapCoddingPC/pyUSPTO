@@ -6,7 +6,7 @@ This module contains fixtures that are shared between different integration test
 
 import os
 import shutil
-from typing import Iterator, Optional
+from collections.abc import Iterator
 
 import pytest
 
@@ -34,7 +34,7 @@ def manage_test_download_dir() -> Iterator[None]:
 
 
 @pytest.fixture(scope="module")
-def api_key() -> Optional[str]:
+def api_key() -> str | None:
     """
     Get the API key from the environment.
 
@@ -52,7 +52,7 @@ def api_key() -> Optional[str]:
 
 
 @pytest.fixture(scope="module")
-def config(api_key: Optional[str]) -> USPTOConfig:
+def config(api_key: str | None) -> USPTOConfig:
     """
     Create a USPTOConfig instance for integration tests.
 

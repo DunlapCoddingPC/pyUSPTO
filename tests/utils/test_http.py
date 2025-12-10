@@ -4,8 +4,6 @@ Tests for the pyUSPTO.utils.http module.
 
 from unittest.mock import ANY, MagicMock, patch
 
-import pytest
-
 from pyUSPTO.utils.http import create_session
 
 

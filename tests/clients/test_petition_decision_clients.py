@@ -1,11 +1,11 @@
-"""
-Tests for the pyUSPTO.clients.petition_decisions.FinalPetitionDecisionsClient.
+"""Tests for the pyUSPTO.clients.petition_decisions.FinalPetitionDecisionsClient.
 
 This module contains comprehensive tests for initialization, search functionality,
 retrieval, pagination, and document downloads.
 """
 
-from typing import Any, Dict, Iterator
+from collections.abc import Iterator
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -20,7 +20,6 @@ from pyUSPTO.models.petition_decisions import (
     PetitionDecisionResponse,
 )
 from pyUSPTO.warnings import USPTODataMismatchWarning
-
 
 # --- Fixtures ---
 
@@ -201,7 +200,7 @@ class TestFinalPetitionDecisionsClientSearch:
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = mock_petition_response_with_data
 
-        result = client.search_decisions(
+        client.search_decisions(
             decision_date_from_q="2022-01-01",
             decision_date_to_q="2022-12-31",
             limit=25,
@@ -228,7 +227,7 @@ class TestFinalPetitionDecisionsClientSearch:
         client, mock_make_request = client_with_mocked_request
         mock_make_request.return_value = mock_petition_response_with_data
 
-        result = client.search_decisions(
+        client.search_decisions(
             applicant_name_q="Test Corp",
             technology_center_q="1700",
             decision_type_code_q="C",
@@ -256,7 +255,7 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_make_request.return_value = mock_petition_response_with_data
 
         post_body = {"q": "technologyCenter:1700", "limit": 100}
-        result = client.search_decisions(post_body=post_body)
+        client.search_decisions(post_body=post_body)
 
         mock_make_request.assert_called_once_with(
             method="POST",
@@ -725,14 +724,23 @@ class TestFinalPetitionDecisionsClientPagination:
         page1 = PetitionDecisionResponse(
             count=2,
             petition_decision_data_bag=[
-                PetitionDecision(application_number_text="111"),
-                PetitionDecision(application_number_text="222"),
+                PetitionDecision(
+                    application_number_text="111",
+                    petition_decision_record_identifier="Test-Record-01",
+                ),
+                PetitionDecision(
+                    application_number_text="222",
+                    petition_decision_record_identifier="Test-Record-01",
+                ),
             ],
         )
         page2 = PetitionDecisionResponse(
             count=1,
             petition_decision_data_bag=[
-                PetitionDecision(application_number_text="333"),
+                PetitionDecision(
+                    application_number_text="333",
+                    petition_decision_record_identifier="Test-Record-01",
+                ),
             ],
         )
 
@@ -859,7 +867,7 @@ class TestFinalPetitionDecisionsClientDocumentDownload:
         with patch.object(petition_client, "_download_file") as mock_download:
             mock_download.return_value = "test.pdf"
 
-            result = petition_client.download_petition_document(option)
+            petition_client.download_petition_document(option)
 
             call_args = mock_download.call_args
             file_path = call_args[1]["file_path"]

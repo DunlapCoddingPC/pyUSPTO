@@ -1,5 +1,4 @@
-"""
-Example usage of the pyUSPTO module for PTAB Trials API
+"""Example usage of the pyUSPTO module for PTAB Trials API.
 
 This example demonstrates how to use the PTABTrialsClient to interact with the USPTO PTAB
 (Patent Trial and Appeal Board) Trials API. It shows how to search for trial proceedings,
@@ -14,38 +13,17 @@ PTAB Trials include:
 
 import os
 
-from pyUSPTO import PTABTrialsClient, USPTOConfig
+from pyUSPTO import PTABTrialsClient
 
 # --- Initialization ---
-# Choose one method to initialize the client.
-# For this example, Method 1 is active. Replace "YOUR_API_KEY_HERE" with your actual key.
-
-# Method 1: Initialize the client with direct API key
-print("Method 1: Initialize with direct API key")
+# Initialize the client with direct API key
+print("Initialize with direct API key")
 api_key = os.environ.get("USPTO_API_KEY", "YOUR_API_KEY_HERE")
 if api_key == "YOUR_API_KEY_HERE":
     raise ValueError(
         "WARNING: API key is not set. Please replace 'YOUR_API_KEY_HERE' or set USPTO_API_KEY environment variable."
     )
 client = PTABTrialsClient(api_key=api_key)
-
-# Method 2: Initialize the client with USPTOConfig (alternative)
-# print("\nMethod 2: Initialize with USPTOConfig")
-# config_obj = USPTOConfig(
-#     api_key="YOUR_API_KEY_HERE",  # Replace with your actual API key
-#     ptab_base_url="https://api.uspto.gov",  # Optional, uses default if not set
-# )
-# client = PTABTrialsClient(config=config_obj)
-
-# Method 3: Initialize the client with environment variables (recommended for production)
-# print("\nMethod 3: Initialize with environment variables")
-# # Ensure USPTO_API_KEY is set in your environment
-# try:
-#     config_from_env = USPTOConfig.from_env()
-#     client = PTABTrialsClient(config=config_from_env)
-# except ValueError as e:
-#     print(f"Error initializing from environment: {e}")
-#     print("Please ensure USPTO_API_KEY environment variable is set.")
 
 print("\nBeginning PTAB Trials API requests with configured client:")
 
@@ -102,11 +80,8 @@ try:
     # Search for documents in a specific trial
     # Using the new convenience parameters for petitioner and patent owner
     response = client.search_documents(
-        trial_number_q="IPR2023-00001",
-        document_category_q="Paper",
-        petitioner_real_party_in_interest_name_q="*",  # Any petitioner
-        patent_owner_name_q="*",  # Any patent owner
-        limit=5,
+        trial_number_q="IPR2025-01319",
+        limit=10,
     )
 
     print(f"\nFound {response.count} documents")
@@ -119,10 +94,9 @@ try:
             doc = item.document_data
             print(f"  Document Type: {doc.document_type_description_text}")
             print(f"  Filing Date: {doc.document_filing_date}")
-            print(f"  Document Category: {doc.document_category}")
 
-            if doc.download_uri:
-                print(f"  Download URL: {doc.download_uri}")
+            if doc.file_download_uri:
+                print(f"  Download URL: {doc.file_download_uri}")
 
 except Exception as e:
     print(f"Error searching documents: {e}")
@@ -139,14 +113,14 @@ try:
     # Using all the new convenience parameters
     response = client.search_decisions(
         trial_type_code_q="IPR",
-        decision_type_category_q="Final Written Decision",
+        decision_type_category_q="Decision",
         patent_owner_name_q="*",
         trial_status_category_q="Terminated",
         decision_date_from_q="2023-01-01",
         limit=5,
     )
 
-    print(f"\nFound {response.count} Final Written Decisions in IPR proceedings")
+    print(f"\nFound {response.count} Decisions in IPR proceedings")
     print(f"Displaying first {len(response.patent_trial_document_data_bag)} results:")
 
     for item in response.patent_trial_document_data_bag:
@@ -203,8 +177,8 @@ try:
     # Search using additional_query_params for custom filters
     response = client.search_proceedings(
         trial_type_code_q="PGR",
-        trial_status_category_q="Instituted",
-        sort="petitionFilingDate desc",
+        trial_status_category_q="Terminated",
+        sort="trialMetaData.petitionFilingDate desc",
         fields="trialNumber,lastModifiedDateTime",
         limit=3,
     )
@@ -218,31 +192,3 @@ try:
 
 except Exception as e:
     print(f"Error with advanced search: {e}")
-
-# =============================================================================
-# 6. Error Handling Example
-# =============================================================================
-
-print("\n" + "=" * 80)
-print("6. Error handling demonstration")
-print("=" * 80)
-
-try:
-    # Attempt a search that might fail (invalid date format)
-    print("\nAttempting search with potentially invalid parameters...")
-    response = client.search_proceedings(
-        trial_number_q="INVALID-TRIAL-NUMBER",
-        limit=1,
-    )
-
-    if response.count == 0:
-        print("No results found for the given search criteria")
-    else:
-        print(f"Found {response.count} results")
-
-except Exception as e:
-    print(f"Expected error occurred: {type(e).__name__}: {e}")
-
-print("\n" + "=" * 80)
-print("PTAB Trials API example completed successfully!")
-print("=" * 80)

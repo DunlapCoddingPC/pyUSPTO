@@ -1,5 +1,4 @@
-"""
-models.petition_decisions - Data models for USPTO Final Petition Decisions API.
+"""models.petition_decisions - Data models for USPTO Final Petition Decisions API.
 
 This module provides data models, primarily using frozen dataclasses, for
 representing responses from the USPTO Final Petition Decisions API. These models
@@ -10,7 +9,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Import parsing utilities from models utils module
 from pyUSPTO.models.utils import (
@@ -77,12 +76,12 @@ class DocumentDownloadOption:
         page_total_quantity: The total number of pages in the document (if applicable).
     """
 
-    mime_type_identifier: Optional[str] = None
-    download_url: Optional[str] = None
-    page_total_quantity: Optional[int] = None
+    mime_type_identifier: str | None = None
+    download_url: str | None = None
+    page_total_quantity: int | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DocumentDownloadOption":
+    def from_dict(cls, data: dict[str, Any]) -> "DocumentDownloadOption":
         """Create a DocumentDownloadOption instance from a dictionary.
 
         Args:
@@ -97,7 +96,7 @@ class DocumentDownloadOption:
             page_total_quantity=data.get("pageTotalQuantity"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the DocumentDownloadOption instance to a dictionary.
 
         Returns:
@@ -125,16 +124,16 @@ class PetitionDecisionDocument:
         download_option_bag: List of available download options for the document.
     """
 
-    application_number_text: Optional[str] = None
-    official_date: Optional[datetime] = None
-    document_identifier: Optional[str] = None
-    document_code: Optional[str] = None
-    document_code_description_text: Optional[str] = None
-    direction_category: Optional[str] = None
-    download_option_bag: List[DocumentDownloadOption] = field(default_factory=list)
+    application_number_text: str | None = None
+    official_date: datetime | None = None
+    document_identifier: str | None = None
+    document_code: str | None = None
+    document_code_description_text: str | None = None
+    direction_category: str | None = None
+    download_option_bag: list[DocumentDownloadOption] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PetitionDecisionDocument":
+    def from_dict(cls, data: dict[str, Any]) -> "PetitionDecisionDocument":
         """Create a PetitionDecisionDocument instance from a dictionary.
 
         Args:
@@ -165,7 +164,7 @@ class PetitionDecisionDocument:
             download_option_bag=download_options,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the PetitionDecisionDocument instance to a dictionary.
 
         Returns:
@@ -230,36 +229,36 @@ class PetitionDecision:
         last_ingestion_datetime: The last time the record was ingested/updated.
     """
 
-    petition_decision_record_identifier: Optional[str] = None
-    application_number_text: Optional[str] = None
-    patent_number: Optional[str] = None
-    decision_date: Optional[date] = None
-    petition_mail_date: Optional[date] = None
-    decision_petition_type_code: Optional[int] = None
-    decision_type_code: Optional[str] = None
-    decision_type_code_description_text: Optional[str] = None
-    final_deciding_office_name: Optional[str] = None
-    first_applicant_name: Optional[str] = None
-    first_inventor_name: Optional[str] = None
-    invention_title: Optional[str] = None
-    first_inventor_to_file_indicator: Optional[bool] = None
-    business_entity_status_category: Optional[str] = None
-    customer_number: Optional[int] = None
-    group_art_unit_number: Optional[str] = None
-    technology_center: Optional[str] = None
-    prosecution_status_code: Optional[str] = None
-    prosecution_status_code_description_text: Optional[str] = None
-    action_taken_by_court_name: Optional[str] = None
-    court_action_indicator: Optional[bool] = None
-    inventor_bag: List[str] = field(default_factory=list)
-    petition_issue_considered_text_bag: List[str] = field(default_factory=list)
-    statute_bag: List[str] = field(default_factory=list)
-    rule_bag: List[str] = field(default_factory=list)
-    document_bag: List[PetitionDecisionDocument] = field(default_factory=list)
-    last_ingestion_datetime: Optional[datetime] = None
+    petition_decision_record_identifier: str
+    application_number_text: str | None = None
+    patent_number: str | None = None
+    decision_date: date | None = None
+    petition_mail_date: date | None = None
+    decision_petition_type_code: int | None = None
+    decision_type_code: str | None = None
+    decision_type_code_description_text: str | None = None
+    final_deciding_office_name: str | None = None
+    first_applicant_name: str | None = None
+    first_inventor_name: str | None = None
+    invention_title: str | None = None
+    first_inventor_to_file_indicator: bool | None = None
+    business_entity_status_category: str | None = None
+    customer_number: int | None = None
+    group_art_unit_number: str | None = None
+    technology_center: str | None = None
+    prosecution_status_code: str | None = None
+    prosecution_status_code_description_text: str | None = None
+    action_taken_by_court_name: str | None = None
+    court_action_indicator: bool | None = None
+    inventor_bag: list[str] = field(default_factory=list)
+    petition_issue_considered_text_bag: list[str] = field(default_factory=list)
+    statute_bag: list[str] = field(default_factory=list)
+    rule_bag: list[str] = field(default_factory=list)
+    document_bag: list[PetitionDecisionDocument] = field(default_factory=list)
+    last_ingestion_datetime: datetime | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PetitionDecision":
+    def from_dict(cls, data: dict[str, Any]) -> "PetitionDecision":
         """Create a PetitionDecision instance from a dictionary.
 
         Args:
@@ -302,7 +301,7 @@ class PetitionDecision:
 
         return cls(
             petition_decision_record_identifier=data.get(
-                "petitionDecisionRecordIdentifier"
+                "petitionDecisionRecordIdentifier", ""
             ),
             application_number_text=data.get("applicationNumberText"),
             patent_number=data.get("patentNumber"),
@@ -338,7 +337,7 @@ class PetitionDecision:
             ),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the PetitionDecision instance to a dictionary.
 
         Returns:
@@ -397,14 +396,14 @@ class PetitionDecisionResponse:
         raw_data: Optional raw JSON data from the API response (for debugging).
     """
 
-    count: Optional[int] = None
-    request_identifier: Optional[str] = None
-    petition_decision_data_bag: List[PetitionDecision] = field(default_factory=list)
-    raw_data: Optional[str] = field(default=None, compare=False, repr=False)
+    count: int = 0
+    request_identifier: str | None = None
+    petition_decision_data_bag: list[PetitionDecision] = field(default_factory=list)
+    raw_data: str | None = field(default=None, compare=False, repr=False)
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "PetitionDecisionResponse":
         """Create a PetitionDecisionResponse instance from a dictionary.
 
@@ -428,13 +427,13 @@ class PetitionDecisionResponse:
         )
 
         return cls(
-            count=data.get("count"),
+            count=data.get("count", 0),
             request_identifier=data.get("requestIdentifier"),
             petition_decision_data_bag=decisions,
             raw_data=json.dumps(data) if include_raw_data else None,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the PetitionDecisionResponse instance to a dictionary.
 
         Returns:
@@ -466,10 +465,10 @@ class PetitionDecisionDownloadResponse:
         petition_decision_data: List of petition decision records.
     """
 
-    petition_decision_data: List[PetitionDecision] = field(default_factory=list)
+    petition_decision_data: list[PetitionDecision] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PetitionDecisionDownloadResponse":
+    def from_dict(cls, data: dict[str, Any]) -> "PetitionDecisionDownloadResponse":
         """Create a PetitionDecisionDownloadResponse instance from a dictionary.
 
         Args:
@@ -492,7 +491,7 @@ class PetitionDecisionDownloadResponse:
 
         return cls(petition_decision_data=decisions)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the PetitionDecisionDownloadResponse instance to a dictionary.
 
         Returns:

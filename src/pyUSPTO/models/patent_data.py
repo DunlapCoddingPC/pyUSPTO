@@ -1,5 +1,4 @@
-"""
-models.patent_data - Data models for USPTO patent data API.
+"""models.patent_data - Data models for USPTO patent data API.
 
 This module provides Pydantic-style data models, primarily using frozen
 dataclasses, for representing responses from the USPTO Patent Data API.
@@ -13,10 +12,11 @@ import csv
 import io
 import json
 import warnings
+from collections.abc import Iterator
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from enum import Enum
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any
 
 # Import utility functions from models.utils module
 from pyUSPTO.models.utils import (
@@ -82,9 +82,9 @@ class DocumentFormat:
         page_total_quantity: The total number of pages in this document format.
     """
 
-    mime_type_identifier: Optional[str] = None
-    download_url: Optional[str] = None
-    page_total_quantity: Optional[int] = None
+    mime_type_identifier: str | None = None
+    download_url: str | None = None
+    page_total_quantity: int | None = None
 
     def __str__(self) -> str:
         """Return a human-readable string representation of the DocumentFormat.
@@ -105,7 +105,7 @@ class DocumentFormat:
         return f"DocumentFormat(mime_type={self.mime_type_identifier}, pages={self.page_total_quantity})"
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DocumentFormat":
+    def from_dict(cls, data: dict[str, Any]) -> "DocumentFormat":
         """Create a `DocumentFormat` instance from a dictionary representation.
 
         This factory method is typically used to construct `DocumentFormat`
@@ -127,7 +127,7 @@ class DocumentFormat:
             page_total_quantity=data.get("pageTotalQuantity"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `DocumentFormat` instance to a dictionary.
 
         This method serializes the `DocumentFormat` object into a dictionary,
@@ -163,13 +163,13 @@ class Document:
         document_formats: A list of available download formats for this document.
     """
 
-    application_number_text: Optional[str] = None
-    official_date: Optional[datetime] = None
-    document_identifier: Optional[str] = None
-    document_code: Optional[str] = None
-    document_code_description_text: Optional[str] = None
-    direction_category: Optional[DirectionCategory] = None
-    document_formats: List[DocumentFormat] = field(default_factory=list)
+    application_number_text: str | None = None
+    official_date: datetime | None = None
+    document_identifier: str | None = None
+    document_code: str | None = None
+    document_code_description_text: str | None = None
+    direction_category: DirectionCategory | None = None
+    document_formats: list[DocumentFormat] = field(default_factory=list)
 
     def __str__(self) -> str:
         """Return a human-readable string representation of the Document.
@@ -191,7 +191,7 @@ class Document:
         return f"Document(id={self.document_identifier}, code={self.document_code}, date={self.official_date.strftime('%Y-%m-%d') if self.official_date else 'None'})"
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Document":
+    def from_dict(cls, data: dict[str, Any]) -> "Document":
         """Create a `Document` instance from a dictionary representation.
 
         Maps API JSON keys (camelCase) to class attributes, parsing nested
@@ -230,7 +230,7 @@ class Document:
             document_formats=dl_formats,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `Document` instance to a dictionary for API compatibility.
 
         Serializes attributes to camelCase keys and handles nested objects.
@@ -271,7 +271,7 @@ class DocumentBag:
         documents (tuple[Document, ...]): An immutable tuple of `Document` objects.
     """
 
-    def __init__(self, documents: List[Document]):
+    def __init__(self, documents: list[Document]):
         """Initialize a DocumentBag with a list of documents.
 
         Args:
@@ -322,7 +322,7 @@ class DocumentBag:
             return "DocumentBag(0 documents)"
 
         # Count unique document codes
-        doc_codes: Dict[str, int] = {}
+        doc_codes: dict[str, int] = {}
         for doc in self._documents:
             code = doc.document_code or "Unknown"
             doc_codes[code] = doc_codes.get(code, 0) + 1
@@ -352,7 +352,7 @@ class DocumentBag:
         return f"DocumentBag(documents={self._documents!r})"
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DocumentBag":
+    def from_dict(cls, data: dict[str, Any]) -> "DocumentBag":
         """Create a `DocumentBag` instance from a dictionary representation.
 
         Expects a dictionary with a "documentBag" key containing a list of
@@ -373,7 +373,7 @@ class DocumentBag:
         )
         return cls(documents=docs)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `DocumentBag` instance to a dictionary.
 
         Serializes the collection into a dictionary with a "documentBag" key,
@@ -411,26 +411,26 @@ class Address:
         ict_country_code: International code for the country (USPTO format).
     """
 
-    name_line_one_text: Optional[str] = None
-    name_line_two_text: Optional[str] = None
-    address_line_one_text: Optional[str] = None
-    address_line_two_text: Optional[str] = None
-    address_line_three_text: Optional[str] = None
-    address_line_four_text: Optional[str] = None
-    geographic_region_name: Optional[str] = None
-    geographic_region_code: Optional[str] = None
-    postal_code: Optional[str] = None
-    city_name: Optional[str] = None
-    country_code: Optional[str] = None
-    country_name: Optional[str] = None
-    postal_address_category: Optional[str] = None
-    correspondent_name_text: Optional[str] = None
-    country_or_state_code: Optional[str] = None
-    ict_state_code: Optional[str] = None
-    ict_country_code: Optional[str] = None
+    name_line_one_text: str | None = None
+    name_line_two_text: str | None = None
+    address_line_one_text: str | None = None
+    address_line_two_text: str | None = None
+    address_line_three_text: str | None = None
+    address_line_four_text: str | None = None
+    geographic_region_name: str | None = None
+    geographic_region_code: str | None = None
+    postal_code: str | None = None
+    city_name: str | None = None
+    country_code: str | None = None
+    country_name: str | None = None
+    postal_address_category: str | None = None
+    correspondent_name_text: str | None = None
+    country_or_state_code: str | None = None
+    ict_state_code: str | None = None
+    ict_country_code: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Address":
+    def from_dict(cls, data: dict[str, Any]) -> "Address":
         """Create an `Address` instance from a dictionary representation.
 
         Maps camelCase keys from API data to class attributes.
@@ -461,7 +461,7 @@ class Address:
             ict_country_code=data.get("ictCountryCode"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `Address` instance to a dictionary with camelCase keys.
 
         Returns:
@@ -500,12 +500,12 @@ class Telecommunication:
         telecom_type_code: A code indicating the type of telecommunication (e.g., "TEL", "FAX").
     """
 
-    telecommunication_number: Optional[str] = None
-    extension_number: Optional[str] = None
-    telecom_type_code: Optional[str] = None
+    telecommunication_number: str | None = None
+    extension_number: str | None = None
+    telecom_type_code: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Telecommunication":
+    def from_dict(cls, data: dict[str, Any]) -> "Telecommunication":
         """Create a `Telecommunication` instance from a dictionary.
 
         Args:
@@ -520,7 +520,7 @@ class Telecommunication:
             telecom_type_code=data.get("telecomTypeCode"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `Telecommunication` instance to a dictionary.
 
         Returns:
@@ -551,16 +551,16 @@ class Person:
         country_code: The country code associated with the person (e.g., citizenship).
     """
 
-    first_name: Optional[str] = None
-    middle_name: Optional[str] = None
-    last_name: Optional[str] = None
-    name_prefix: Optional[str] = None
-    name_suffix: Optional[str] = None
-    preferred_name: Optional[str] = None
-    country_code: Optional[str] = None
+    first_name: str | None = None
+    middle_name: str | None = None
+    last_name: str | None = None
+    name_prefix: str | None = None
+    name_suffix: str | None = None
+    preferred_name: str | None = None
+    country_code: str | None = None
 
     @classmethod
-    def _extract_person_fields(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _extract_person_fields(cls, data: dict[str, Any]) -> dict[str, Any]:
         return {
             "first_name": data.get("firstName"),
             "middle_name": data.get("middleName"),
@@ -571,7 +571,7 @@ class Person:
             "country_code": data.get("countryCode"),
         }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `Person` instance to a dictionary with camelCase keys.
 
         Omits attributes that are None.
@@ -593,11 +593,11 @@ class Applicant(Person):
         correspondence_address_bag: A list of `Address` objects for the applicant.
     """
 
-    applicant_name_text: Optional[str] = None
-    correspondence_address_bag: List[Address] = field(default_factory=list)
+    applicant_name_text: str | None = None
+    correspondence_address_bag: list[Address] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Applicant":
+    def from_dict(cls, data: dict[str, Any]) -> "Applicant":
         """Create an `Applicant` instance from a dictionary.
 
         Inherits person fields and adds applicant-specific fields.
@@ -620,7 +620,7 @@ class Applicant(Person):
             correspondence_address_bag=addrs,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `Applicant` instance to a dictionary.
 
         Includes inherited person fields and applicant-specific fields,
@@ -656,11 +656,11 @@ class Inventor(Person):
         correspondence_address_bag: A list of `Address` objects for the inventor.
     """
 
-    inventor_name_text: Optional[str] = None
-    correspondence_address_bag: List[Address] = field(default_factory=list)
+    inventor_name_text: str | None = None
+    correspondence_address_bag: list[Address] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Inventor":
+    def from_dict(cls, data: dict[str, Any]) -> "Inventor":
         """Create an `Inventor` instance from a dictionary.
 
         Inherits person fields and adds inventor-specific fields.
@@ -683,7 +683,7 @@ class Inventor(Person):
             correspondence_address_bag=addrs,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `Inventor` instance to a dictionary.
 
         Includes inherited person fields and inventor-specific fields,
@@ -722,14 +722,14 @@ class Attorney(Person):
         telecommunication_address_bag: List of `Telecommunication` objects for the attorney.
     """
 
-    registration_number: Optional[str] = None
-    active_indicator: Optional[str] = None
-    registered_practitioner_category: Optional[str] = None
-    attorney_address_bag: List[Address] = field(default_factory=list)
-    telecommunication_address_bag: List[Telecommunication] = field(default_factory=list)
+    registration_number: str | None = None
+    active_indicator: str | None = None
+    registered_practitioner_category: str | None = None
+    attorney_address_bag: list[Address] = field(default_factory=list)
+    telecommunication_address_bag: list[Telecommunication] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Attorney":
+    def from_dict(cls, data: dict[str, Any]) -> "Attorney":
         """Create an `Attorney` instance from a dictionary.
 
         Inherits person fields and adds attorney-specific details.
@@ -760,7 +760,7 @@ class Attorney(Person):
             telecommunication_address_bag=telecoms,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `Attorney` instance to a dictionary.
 
         Includes inherited person fields and attorney-specific fields,
@@ -797,11 +797,11 @@ class EntityStatus:
         business_entity_status_category: String category of the business entity status (e.g., "Undiscounted").
     """
 
-    small_entity_status_indicator: Optional[bool] = None
-    business_entity_status_category: Optional[str] = None
+    small_entity_status_indicator: bool | None = None
+    business_entity_status_category: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "EntityStatus":
+    def from_dict(cls, data: dict[str, Any]) -> "EntityStatus":
         """Create an `EntityStatus` instance from a dictionary.
 
         Args:
@@ -815,7 +815,7 @@ class EntityStatus:
             business_entity_status_category=data.get("businessEntityStatusCategory"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `EntityStatus` instance to a dictionary.
 
         Returns:
@@ -840,13 +840,13 @@ class CustomerNumberCorrespondence:
         telecommunication_address_bag: List of `Telecommunication` objects.
     """
 
-    patron_identifier: Optional[int] = None
-    organization_standard_name: Optional[str] = None
-    power_of_attorney_address_bag: List[Address] = field(default_factory=list)
-    telecommunication_address_bag: List[Telecommunication] = field(default_factory=list)
+    patron_identifier: int | None = None
+    organization_standard_name: str | None = None
+    power_of_attorney_address_bag: list[Address] = field(default_factory=list)
+    telecommunication_address_bag: list[Telecommunication] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CustomerNumberCorrespondence":
+    def from_dict(cls, data: dict[str, Any]) -> "CustomerNumberCorrespondence":
         """Create a `CustomerNumberCorrespondence` instance from a dictionary.
 
         Args:
@@ -872,7 +872,7 @@ class CustomerNumberCorrespondence:
             telecommunication_address_bag=telecoms,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `CustomerNumberCorrespondence` instance to a dictionary.
 
         Omits keys with None values or empty lists.
@@ -909,12 +909,12 @@ class RecordAttorney:
         attorney_bag: List of `Attorney` objects listed as attorneys of record.
     """
 
-    customer_number_correspondence_data: Optional[CustomerNumberCorrespondence] = None
-    power_of_attorney_bag: List[Attorney] = field(default_factory=list)
-    attorney_bag: List[Attorney] = field(default_factory=list)
+    customer_number_correspondence_data: CustomerNumberCorrespondence | None = None
+    power_of_attorney_bag: list[Attorney] = field(default_factory=list)
+    attorney_bag: list[Attorney] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "RecordAttorney":
+    def from_dict(cls, data: dict[str, Any]) -> "RecordAttorney":
         """Create a `RecordAttorney` instance from a dictionary.
 
         Args:
@@ -945,7 +945,7 @@ class RecordAttorney:
             attorney_bag=att_bag,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `RecordAttorney` instance to a dictionary.
 
         Omits keys with None values. Includes empty lists to match API behavior.
@@ -974,11 +974,11 @@ class Assignor:
         execution_date: The date the assignment was executed.
     """
 
-    assignor_name: Optional[str] = None
-    execution_date: Optional[date] = None
+    assignor_name: str | None = None
+    execution_date: date | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Assignor":
+    def from_dict(cls, data: dict[str, Any]) -> "Assignor":
         """Create an `Assignor` instance from a dictionary.
 
         Args:
@@ -992,7 +992,7 @@ class Assignor:
             execution_date=parse_to_date(data.get("executionDate")),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `Assignor` instance to a dictionary.
 
         Returns:
@@ -1013,11 +1013,11 @@ class Assignee:
         assignee_address: The `Address` of the assignee.
     """
 
-    assignee_name_text: Optional[str] = None
-    assignee_address: Optional[Address] = None
+    assignee_name_text: str | None = None
+    assignee_address: Address | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Assignee":
+    def from_dict(cls, data: dict[str, Any]) -> "Assignee":
         """Create an `Assignee` instance from a dictionary.
 
         Args:
@@ -1032,7 +1032,7 @@ class Assignee:
             assignee_name_text=data.get("assigneeNameText"), assignee_address=addr
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `Assignee` instance to a dictionary.
 
         Omits keys with None values.
@@ -1074,24 +1074,24 @@ class Assignment:
         domestic_representative: `Address` object for the domestic representative.
     """
 
-    reel_number: Optional[int] = None
-    frame_number: Optional[int] = None
-    reel_and_frame_number: Optional[str] = None
-    page_total_quantity: Optional[int] = None
-    assignment_document_location_uri: Optional[str] = None
-    assignment_received_date: Optional[date] = None
-    assignment_recorded_date: Optional[date] = None
-    assignment_mailed_date: Optional[date] = None
-    conveyance_text: Optional[str] = None
-    image_available_status_code: Optional[bool] = None
-    attorney_docket_number: Optional[str] = None
-    assignor_bag: List[Assignor] = field(default_factory=list)
-    assignee_bag: List[Assignee] = field(default_factory=list)
-    correspondence_address: Optional[Address] = None
-    domestic_representative: Optional[Address] = None
+    reel_number: int | None = None
+    frame_number: int | None = None
+    reel_and_frame_number: str | None = None
+    page_total_quantity: int | None = None
+    assignment_document_location_uri: str | None = None
+    assignment_received_date: date | None = None
+    assignment_recorded_date: date | None = None
+    assignment_mailed_date: date | None = None
+    conveyance_text: str | None = None
+    image_available_status_code: bool | None = None
+    attorney_docket_number: str | None = None
+    assignor_bag: list[Assignor] = field(default_factory=list)
+    assignee_bag: list[Assignee] = field(default_factory=list)
+    correspondence_address: Address | None = None
+    domestic_representative: Address | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Assignment":
+    def from_dict(cls, data: dict[str, Any]) -> "Assignment":
         """Create an `Assignment` instance from a dictionary.
 
         Args:
@@ -1143,7 +1143,7 @@ class Assignment:
             domestic_representative=dom_rep,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `Assignment` instance to a dictionary.
 
         Returns:
@@ -1188,12 +1188,12 @@ class ForeignPriority:
         application_number_text: The application number of the priority application.
     """
 
-    ip_office_name: Optional[str] = None
-    filing_date: Optional[date] = None
-    application_number_text: Optional[str] = None
+    ip_office_name: str | None = None
+    filing_date: date | None = None
+    application_number_text: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ForeignPriority":
+    def from_dict(cls, data: dict[str, Any]) -> "ForeignPriority":
         """Create a `ForeignPriority` instance from a dictionary.
 
         Args:
@@ -1208,7 +1208,7 @@ class ForeignPriority:
             application_number_text=data.get("applicationNumberText"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `ForeignPriority` instance to a dictionary.
 
         Returns:
@@ -1239,28 +1239,28 @@ class Continuity:
         claim_parentage_type_code_description_text: Description of the continuity claim type.
     """
 
-    first_inventor_to_file_indicator: Optional[bool] = None
-    application_number_text: Optional[str] = None
-    filing_date: Optional[date] = None
-    status_code: Optional[int] = None
-    status_description_text: Optional[str] = None
-    patent_number: Optional[str] = None
-    claim_parentage_type_code: Optional[str] = None
-    claim_parentage_type_code_description_text: Optional[str] = None
+    first_inventor_to_file_indicator: bool | None = None
+    application_number_text: str | None = None
+    filing_date: date | None = None
+    status_code: int | None = None
+    status_description_text: str | None = None
+    patent_number: str | None = None
+    claim_parentage_type_code: str | None = None
+    claim_parentage_type_code_description_text: str | None = None
 
     @property
-    def is_aia(self) -> Optional[bool]:
+    def is_aia(self) -> bool | None:
         """Returns True if the application is AIA, False if pre-AIA, None if unknown."""
         return self.first_inventor_to_file_indicator
 
     @property
-    def is_pre_aia(self) -> Optional[bool]:
+    def is_pre_aia(self) -> bool | None:
         """Returns True if the application is pre-AIA, False if AIA, None if unknown."""
         if self.first_inventor_to_file_indicator is None:
             return None
         return not self.first_inventor_to_file_indicator
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `Continuity` instance to a dictionary.
 
         Omits attributes that are None and property-derived fields.
@@ -1291,15 +1291,15 @@ class ParentContinuity(Continuity):
         child_application_number_text: Application number of the child (current) application.
     """
 
-    parent_application_status_code: Optional[int] = None
-    parent_patent_number: Optional[str] = None
-    parent_application_status_description_text: Optional[str] = None
-    parent_application_filing_date: Optional[date] = None
-    parent_application_number_text: Optional[str] = None
-    child_application_number_text: Optional[str] = None
+    parent_application_status_code: int | None = None
+    parent_patent_number: str | None = None
+    parent_application_status_description_text: str | None = None
+    parent_application_filing_date: date | None = None
+    parent_application_number_text: str | None = None
+    child_application_number_text: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ParentContinuity":
+    def from_dict(cls, data: dict[str, Any]) -> "ParentContinuity":
         """Create a `ParentContinuity` instance from a dictionary.
 
         Args:
@@ -1330,7 +1330,7 @@ class ParentContinuity(Continuity):
             patent_number=data.get("parentPatentNumber"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `ParentContinuity` instance to a dictionary.
 
         Maps attributes to specific camelCase keys expected by the API for parent continuity.
@@ -1370,15 +1370,15 @@ class ChildContinuity(Continuity):
         child_patent_number: Patent number of the child application, if granted.
     """
 
-    child_application_status_code: Optional[int] = None
-    parent_application_number_text: Optional[str] = None
-    child_application_number_text: Optional[str] = None
-    child_application_status_description_text: Optional[str] = None
-    child_application_filing_date: Optional[date] = None
-    child_patent_number: Optional[str] = None
+    child_application_status_code: int | None = None
+    parent_application_number_text: str | None = None
+    child_application_number_text: str | None = None
+    child_application_status_description_text: str | None = None
+    child_application_filing_date: date | None = None
+    child_patent_number: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ChildContinuity":
+    def from_dict(cls, data: dict[str, Any]) -> "ChildContinuity":
         """Create a `ChildContinuity` instance from a dictionary.
 
         Args:
@@ -1409,7 +1409,7 @@ class ChildContinuity(Continuity):
             patent_number=data.get("childPatentNumber"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `ChildContinuity` instance to a dictionary.
 
         Maps attributes to specific camelCase keys expected by the API for child continuity.
@@ -1450,16 +1450,16 @@ class PatentTermAdjustmentHistoryData:
         ip_office_day_delay_quantity: Number of days of IP office delay used in adjustment calculation for this event.
     """
 
-    event_date: Optional[date] = None
-    applicant_day_delay_quantity: Optional[float] = None
-    event_description_text: Optional[str] = None
-    event_sequence_number: Optional[float] = None
-    originating_event_sequence_number: Optional[float] = None
-    pta_pte_code: Optional[str] = None
-    ip_office_day_delay_quantity: Optional[float] = None
+    event_date: date | None = None
+    applicant_day_delay_quantity: float | None = None
+    event_description_text: str | None = None
+    event_sequence_number: float | None = None
+    originating_event_sequence_number: float | None = None
+    pta_pte_code: str | None = None
+    ip_office_day_delay_quantity: float | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PatentTermAdjustmentHistoryData":
+    def from_dict(cls, data: dict[str, Any]) -> "PatentTermAdjustmentHistoryData":
         """Create a `PatentTermAdjustmentHistoryData` instance from a dictionary.
 
         Args:
@@ -1480,7 +1480,7 @@ class PatentTermAdjustmentHistoryData:
             ip_office_day_delay_quantity=data.get("ipOfficeDayDelayQuantity"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `PatentTermAdjustmentHistoryData` instance to a dictionary.
 
         Omits keys with None values.
@@ -1488,7 +1488,7 @@ class PatentTermAdjustmentHistoryData:
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.
         """
-        final_dict: Dict[str, Any] = {}
+        final_dict: dict[str, Any] = {}
         if self.event_date is not None:
             final_dict["eventDate"] = serialize_date(self.event_date)
         if self.applicant_day_delay_quantity is not None:
@@ -1528,21 +1528,21 @@ class PatentTermAdjustmentData:
         patent_term_adjustment_history_data_bag: List of `PatentTermAdjustmentHistoryData` events.
     """
 
-    a_delay_quantity: Optional[float] = None
-    adjustment_total_quantity: Optional[float] = None
-    applicant_day_delay_quantity: Optional[float] = None
-    b_delay_quantity: Optional[float] = None
-    c_delay_quantity: Optional[float] = None
-    non_overlapping_day_quantity: Optional[float] = None
-    overlapping_day_quantity: Optional[float] = None
-    non_overlapping_day_delay_quantity: Optional[float] = None
-    ip_office_adjustment_delay_quantity: Optional[float] = None
-    patent_term_adjustment_history_data_bag: List[PatentTermAdjustmentHistoryData] = (
+    a_delay_quantity: float | None = None
+    adjustment_total_quantity: float | None = None
+    applicant_day_delay_quantity: float | None = None
+    b_delay_quantity: float | None = None
+    c_delay_quantity: float | None = None
+    non_overlapping_day_quantity: float | None = None
+    overlapping_day_quantity: float | None = None
+    non_overlapping_day_delay_quantity: float | None = None
+    ip_office_adjustment_delay_quantity: float | None = None
+    patent_term_adjustment_history_data_bag: list[PatentTermAdjustmentHistoryData] = (
         field(default_factory=list)
     )
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PatentTermAdjustmentData":
+    def from_dict(cls, data: dict[str, Any]) -> "PatentTermAdjustmentData":
         """Create a `PatentTermAdjustmentData` instance from a dictionary.
 
         Args:
@@ -1573,7 +1573,7 @@ class PatentTermAdjustmentData:
             patent_term_adjustment_history_data_bag=history,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `PatentTermAdjustmentData` instance to a dictionary.
 
         Omits keys with None values or empty lists, and converts field names to camelCase.
@@ -1602,12 +1602,12 @@ class EventData:
         event_date: The date the event was recorded.
     """
 
-    event_code: Optional[str] = None
-    event_description_text: Optional[str] = None
-    event_date: Optional[date] = None
+    event_code: str | None = None
+    event_description_text: str | None = None
+    event_date: date | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "EventData":
+    def from_dict(cls, data: dict[str, Any]) -> "EventData":
         """Create an `EventData` instance from a dictionary.
 
         Args:
@@ -1622,7 +1622,7 @@ class EventData:
             event_date=parse_to_date(data.get("eventDate")),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `EventData` instance to a dictionary.
 
         Omits keys with None values and converts field names to camelCase.
@@ -1647,14 +1647,14 @@ class PrintedMetaData:
         xml_file_name: The name of the XML file within the ZIP archive.
     """
 
-    zip_file_name: Optional[str] = None
-    product_identifier: Optional[str] = None
-    file_location_uri: Optional[str] = None
-    file_create_date_time: Optional[datetime] = None
-    xml_file_name: Optional[str] = None
+    zip_file_name: str | None = None
+    product_identifier: str | None = None
+    file_location_uri: str | None = None
+    file_create_date_time: datetime | None = None
+    xml_file_name: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PrintedMetaData":
+    def from_dict(cls, data: dict[str, Any]) -> "PrintedMetaData":
         """Create a `PrintedMetaData` instance from a dictionary.
 
         Args:
@@ -1671,7 +1671,7 @@ class PrintedMetaData:
             xml_file_name=data.get("xmlFileName"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `PrintedMetaData` instance to a dictionary.
 
         Omits keys with None values. Serializes datetime to ISO format with 'Z'.
@@ -1679,7 +1679,7 @@ class PrintedMetaData:
         Returns:
             Dict[str, Any]: Dictionary representation with camelCase keys.
         """
-        final_dict: Dict[str, Any] = {}
+        final_dict: dict[str, Any] = {}
         if self.zip_file_name is not None:
             final_dict["zipFileName"] = self.zip_file_name
         if self.product_identifier is not None:
@@ -1743,51 +1743,51 @@ class ApplicationMetaData:
         raw_data: Raw JSON string of the data used to create this instance (for debugging).
     """
 
-    national_stage_indicator: Optional[bool] = None
-    entity_status_data: Optional[EntityStatus] = None
-    publication_date_bag: List[date] = field(default_factory=list)
-    publication_sequence_number_bag: List[str] = field(default_factory=list)
-    publication_category_bag: List[str] = field(default_factory=list)
-    docket_number: Optional[str] = None
-    first_inventor_to_file_indicator: Optional[bool] = None
-    first_applicant_name: Optional[str] = None
-    first_inventor_name: Optional[str] = None
-    application_confirmation_number: Optional[int] = None
-    application_status_date: Optional[date] = None
-    application_status_description_text: Optional[str] = None
-    filing_date: Optional[date] = None
-    effective_filing_date: Optional[date] = None
-    grant_date: Optional[date] = None
-    group_art_unit_number: Optional[str] = None
-    application_type_code: Optional[str] = None
-    application_type_label_name: Optional[str] = None
-    application_type_category: Optional[str] = None
-    invention_title: Optional[str] = None
-    patent_number: Optional[str] = None
-    application_status_code: Optional[int] = None
-    earliest_publication_number: Optional[str] = None
-    earliest_publication_date: Optional[date] = None
-    pct_publication_number: Optional[str] = None
-    pct_publication_date: Optional[date] = None
-    international_registration_publication_date: Optional[date] = None
-    international_registration_number: Optional[str] = None
-    examiner_name_text: Optional[str] = None
-    class_field: Optional[str] = None
-    subclass: Optional[str] = None
-    uspc_symbol_text: Optional[str] = None
-    customer_number: Optional[int] = None
-    cpc_classification_bag: List[str] = field(default_factory=list)
-    applicant_bag: List[Applicant] = field(default_factory=list)
-    inventor_bag: List[Inventor] = field(default_factory=list)
-    raw_data: Optional[str] = field(default=None, compare=False)
+    national_stage_indicator: bool | None = None
+    entity_status_data: EntityStatus | None = None
+    publication_date_bag: list[date] = field(default_factory=list)
+    publication_sequence_number_bag: list[str] = field(default_factory=list)
+    publication_category_bag: list[str] = field(default_factory=list)
+    docket_number: str | None = None
+    first_inventor_to_file_indicator: bool | None = None
+    first_applicant_name: str | None = None
+    first_inventor_name: str | None = None
+    application_confirmation_number: int | None = None
+    application_status_date: date | None = None
+    application_status_description_text: str | None = None
+    filing_date: date | None = None
+    effective_filing_date: date | None = None
+    grant_date: date | None = None
+    group_art_unit_number: str | None = None
+    application_type_code: str | None = None
+    application_type_label_name: str | None = None
+    application_type_category: str | None = None
+    invention_title: str | None = None
+    patent_number: str | None = None
+    application_status_code: int | None = None
+    earliest_publication_number: str | None = None
+    earliest_publication_date: date | None = None
+    pct_publication_number: str | None = None
+    pct_publication_date: date | None = None
+    international_registration_publication_date: date | None = None
+    international_registration_number: str | None = None
+    examiner_name_text: str | None = None
+    class_field: str | None = None
+    subclass: str | None = None
+    uspc_symbol_text: str | None = None
+    customer_number: int | None = None
+    cpc_classification_bag: list[str] = field(default_factory=list)
+    applicant_bag: list[Applicant] = field(default_factory=list)
+    inventor_bag: list[Inventor] = field(default_factory=list)
+    raw_data: str | None = field(default=None, compare=False)
 
     @property
-    def is_aia(self) -> Optional[bool]:
+    def is_aia(self) -> bool | None:
         """Returns True if the application is AIA, False if pre-AIA, None if unknown."""
         return self.first_inventor_to_file_indicator
 
     @property
-    def is_pre_aia(self) -> Optional[bool]:
+    def is_pre_aia(self) -> bool | None:
         """Returns True if the application is pre-AIA, False if AIA, None if unknown."""
         if self.first_inventor_to_file_indicator is None:
             return None
@@ -1795,7 +1795,7 @@ class ApplicationMetaData:
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "ApplicationMetaData":
         """Create an `ApplicationMetaData` instance from a dictionary.
 
@@ -1879,7 +1879,7 @@ class ApplicationMetaData:
             raw_data=json.dumps(data) if include_raw_data else None,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `ApplicationMetaData` instance to a dictionary.
 
         Serializes attributes to camelCase keys suitable for API interaction or storage.
@@ -1979,23 +1979,23 @@ class PatentFileWrapper:
         last_ingestion_date_time: Timestamp of when this data was last ingested by the API (UTC).
     """
 
-    application_number_text: Optional[str] = None
-    application_meta_data: Optional[ApplicationMetaData] = None
-    correspondence_address_bag: List[Address] = field(default_factory=list)
-    assignment_bag: List[Assignment] = field(default_factory=list)
-    record_attorney: Optional[RecordAttorney] = None
-    foreign_priority_bag: List[ForeignPriority] = field(default_factory=list)
-    parent_continuity_bag: List[ParentContinuity] = field(default_factory=list)
-    child_continuity_bag: List[ChildContinuity] = field(default_factory=list)
-    patent_term_adjustment_data: Optional[PatentTermAdjustmentData] = None
-    event_data_bag: List[EventData] = field(default_factory=list)
-    pgpub_document_meta_data: Optional[PrintedMetaData] = None
-    grant_document_meta_data: Optional[PrintedMetaData] = None
-    last_ingestion_date_time: Optional[datetime] = None
+    application_number_text: str | None = None
+    application_meta_data: ApplicationMetaData | None = None
+    correspondence_address_bag: list[Address] = field(default_factory=list)
+    assignment_bag: list[Assignment] = field(default_factory=list)
+    record_attorney: RecordAttorney | None = None
+    foreign_priority_bag: list[ForeignPriority] = field(default_factory=list)
+    parent_continuity_bag: list[ParentContinuity] = field(default_factory=list)
+    child_continuity_bag: list[ChildContinuity] = field(default_factory=list)
+    patent_term_adjustment_data: PatentTermAdjustmentData | None = None
+    event_data_bag: list[EventData] = field(default_factory=list)
+    pgpub_document_meta_data: PrintedMetaData | None = None
+    grant_document_meta_data: PrintedMetaData | None = None
+    last_ingestion_date_time: datetime | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "PatentFileWrapper":
         """Create a `PatentFileWrapper` instance from a dictionary.
 
@@ -2084,7 +2084,7 @@ class PatentFileWrapper:
             ),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `PatentFileWrapper` instance to a dictionary.
 
         Omits keys with None values or empty lists. Serializes nested objects.
@@ -2153,13 +2153,13 @@ class PatentDataResponse:
     """
 
     count: int
-    patent_file_wrapper_data_bag: List[PatentFileWrapper] = field(default_factory=list)
-    request_identifier: Optional[str] = None
-    raw_data: Optional[str] = field(default=None, compare=False, repr=False)
+    patent_file_wrapper_data_bag: list[PatentFileWrapper] = field(default_factory=list)
+    request_identifier: str | None = None
+    raw_data: str | None = field(default=None, compare=False, repr=False)
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "PatentDataResponse":
         """Create a `PatentDataResponse` instance from a dictionary.
 
@@ -2182,7 +2182,7 @@ class PatentDataResponse:
             raw_data=json.dumps(data) if include_raw_data else None,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `PatentDataResponse` instance to a dictionary.
 
         Returns:
@@ -2265,15 +2265,15 @@ class StatusCode:
         description: The textual description of the status code.
     """
 
-    code: Optional[int] = None
-    description: Optional[str] = None
+    code: int | None = None
+    description: str | None = None
 
     def __str__(self) -> str:
         """Return a user-friendly string representation of the status code."""
         return f"{self.code}: {self.description}"
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "StatusCode":
+    def from_dict(cls, data: dict[str, Any]) -> "StatusCode":
         """Create a `StatusCode` instance from a dictionary.
 
         Handles two possible key sets from the API for status information.
@@ -2295,7 +2295,7 @@ class StatusCode:
                 description=data.get("applicationStatusDescriptionText"),
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `StatusCode` instance to a dictionary.
 
         Uses keys "applicationStatusCode" and "applicationStatusDescriptionText"
@@ -2320,7 +2320,7 @@ class StatusCodeCollection:
         status_codes (tuple[StatusCode, ...]): An immutable tuple of `StatusCode` objects.
     """
 
-    def __init__(self, status_codes: List[StatusCode]):
+    def __init__(self, status_codes: list[StatusCode]):
         """Initialize a StatusCodeCollection with a list of status codes.
 
         Args:
@@ -2379,7 +2379,7 @@ class StatusCodeCollection:
             first_codes = ", ".join(str(s.code) for s in self._status_codes[:3])
             return f"StatusCodeCollection({len(self)} status codes: {first_codes}, ...)"
 
-    def find_by_code(self, code_to_find: int) -> Optional[StatusCode]:
+    def find_by_code(self, code_to_find: int) -> StatusCode | None:
         """Find a status code by its numeric code.
 
         Args:
@@ -2409,7 +2409,7 @@ class StatusCodeCollection:
         ]
         return StatusCodeCollection(status_codes=matching)
 
-    def to_dict(self) -> List[Dict[str, Any]]:
+    def to_dict(self) -> list[dict[str, Any]]:
         """Convert the collection of status codes to a list of dictionaries.
 
         Returns:
@@ -2431,10 +2431,10 @@ class StatusCodeSearchResponse:
 
     count: int
     status_code_bag: StatusCodeCollection
-    request_identifier: Optional[str] = None
+    request_identifier: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "StatusCodeSearchResponse":
+    def from_dict(cls, data: dict[str, Any]) -> "StatusCodeSearchResponse":
         """Create a `StatusCodeSearchResponse` instance from a dictionary.
 
         Args:
@@ -2456,7 +2456,7 @@ class StatusCodeSearchResponse:
             request_identifier=data.get("requestIdentifier"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `StatusCodeSearchResponse` instance to a dictionary.
 
         Omits keys with None values or empty lists.
@@ -2488,8 +2488,8 @@ class ApplicationContinuityData:
         child_continuity_bag: List of `ChildContinuity` objects.
     """
 
-    parent_continuity_bag: List[ParentContinuity] = field(default_factory=list)
-    child_continuity_bag: List[ChildContinuity] = field(default_factory=list)
+    parent_continuity_bag: list[ParentContinuity] = field(default_factory=list)
+    child_continuity_bag: list[ChildContinuity] = field(default_factory=list)
 
     @classmethod
     def from_wrapper(cls, wrapper: PatentFileWrapper) -> "ApplicationContinuityData":
@@ -2510,7 +2510,7 @@ class ApplicationContinuityData:
 
     def to_dict(
         self,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Convert the `ApplicationContinuityData` instance to a dictionary.
 
         Returns:
@@ -2535,8 +2535,8 @@ class PrintedPublication:
         grant_document_meta_data: `PrintedMetaData` for the Grant document, if any.
     """
 
-    pgpub_document_meta_data: Optional[PrintedMetaData] = None
-    grant_document_meta_data: Optional[PrintedMetaData] = None
+    pgpub_document_meta_data: PrintedMetaData | None = None
+    grant_document_meta_data: PrintedMetaData | None = None
 
     @classmethod
     def from_wrapper(cls, wrapper: PatentFileWrapper) -> "PrintedPublication":
@@ -2555,7 +2555,7 @@ class PrintedPublication:
             grant_document_meta_data=wrapper.grant_document_meta_data,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the `PrintedPublication` instance to a dictionary.
 
         Omits keys if their corresponding metadata is None.

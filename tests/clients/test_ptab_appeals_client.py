@@ -1,16 +1,15 @@
-"""
-Tests for PTABAppealsClient.
+"""Tests for PTABAppealsClient.
 
 This module contains unit tests for the PTABAppealsClient class.
 """
 
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from pyUSPTO import PTABAppealsClient, USPTOConfig
-from pyUSPTO.models.ptab import PTABAppealDecision, PTABAppealResponse
+from pyUSPTO.models.ptab import PTABAppealResponse
 
 
 @pytest.fixture
@@ -20,7 +19,7 @@ def api_key_fixture() -> str:
 
 
 @pytest.fixture
-def appeal_decision_sample() -> Dict[str, Any]:
+def appeal_decision_sample() -> dict[str, Any]:
     """Sample appeal decision data for testing."""
     return {
         "count": 2,
@@ -107,7 +106,7 @@ class TestPTABAppealsClientSearchDecisions:
     def test_search_decisions_get_with_query(
         self,
         mock_ptab_appeals_client: PTABAppealsClient,
-        appeal_decision_sample: Dict[str, Any],
+        appeal_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with GET and direct query."""
         # Setup
@@ -134,7 +133,7 @@ class TestPTABAppealsClientSearchDecisions:
     def test_search_decisions_get_with_convenience_params(
         self,
         mock_ptab_appeals_client: PTABAppealsClient,
-        appeal_decision_sample: Dict[str, Any],
+        appeal_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with convenience parameters."""
         # Setup
@@ -163,13 +162,15 @@ class TestPTABAppealsClientSearchDecisions:
         assert "2015000194" in params["appealNumber"]
         assert "technologyCenterNumber:3600" in params["q"]
         assert "decisionTypeCategory:Affirmed" in params["q"]
-        assert "decisionDate:[2023-01-01 TO 2023-12-31]" in params["q"]
+        assert (
+            "decisionData.decisionIssueDate:[2023-01-01 TO 2023-12-31]" in params["q"]
+        )
         assert params["limit"] == 25
 
     def test_search_decisions_get_with_date_from_only(
         self,
         mock_ptab_appeals_client: PTABAppealsClient,
-        appeal_decision_sample: Dict[str, Any],
+        appeal_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with only date_from parameter."""
         # Setup
@@ -188,12 +189,12 @@ class TestPTABAppealsClientSearchDecisions:
         assert isinstance(result, PTABAppealResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
-        assert "decisionDate:>=2023-01-01" in params["q"]
+        assert "decisionData.decisionIssueDate:>=2023-01-01" in params["q"]
 
     def test_search_decisions_get_with_date_to_only(
         self,
         mock_ptab_appeals_client: PTABAppealsClient,
-        appeal_decision_sample: Dict[str, Any],
+        appeal_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with only date_to parameter."""
         # Setup
@@ -212,12 +213,12 @@ class TestPTABAppealsClientSearchDecisions:
         assert isinstance(result, PTABAppealResponse)
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
-        assert "decisionDate:<=2023-12-31" in params["q"]
+        assert "decisionData.decisionIssueDate:<=2023-12-31" in params["q"]
 
     def test_search_decisions_get_with_all_convenience_params(
         self,
         mock_ptab_appeals_client: PTABAppealsClient,
-        appeal_decision_sample: Dict[str, Any],
+        appeal_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with all convenience parameters."""
         # Setup
@@ -245,15 +246,15 @@ class TestPTABAppealsClientSearchDecisions:
         params = call_args[1]["params"]
         assert "appealNumber:2023-001234" in params["q"]
         assert "applicationNumberText:15/123456" in params["q"]
-        assert "appellantName:Test Appellant" in params["q"]
-        assert "requestorName:Test Requestor" in params["q"]
+        assert "appellantData.realPartyInInterestName:Test Appellant" in params["q"]
+        assert "appellantData.counselName:Test Requestor" in params["q"]
         assert "decisionTypeCategory:Affirmed" in params["q"]
         assert "technologyCenterNumber:3600" in params["q"]
 
     def test_search_decisions_post_with_body(
         self,
         mock_ptab_appeals_client: PTABAppealsClient,
-        appeal_decision_sample: Dict[str, Any],
+        appeal_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with POST body."""
         # Setup
@@ -277,7 +278,7 @@ class TestPTABAppealsClientSearchDecisions:
     def test_search_decisions_with_optional_params(
         self,
         mock_ptab_appeals_client: PTABAppealsClient,
-        appeal_decision_sample: Dict[str, Any],
+        appeal_decision_sample: dict[str, Any],
     ) -> None:
         """Test search_decisions with optional parameters like sort, facets, etc."""
         # Setup
@@ -296,7 +297,7 @@ class TestPTABAppealsClientSearchDecisions:
             facets="technologyCenterNumber",
             fields="appealNumber,decisionDate",
             filters="decisionTypeCategory:Affirmed",
-            range_filters="decisionDate:[2023-01-01 TO 2023-12-31]",
+            range_filters="decisionData.decisionIssueDate:[2023-01-01 TO 2023-12-31]",
         )
 
         # Verify
@@ -309,7 +310,10 @@ class TestPTABAppealsClientSearchDecisions:
         assert params["facets"] == "technologyCenterNumber"
         assert params["fields"] == "appealNumber,decisionDate"
         assert params["filters"] == "decisionTypeCategory:Affirmed"
-        assert params["rangeFilters"] == "decisionDate:[2023-01-01 TO 2023-12-31]"
+        assert (
+            params["rangeFilters"]
+            == "decisionData.decisionIssueDate:[2023-01-01 TO 2023-12-31]"
+        )
 
 
 class TestPTABAppealsClientPaginate:

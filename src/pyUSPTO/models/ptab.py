@@ -1,5 +1,4 @@
-"""
-models.ptab - Data models for USPTO PTAB (Patent Trial and Appeal Board) APIs.
+"""models.ptab - Data models for USPTO PTAB (Patent Trial and Appeal Board) APIs.
 
 This module provides data models, primarily using frozen dataclasses, for
 representing responses from the USPTO PTAB APIs. These models cover:
@@ -11,7 +10,7 @@ representing responses from the USPTO PTAB APIs. These models cover:
 
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     from typing import Self
@@ -46,20 +45,20 @@ class PartyData:
         publication_number: Publication number (if applicable).
     """
 
-    application_number_text: Optional[str] = None
-    counsel_name: Optional[str] = None
-    grant_date: Optional[date] = None
-    group_art_unit_number: Optional[str] = None
-    inventor_name: Optional[str] = None
-    real_party_in_interest_name: Optional[str] = None
-    patent_number: Optional[str] = None
-    patent_owner_name: Optional[str] = None
-    technology_center_number: Optional[str] = None
-    publication_date: Optional[date] = None
-    publication_number: Optional[str] = None
+    application_number_text: str | None = None
+    counsel_name: str | None = None
+    grant_date: date | None = None
+    group_art_unit_number: str | None = None
+    inventor_name: str | None = None
+    real_party_in_interest_name: str | None = None
+    patent_number: str | None = None
+    patent_owner_name: str | None = None
+    technology_center_number: str | None = None
+    publication_date: date | None = None
+    publication_number: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any], include_raw_data: bool = False) -> Self:
+    def from_dict(cls, data: dict[str, Any], include_raw_data: bool = False) -> Self:
         """Create a PartyData instance from a dictionary.
 
         Args:
@@ -83,13 +82,13 @@ class PartyData:
             publication_number=data.get("publicationNumber"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the PartyData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
         for k, v in asdict(self).items():
             if v is not None:
                 if isinstance(v, date):
@@ -121,20 +120,20 @@ class TrialMetaData:
         institution_decision_date: Date of the institution decision.
     """
 
-    petition_filing_date: Optional[date] = None
-    accorded_filing_date: Optional[date] = None
-    trial_last_modified_date_time: Optional[datetime] = None
-    trial_last_modified_date: Optional[date] = None
-    trial_status_category: Optional[str] = None
-    trial_type_code: Optional[str] = None
-    file_download_uri: Optional[str] = None
-    termination_date: Optional[date] = None
-    latest_decision_date: Optional[date] = None
-    institution_decision_date: Optional[date] = None
+    petition_filing_date: date | None = None
+    accorded_filing_date: date | None = None
+    trial_last_modified_date_time: datetime | None = None
+    trial_last_modified_date: date | None = None
+    trial_status_category: str | None = None
+    trial_type_code: str | None = None
+    file_download_uri: str | None = None
+    termination_date: date | None = None
+    latest_decision_date: date | None = None
+    institution_decision_date: date | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "TrialMetaData":
         """Create a TrialMetaData instance from a dictionary.
 
@@ -164,13 +163,13 @@ class TrialMetaData:
             ),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the TrialMetaData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         if self.petition_filing_date is not None:
             result["petitionFilingDate"] = serialize_date(self.petition_filing_date)
@@ -222,12 +221,12 @@ class RegularPetitionerData:
         real_party_in_interest_name: Real party in interest name.
     """
 
-    counsel_name: Optional[str] = None
-    real_party_in_interest_name: Optional[str] = None
+    counsel_name: str | None = None
+    real_party_in_interest_name: str | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "RegularPetitionerData":
         """Create a RegularPetitionerData instance from a dictionary.
 
@@ -243,13 +242,13 @@ class RegularPetitionerData:
             real_party_in_interest_name=data.get("realPartyInInterestName"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the RegularPetitionerData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         if self.counsel_name is not None:
             result["counselName"] = self.counsel_name
@@ -297,19 +296,19 @@ class PTABTrialProceeding:
         raw_data: Raw JSON response data (if include_raw_data=True).
     """
 
-    trial_number: Optional[str] = None
+    trial_number: str | None = None
     # trial_record_identifier: Optional[str] = None  # Removed: Documented but not in API.
-    last_modified_date_time: Optional[datetime] = None
-    trial_meta_data: Optional[TrialMetaData] = None
-    patent_owner_data: Optional[PatentOwnerData] = None
-    regular_petitioner_data: Optional[RegularPetitionerData] = None
-    respondent_data: Optional[RespondentData] = None
-    derivation_petitioner_data: Optional[DerivationPetitionerData] = None
-    raw_data: Optional[Dict[str, Any]] = None
+    last_modified_date_time: datetime | None = None
+    trial_meta_data: TrialMetaData | None = None
+    patent_owner_data: PatentOwnerData | None = None
+    regular_petitioner_data: RegularPetitionerData | None = None
+    respondent_data: RespondentData | None = None
+    derivation_petitioner_data: DerivationPetitionerData | None = None
+    raw_data: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "PTABTrialProceeding":
         """Create a PTABTrialProceeding instance from a dictionary.
 
@@ -358,13 +357,13 @@ class PTABTrialProceeding:
             raw_data=data if include_raw_data else None,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the PTABTrialProceeding instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         if self.trial_number is not None:
             result["trialNumber"] = self.trial_number
@@ -403,15 +402,15 @@ class PTABTrialProceedingResponse:
     """
 
     count: int = 0
-    request_identifier: Optional[str] = None
-    patent_trial_proceeding_data_bag: List[PTABTrialProceeding] = field(
+    request_identifier: str | None = None
+    patent_trial_proceeding_data_bag: list[PTABTrialProceeding] = field(
         default_factory=list
     )
-    raw_data: Optional[Dict[str, Any]] = None
+    raw_data: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "PTABTrialProceedingResponse":
         """Create a PTABTrialProceedingResponse instance from a dictionary.
 
@@ -435,13 +434,13 @@ class PTABTrialProceedingResponse:
             raw_data=data if include_raw_data else None,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the PTABTrialProceedingResponse instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         if self.count is not None:
             result["count"] = self.count
@@ -480,22 +479,22 @@ class TrialDocumentData:
     """
 
     # document_category: Optional[str] = None  # Removed: Documented but not in API.
-    document_filing_date: Optional[date] = None
-    document_identifier: Optional[str] = None
-    document_name: Optional[str] = None
-    document_number: Optional[str] = None
-    document_size_quantity: Optional[int] = None
-    document_ocr_text: Optional[str] = None
-    document_title_text: Optional[str] = None
-    document_type_description_text: Optional[str] = None
-    file_download_uri: Optional[str] = None
-    filing_party_category: Optional[str] = None
+    document_filing_date: date | None = None
+    document_identifier: str | None = None
+    document_name: str | None = None
+    document_number: str | None = None
+    document_size_quantity: int | None = None
+    document_ocr_text: str | None = None
+    document_title_text: str | None = None
+    document_type_description_text: str | None = None
+    file_download_uri: str | None = None
+    filing_party_category: str | None = None
     # mime_type_identifier: Optional[str] = None  # Removed: Documented but not in API.
     # document_status: Optional[str] = None  # Removed: Documented but not in API.
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "TrialDocumentData":
         """Create a TrialDocumentData instance from a dictionary.
 
@@ -524,13 +523,13 @@ class TrialDocumentData:
             # document_status=data.get("documentStatus"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the TrialDocumentData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         # Removed: Documented but not in API.
         # if self.document_category is not None:
@@ -576,14 +575,14 @@ class TrialDecisionData:
         trial_outcome_category: Outcome (e.g., "Denied").
     """
 
-    statute_and_rule_bag: List[str] = field(default_factory=list)
-    decision_issue_date: Optional[date] = None
-    decision_type_category: Optional[str] = None
-    issue_type_bag: List[str] = field(default_factory=list)
-    trial_outcome_category: Optional[str] = None
+    statute_and_rule_bag: list[str] = field(default_factory=list)
+    decision_issue_date: date | None = None
+    decision_type_category: str | None = None
+    issue_type_bag: list[str] = field(default_factory=list)
+    trial_outcome_category: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TrialDecisionData":
+    def from_dict(cls, data: dict[str, Any]) -> "TrialDecisionData":
         """Create a TrialDecisionData instance from a dictionary.
 
         Args:
@@ -600,13 +599,13 @@ class TrialDecisionData:
             trial_outcome_category=data.get("trialOutcomeCategory"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the TrialDecisionData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         if self.statute_and_rule_bag is not None and len(self.statute_and_rule_bag) > 0:
             result["statuteAndRuleBag"] = self.statute_and_rule_bag
@@ -646,22 +645,22 @@ class PTABTrialDocument:
         raw_data: Raw JSON response data (if include_raw_data=True).
     """
 
-    trial_document_category: Optional[str] = None
-    last_modified_date_time: Optional[datetime] = None
-    trial_number: Optional[str] = None
-    trial_type_code: Optional[str] = None
-    trial_meta_data: Optional[TrialMetaData] = None
-    patent_owner_data: Optional[PatentOwnerData] = None
-    regular_petitioner_data: Optional[RegularPetitionerData] = None
-    respondent_data: Optional[RespondentData] = None
-    derivation_petitioner_data: Optional[DerivationPetitionerData] = None
-    document_data: Optional[TrialDocumentData] = None
-    decision_data: Optional[TrialDecisionData] = None
-    raw_data: Optional[Dict[str, Any]] = None
+    trial_document_category: str | None = None
+    last_modified_date_time: datetime | None = None
+    trial_number: str | None = None
+    trial_type_code: str | None = None
+    trial_meta_data: TrialMetaData | None = None
+    patent_owner_data: PatentOwnerData | None = None
+    regular_petitioner_data: RegularPetitionerData | None = None
+    respondent_data: RespondentData | None = None
+    derivation_petitioner_data: DerivationPetitionerData | None = None
+    document_data: TrialDocumentData | None = None
+    decision_data: TrialDecisionData | None = None
+    raw_data: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "PTABTrialDocument":
         """Create a PTABTrialDocument instance from a dictionary.
 
@@ -710,13 +709,13 @@ class PTABTrialDocument:
             raw_data=data if include_raw_data else None,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the PTABTrialDocument instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         if self.trial_document_category is not None:
             result["trialDocumentCategory"] = self.trial_document_category
@@ -751,15 +750,15 @@ class PTABTrialDocumentResponse:
     """Response container for PTAB trial documents/decisions search."""
 
     count: int = 0
-    request_identifier: Optional[str] = None
-    patent_trial_document_data_bag: List[PTABTrialDocument] = field(
+    request_identifier: str | None = None
+    patent_trial_document_data_bag: list[PTABTrialDocument] = field(
         default_factory=list
     )
-    raw_data: Optional[Dict[str, Any]] = None
+    raw_data: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "PTABTrialDocumentResponse":
         """Create a PTABTrialDocumentResponse instance from a dictionary.
 
@@ -782,13 +781,13 @@ class PTABTrialDocumentResponse:
             raw_data=data if include_raw_data else None,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the PTABTrialDocumentResponse instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         if self.count is not None:
             result["count"] = self.count
@@ -823,16 +822,16 @@ class AppealMetaData:
         file_download_uri: URI to download ZIP of appeal documents.
     """
 
-    appeal_filing_date: Optional[date] = None
-    appeal_last_modified_date: Optional[date] = None
-    appeal_last_modified_date_time: Optional[datetime] = None
-    application_type_category: Optional[str] = None
-    docket_notice_mailed_date: Optional[date] = None
-    file_download_uri: Optional[str] = None
+    appeal_filing_date: date | None = None
+    appeal_last_modified_date: date | None = None
+    appeal_last_modified_date_time: datetime | None = None
+    application_type_category: str | None = None
+    docket_notice_mailed_date: date | None = None
+    file_download_uri: str | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "AppealMetaData":
         """Create an AppealMetaData instance from a dictionary.
 
@@ -856,13 +855,13 @@ class AppealMetaData:
             file_download_uri=file_download_uri,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the AppealMetaData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         if self.appeal_filing_date is not None:
             result["appealFilingDate"] = serialize_date(self.appeal_filing_date)
@@ -905,11 +904,11 @@ class RequestorData:
         third_party_name: Name of the third party.
     """
 
-    third_party_name: Optional[str] = None
+    third_party_name: str | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "RequestorData":
         """Create a RequestorData instance from a dictionary.
 
@@ -924,13 +923,13 @@ class RequestorData:
             third_party_name=data.get("thirdPartyName"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the RequestorData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
         for k, v in asdict(self).items():
             if v is not None:
                 result[to_camel_case(k)] = v
@@ -951,17 +950,17 @@ class AppealDocumentData:
         file_download_uri: URI to download the document.
     """
 
-    document_filing_date: Optional[date] = None
-    document_identifier: Optional[str] = None
-    document_name: Optional[str] = None
-    document_size_quantity: Optional[int] = None
-    document_ocr_text: Optional[str] = None
-    document_type_description_text: Optional[str] = None
-    file_download_uri: Optional[str] = None
+    document_filing_date: date | None = None
+    document_identifier: str | None = None
+    document_name: str | None = None
+    document_size_quantity: int | None = None
+    document_ocr_text: str | None = None
+    document_type_description_text: str | None = None
+    file_download_uri: str | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "AppealDocumentData":
         """Create an AppealDocumentData instance from a dictionary.
 
@@ -988,13 +987,13 @@ class AppealDocumentData:
             file_download_uri=file_download_uri,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the AppealDocumentData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         if self.document_filing_date is not None:
             result["documentFilingDate"] = serialize_date(self.document_filing_date)
@@ -1026,15 +1025,15 @@ class DecisionData:
         issue_type_bag: List of issue types.
     """
 
-    appeal_outcome_category: Optional[str] = None
-    statute_and_rule_bag: List[str] = field(default_factory=list)
-    decision_issue_date: Optional[date] = None
-    decision_type_category: Optional[str] = None
-    issue_type_bag: List[str] = field(default_factory=list)
+    appeal_outcome_category: str | None = None
+    statute_and_rule_bag: list[str] = field(default_factory=list)
+    decision_issue_date: date | None = None
+    decision_type_category: str | None = None
+    issue_type_bag: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "DecisionData":
         """Create a DecisionData instance from a dictionary.
 
@@ -1053,13 +1052,13 @@ class DecisionData:
             issue_type_bag=data.get("issueTypeBag", []),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the DecisionData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
         for k, v in asdict(self).items():
             if v is not None:
                 if isinstance(v, date):
@@ -1088,19 +1087,19 @@ class PTABAppealDecision:
         raw_data: Raw JSON response data (if include_raw_data=True).
     """
 
-    appeal_number: Optional[str] = None
-    last_modified_date_time: Optional[datetime] = None
-    appeal_document_category: Optional[str] = None
-    appeal_meta_data: Optional[AppealMetaData] = None
-    appellant_data: Optional[AppellantData] = None
-    requestor_data: Optional[RequestorData] = None
-    document_data: Optional[AppealDocumentData] = None
-    decision_data: Optional[DecisionData] = None
-    raw_data: Optional[Dict[str, Any]] = None
+    appeal_number: str | None = None
+    last_modified_date_time: datetime | None = None
+    appeal_document_category: str | None = None
+    appeal_meta_data: AppealMetaData | None = None
+    appellant_data: AppellantData | None = None
+    requestor_data: RequestorData | None = None
+    document_data: AppealDocumentData | None = None
+    decision_data: DecisionData | None = None
+    raw_data: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "PTABAppealDecision":
         """Create a PTABAppealDecision instance from a dictionary.
 
@@ -1144,13 +1143,13 @@ class PTABAppealDecision:
             raw_data=data if include_raw_data else None,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the PTABAppealDecision instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         # Manually process each field to preserve nested objects
         if self.appeal_number is not None:
@@ -1187,13 +1186,13 @@ class PTABAppealResponse:
     """
 
     count: int = 0
-    request_identifier: Optional[str] = None
-    patent_appeal_data_bag: List[PTABAppealDecision] = field(default_factory=list)
-    raw_data: Optional[Dict[str, Any]] = None
+    request_identifier: str | None = None
+    patent_appeal_data_bag: list[PTABAppealDecision] = field(default_factory=list)
+    raw_data: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "PTABAppealResponse":
         """Create a PTABAppealResponse instance from a dictionary.
 
@@ -1217,13 +1216,13 @@ class PTABAppealResponse:
             raw_data=data if include_raw_data else None,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the PTABAppealResponse instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         # Manually process each field
         if self.count is not None:
@@ -1258,15 +1257,15 @@ class InterferenceMetaData:
         file_download_uri: URI to download ZIP of interference documents.
     """
 
-    interference_style_name: Optional[str] = None
-    interference_last_modified_date: Optional[date] = None
-    interference_last_modified_date_time: Optional[datetime] = None
-    declaration_date: Optional[date] = None
-    file_download_uri: Optional[str] = None
+    interference_style_name: str | None = None
+    interference_last_modified_date: date | None = None
+    interference_last_modified_date_time: datetime | None = None
+    declaration_date: date | None = None
+    file_download_uri: str | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "InterferenceMetaData":
         """Create an InterferenceMetaData instance from a dictionary.
 
@@ -1291,13 +1290,13 @@ class InterferenceMetaData:
             file_download_uri=file_download_uri,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the InterferenceMetaData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         if self.interference_style_name is not None:
             result["interferenceStyleName"] = self.interference_style_name
@@ -1350,14 +1349,14 @@ class AdditionalPartyData:
         additional_party_name: Name of additional party.
     """
 
-    application_number_text: Optional[str] = None
-    inventor_name: Optional[str] = None
-    patent_number: Optional[str] = None
-    additional_party_name: Optional[str] = None
+    application_number_text: str | None = None
+    inventor_name: str | None = None
+    patent_number: str | None = None
+    additional_party_name: str | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "AdditionalPartyData":
         """Create an AdditionalPartyData instance from a dictionary.
 
@@ -1375,13 +1374,13 @@ class AdditionalPartyData:
             additional_party_name=data.get("additionalPartyName"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the AdditionalPartyData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         if self.application_number_text is not None:
             result["applicationNumberText"] = self.application_number_text
@@ -1414,22 +1413,22 @@ class InterferenceDocumentData:
         issue_type_bag: List of issues addressed.
     """
 
-    document_identifier: Optional[str] = None
-    document_name: Optional[str] = None
-    document_size_quantity: Optional[int] = None
-    document_ocr_text: Optional[str] = None
-    document_title_text: Optional[str] = None
-    interference_outcome_category: Optional[str] = None
-    document_filing_date: Optional[date] = None
-    decision_issue_date: Optional[date] = None
-    decision_type_category: Optional[str] = None
-    file_download_uri: Optional[str] = None
-    statute_and_rule_bag: List[str] = field(default_factory=list)
-    issue_type_bag: List[str] = field(default_factory=list)
+    document_identifier: str | None = None
+    document_name: str | None = None
+    document_size_quantity: int | None = None
+    document_ocr_text: str | None = None
+    document_title_text: str | None = None
+    interference_outcome_category: str | None = None
+    document_filing_date: date | None = None
+    decision_issue_date: date | None = None
+    decision_type_category: str | None = None
+    file_download_uri: str | None = None
+    statute_and_rule_bag: list[str] = field(default_factory=list)
+    issue_type_bag: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "InterferenceDocumentData":
         """Create an InterferenceDocumentData instance from a dictionary.
 
@@ -1458,13 +1457,13 @@ class InterferenceDocumentData:
             issue_type_bag=data.get("issueTypeBag", []),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the InterferenceDocumentData instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         if self.document_identifier is not None:
             result["documentIdentifier"] = self.document_identifier
@@ -1509,18 +1508,18 @@ class PTABInterferenceDecision:
         raw_data: Raw JSON response data (if include_raw_data=True).
     """
 
-    interference_number: Optional[str] = None
-    last_modified_date_time: Optional[datetime] = None
-    interference_meta_data: Optional[InterferenceMetaData] = None
-    senior_party_data: Optional[SeniorPartyData] = None
-    junior_party_data: Optional[JuniorPartyData] = None
-    additional_party_data_bag: List[AdditionalPartyData] = field(default_factory=list)
-    document_data: Optional[InterferenceDocumentData] = None
-    raw_data: Optional[Dict[str, Any]] = None
+    interference_number: str | None = None
+    last_modified_date_time: datetime | None = None
+    interference_meta_data: InterferenceMetaData | None = None
+    senior_party_data: SeniorPartyData | None = None
+    junior_party_data: JuniorPartyData | None = None
+    additional_party_data_bag: list[AdditionalPartyData] = field(default_factory=list)
+    document_data: InterferenceDocumentData | None = None
+    raw_data: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "PTABInterferenceDecision":
         """Create a PTABInterferenceDecision instance from a dictionary.
 
@@ -1573,13 +1572,13 @@ class PTABInterferenceDecision:
             raw_data=data if include_raw_data else None,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the PTABInterferenceDecision instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         # Manually process each field to preserve nested objects
         if self.interference_number is not None:
@@ -1619,15 +1618,15 @@ class PTABInterferenceResponse:
     """
 
     count: int = 0
-    request_identifier: Optional[str] = None
-    patent_interference_data_bag: List[PTABInterferenceDecision] = field(
+    request_identifier: str | None = None
+    patent_interference_data_bag: list[PTABInterferenceDecision] = field(
         default_factory=list
     )
-    raw_data: Optional[Dict[str, Any]] = None
+    raw_data: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], include_raw_data: bool = False
+        cls, data: dict[str, Any], include_raw_data: bool = False
     ) -> "PTABInterferenceResponse":
         """Create a PTABInterferenceResponse instance from a dictionary.
 
@@ -1651,13 +1650,13 @@ class PTABInterferenceResponse:
             raw_data=data if include_raw_data else None,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the PTABInterferenceResponse instance to a dictionary.
 
         Returns:
             Dict[str, Any]: Dictionary with camelCase keys and None values filtered.
         """
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         # Manually process each field
         if self.count is not None:

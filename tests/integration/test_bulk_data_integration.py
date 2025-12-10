@@ -7,17 +7,14 @@ environment variable is set to 'true'.
 """
 
 import os
-from typing import Iterator, List, Optional
 
 import pytest
 
 from pyUSPTO.clients import BulkDataClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.exceptions import USPTOApiError
 from pyUSPTO.models.bulk_data import BulkDataProduct, BulkDataResponse
 
 # Import shared fixtures
-from tests.integration.conftest import TEST_DOWNLOAD_DIR
 
 # Skip all tests in this module unless ENABLE_INTEGRATION_TESTS is set to 'true'
 pytestmark = pytest.mark.skipif(

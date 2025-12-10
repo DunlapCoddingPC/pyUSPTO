@@ -1,5 +1,4 @@
-"""
-models - Data models for USPTO APIs.
+"""models - Data models for USPTO APIs.
 
 This package provides data models for USPTO APIs.
 """

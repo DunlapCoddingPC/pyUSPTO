@@ -6,14 +6,9 @@ These tests are optional and are skipped by default unless the ENABLE_INTEGRATIO
 environment variable is set to 'true'.
 """
 
-import datetime
 import os
-from typing import Iterator, List, Optional
 
 import pytest
-
-# Import shared fixtures
-from tests.integration.conftest import TEST_DOWNLOAD_DIR
 
 from pyUSPTO.clients import FinalPetitionDecisionsClient
 from pyUSPTO.config import USPTOConfig
@@ -21,12 +16,14 @@ from pyUSPTO.exceptions import USPTOApiError, USPTOApiNotFoundError
 from pyUSPTO.models.petition_decisions import (
     DecisionTypeCode,
     DocumentDirectionCategory,
-    DocumentDownloadOption,
     PetitionDecision,
     PetitionDecisionDocument,
     PetitionDecisionDownloadResponse,
     PetitionDecisionResponse,
 )
+
+# Import shared fixtures
+from tests.integration.conftest import TEST_DOWNLOAD_DIR
 
 # Skip all tests in this module unless ENABLE_INTEGRATION_TESTS is set to 'true'
 pytestmark = pytest.mark.skipif(
@@ -331,7 +328,7 @@ class TestFinalPetitionDecisionsIntegration:
             pytest.skip(f"Round-trip test failed due to API error: {e}")
 
     def test_to_dict_matches_raw_api_response(
-        self, api_key: Optional[str], sample_petition_decision_id: str
+        self, api_key: str | None, sample_petition_decision_id: str
     ) -> None:
         """Test that to_dict() output matches the original API response stored in raw_data.
 
@@ -414,7 +411,7 @@ class TestFinalPetitionDecisionsIntegration:
                     val2 = dict2[key]
                     current_path = f"{path}.{key}" if path else key
 
-                    if type(val1) != type(val2):
+                    if type(val1) is not type(val2):
                         differences.append(
                             f"Type mismatch at {current_path}: {type(val1).__name__} vs {type(val2).__name__}"
                         )
@@ -524,7 +521,7 @@ class TestFinalPetitionDecisionsIntegration:
             assert file_path.endswith(".csv")
 
             # Read first line to verify CSV format
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 first_line = f.readline()
                 # CSV should have headers with commas
                 assert len(first_line) > 0
@@ -594,7 +591,7 @@ class TestFinalPetitionDecisionsIntegration:
                         assert os.path.exists(file_path)
                         assert os.path.getsize(file_path) > 0
             else:
-                pytest.fail(f"No decisions with documents found")
+                pytest.fail("No decisions with documents found")
 
         except USPTOApiError as e:
             pytest.fail(f"Document retrieval test failed with API error: {e}")

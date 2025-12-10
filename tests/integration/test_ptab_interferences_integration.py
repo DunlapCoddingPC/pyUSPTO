@@ -7,7 +7,6 @@ environment variable is set to 'true'.
 """
 
 import os
-from typing import Iterator, Optional
 
 import pytest
 
@@ -289,7 +288,7 @@ class TestPTABInterferencesIntegration:
                 f"PTAB Interferences API error during search by style name: {e}"
             )
 
-    def test_to_dict_matches_raw_api_response(self, api_key: Optional[str]) -> None:
+    def test_to_dict_matches_raw_api_response(self, api_key: str | None) -> None:
         """Test that to_dict() output matches the original API response stored in raw_data.
 
         This test compares the to_dict() serialization with the original API response
@@ -353,7 +352,7 @@ class TestPTABInterferencesIntegration:
                     val2 = dict2[key]
                     current_path = f"{path}.{key}" if path else key
 
-                    if type(val1) != type(val2):
+                    if type(val1) is not type(val2):
                         differences.append(
                             f"Type mismatch at {current_path}: {type(val1).__name__} vs {type(val2).__name__}"
                         )

@@ -6,7 +6,7 @@ model handling, edge cases, and response handling.
 """
 
 import os
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
@@ -249,7 +249,7 @@ class TestBulkDataClientCore:
     """Tests for the core functionality of the BulkDataClient class."""
 
     def test_get_products(
-        self, mock_bulk_data_client: BulkDataClient, bulk_data_sample: Dict[str, Any]
+        self, mock_bulk_data_client: BulkDataClient, bulk_data_sample: dict[str, Any]
     ) -> None:
         """Test get_products method."""
         # Setup
@@ -278,7 +278,7 @@ class TestBulkDataClientCore:
         assert len(response.bulk_data_product_bag) == 2
 
     def test_get_product_by_id(
-        self, mock_bulk_data_client: BulkDataClient, bulk_data_sample: Dict[str, Any]
+        self, mock_bulk_data_client: BulkDataClient, bulk_data_sample: dict[str, Any]
     ) -> None:
         """Test get_product_by_id method."""
         # Setup
@@ -404,7 +404,7 @@ class TestBulkDataClientCore:
         with patch.object(mock_bulk_data_client, "_make_request", mock_make_request):
             with (
                 patch("os.path.exists", return_value=True),
-                patch("builtins.open", mock_open()) as mock_file,
+                patch("builtins.open", mock_open()),
             ):
                 file_path = mock_bulk_data_client.download_file(
                     file_data=file_data, destination=destination
@@ -419,7 +419,7 @@ class TestBulkDataClientCore:
                 assert file_path == os.path.join(destination, "test.zip")
 
     def test_search_products(
-        self, mock_bulk_data_client: BulkDataClient, bulk_data_sample: Dict[str, Any]
+        self, mock_bulk_data_client: BulkDataClient, bulk_data_sample: dict[str, Any]
     ) -> None:
         """Test search_products method with all parameters."""
         # Setup

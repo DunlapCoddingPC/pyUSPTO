@@ -1,12 +1,10 @@
-"""
-config - Configuration management for USPTO API clients.
+"""config - Configuration management for USPTO API clients.
 
 This module provides configuration management for USPTO API clients,
 including API keys, base URLs, and HTTP transport settings.
 """
 
 import os
-from typing import Optional
 
 from pyUSPTO.http_config import HTTPConfig
 
@@ -20,12 +18,12 @@ class USPTOConfig:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         bulk_data_base_url: str = "https://api.uspto.gov",
         patent_data_base_url: str = "https://api.uspto.gov",
         petition_decisions_base_url: str = "https://api.uspto.gov",
         ptab_base_url: str = "https://api.uspto.gov",
-        http_config: Optional[HTTPConfig] = None,
+        http_config: HTTPConfig | None = None,
         include_raw_data: bool = False,
     ):
         """Initialize the USPTOConfig.

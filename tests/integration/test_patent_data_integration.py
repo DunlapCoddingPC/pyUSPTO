@@ -8,12 +8,8 @@ environment variable is set to 'true'.
 
 import datetime
 import os
-from typing import Iterator, List, Optional
 
 import pytest
-
-# Import shared fixtures
-from tests.integration.conftest import TEST_DOWNLOAD_DIR
 
 from pyUSPTO.clients import PatentDataClient
 from pyUSPTO.config import USPTOConfig
@@ -35,6 +31,9 @@ from pyUSPTO.models.patent_data import (
     StatusCodeCollection,
     StatusCodeSearchResponse,
 )
+
+# Import shared fixtures
+from tests.integration.conftest import TEST_DOWNLOAD_DIR
 
 # Skip all tests in this module unless ENABLE_INTEGRATION_TESTS is set to 'true'
 pytestmark = pytest.mark.skipif(
@@ -135,7 +134,7 @@ class TestPatentDataIntegration:
             )
         else:
             pytest.fail(
-                f'No PatentDate returned for: `assignee_name_q="International Business Machines"`'
+                'No PatentDate returned for: `assignee_name_q="International Business Machines"`'
             )
 
     def test_get_application_by_number(
@@ -154,7 +153,7 @@ class TestPatentDataIntegration:
         assert isinstance(patent_wrapper.application_meta_data, ApplicationMetaData)
         assert patent_wrapper.application_meta_data.invention_title is not None
 
-    def test_to_dict_matches_raw_api_response(self, api_key: Optional[str]) -> None:
+    def test_to_dict_matches_raw_api_response(self, api_key: str | None) -> None:
         """Test that to_dict() output matches the original API response stored in raw_data.
 
         This test compares the to_dict() serialization with the original API response
@@ -227,7 +226,7 @@ class TestPatentDataIntegration:
                 val2 = dict2[key]
                 current_path = f"{path}.{key}" if path else key
 
-                if type(val1) != type(val2):
+                if type(val1) is not type(val2):
                     differences.append(
                         f"Type mismatch at {current_path}: {type(val1).__name__} vs {type(val2).__name__}"
                     )
@@ -686,7 +685,7 @@ class TestPatentDataIntegration:
                 limit=1,
             )
             assert response is not None
-            assert isinstance(response, List)
+            assert isinstance(response, list)
             if len(response) > 0:
                 assert response[0].application_type_label_name == "Utility"
             elif len(response) == 0:
@@ -713,7 +712,7 @@ class TestPatentDataIntegration:
                 post_body=post_body_request
             )
             assert response is not None
-            assert isinstance(response, List)
+            assert isinstance(response, list)
 
             if len(response) > 0:
                 assert response[0].application_type_label_name == "Utility"
@@ -746,7 +745,7 @@ class TestPatentDataIntegration:
                 assert response.status_code_bag[0].code is not None
             else:
                 pytest.fail(
-                    f"No PatentDate returned for abandoned OR expired OR pending applications."
+                    "No PatentDate returned for abandoned OR expired OR pending applications."
                 )
 
         except USPTOApiError as e:

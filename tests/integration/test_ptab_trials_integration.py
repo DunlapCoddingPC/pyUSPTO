@@ -7,7 +7,6 @@ environment variable is set to 'true'.
 """
 
 import os
-from typing import Iterator, Optional
 
 import pytest
 
@@ -278,7 +277,7 @@ class TestPTABTrialsIntegration:
             pytest.skip(f"PTAB Trials API error during paginate_proceedings: {e}")
 
     def test_to_dict_matches_raw_api_response_proceedings(
-        self, api_key: Optional[str]
+        self, api_key: str | None
     ) -> None:
         """Test that to_dict() output matches the original API response for trial proceedings.
 
@@ -341,7 +340,7 @@ class TestPTABTrialsIntegration:
                     val2 = dict2[key]
                     current_path = f"{path}.{key}" if path else key
 
-                    if type(val1) != type(val2):
+                    if type(val1) is not type(val2):
                         differences.append(
                             f"Type mismatch at {current_path}: {type(val1).__name__} vs {type(val2).__name__}"
                         )
@@ -389,7 +388,7 @@ class TestPTABTrialsIntegration:
             pytest.skip(f"Raw API comparison test failed with API error: {e}")
 
     def test_to_dict_matches_raw_api_response_documents(
-        self, api_key: Optional[str]
+        self, api_key: str | None
     ) -> None:
         """Test that to_dict() output matches the original API response for trial documents.
 
@@ -452,7 +451,7 @@ class TestPTABTrialsIntegration:
                     val2 = dict2[key]
                     current_path = f"{path}.{key}" if path else key
 
-                    if type(val1) != type(val2):
+                    if type(val1) is not type(val2):
                         differences.append(
                             f"Type mismatch at {current_path}: {type(val1).__name__} vs {type(val2).__name__}"
                         )
@@ -499,9 +498,7 @@ class TestPTABTrialsIntegration:
         except USPTOApiError as e:
             pytest.fail(f"Raw API comparison test failed with API error: {e}")
 
-    def test_to_dict_matches_raw_api_response_trials(
-        self, api_key: Optional[str]
-    ) -> None:
+    def test_to_dict_matches_raw_api_response_trials(self, api_key: str | None) -> None:
         """Test that to_dict() output matches the original API response for trial decisions."""
         config_with_raw = USPTOConfig(api_key=api_key, include_raw_data=True)
         client_with_raw = PTABTrialsClient(config=config_with_raw)
@@ -543,7 +540,7 @@ class TestPTABTrialsIntegration:
                     val2 = dict2[key]
                     current_path = f"{path}.{key}" if path else key
 
-                    if type(val1) != type(val2):
+                    if type(val1) is not type(val2):
                         differences.append(
                             f"Type mismatch at {current_path}: {type(val1).__name__} vs {type(val2).__name__}"
                         )

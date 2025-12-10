@@ -1,5 +1,4 @@
-"""
-clients.petition_decisions - Client for USPTO Final Petition Decisions API.
+"""clients.petition_decisions - Client for USPTO Final Petition Decisions API.
 
 This module provides a client for interacting with the USPTO Final Petition
 Decisions API. It allows you to search for and retrieve final agency petition
@@ -7,8 +6,9 @@ decisions in publicly available patent applications and patents filed in 2001 or
 """
 
 import warnings
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional, Union
+from typing import Any
 
 import requests
 
@@ -41,9 +41,9 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        config: Optional[USPTOConfig] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        config: USPTOConfig | None = None,
     ):
         """Initialize the FinalPetitionDecisionsClient.
 
@@ -66,8 +66,8 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
     def _get_decision_from_response(
         self,
         response_data: PetitionDecisionResponse,
-        petition_decision_record_identifier_for_validation: Optional[str] = None,
-    ) -> Optional[PetitionDecision]:
+        petition_decision_record_identifier_for_validation: str | None = None,
+    ) -> PetitionDecision | None:
         """Extract a single PetitionDecision from the response.
 
         Args:
@@ -99,29 +99,29 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
 
     def search_decisions(
         self,
-        query: Optional[str] = None,
-        sort: Optional[str] = None,
-        offset: Optional[int] = 0,
-        limit: Optional[int] = 25,
-        facets: Optional[str] = None,
-        fields: Optional[str] = None,
-        filters: Optional[str] = None,
-        range_filters: Optional[str] = None,
-        post_body: Optional[Dict[str, Any]] = None,
+        query: str | None = None,
+        sort: str | None = None,
+        offset: int | None = 0,
+        limit: int | None = 25,
+        facets: str | None = None,
+        fields: str | None = None,
+        filters: str | None = None,
+        range_filters: str | None = None,
+        post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        application_number_q: Optional[str] = None,
-        patent_number_q: Optional[str] = None,
-        inventor_name_q: Optional[str] = None,
-        applicant_name_q: Optional[str] = None,
-        invention_title_q: Optional[str] = None,
-        decision_type_code_q: Optional[str] = None,
-        decision_date_from_q: Optional[str] = None,
-        decision_date_to_q: Optional[str] = None,
-        petition_mail_date_from_q: Optional[str] = None,
-        petition_mail_date_to_q: Optional[str] = None,
-        technology_center_q: Optional[str] = None,
-        final_deciding_office_name_q: Optional[str] = None,
-        additional_query_params: Optional[Dict[str, Any]] = None,
+        application_number_q: str | None = None,
+        patent_number_q: str | None = None,
+        inventor_name_q: str | None = None,
+        applicant_name_q: str | None = None,
+        invention_title_q: str | None = None,
+        decision_type_code_q: str | None = None,
+        decision_date_from_q: str | None = None,
+        decision_date_to_q: str | None = None,
+        petition_mail_date_from_q: str | None = None,
+        petition_mail_date_to_q: str | None = None,
+        technology_center_q: str | None = None,
+        final_deciding_office_name_q: str | None = None,
+        additional_query_params: dict[str, Any] | None = None,
     ) -> PetitionDecisionResponse:
         """Return final petition decisions matching the given criteria.
 
@@ -186,7 +186,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             )
         else:
             # GET request path
-            params: Dict[str, Any] = {}
+            params: dict[str, Any] = {}
             final_q = query
 
             # Build query from convenience parameters
@@ -268,8 +268,8 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
     def get_decision_by_id(
         self,
         petition_decision_record_identifier: str,
-        include_documents: Optional[bool] = None,
-    ) -> Optional[PetitionDecision]:
+        include_documents: bool | None = None,
+    ) -> PetitionDecision | None:
         """Retrieve a specific petition decision by its record identifier.
 
         Args:
@@ -316,26 +316,26 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
     def download_decisions(
         self,
         format: str = "json",
-        query: Optional[str] = None,
-        sort: Optional[str] = None,
-        offset: Optional[int] = None,
-        limit: Optional[int] = None,
-        fields: Optional[str] = None,
-        filters: Optional[str] = None,
-        range_filters: Optional[str] = None,
+        query: str | None = None,
+        sort: str | None = None,
+        offset: int | None = None,
+        limit: int | None = None,
+        fields: str | None = None,
+        filters: str | None = None,
+        range_filters: str | None = None,
         # Convenience query parameters
-        application_number_q: Optional[str] = None,
-        patent_number_q: Optional[str] = None,
-        inventor_name_q: Optional[str] = None,
-        applicant_name_q: Optional[str] = None,
-        decision_date_from_q: Optional[str] = None,
-        decision_date_to_q: Optional[str] = None,
-        additional_query_params: Optional[Dict[str, Any]] = None,
+        application_number_q: str | None = None,
+        patent_number_q: str | None = None,
+        inventor_name_q: str | None = None,
+        applicant_name_q: str | None = None,
+        decision_date_from_q: str | None = None,
+        decision_date_to_q: str | None = None,
+        additional_query_params: dict[str, Any] | None = None,
         # File save options (for CSV format)
-        file_name: Optional[str] = None,
-        destination_path: Optional[str] = None,
+        file_name: str | None = None,
+        destination_path: str | None = None,
         overwrite: bool = False,
-    ) -> Union[PetitionDecisionDownloadResponse, requests.Response, str]:
+    ) -> PetitionDecisionDownloadResponse | requests.Response | str:
         """Download petition decisions data in the specified format.
 
         This endpoint is designed for bulk downloads of petition decisions data.
@@ -396,7 +396,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         """
         endpoint = self.ENDPOINTS["download_decisions"]
 
-        params: Dict[str, Any] = {"format": format}
+        params: dict[str, Any] = {"format": format}
         final_q = query
 
         # Build query from convenience parameters
@@ -529,8 +529,8 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
     def download_petition_document(
         self,
         download_option: DocumentDownloadOption,
-        file_name: Optional[str] = None,
-        destination_path: Optional[str] = None,
+        file_name: str | None = None,
+        destination_path: str | None = None,
         overwrite: bool = False,
     ) -> str:
         """Download a petition decision document in the specified format.

@@ -7,7 +7,6 @@ environment variable is set to 'true'.
 """
 
 import os
-from typing import Iterator
 
 import pytest
 
@@ -15,7 +14,6 @@ from pyUSPTO.clients import PTABAppealsClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import USPTOApiError
 from pyUSPTO.models.ptab import AppealMetaData, PTABAppealDecision, PTABAppealResponse
-from typing import Optional
 
 # Skip all tests in this module unless ENABLE_INTEGRATION_TESTS is set to 'true'
 pytestmark = pytest.mark.skipif(
@@ -62,7 +60,7 @@ class TestPTABAppealsIntegration:
                 assert isinstance(decision, PTABAppealDecision)
                 assert decision.appeal_number is not None
             else:
-                pytest.fail(f"There should always be a response to this query.")
+                pytest.fail("There should always be a response to this query.")
 
         except USPTOApiError as e:
             pytest.fail(f"PTAB Appeals API error during search_decisions GET: {e}")
@@ -237,9 +235,7 @@ class TestPTABAppealsIntegration:
                 f"PTAB Appeals API error during search with optional params: {e}"
             )
 
-    def test_to_dict_matches_raw_api_response(
-        self, api_key: Optional[str]
-    ) -> None:
+    def test_to_dict_matches_raw_api_response(self, api_key: str | None) -> None:
         """Test that to_dict() output matches the original API response stored in raw_data.
 
         This test compares the to_dict() serialization with the original API response
@@ -264,7 +260,9 @@ class TestPTABAppealsIntegration:
             ), "raw_data should be populated when include_raw_data=True"
 
             # PTAB models store raw_data as dict (not JSON string like other models)
-            assert isinstance(response.raw_data, dict), "raw_data should be a dictionary"
+            assert isinstance(
+                response.raw_data, dict
+            ), "raw_data should be a dictionary"
 
             # Get the raw API response dict
             raw_api_dict = response.raw_data
@@ -299,7 +297,7 @@ class TestPTABAppealsIntegration:
                     val2 = dict2[key]
                     current_path = f"{path}.{key}" if path else key
 
-                    if type(val1) != type(val2):
+                    if type(val1) is not type(val2):
                         differences.append(
                             f"Type mismatch at {current_path}: {type(val1).__name__} vs {type(val2).__name__}"
                         )

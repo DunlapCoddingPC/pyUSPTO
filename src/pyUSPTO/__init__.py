@@ -1,5 +1,4 @@
-"""
-USPTO API Client - A Python client library for interacting with the USPTO APIs.
+"""USPTO API Client - A Python client library for interacting with the USPTO APIs.
 
 This package provides clients for interacting with the USPTO Open Data Portal APIs.
 """
