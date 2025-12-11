@@ -20,10 +20,10 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
     # Centralized endpoint configuration
     ENDPOINTS = {
         # Products endpoints
-        "products_search": "products/search",
-        "product_by_id": "products/{product_id}",
+        "products_search": "api/v1/datasets/products/search",
+        "product_by_id": "api/v1/datasets/products/{product_id}",
         # Download endpoint
-        "download_file": "{file_download_uri}",
+        "download_file": "api/v1/datasets/products/files/{file_download_uri}",
     }
 
     def __init__(
