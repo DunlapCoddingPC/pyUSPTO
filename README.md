@@ -124,7 +124,7 @@ interferences_client = PTABInterferencesClient(config=config)
 ```python
 # Search for applications by inventor name
 inventor_search = patent_client.search_applications(inventor_name_q="Smith")
-print(f"Found {inventor_search.count} applications with 'Smith' as inventor")
+print(f"Found {inventor_search.count} applications with 'Smith' as inventor.")
 # > Found 104926 applications with 'Smith' as inventor.
 ```
 

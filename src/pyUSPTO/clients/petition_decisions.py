@@ -10,8 +10,6 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-import requests
-
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.petition_decisions import (
@@ -60,7 +58,9 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             or "https://api.uspto.gov"
         )
         super().__init__(
-            api_key=api_key_to_use, base_url=effective_base_url, config=self.config
+            api_key=api_key_to_use,
+            base_url=effective_base_url,
+            config=self.config,
         )
 
     def _get_decision_from_response(
