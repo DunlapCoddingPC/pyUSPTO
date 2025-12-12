@@ -69,7 +69,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             base_url or self.config.patent_data_base_url or "https://api.uspto.gov"
         )
         super().__init__(
-            api_key=api_key_to_use, base_url=effective_base_url, config=self.config
+            api_key=api_key_to_use,
+            base_url=effective_base_url,
+            config=self.config,
         )
 
     def sanitize_application_number(self, input_number: str) -> str:

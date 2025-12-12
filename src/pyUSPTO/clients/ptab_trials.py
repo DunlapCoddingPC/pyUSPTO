@@ -54,7 +54,9 @@ class PTABTrialsClient(
             base_url or self.config.ptab_base_url or "https://api.uspto.gov"
         )
         super().__init__(
-            api_key=api_key_to_use, base_url=effective_base_url, config=self.config
+            api_key=api_key_to_use,
+            base_url=effective_base_url,
+            config=self.config,
         )
 
     def _perform_search(
