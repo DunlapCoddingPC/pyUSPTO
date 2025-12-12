@@ -657,6 +657,7 @@ class TestPatentApplicationPagination:
             mock_paginate_results.assert_called_once_with(
                 method_name="search_applications",
                 response_container_attr="patent_file_wrapper_data_bag",
+                post_body=None,
                 query="Test",
                 limit=20,
             )
@@ -664,15 +665,15 @@ class TestPatentApplicationPagination:
             assert results[0] is patent1
             assert results[1] is patent2
 
-    def test_paginate_applications_raises_value_error_for_post_body(
+    def test_paginate_applications_rejects_offset_in_kwargs(
         self, patent_data_client: PatentDataClient
     ) -> None:
-        """Test paginate_applications raises ValueError if post_body is provided."""
+        """Test paginate_applications raises ValueError if offset is provided in kwargs."""
         with pytest.raises(
             ValueError,
-            match="paginate_applications uses GET requests and does not support 'post_body'",
+            match="Cannot specify 'offset'.*Pagination manages offset automatically",
         ):
-            list(patent_data_client.paginate_applications(post_body={"q": "test"}))
+            list(patent_data_client.paginate_applications(query="test", offset=10))
 
 
 class TestPatentApplicationDocumentListing:

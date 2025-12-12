@@ -756,12 +756,12 @@ class TestFinalPetitionDecisionsClientPagination:
             assert results[1].application_number_text == "222"
             assert results[2].application_number_text == "333"
 
-    def test_paginate_decisions_rejects_post_body(
+    def test_paginate_decisions_rejects_offset_in_kwargs(
         self, petition_client: FinalPetitionDecisionsClient
     ) -> None:
-        """Test that pagination raises error with post_body."""
-        with pytest.raises(ValueError, match="does not support 'post_body'"):
-            list(petition_client.paginate_decisions(post_body={"q": "test"}))
+        """Test that pagination raises error with offset in kwargs."""
+        with pytest.raises(ValueError, match="Cannot specify 'offset'"):
+            list(petition_client.paginate_decisions(query="test", offset=10))
 
 
 class TestFinalPetitionDecisionsClientDocumentDownload:

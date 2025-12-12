@@ -10,6 +10,8 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
+import requests
+
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.petition_decisions import (
@@ -478,51 +480,44 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
                 # Return streaming response for manual handling
                 return result
 
-    def paginate_decisions(self, **kwargs: Any) -> Iterator[PetitionDecision]:
+    def paginate_decisions(
+        self, post_body: dict[str, Any] | None = None, **kwargs: Any
+    ) -> Iterator[PetitionDecision]:
         """Provide an iterator to paginate through petition decision search results.
 
         This method simplifies fetching all petition decisions matching a search query
-        by automatically handling pagination. It internally calls the search_decisions
-        method for GET requests, batching results and yielding them one by one.
+        by automatically handling pagination. Supports both GET and POST requests.
 
-        All keyword arguments are passed directly to search_decisions to define the
-        search criteria. The offset and limit parameters are managed by the pagination
-        logic; setting them directly in kwargs might lead to unexpected behavior.
+        The offset and limit parameters are managed by the pagination logic;
+        setting them directly in kwargs or post_body might lead to unexpected behavior.
 
         Args:
-            **kwargs: Keyword arguments passed to search_decisions for constructing
-                the search query. Do not include post_body.
+            post_body: Optional POST body for complex search queries
+            **kwargs: Keyword arguments for GET-based pagination
 
         Returns:
             Iterator[PetitionDecision]: An iterator yielding PetitionDecision objects,
                 allowing iteration over all matching petition decisions across multiple
                 pages of results.
 
-        Raises:
-            ValueError: If post_body is included in kwargs, as this method only
-                supports GET request parameters for pagination.
-
         Examples:
-            # Paginate through all decisions for a technology center
+            # GET pagination through all decisions for a technology center
             >>> for decision in client.paginate_decisions(technology_center_q="1700"):
             ...     print(f"{decision.application_number_text}: {decision.decision_type_code}")
 
-            # Paginate with date range
+            # POST pagination with date range
             >>> for decision in client.paginate_decisions(
-            ...     decision_date_from_q="2023-01-01",
-            ...     decision_date_to_q="2023-12-31"
+            ...     post_body={
+            ...         "decision_date_from_q": "2023-01-01",
+            ...         "decision_date_to_q": "2023-12-31"
+            ...     }
             ... ):
             ...     process_decision(decision)
         """
-        if "post_body" in kwargs:
-            raise ValueError(
-                "paginate_decisions uses GET requests and does not support 'post_body'. "
-                "Use keyword arguments for search criteria."
-            )
-
         return self.paginate_results(
             method_name="search_decisions",
             response_container_attr="petition_decision_data_bag",
+            post_body=post_body,
             **kwargs,
         )
 

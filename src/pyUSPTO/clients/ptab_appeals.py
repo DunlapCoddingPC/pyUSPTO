@@ -206,50 +206,53 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
         assert isinstance(result, PTABAppealResponse)
         return result
 
-    def paginate_decisions(self, **kwargs: Any) -> Iterator[PTABAppealDecision]:
+    def paginate_decisions(
+        self, post_body: dict[str, Any] | None = None, **kwargs: Any
+    ) -> Iterator[PTABAppealDecision]:
         """Provide an iterator to paginate through appeal decision search results.
 
         This method simplifies fetching all appeal decisions matching a search query
         by automatically handling pagination. It internally calls the search_decisions
-        method for GET requests, batching results and yielding them one by one.
+        method, batching results and yielding them one by one.
 
-        All keyword arguments are passed directly to search_decisions to define the
-        search criteria. The offset and limit parameters are managed by the pagination
-        logic; setting them directly in kwargs might lead to unexpected behavior.
+        Supports both GET and POST requests. For POST requests, provide the
+        search criteria in `post_body`. For GET requests, use keyword arguments.
+
+        The offset parameter is managed by the pagination logic and should not be
+        provided by the user. The limit parameter can be customized.
 
         Args:
+            post_body: Optional POST body for complex search queries.
             **kwargs: Keyword arguments passed to search_decisions for constructing
-                the search query. Do not include post_body.
+                the search query (for GET-based pagination).
 
         Returns:
             Iterator[PTABAppealDecision]: An iterator yielding PTABAppealDecision objects,
                 allowing iteration over all matching decisions across multiple pages of results.
 
-        Raises:
-            ValueError: If post_body is included in kwargs, as this method only
-                supports GET request parameters for pagination.
-
         Examples:
-            # Paginate through all decisions for a technology center
+            # GET-based pagination with convenience parameters
             >>> for decision in client.paginate_decisions(technology_center_number_q="3600"):
             ...     print(f"{decision.appeal_meta_data.appeal_number}: "
             ...           f"{decision.decision_data.decision_type_category}")
 
-            # Paginate with date range
+            # GET-based pagination with date range and custom limit
             >>> for decision in client.paginate_decisions(
             ...     decision_date_from_q="2023-01-01",
-            ...     decision_date_to_q="2023-12-31"
+            ...     decision_date_to_q="2023-12-31",
+            ...     limit=50
+            ... ):
+            ...     process_decision(decision)
+
+            # POST-based pagination
+            >>> for decision in client.paginate_decisions(
+            ...     post_body={"q": "decisionTypeCategory:Affirmed", "limit": 100}
             ... ):
             ...     process_decision(decision)
         """
-        if "post_body" in kwargs:
-            raise ValueError(
-                "paginate_decisions uses GET requests and does not support 'post_body'. "
-                "Use keyword arguments for search criteria."
-            )
-
         return self.paginate_results(
             method_name="search_decisions",
             response_container_attr="patent_appeal_data_bag",
+            post_body=post_body,
             **kwargs,
         )

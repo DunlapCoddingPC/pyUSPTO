@@ -562,6 +562,175 @@ class TestBaseUSPTOClient:
             # Verify empty results works
             assert results == []
 
+    def test_paginate_results_with_nested_pagination(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test paginate_results handles nested pagination structure correctly."""
+        # Create mock responses
+        first_response = MagicMock()
+        first_response.count = 2
+        first_response.items = ["item1", "item2"]
+
+        second_response = MagicMock()
+        second_response.count = 1
+        second_response.items = ["item3"]
+
+        third_response = MagicMock()
+        third_response.count = 0
+        third_response.items = []
+
+        # Track what post_body was actually sent
+        received_bodies: list[dict[str, Any]] = []
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def test_method(
+                self, post_body: dict[str, Any] | None = None, **kwargs: Any
+            ) -> Any:
+                # Record the body we received
+                if post_body:
+                    received_bodies.append(post_body.copy())
+
+                # Return different responses based on offset in nested pagination
+                if post_body and "pagination" in post_body:
+                    offset = post_body["pagination"].get("offset", 0)
+                    if offset == 0:
+                        return first_response
+                    elif offset == 2:
+                        return second_response
+                    else:
+                        return third_response
+                return third_response
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.session = mock_session
+
+        # Test with nested pagination structure (like USPTO API accepts)
+        post_body = {
+            "q": "applicationMetaData.applicationStatusDate:>2025-06-16",
+            "filters": [{"name": "eventDataBag.eventCode", "value": ["CTNF", "CTFR"]}],
+            "fields": ["applicationNumberText", "eventDataBag"],
+            "pagination": {"limit": 2},  # Nested structure
+        }
+
+        results = list(
+            test_client.paginate_results(
+                method_name="test_method",
+                response_container_attr="items",
+                post_body=post_body,
+            )
+        )
+
+        # Verify results
+        assert results == ["item1", "item2", "item3"]
+
+        # Verify that pagination params were added to nested structure, not top-level
+        assert len(received_bodies) == 2
+
+        # First request should have offset=0, limit=2 in nested pagination
+        first_body = received_bodies[0]
+        assert "pagination" in first_body
+        assert first_body["pagination"]["offset"] == 0
+        assert first_body["pagination"]["limit"] == 2
+        # Should NOT have top-level offset/limit
+        assert "offset" not in first_body
+        assert "limit" not in first_body
+        # Original fields should be preserved
+        assert first_body["q"] == "applicationMetaData.applicationStatusDate:>2025-06-16"
+        assert len(first_body["filters"]) == 1
+        assert first_body["fields"] == ["applicationNumberText", "eventDataBag"]
+
+        # Second request should have offset=2, limit=2 in nested pagination
+        second_body = received_bodies[1]
+        assert "pagination" in second_body
+        assert second_body["pagination"]["offset"] == 2
+        assert second_body["pagination"]["limit"] == 2
+        # Should NOT have top-level offset/limit
+        assert "offset" not in second_body
+        assert "limit" not in second_body
+
+    def test_paginate_results_with_flat_pagination(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test paginate_results still works with flat (top-level) pagination structure."""
+        # Create mock responses
+        first_response = MagicMock()
+        first_response.count = 2
+        first_response.items = ["item1", "item2"]
+
+        second_response = MagicMock()
+        second_response.count = 0
+        second_response.items = []
+
+        received_bodies: list[dict[str, Any]] = []
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def test_method(
+                self, post_body: dict[str, Any] | None = None, **kwargs: Any
+            ) -> Any:
+                if post_body:
+                    received_bodies.append(post_body.copy())
+
+                # Return different responses based on top-level offset
+                if post_body:
+                    offset = post_body.get("offset", 0)
+                    if offset == 0:
+                        return first_response
+                    else:
+                        return second_response
+                return second_response
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.session = mock_session
+
+        # Test with flat (top-level) pagination structure
+        post_body = {
+            "q": "test query",
+            "limit": 2,  # Flat structure
+        }
+
+        results = list(
+            test_client.paginate_results(
+                method_name="test_method",
+                response_container_attr="items",
+                post_body=post_body,
+            )
+        )
+
+        # Verify results
+        assert results == ["item1", "item2"]
+
+        # Verify that pagination params were added at top-level
+        assert len(received_bodies) == 1
+        first_body = received_bodies[0]
+        assert first_body["offset"] == 0
+        assert first_body["limit"] == 2
+        # Should NOT have nested pagination
+        assert "pagination" not in first_body
+
+    def test_paginate_results_rejects_offset_in_nested_pagination(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test that offset is rejected when provided in nested pagination."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
+        post_body = {
+            "q": "test",
+            "pagination": {"offset": 10, "limit": 50},  # User provided offset - BAD
+        }
+
+        with pytest.raises(
+            ValueError,
+            match="Cannot specify 'offset' in post_body\\['pagination'\\]",
+        ):
+            list(
+                client.paginate_results(
+                    method_name="test_method",
+                    response_container_attr="items",
+                    post_body=post_body,
+                )
+            )
+
     def test_save_response_to_file(self, mock_session: MagicMock) -> None:
         """Test _save_response_to_file raises FileExistsError."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
