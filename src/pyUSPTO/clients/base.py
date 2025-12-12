@@ -473,7 +473,7 @@ class BaseUSPTOClient(Generic[T]):
 
         # Save to disk with streaming
         with open(file=str(path), mode="wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
+            for chunk in response.iter_content(chunk_size=self.http_config.download_chunk_size):
                 if chunk:  # Filter out keep-alive chunks
                     f.write(chunk)
         return str(path)
