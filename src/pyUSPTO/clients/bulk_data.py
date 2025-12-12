@@ -192,7 +192,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         file_path = os.path.join(destination, file_data.file_name)
 
         with open(file_path, "wb") as f:
-            for chunk in result.iter_content(chunk_size=8192):
+            for chunk in result.iter_content(chunk_size=self.http_config.download_chunk_size):
                 f.write(chunk)
 
         return file_path
