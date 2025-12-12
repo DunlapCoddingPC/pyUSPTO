@@ -483,16 +483,23 @@ class PTABTrialsClient(
             additional_params=additional_query_params,
         )  # type: ignore
 
-    def paginate_proceedings(self, **kwargs: Any) -> Iterator[PTABTrialProceeding]:
-        """Provide an iterator to paginate through trial proceeding search results."""
-        if "post_body" in kwargs:
-            raise ValueError(
-                "paginate_proceedings uses GET requests and does not support 'post_body'."
-                "Use keyword arguments for search criteria."
-            )
+    def paginate_proceedings(
+        self, post_body: dict[str, Any] | None = None, **kwargs: Any
+    ) -> Iterator[PTABTrialProceeding]:
+        """Provide an iterator to paginate through trial proceeding search results.
 
+        Supports both GET and POST requests.
+
+        Args:
+            post_body: Optional POST body for complex search queries
+            **kwargs: Keyword arguments for GET-based pagination
+
+        Yields:
+            PTABTrialProceeding objects
+        """
         return self.paginate_results(
             method_name="search_proceedings",
             response_container_attr="patent_trial_proceeding_data_bag",
+            post_body=post_body,
             **kwargs,
         )

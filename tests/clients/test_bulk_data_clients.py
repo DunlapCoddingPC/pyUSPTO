@@ -268,7 +268,7 @@ class TestBulkDataClientCore:
 
         # Verify
         mock_session.get.assert_called_once_with(
-            url=f"{mock_bulk_data_client.base_url}/products/search",
+            url=f"{mock_bulk_data_client.base_url}/api/v1/datasets/products/search",
             params={"param": "value"},
             stream=False,
             timeout=(10.0, 30.0),
@@ -308,7 +308,7 @@ class TestBulkDataClientCore:
 
         # Verify
         mock_session.get.assert_called_once_with(
-            url=f"{mock_bulk_data_client.base_url}/products/{product_id}",
+            url=f"{mock_bulk_data_client.base_url}/api/v1/datasets/products/{product_id}",
             params={
                 "fileDataFromDate": "2023-01-01",
                 "fileDataToDate": "2023-12-31",
@@ -454,7 +454,7 @@ class TestBulkDataClientCore:
 
         # Verify
         mock_session.get.assert_called_once_with(
-            url=f"{mock_bulk_data_client.base_url}/products/search",
+            url=f"{mock_bulk_data_client.base_url}/api/v1/datasets/products/search",
             params={
                 "q": "test",
                 "productTitle": "Test Product",
@@ -497,6 +497,7 @@ class TestBulkDataClientCore:
             mock_paginate_results.assert_called_once_with(
                 method_name="search_products",
                 response_container_attr="bulk_data_product_bag",
+                post_body=None,
                 param="value",
             )
 

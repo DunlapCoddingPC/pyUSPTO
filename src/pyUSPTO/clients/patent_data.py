@@ -819,45 +819,54 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         wrapper = self._get_wrapper_from_response(response_data, application_number)
         return PrintedPublication.from_wrapper(wrapper) if wrapper else None
 
-    def paginate_applications(self, **kwargs: Any) -> Iterator[PatentFileWrapper]:
+    def paginate_applications(
+        self, post_body: dict[str, Any] | None = None, **kwargs: Any
+    ) -> Iterator[PatentFileWrapper]:
         """Provide an iterator to easily paginate through patent application search results.
 
         This method simplifies the process of fetching all patent applications
         that match a given search query by automatically handling pagination.
-        It internally calls the `search_applications` method for GET requests,
-        batching results and yielding them one by one.
+        Supports both GET and POST requests.
 
-        All keyword arguments provided to this method (`**kwargs`) are passed
-        directly to the `search_applications` method to define the search
-        criteria. See the `search_applications` method for more details
-        on available parameters.
+        For GET requests, provide search parameters as keyword arguments.
+        For POST requests, provide the search criteria in `post_body`.
+
         The `offset` and `limit` parameters are managed by the pagination logic;
-        setting them directly in `kwargs` might lead to unexpected behavior.
+        setting them directly in `kwargs` or `post_body` might lead to unexpected behavior.
 
         Args:
-            **kwargs (Any): Keyword arguments to be passed to the
-                `search_applications` method for constructing the search query.
-                These define the criteria for the patent applications to be
-                retrieved. Do not include `post_body`.
+            post_body: Optional POST body for complex search queries. If provided,
+                performs POST-based pagination.
+            **kwargs: Keyword arguments for GET-based pagination or additional
+                query parameters for POST requests.
 
         Returns:
             Iterator[PatentFileWrapper]: An iterator that yields `PatentFileWrapper`
                 objects, allowing iteration over all matching patent applications
                 across multiple pages of results.
 
-        Raises:
-            ValueError: If `post_body` is included in `kwargs`, as this
-                method only supports GET request parameters for pagination.
-        """
-        if "post_body" in kwargs:
-            raise ValueError(
-                "paginate_applications uses GET requests and does not support 'post_body'. "
-                "Use keyword arguments for search criteria."
-            )
+        Examples:
+            # GET-based pagination
+            for wrapper in client.paginate_applications(
+                query="applicationNumberText:16*",
+                limit=50
+            ):
+                print(wrapper.application_number_text)
 
+            # POST-based pagination
+            for wrapper in client.paginate_applications(
+                post_body={
+                    "q": "applicationNumberText:16*",
+                    "facets": "true",
+                    "fields": "applicationNumberText,applicationMetaData"
+                }
+            ):
+                print(wrapper.application_number_text)
+        """
         return self.paginate_results(
             method_name="search_applications",
             response_container_attr="patent_file_wrapper_data_bag",
+            post_body=post_body,
             **kwargs,
         )
 

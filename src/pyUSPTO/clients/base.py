@@ -25,6 +25,7 @@ from pyUSPTO.exceptions import (
     USPTOTimeout,
     get_api_exception,
 )
+from pyUSPTO.http_config import ALLOWED_METHODS
 
 
 @runtime_checkable
@@ -119,7 +120,7 @@ class BaseUSPTOClient(Generic[T]):
             total=self.http_config.max_retries,
             backoff_factor=self.http_config.backoff_factor,
             status_forcelist=self.http_config.retry_status_codes,
-            allowed_methods=["GET", "POST", "HEAD", "PUT", "DELETE", "OPTIONS", "TRACE"],
+            allowed_methods=ALLOWED_METHODS,
         )
 
         # Create adapter with retry and connection pool settings
@@ -153,12 +154,12 @@ class BaseUSPTOClient(Generic[T]):
             finally:
                 client.close()
         """
-        if hasattr(self, '_owns_session') and self._owns_session:
-            if hasattr(self, 'session') and self.session:
+        if hasattr(self, "_owns_session") and self._owns_session:
+            if hasattr(self, "session") and self.session:
                 self.session.close()
-        elif not hasattr(self, '_owns_session'):
+        elif not hasattr(self, "_owns_session"):
             # Backward compatibility: if _owns_session not set, close anyway
-            if hasattr(self, 'session') and self.session:
+            if hasattr(self, "session") and self.session:
                 self.session.close()
 
     def __enter__(self) -> "BaseUSPTOClient[T]":
@@ -263,6 +264,14 @@ class BaseUSPTOClient(Generic[T]):
         except requests.exceptions.HTTPError as http_err:
             client_operation_message = f"API request to '{url}' failed with HTTPError"  # 'url' is from _make_request scope
 
+            # Include request body for POST debugging
+            if method.upper() == "POST" and json_data:
+                import json
+
+                client_operation_message += (
+                    f"\nRequest body sent:\n{json.dumps(json_data, indent=2)}"
+                )
+
             # Create APIErrorArgs directly from the HTTPError
             current_error_args = APIErrorArgs.from_http_error(
                 http_error=http_err, client_operation_message=client_operation_message
@@ -306,27 +315,103 @@ class BaseUSPTOClient(Generic[T]):
             raise api_exception_to_raise from req_err
 
     def paginate_results(
-        self, method_name: str, response_container_attr: str, **kwargs: Any
+        self,
+        method_name: str,
+        response_container_attr: str,
+        post_body: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> Generator[Any, None, None]:
-        """Paginate through all results of a method.
+        """Paginate through all results of a method, supporting both GET and POST.
 
         Args:
             method_name: Name of the method to call
             response_container_attr: Attribute name of the container in the response
-            **kwargs: Keyword arguments to pass to the method
+            post_body: Optional POST body for POST-based pagination. If provided,
+                pagination parameters (offset, limit) will be injected into this body.
+            **kwargs: Keyword arguments to pass to the method (for GET pagination)
 
         Yields:
             Items from the response container
+
+        Raises:
+            ValueError: If offset is provided in kwargs or post_body (offset is managed
+                automatically by pagination)
+
+        Examples:
+            # GET pagination
+            for app in client.paginate_results(
+                "search_applications",
+                "patent_file_wrapper_data_bag",
+                query="test"
+            ):
+                print(app)
+
+            # POST pagination with custom limit
+            for app in client.paginate_results(
+                "search_applications",
+                "patent_file_wrapper_data_bag",
+                post_body={"q": "test", "limit": 50}
+            ):
+                print(app)
         """
-        offset = kwargs.get("offset", 0)
-        limit = kwargs.get("limit", 25)
+        # Determine if POST body uses nested pagination structure
+        uses_nested_pagination = False
+        if post_body is not None:
+            uses_nested_pagination = "pagination" in post_body and isinstance(
+                post_body["pagination"], dict
+            )
+
+        # Validate that offset is not provided by the user
+        if post_body is not None:
+            if uses_nested_pagination:
+                # Check nested pagination object
+                if "offset" in post_body["pagination"]:
+                    raise ValueError(
+                        "Cannot specify 'offset' in post_body['pagination']. "
+                        "Pagination manages offset automatically."
+                    )
+                limit = post_body["pagination"].get("limit", 25)
+            else:
+                # Check top-level
+                if "offset" in post_body:
+                    raise ValueError(
+                        "Cannot specify 'offset' in post_body. Pagination manages offset automatically."
+                    )
+                limit = post_body.get("limit", 25)
+        else:
+            if "offset" in kwargs:
+                raise ValueError(
+                    "Cannot specify 'offset' in kwargs. Pagination manages offset automatically."
+                )
+            limit = kwargs.get("limit", 25)
+
+        offset = 0
 
         while True:
-            kwargs["offset"] = offset
-            kwargs["limit"] = limit
+            # Prepare parameters based on request type
+            if post_body is not None:
+                # POST request: update body with pagination params
+                current_body = post_body.copy()
 
-            method = getattr(self, method_name)
-            response = method(**kwargs)
+                if uses_nested_pagination:
+                    # Update nested pagination object
+                    current_body["pagination"] = current_body["pagination"].copy()
+                    current_body["pagination"]["offset"] = offset
+                    current_body["pagination"]["limit"] = limit
+                else:
+                    # Update top-level pagination params
+                    current_body["offset"] = offset
+                    current_body["limit"] = limit
+
+                method = getattr(self, method_name)
+                response = method(post_body=current_body, **kwargs)
+            else:
+                # GET request: update kwargs with pagination params
+                kwargs["offset"] = offset
+                kwargs["limit"] = limit
+
+                method = getattr(self, method_name)
+                response = method(**kwargs)
 
             if not response.count:
                 break
@@ -334,7 +419,7 @@ class BaseUSPTOClient(Generic[T]):
             container = getattr(response, response_container_attr)
             yield from container
 
-            if response.count < limit:
+            if response.count < limit + offset:
                 break
 
             offset += limit
@@ -473,7 +558,9 @@ class BaseUSPTOClient(Generic[T]):
 
         # Save to disk with streaming
         with open(file=str(path), mode="wb") as f:
-            for chunk in response.iter_content(chunk_size=self.http_config.download_chunk_size):
+            for chunk in response.iter_content(
+                chunk_size=self.http_config.download_chunk_size
+            ):
                 if chunk:  # Filter out keep-alive chunks
                     f.write(chunk)
         return str(path)

@@ -371,12 +371,12 @@ class TestPTABAppealsClientPaginate:
             assert results[2].appeal_number == "2023-001236"
             assert mock_search.call_count == 2  # Stops when count < limit
 
-    def test_paginate_decisions_raises_on_post_body(
+    def test_paginate_decisions_rejects_offset_in_kwargs(
         self, mock_ptab_appeals_client: PTABAppealsClient
     ) -> None:
-        """Test that paginate_decisions raises ValueError with post_body."""
-        with pytest.raises(ValueError, match="does not support 'post_body'"):
-            list(mock_ptab_appeals_client.paginate_decisions(post_body={"q": "test"}))
+        """Test that paginate_decisions raises ValueError with offset in kwargs."""
+        with pytest.raises(ValueError, match="Cannot specify 'offset'"):
+            list(mock_ptab_appeals_client.paginate_decisions(query="test", offset=10))
 
     def test_paginate_decisions_with_multiple_params(
         self, mock_ptab_appeals_client: PTABAppealsClient

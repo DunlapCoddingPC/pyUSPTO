@@ -7,6 +7,9 @@ timeouts, retries, connection pooling, and custom headers.
 import os
 from dataclasses import dataclass, field
 
+# HTTP methods supported by the USPTO API
+ALLOWED_METHODS = ["GET", "POST"]
+
 
 @dataclass
 class HTTPConfig:
@@ -86,7 +89,9 @@ class HTTPConfig:
             backoff_factor=float(os.environ.get("USPTO_BACKOFF_FACTOR", "1.0")),
             pool_connections=int(os.environ.get("USPTO_POOL_CONNECTIONS", "10")),
             pool_maxsize=int(os.environ.get("USPTO_POOL_MAXSIZE", "10")),
-            download_chunk_size=int(os.environ.get("USPTO_DOWNLOAD_CHUNK_SIZE", "8192")),
+            download_chunk_size=int(
+                os.environ.get("USPTO_DOWNLOAD_CHUNK_SIZE", "8192")
+            ),
         )
 
     def get_timeout_tuple(self) -> tuple[float | None, float | None]:

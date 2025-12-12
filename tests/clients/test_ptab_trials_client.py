@@ -859,9 +859,9 @@ class TestPTABTrialsClientPaginate:
             assert results[2].trial_number == "IPR2023-00003"
             assert mock_search.call_count == 2  # Stops when count < limit
 
-    def test_paginate_proceedings_raises_on_post_body(
+    def test_paginate_proceedings_rejects_offset_in_kwargs(
         self, mock_ptab_trials_client: PTABTrialsClient
     ) -> None:
-        """Test that paginate_proceedings raises ValueError with post_body."""
-        with pytest.raises(ValueError, match="does not support 'post_body'"):
-            list(mock_ptab_trials_client.paginate_proceedings(post_body={"q": "test"}))
+        """Test that paginate_proceedings raises ValueError with offset in kwargs."""
+        with pytest.raises(ValueError, match="Cannot specify 'offset'"):
+            list(mock_ptab_trials_client.paginate_proceedings(query="test", offset=10))
