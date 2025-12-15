@@ -139,7 +139,7 @@ typing-inspection==0.4.2
     # via pydantic
 tzdata==2025.2
     # via pyUSPTO (pyproject.toml)
-urllib3==2.6.1
+urllib3==2.6.2
     # via
     #   requests
     #   types-requests
