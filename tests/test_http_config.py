@@ -110,3 +110,42 @@ class TestHTTPConfig:
         assert 502 in config.retry_status_codes  # Bad gateway
         assert 503 in config.retry_status_codes  # Service unavailable
         assert 504 in config.retry_status_codes  # Gateway timeout
+
+    def test_download_chunk_size_default(self):
+        """Test download_chunk_size has correct default"""
+        config = HTTPConfig()
+        assert config.download_chunk_size == 8192
+
+    def test_download_chunk_size_custom(self):
+        """Test download_chunk_size can be customized"""
+        config = HTTPConfig(download_chunk_size=262144)  # 256 KB
+        assert config.download_chunk_size == 262144
+
+    def test_download_chunk_size_validation_negative(self):
+        """Test download_chunk_size validation rejects negative values"""
+        import pytest
+
+        with pytest.raises(ValueError, match="download_chunk_size must be positive"):
+            HTTPConfig(download_chunk_size=-1)
+
+    def test_download_chunk_size_validation_zero(self):
+        """Test download_chunk_size validation rejects zero"""
+        import pytest
+
+        with pytest.raises(ValueError, match="download_chunk_size must be positive"):
+            HTTPConfig(download_chunk_size=0)
+
+    def test_download_chunk_size_validation_large_warning(self):
+        """Test download_chunk_size warns for very large values"""
+        import pytest
+
+        # Should warn for chunk size > 10 MB
+        with pytest.warns(UserWarning, match="very large and may cause memory issues"):
+            HTTPConfig(download_chunk_size=10485761)  # 10 MB + 1 byte
+
+    def test_download_chunk_size_from_env(self, monkeypatch):
+        """Test download_chunk_size can be set from environment variable"""
+        monkeypatch.setenv("USPTO_DOWNLOAD_CHUNK_SIZE", "131072")  # 128 KB
+
+        config = HTTPConfig.from_env()
+        assert config.download_chunk_size == 131072
