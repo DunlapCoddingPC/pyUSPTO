@@ -119,138 +119,174 @@ interferences_client = PTABInterferencesClient(config=config)
 
 ## API Usage Examples
 
+> [!TIP]
+> For comprehensive examples with detailed explanations, see the [`examples/`](examples/) directory.
+
 ### Patent Data API
 
 ```python
+from pyUSPTO import PatentDataClient
+
+client = PatentDataClient(api_key="your_api_key_here")
+
 # Search for applications by inventor name
-inventor_search = patent_client.search_applications(inventor_name_q="Smith")
-print(f"Found {inventor_search.count} applications with 'Smith' as inventor.")
-# > Found 104926 applications with 'Smith' as inventor.
+response = client.search_applications(inventor_name_q="Smith", limit=2)
+print(f"Found {response.count} applications with 'Smith' as inventor (showing up to 2).")
+
+# Get a specific application
+app = client.get_application_by_number("18045436")
+if app.application_meta_data:
+    print(f"Title: {app.application_meta_data.invention_title}")
 ```
+
+See [`examples/patent_data_example.py`](examples/patent_data_example.py) for detailed examples including downloading documents and publications.
 
 ### Final Petition Decisions API
 
 ```python
-# Search for petition decisions by date range
-decisions = petition_client.search_decisions(
-    decision_date_from_q="2023-01-01",
-    limit=10
-)
-print(f"Found {decisions.count} petition decisions since 2023")
+from pyUSPTO import FinalPetitionDecisionsClient
 
-# Get a specific decision by ID
-decision = petition_client.get_decision_by_id("decision_id_here")
-print(f"Decision Type: {decision.decision_type_code}")
-print(f"Application: {decision.application_number_text}")
+client = FinalPetitionDecisionsClient(api_key="your_api_key_here")
+
+# Search for petition decisions
+response = client.search_decisions(
+    decision_date_from_q="2023-01-01", decision_date_to_q="2023-12-31", limit=5
+)
+print(f"Found {response.count} decisions from 2023.")
+
+# Get a specific decision by ID from search results
+response = client.search_decisions(limit=1)
+if response.count > 0:
+    decision_id = response.petition_decision_data_bag[0].petition_decision_record_identifier
+    decision = client.get_decision_by_id(decision_id)
+    print(f"Decision Type: {decision.decision_type_code}")
 ```
 
-### PTAB (Patent Trial and Appeal Board) APIs
+See [`examples/petition_decisions_example.py`](examples/petition_decisions_example.py) for detailed examples including downloading decision documents.
 
-The package provides three clients for accessing PTAB data:
-
-#### PTAB Trials API
+### PTAB Trials API
 
 ```python
 from pyUSPTO import PTABTrialsClient
 
-# Initialize client
-trials_client = PTABTrialsClient(api_key="your_api_key_here")
+client = PTABTrialsClient(api_key="your_api_key_here")
 
-# Search for IPR trial proceedings
-proceedings = trials_client.search_proceedings(
+# Search for IPR proceedings
+response = client.search_proceedings(
     trial_type_code_q="IPR",
-    trial_status_category_q="Instituted",
     petition_filing_date_from_q="2023-01-01",
-    limit=10
+    petition_filing_date_to_q="2023-12-31",
+    limit=5,
 )
-print(f"Found {proceedings.count} instituted IPR proceedings")
+print(f"Found {response.count} IPR proceedings filed in 2023")
 
-# Search for trial documents with new convenience parameters
-documents = trials_client.search_documents(
-    trial_number_q="IPR2023-00001",
-    petitioner_party_name_q="Acme Corp",
-    patent_owner_name_q="XYZ Inc",
-    limit=5
-)
-
-# Search for trial decisions
-decisions = trials_client.search_decisions(
+# Paginate through results
+for proceeding in client.paginate_proceedings(
     trial_type_code_q="IPR",
-    decision_type_category_q="Final Written Decision",
-    patent_number_q="US1234567",
-    decision_date_from_q="2023-01-01"
-)
-
-# Paginate through proceedings
-for proceeding in trials_client.paginate_proceedings(trial_type_code_q="IPR", limit=25):
-    print(f"Trial: {proceeding.trial_number}")
+    petition_filing_date_from_q="2024-01-01",
+    limit=5,
+):
+    print(f"{proceeding.trial_number}")
 ```
 
-#### PTAB Appeals API
+See [`examples/ptab_trials_example.py`](examples/ptab_trials_example.py) for detailed examples including searching documents and decisions.
+
+### PTAB Appeals API
 
 ```python
 from pyUSPTO import PTABAppealsClient
 
-# Initialize client
-appeals_client = PTABAppealsClient(api_key="your_api_key_here")
+client = PTABAppealsClient(api_key="your_api_key_here")
 
-# Search for appeal decisions by technology center
-decisions = appeals_client.search_decisions(
+# Search for appeal decisions
+response = client.search_decisions(
     technology_center_number_q="3600",
-    decision_type_category_q="Affirmed",
     decision_date_from_q="2023-01-01",
-    limit=10
+    decision_date_to_q="2023-12-31",
+    limit=5,
 )
-print(f"Found {decisions.count} affirmed decisions from TC 3600")
-
-# Search by application number
-decisions = appeals_client.search_decisions(
-    application_number_text_q="15/123456",
-    limit=5
-)
-
-# Paginate through decisions
-for decision in appeals_client.paginate_decisions(
-    technology_center_number_q="2100",
-    limit=25
-):
-    print(f"Appeal: {decision.appeal_number}")
+print(f"Found {response.count} appeal decisions from TC 3600 in 2023")
 ```
 
-#### PTAB Interferences API
+See [`examples/ptab_appeals_example.py`](examples/ptab_appeals_example.py) for detailed examples including searching by decision type and application number.
+
+### PTAB Interferences API
 
 ```python
 from pyUSPTO import PTABInterferencesClient
 
-# Initialize client
-interferences_client = PTABInterferencesClient(api_key="your_api_key_here")
+client = PTABInterferencesClient(api_key="your_api_key_here")
 
-# Search for interference decisions by outcome
-decisions = interferences_client.search_decisions(
-    interference_outcome_category_q="Priority to Senior Party",
-    decision_date_from_q="2022-01-01",
-    limit=10
+# Search for interference decisions
+response = client.search_decisions(
+    decision_date_from_q="2023-01-01",
+    limit=5,
 )
-print(f"Found {decisions.count} decisions awarding priority to senior party")
-
-# Search by party name
-decisions = interferences_client.search_decisions(
-    senior_party_name_q="Example Corp",
-    junior_party_name_q="Test Inc",
-    limit=5
-)
-
-# Paginate through decisions
-for decision in interferences_client.paginate_decisions(
-    decision_type_category_q="Final Decision",
-    limit=25
-):
-    print(f"Interference: {decision.interference_number}")
+print(f"Found {response.count} interference decisions since 2023")
 ```
+
+See [`examples/ptab_interferences_example.py`](examples/ptab_interferences_example.py) for detailed examples including searching by party name and outcome.
 
 ## Documentation
 
 Full documentation may be found on [Read the Docs](https://pyuspto.readthedocs.io/).
+
+## Data Models
+
+The library uses Python dataclasses to represent API responses. All data models include type annotations for attributes and methods, making them fully compatible with static type checkers.
+
+#### Bulk Data API
+
+- `BulkDataResponse`: Top-level response from the API
+- `BulkDataProduct`: Information about a specific product
+- `ProductFileBag`: Container for file data elements
+- `FileData`: Information about an individual file
+
+#### Patent Data API
+
+- `PatentDataResponse`: Top-level response from the API
+- `PatentFileWrapper`: Information about a patent application
+- `ApplicationMetaData`: Metadata about a patent application
+- `Address`: Represents an address in the patent data
+- `Person`, `Applicant`, `Inventor`, `Attorney`: Person-related data classes
+- `Assignment`, `Assignor`, `Assignee`: Assignment-related data classes
+- `Continuity`, `ParentContinuity`, `ChildContinuity`: Continuity-related data classes
+- `PatentTermAdjustmentData`: Patent term adjustment information
+- And many more specialized classes for different aspects of patent data
+
+#### Final Petition Decisions API
+
+- `PetitionDecisionResponse`: Top-level response from the API
+- `PetitionDecision`: Complete information about a petition decision
+- `PetitionDecisionDocument`: Document associated with a petition decision
+- `DocumentDownloadOption`: Download options for petition documents
+- `DecisionTypeCode`: Enum for petition decision types
+- `DocumentDirectionCategory`: Enum for document direction categories
+
+#### PTAB Trials API
+
+- `PTABTrialProceedingResponse`: Top-level response from the API
+- `PTABTrialProceeding`: Information about a PTAB trial proceeding (IPR, PGR, CBM, DER)
+- `PTABTrialDocument`: Document associated with a trial proceeding
+- `PTABTrialDecision`: Decision information for a trial proceeding
+- `RegularPetitionerData`, `RespondentData`, `DerivationPetitionerData`: Party data for different trial types
+- `PTABTrialMetaData`: Trial metadata and status information
+
+#### PTAB Appeals API
+
+- `PTABAppealResponse`: Top-level response from the API
+- `PTABAppealDecision`: Ex parte appeal decision information
+- `AppellantData`: Appellant information and application details
+- `PTABAppealMetaData`: Appeal metadata and filing information
+- `PTABAppealDocumentData`: Document and decision details
+
+#### PTAB Interferences API
+
+- `PTABInterferenceResponse`: Top-level response from the API
+- `PTABInterferenceDecision`: Interference proceeding decision information
+- `SeniorPartyData`, `JuniorPartyData`, `AdditionalPartyData`: Party data classes
+- `PTABInterferenceMetaData`: Interference metadata and status information
+- `PTABInterferenceDocumentData`: Document and outcome details
 
 ## Advanced Topics
 
@@ -358,63 +394,6 @@ warnings.filterwarnings('always', category=USPTODataWarning)
 ```
 
 The library's permissive parsing philosophy returns `None` for fields that cannot be parsed, allowing you to retrieve partial data even when some fields have issues. Warnings inform you when this happens without stopping execution.
-
-## Data Models
-
-The library uses Python dataclasses to represent API responses. All data models include type annotations for attributes and methods, making them fully compatible with static type checkers.
-
-#### Bulk Data API
-
-- `BulkDataResponse`: Top-level response from the API
-- `BulkDataProduct`: Information about a specific product
-- `ProductFileBag`: Container for file data elements
-- `FileData`: Information about an individual file
-
-#### Patent Data API
-
-- `PatentDataResponse`: Top-level response from the API
-- `PatentFileWrapper`: Information about a patent application
-- `ApplicationMetaData`: Metadata about a patent application
-- `Address`: Represents an address in the patent data
-- `Person`, `Applicant`, `Inventor`, `Attorney`: Person-related data classes
-- `Assignment`, `Assignor`, `Assignee`: Assignment-related data classes
-- `Continuity`, `ParentContinuity`, `ChildContinuity`: Continuity-related data classes
-- `PatentTermAdjustmentData`: Patent term adjustment information
-- And many more specialized classes for different aspects of patent data
-
-#### Final Petition Decisions API
-
-- `PetitionDecisionResponse`: Top-level response from the API
-- `PetitionDecision`: Complete information about a petition decision
-- `PetitionDecisionDocument`: Document associated with a petition decision
-- `DocumentDownloadOption`: Download options for petition documents
-- `DecisionTypeCode`: Enum for petition decision types
-- `DocumentDirectionCategory`: Enum for document direction categories
-
-#### PTAB Trials API
-
-- `PTABTrialProceedingResponse`: Top-level response from the API
-- `PTABTrialProceeding`: Information about a PTAB trial proceeding (IPR, PGR, CBM, DER)
-- `PTABTrialDocument`: Document associated with a trial proceeding
-- `PTABTrialDecision`: Decision information for a trial proceeding
-- `RegularPetitionerData`, `RespondentData`, `DerivationPetitionerData`: Party data for different trial types
-- `PTABTrialMetaData`: Trial metadata and status information
-
-#### PTAB Appeals API
-
-- `PTABAppealResponse`: Top-level response from the API
-- `PTABAppealDecision`: Ex parte appeal decision information
-- `AppellantData`: Appellant information and application details
-- `PTABAppealMetaData`: Appeal metadata and filing information
-- `PTABAppealDocumentData`: Document and decision details
-
-#### PTAB Interferences API
-
-- `PTABInterferenceResponse`: Top-level response from the API
-- `PTABInterferenceDecision`: Interference proceeding decision information
-- `SeniorPartyData`, `JuniorPartyData`, `AdditionalPartyData`: Party data classes
-- `PTABInterferenceMetaData`: Interference metadata and status information
-- `PTABInterferenceDocumentData`: Document and outcome details
 
 ## License
 

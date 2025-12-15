@@ -13,7 +13,7 @@ from pyUSPTO import PTABAppealsClient
 
 # --- Initialization ---
 # Initialize the client with direct API key
-print("Method 1: Initialize with direct API key")
+print("Initialize with direct API key")
 api_key = os.environ.get("USPTO_API_KEY", "YOUR_API_KEY_HERE")
 if api_key == "YOUR_API_KEY_HERE":
     raise ValueError(
@@ -182,11 +182,11 @@ try:
         decision_type_category_q="Decision",
         decision_date_from_q="2023-01-01",
         decision_date_to_q="2023-12-31",
-        sort="decisionDate desc",
+        sort="decisionData.decisionIssueDate desc",
         limit=3,
     )
 
-    print(f"\nFound {response.count} 'Decision's from TC 2100 (Electronics) in 2023")
+    print(f"\nFound {response.count} Decisions from TC 2100 (Electronics) in 2023")
     print(f"Displaying first {len(response.patent_appeal_data_bag)} results:")
 
     for decision in response.patent_appeal_data_bag:

@@ -402,6 +402,40 @@ class TestBaseUSPTOClient:
             assert "This is an error less than 500 chars." in str(excinfo.value)
             assert excinfo.value.request_identifier is None
 
+    def test_make_request_post_error_includes_body(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test that POST request errors include the request body in the error message."""
+        # Setup
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
+        # Mock a 400 Bad Request error
+        mock_response = MagicMock()
+        mock_response.status_code = 400
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            response=mock_response
+        )
+        mock_response.json.return_value = {
+            "errorDetails": "Invalid request",
+            "requestIdentifier": "req-400",
+        }
+        mock_response.text = '{"errorDetails": "Invalid request"}'
+
+        mock_session.post.return_value = mock_response
+
+        # Make a POST request with a body
+        post_body = {"q": "test query", "pagination": {"limit": 100}}
+
+        with pytest.raises(USPTOApiBadRequestError) as excinfo:
+            client._make_request(method="POST", endpoint="test", json_data=post_body)
+
+        # Verify the error message includes the POST body
+        error_message = str(excinfo.value)
+        assert "Request body sent:" in error_message
+        assert '"q": "test query"' in error_message
+        assert '"pagination"' in error_message
+
     def test_make_request_connection_error(self, mock_session: MagicMock) -> None:
         """Test _make_request method with connection error."""
         # Setup
@@ -566,43 +600,44 @@ class TestBaseUSPTOClient:
         self, mock_session: MagicMock
     ) -> None:
         """Test paginate_results handles nested pagination structure correctly."""
+        # Setup client
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
         # Create mock responses
+        # response.count is the TOTAL count across all pages
+        # Break condition: response.count < limit + offset
         first_response = MagicMock()
-        first_response.count = 2
+        first_response.count = 3  # Total: 3 items across all pages
         first_response.items = ["item1", "item2"]
 
         second_response = MagicMock()
-        second_response.count = 1
+        second_response.count = 3  # Total still 3, triggers break: 3 < 2 + 2 is False, but we yield then break
         second_response.items = ["item3"]
-
-        third_response = MagicMock()
-        third_response.count = 0
-        third_response.items = []
 
         # Track what post_body was actually sent
         received_bodies: list[dict[str, Any]] = []
 
-        class TestClient(BaseUSPTOClient[Any]):
-            def test_method(
-                self, post_body: dict[str, Any] | None = None, **kwargs: Any
-            ) -> Any:
-                # Record the body we received
-                if post_body:
-                    received_bodies.append(post_body.copy())
+        def mock_test_method(
+            post_body: dict[str, Any] | None = None, **kwargs: Any
+        ) -> Any:
+            """Mock method that tracks POST body and returns appropriate response."""
+            # Record the body we received
+            if post_body:
+                received_bodies.append(post_body.copy())
 
-                # Return different responses based on offset in nested pagination
-                if post_body and "pagination" in post_body:
-                    offset = post_body["pagination"].get("offset", 0)
-                    if offset == 0:
-                        return first_response
-                    elif offset == 2:
-                        return second_response
-                    else:
-                        return third_response
-                return third_response
+            # Return different responses based on offset in nested pagination
+            if post_body and "pagination" in post_body:
+                offset = post_body["pagination"].get("offset", 0)
+                if offset == 0:
+                    return first_response
+                elif offset == 2:
+                    return second_response
+            # Should not reach here
+            return MagicMock(count=0, items=[])
 
-        test_client = TestClient(base_url="https://api.test.com")
-        test_client.session = mock_session
+        # Add the mock method to the client
+        client.test_method = mock_test_method  # type: ignore[attr-defined]
 
         # Test with nested pagination structure (like USPTO API accepts)
         post_body = {
@@ -613,7 +648,7 @@ class TestBaseUSPTOClient:
         }
 
         results = list(
-            test_client.paginate_results(
+            client.paginate_results(
                 method_name="test_method",
                 response_container_attr="items",
                 post_body=post_body,
@@ -652,35 +687,28 @@ class TestBaseUSPTOClient:
         self, mock_session: MagicMock
     ) -> None:
         """Test paginate_results still works with flat (top-level) pagination structure."""
-        # Create mock responses
-        first_response = MagicMock()
-        first_response.count = 2
-        first_response.items = ["item1", "item2"]
+        # Setup client
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
 
-        second_response = MagicMock()
-        second_response.count = 0
-        second_response.items = []
+        # Create mock responses
+        # First page: 2 items, total count shows there's only 1 item total (less than limit)
+        first_response = MagicMock()
+        first_response.count = 1  # Total count (triggers break since 1 < 2 + 0)
+        first_response.items = ["item1"]
 
         received_bodies: list[dict[str, Any]] = []
 
-        class TestClient(BaseUSPTOClient[Any]):
-            def test_method(
-                self, post_body: dict[str, Any] | None = None, **kwargs: Any
-            ) -> Any:
-                if post_body:
-                    received_bodies.append(post_body.copy())
+        def mock_test_method(
+            post_body: dict[str, Any] | None = None, **kwargs: Any
+        ) -> Any:
+            """Mock method that tracks POST body and returns appropriate response."""
+            if post_body:
+                received_bodies.append(post_body.copy())
+            return first_response
 
-                # Return different responses based on top-level offset
-                if post_body:
-                    offset = post_body.get("offset", 0)
-                    if offset == 0:
-                        return first_response
-                    else:
-                        return second_response
-                return second_response
-
-        test_client = TestClient(base_url="https://api.test.com")
-        test_client.session = mock_session
+        # Add the mock method to the client
+        client.test_method = mock_test_method  # type: ignore[attr-defined]
 
         # Test with flat (top-level) pagination structure
         post_body = {
@@ -689,7 +717,7 @@ class TestBaseUSPTOClient:
         }
 
         results = list(
-            test_client.paginate_results(
+            client.paginate_results(
                 method_name="test_method",
                 response_container_attr="items",
                 post_body=post_body,
@@ -697,7 +725,7 @@ class TestBaseUSPTOClient:
         )
 
         # Verify results
-        assert results == ["item1", "item2"]
+        assert results == ["item1"]
 
         # Verify that pagination params were added at top-level
         assert len(received_bodies) == 1
@@ -835,6 +863,83 @@ class TestBaseUSPTOClient:
 
         # Explicit api_key should take precedence
         assert client._api_key == "explicit_key"
+
+    def test_context_manager_enters_and_exits(self, mock_session: MagicMock) -> None:
+        """Test that context manager __enter__ and __exit__ work correctly."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
+        # Test __enter__ returns self
+        with client as ctx_client:
+            assert ctx_client is client
+
+        # Test __exit__ was called (which calls close)
+        # Since we're using mock_session, we need to verify close was called on it
+        mock_session.close.assert_called_once()
+
+    def test_close_when_session_is_owned(self, mock_session: MagicMock) -> None:
+        """Test close() closes session when client owns it."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        # Client creates its own session, so it owns it
+        assert client._owns_session is True
+
+        # Replace with mock for testing
+        client.session = mock_session
+
+        # Close should close the session
+        client.close()
+        mock_session.close.assert_called_once()
+
+    def test_close_when_session_is_shared(self, mock_session: MagicMock) -> None:
+        """Test close() does NOT close session when it's shared via config."""
+        from pyUSPTO.config import USPTOConfig
+
+        # Create config with existing shared session
+        config = USPTOConfig(api_key="test")
+        config._shared_session = mock_session
+
+        # Create client - it should reuse the shared session and not own it
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            base_url="https://api.test.com", config=config
+        )
+        assert client._owns_session is False
+
+        # Close should NOT close the shared session
+        client.close()
+        mock_session.close.assert_not_called()
+
+    def test_close_backward_compatibility(self, mock_session: MagicMock) -> None:
+        """Test close() works when _owns_session attribute doesn't exist (backward compat)."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
+        # Simulate old client without _owns_session attribute
+        delattr(client, "_owns_session")
+
+        # Close should still close the session for backward compatibility
+        client.close()
+        mock_session.close.assert_called_once()
+
+    def test_paginate_results_rejects_offset_in_flat_post_body(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test that offset is rejected when provided in flat POST body."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
+        # Flat structure with user-provided offset - should raise
+        post_body = {"q": "test", "offset": 10, "limit": 50}
+
+        with pytest.raises(
+            ValueError, match="Cannot specify 'offset' in post_body"
+        ):
+            list(
+                client.paginate_results(
+                    method_name="test_method",
+                    response_container_attr="items",
+                    post_body=post_body,
+                )
+            )
 
 
 class TestContentDispositionParsing:
