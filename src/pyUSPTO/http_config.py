@@ -36,7 +36,7 @@ class HTTPConfig:
 
     # Retry configuration
     max_retries: int = 3
-    backoff_factor: float = 1.0
+    backoff_factor: float = 2.0
     retry_status_codes: list[int] = field(
         default_factory=lambda: [429, 500, 502, 503, 504]
     )

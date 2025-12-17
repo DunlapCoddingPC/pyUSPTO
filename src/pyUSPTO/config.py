@@ -20,6 +20,9 @@ class USPTOConfig:
     accepts HTTP transport configuration via HTTPConfig.
     """
 
+    _shared_session: "requests.Session | None" = None
+    _active_clients: int = 0
+
     def __init__(
         self,
         api_key: str | None = None,
@@ -55,9 +58,6 @@ class USPTOConfig:
 
         # Control whether to include raw JSON data in response objects
         self.include_raw_data = include_raw_data
-
-        # Shared session for all clients using this config (created lazily)
-        self._shared_session: requests.Session | None = None
 
     @classmethod
     def from_env(cls) -> "USPTOConfig":

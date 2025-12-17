@@ -29,11 +29,12 @@ class USPTOApiError(Exception):
         self,
         message: str,  # Primary client-facing message for the exception context
         status_code: int | None = None,
-        api_short_error: str
-        | None = None,  # From API 'error' or 'message' (for 413) field
-        error_details: str
-        | dict
-        | None = None,  # From API 'errorDetails' or 'detailedMessage' field
+        api_short_error: (
+            str | None
+        ) = None,  # From API 'error' or 'message' (for 413) field
+        error_details: (
+            str | dict | None
+        ) = None,  # From API 'errorDetails' or 'detailedMessage' field
         request_identifier: str | None = None,
     ):
         """Initialize a USPTOApiError.

@@ -7,7 +7,6 @@ decisions in publicly available patent applications and patents filed in 2001 or
 
 import warnings
 from collections.abc import Iterator
-from pathlib import Path
 from typing import Any
 
 import requests
@@ -335,7 +334,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         additional_query_params: dict[str, Any] | None = None,
         # File save options (for CSV format)
         file_name: str | None = None,
-        destination_path: str | None = None,
+        destination: str | None = None,
         overwrite: bool = False,
     ) -> PetitionDecisionDownloadResponse | requests.Response | str:
         """Download petition decisions data in the specified format.
@@ -360,14 +359,14 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             decision_date_to_q: Filter decisions to this date (YYYY-MM-DD).
             additional_query_params: Additional custom query parameters.
             file_name: Optional filename for CSV downloads. Defaults to "petition_decisions.csv".
-            destination_path: Optional directory path to save CSV file. If None, returns Response.
+            destination: Optional directory path to save CSV file. If None, returns Response.
             overwrite: Whether to overwrite existing files. Default False.
 
         Returns:
             Union[PetitionDecisionDownloadResponse, requests.Response, str]:
                 - If format="json": Returns PetitionDecisionDownloadResponse
-                - If format="csv" and destination_path is None: Returns streaming Response
-                - If format="csv" and destination_path is set: Returns str path to saved file
+                - If format="csv" and destination is None: Returns streaming Response
+                - If format="csv" and destination is set: Returns str path to saved file
 
         Raises:
             FileExistsError: If CSV file exists and overwrite=False
@@ -386,7 +385,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             >>> file_path = client.download_decisions(
             ...     format="csv",
             ...     decision_date_from_q="2023-01-01",
-            ...     destination_path="./downloads"
+            ...     destination="./downloads"
             ... )
             >>> print(f"Saved to: {file_path}")
 
@@ -459,22 +458,13 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             )
             assert isinstance(result, requests.Response)
 
-            if destination_path is not None:
+            if destination is not None:
                 # Save to file using the base class helper
-                from pathlib import Path
-
-                # Determine filename
-                if file_name is None:
-                    file_name = "petition_decisions.csv"
-
-                # Build full file path
-                destination_dir = Path(destination_path)
-                destination_dir.mkdir(parents=True, exist_ok=True)
-                final_file_path = destination_dir / file_name
-
-                # Save streaming response to file (overwrite check handled by base class)
                 return self._save_response_to_file(
-                    response=result, file_path=str(final_file_path), overwrite=overwrite
+                    response=result,
+                    destination=destination,
+                    file_name=file_name or "petition_decisions.csv",
+                    overwrite=overwrite,
                 )
             else:
                 # Return streaming response for manual handling
@@ -524,23 +514,23 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
     def download_petition_document(
         self,
         download_option: DocumentDownloadOption,
+        destination: str | None = None,
         file_name: str | None = None,
-        destination_path: str | None = None,
         overwrite: bool = False,
     ) -> str:
-        """Download a petition decision document in the specified format.
+        """Download petition document (auto-extracts if in archive).
 
         Args:
             download_option: DocumentDownloadOption object containing the download
                 URL and metadata.
-            file_name: Optional filename for the downloaded file. If not provided,
-                it will be extracted from the URL or generated based on the MIME type.
-            destination_path: Optional directory path where the file should be saved.
+            destination: Optional directory path where the file should be saved.
                 If not provided, saves to the current directory.
+            file_name: Optional filename for the downloaded file. If not provided,
+                it will be extracted from Content-Disposition header or URL.
             overwrite: Whether to overwrite an existing file. Defaults to False.
 
         Returns:
-            str: The absolute path to the downloaded file.
+            str: The absolute path to the downloaded file (extracted if was in archive).
 
         Raises:
             ValueError: If download_option has no download URL.
@@ -562,42 +552,16 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             ...         )
             ...         path = client.download_petition_document(
             ...             pdf_option,
-            ...             destination_path="./downloads"
+            ...             destination="./downloads"
             ...         )
             ...         print(f"Downloaded to: {path}")
         """
         if download_option.download_url is None:
-            raise ValueError("DocumentDownloadOption must have a download_url")
+            raise ValueError("DocumentDownloadOption has no download_url")
 
-        # Determine filename
-        if file_name is None:
-            url_filename = download_option.download_url.split("/")[-1]
-            if "." in url_filename:
-                file_name = url_filename
-            else:
-                # Generate filename from MIME type
-                extension = (
-                    download_option.mime_type_identifier.lower()
-                    if download_option.mime_type_identifier
-                    else "pdf"
-                )
-                file_name = f"document.{extension}"
-
-        # Determine final file path
-        if destination_path is None:
-            final_file_path = Path(file_name)
-        else:
-            destination_dir = Path(destination_path)
-            destination_dir.mkdir(parents=True, exist_ok=True)
-            final_file_path = destination_dir / file_name
-
-        # Check for existing file
-        if final_file_path.exists() and overwrite is False:
-            raise FileExistsError(
-                f"File already exists: {final_file_path}. Use overwrite=True to replace."
-            )
-
-        # Download the file
-        return self._download_file(
-            url=download_option.download_url, file_path=final_file_path.as_posix()
+        return self._download_and_extract(
+            url=download_option.download_url,
+            destination=destination,
+            file_name=file_name,
+            overwrite=overwrite,
         )

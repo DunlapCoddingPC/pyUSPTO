@@ -30,6 +30,7 @@ from pyUSPTO.models.patent_data import (
     Document,
     DocumentBag,
     DocumentFormat,
+    DocumentMimeType,
     EventData,
     ForeignPriority,
     Inventor,
@@ -869,158 +870,155 @@ class TestPatentDocumentDownload:
         )
 
     @pytest.fixture
-    def client_with_mocked_download(self) -> tuple[PatentDataClient, MagicMock]:
-        """Client with mocked _download_file method."""
-        client = PatentDataClient()
-        mock_download_file = MagicMock()
-        client._download_file = mock_download_file
-        return client, mock_download_file
+    def sample_document(self) -> Document:
+        """Sample Document object with multiple formats for testing."""
+        return Document(
+            document_identifier="CTNF-20231115",
+            document_code="CTNF",
+            document_code_description_text="Non-Final Rejection",
+            official_date=datetime(2023, 11, 15),
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF",
+                    download_url="https://api.uspto.gov/api/v1/patent/application/documents/16123123/LDXBTPQ7XBLUEX3.pdf",
+                    page_total_quantity=2,
+                ),
+                DocumentFormat(
+                    mime_type_identifier="XML",
+                    download_url="https://api.uspto.gov/api/v1/patent/application/documents/16123123/LDXBTPQ7XBLUEX3.xml",
+                    page_total_quantity=1,
+                ),
+            ],
+        )
 
-    @patch("pathlib.Path.is_dir")
-    @patch("pathlib.Path.exists")
+    @pytest.fixture
+    def client_with_mocked_download(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> Iterator[tuple[PatentDataClient, MagicMock]]:
+        with patch.object(patent_data_client, "_download_and_extract") as mock_dl:
+            mock_dl.return_value = "/downloads/patent_12345.xml"
+            yield patent_data_client, mock_dl
+
     def test_download_document_basic(
         self,
-        mock_exists: MagicMock,
-        mock_is_dir: MagicMock,
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
-        sample_document_format: DocumentFormat,
+        sample_document: Document,
     ) -> None:
-        """Test basic document download with DocumentFormat object."""
-        client, mock_download_file = client_with_mocked_download
-        mock_exists.return_value = False
-        mock_is_dir.return_value = True
+        """Test basic document download with Document object and format."""
+        client, mock_download_extract = client_with_mocked_download
 
         expected_path = "/tmp/downloads/LDXBTPQ7XBLUEX3.pdf"
-        mock_download_file.return_value = (
-            expected_path  # Ensure the mock returns the expected path
-        )
+        mock_download_extract.return_value = expected_path
 
         result_path = client.download_document(
-            document_format=sample_document_format, destination_path="/tmp/downloads/"
+            document=sample_document, format="PDF", destination="/tmp/downloads/"
         )
 
-        mock_download_file.assert_called_once_with(
-            url=sample_document_format.download_url,
-            file_path=expected_path,
+        # Verify _download_and_extract was called with correct URL
+        mock_download_extract.assert_called_once_with(
+            url="https://api.uspto.gov/api/v1/patent/application/documents/16123123/LDXBTPQ7XBLUEX3.pdf",
+            destination="/tmp/downloads/",
+            file_name=None,
             overwrite=False,
         )
         assert result_path == expected_path
 
-    @patch("pathlib.Path.is_dir")
-    @patch("pathlib.Path.exists")
     def test_download_document_custom_filename(
         self,
-        mock_exists: MagicMock,
-        mock_is_dir: MagicMock,
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
-        sample_document_format: DocumentFormat,
+        sample_document: Document,
     ) -> None:
         """Test document download with custom filename."""
-        client, mock_download_file = client_with_mocked_download
-        mock_exists.return_value = False
-        mock_is_dir.return_value = True
+        client, mock_download_extract = client_with_mocked_download
 
         custom_filename = "my_patent_doc.pdf"
         expected_path = "/tmp/downloads/my_patent_doc.pdf"
-        mock_download_file.return_value = expected_path
+        mock_download_extract.return_value = expected_path
 
         result_path = client.download_document(
-            document_format=sample_document_format,
+            document=sample_document,
+            format="PDF",
             file_name=custom_filename,
-            destination_path="/tmp/downloads",
+            destination="/tmp/downloads",
         )
 
-        mock_download_file.assert_called_once_with(
-            url=sample_document_format.download_url,
-            file_path=expected_path,
+        mock_download_extract.assert_called_once_with(
+            url="https://api.uspto.gov/api/v1/patent/application/documents/16123123/LDXBTPQ7XBLUEX3.pdf",
+            destination="/tmp/downloads",
+            file_name=custom_filename,
             overwrite=False,
         )
         assert result_path == expected_path
 
-    @patch("pathlib.Path.is_dir")
-    @patch("pathlib.Path.exists")
-    def test_download_document_fallback_filename(
+    def test_download_document_xml_format(
         self,
-        mock_exists: MagicMock,
-        mock_is_dir: MagicMock,
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_document: Document,
     ) -> None:
-        """Test document download with mime type fallback for filename."""
-        client, mock_download_file = client_with_mocked_download
-        mock_exists.return_value = False
-        mock_is_dir.return_value = True
+        """Test document download with XML format selection."""
+        client, mock_download_extract = client_with_mocked_download
 
-        document_format = DocumentFormat(
-            mime_type_identifier="PDF",
-            download_url="https://api.uspto.gov/documents/someidentifier",  # No extension in URL
-            page_total_quantity=2,
-        )
+        expected_path = "/tmp/downloads/document.xml"
+        mock_download_extract.return_value = expected_path
 
-        expected_path = "/tmp/downloads/document.pdf"  # Falls back to mime type
-        mock_download_file.return_value = expected_path
         result_path = client.download_document(
-            document_format=document_format, destination_path="/tmp/downloads"
+            document=sample_document, format="XML", destination="/tmp/downloads"
         )
 
-        mock_download_file.assert_called_once_with(
-            url=document_format.download_url,
-            file_path=expected_path,
+        # Should use XML download URL
+        mock_download_extract.assert_called_once_with(
+            url="https://api.uspto.gov/api/v1/patent/application/documents/16123123/LDXBTPQ7XBLUEX3.xml",
+            destination="/tmp/downloads",
+            file_name=None,
             overwrite=False,
         )
-
         assert result_path == expected_path
 
-    @patch("pathlib.Path.is_dir")
     def test_download_document_file_exists_no_overwrite(
         self,
-        mock_is_dir: MagicMock,
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
-        sample_document_format: DocumentFormat,
+        sample_document: Document,
     ) -> None:
         """Test document download raises FileExistsError when file exists and overwrite=False."""
-        client, mock_download_file = client_with_mocked_download
-        mock_is_dir.return_value = True
+        client, mock_download_extract = client_with_mocked_download
 
-        # Mock _download_file to raise FileExistsError (as it will call _save_response_to_file)
-        mock_download_file.side_effect = FileExistsError(
-            "File already exists: /tmp/downloads/LDXBTPQ7XBLUEX3.pdf. Set overwrite=True to replace."
+        # Mock _download_and_extract to raise FileExistsError
+        mock_download_extract.side_effect = FileExistsError(
+            "File already exists: /tmp/downloads/LDXBTPQ7XBLUEX3.pdf. Use overwrite=True"
         )
 
         with pytest.raises(
             FileExistsError, match="File already exists.*overwrite=True"
         ):
             client.download_document(
-                document_format=sample_document_format,
-                destination_path="/tmp/downloads/",
+                document=sample_document,
+                format="PDF",
+                destination="/tmp/downloads/",
             )
 
-    @patch("pathlib.Path.is_dir")
-    @patch("pathlib.Path.exists")
     def test_download_document_overwrite_existing(
         self,
-        mock_exists: MagicMock,
-        mock_is_dir: MagicMock,
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
-        sample_document_format: DocumentFormat,
+        sample_document: Document,
     ) -> None:
         """Test document download overwrites existing file when overwrite=True."""
-        client, mock_download_file = client_with_mocked_download
-        mock_exists.return_value = True  # Simulate file exists, but overwrite is True
-        mock_is_dir.return_value = True
+        client, mock_download_extract = client_with_mocked_download
 
         expected_path = "/tmp/downloads/LDXBTPQ7XBLUEX3.pdf"
-        mock_download_file.return_value = expected_path
+        mock_download_extract.return_value = expected_path
 
         result_path = client.download_document(
-            document_format=sample_document_format,
-            destination_path="/tmp/downloads",
+            document=sample_document,
+            format="PDF",
+            destination="/tmp/downloads",
             overwrite=True,
         )
 
-        expected_path = "/tmp/downloads/LDXBTPQ7XBLUEX3.pdf"
-        mock_download_file.assert_called_once_with(
-            url=sample_document_format.download_url,
-            file_path=expected_path,
+        mock_download_extract.assert_called_once_with(
+            url="https://api.uspto.gov/api/v1/patent/application/documents/16123123/LDXBTPQ7XBLUEX3.pdf",
+            destination="/tmp/downloads",
+            file_name=None,
             overwrite=True,
         )
         assert result_path == expected_path
@@ -1030,65 +1028,137 @@ class TestPatentDocumentDownload:
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
     ) -> None:
         """Test download_document raises ValueError when DocumentFormat has no download URL."""
-        client, mock_download_file = client_with_mocked_download
+        client, mock_download_extract = client_with_mocked_download
 
-        document_format = DocumentFormat(
-            mime_type_identifier="PDF",
-            download_url=None,  # Missing URL
-            page_total_quantity=2,
+        document = Document(
+            document_identifier="TEST-123",
+            document_code="TEST",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF",
+                    download_url=None,  # Missing URL
+                    page_total_quantity=2,
+                )
+            ],
         )
 
-        with pytest.raises(ValueError, match="DocumentFormat must have a download_url"):
-            client.download_document(document_format=document_format)
+        with pytest.raises(ValueError, match="has no download URL"):
+            client.download_document(document=document, format="PDF")
 
-        mock_download_file.assert_not_called()
+        mock_download_extract.assert_not_called()
 
-    @patch("pathlib.Path.exists")
-    def test_download_document_no_file_path(
+    def test_download_document_no_destination(
         self,
-        mock_exists: MagicMock,
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
-        sample_document_format: DocumentFormat,
+        sample_document: Document,
     ) -> None:
-        """Test document download with no file_path provided (uses current directory)."""
-        client, mock_download_file = client_with_mocked_download
-        mock_exists.return_value = False
+        """Test document download with no destination (uses current directory)."""
+        client, mock_download_extract = client_with_mocked_download
 
-        expected_path = "LDXBTPQ7XBLUEX3.pdf"  # Just the filename, no directory
-        mock_download_file.return_value = expected_path
+        expected_path = "LDXBTPQ7XBLUEX3.pdf"
+        mock_download_extract.return_value = expected_path
 
-        # Don't provide file_path - this hits the else branch
-        result_path = client.download_document(document_format=sample_document_format)
+        # Don't provide destination - downloads to current directory
+        result_path = client.download_document(document=sample_document, format="PDF")
 
-        mock_download_file.assert_called_once_with(
-            url=sample_document_format.download_url,
-            file_path=expected_path,
+        mock_download_extract.assert_called_once_with(
+            url="https://api.uspto.gov/api/v1/patent/application/documents/16123123/LDXBTPQ7XBLUEX3.pdf",
+            destination=None,
+            file_name=None,
             overwrite=False,
         )
         assert result_path == expected_path
+
+    def test_download_document_with_enum(
+        self,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_document: Document,
+    ) -> None:
+        """Test document download using DocumentMimeType enum."""
+        client, mock_download_extract = client_with_mocked_download
+
+        expected_path = "/tmp/downloads/document.xml"
+        mock_download_extract.return_value = expected_path
+
+        result_path = client.download_document(
+            document=sample_document,
+            format=DocumentMimeType.XML,
+            destination="/tmp/downloads",
+        )
+
+        mock_download_extract.assert_called_once_with(
+            url="https://api.uspto.gov/api/v1/patent/application/documents/16123123/LDXBTPQ7XBLUEX3.xml",
+            destination="/tmp/downloads",
+            file_name=None,
+            overwrite=False,
+        )
+        assert result_path == expected_path
+
+    def test_download_document_format_not_available(
+        self,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+        sample_document: Document,
+    ) -> None:
+        """Test download_document raises ValueError when format not available."""
+        client, mock_download_extract = client_with_mocked_download
+
+        with pytest.raises(
+            ValueError,
+            match="Format 'MS_WORD' not available. Available: PDF, XML",
+        ):
+            client.download_document(document=sample_document, format="MS_WORD")
+
+        mock_download_extract.assert_not_called()
+
+    def test_download_document_empty_download_options(
+        self,
+        client_with_mocked_download: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """Test download_document raises ValueError when no download options."""
+        client, mock_download_extract = client_with_mocked_download
+
+        document = Document(
+            document_identifier="TEST-123",
+            document_code="TEST",
+            document_formats=[],  # Empty list
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="Format 'PDF' not available. Available:",
+        ):
+            client.download_document(document=document, format="PDF")
+
+        mock_download_extract.assert_not_called()
 
 
 class TestDownloadFile:
     """Tests for the _download_file method in BaseUSPTOClient."""
 
+    @patch("pathlib.Path.exists")
     @patch("builtins.open", new_callable=mock_open)
     @patch.object(BaseUSPTOClient, "_make_request")
     def test_download_file_success(
         self,
         mock_make_request: MagicMock,
         mock_file_open: MagicMock,
+        mock_exists: MagicMock,
         patent_data_client: PatentDataClient,
     ) -> None:
         """Test successful file download."""
+        url = "https://example.com/file.pdf"
         # Setup mock response
         mock_response = MagicMock(spec=requests.Response)
+        mock_response.headers = {}
+        mock_response.url = url
         mock_response.iter_content.return_value = [b"chunk1", b"chunk2", b""]
         mock_make_request.return_value = mock_response
+        mock_exists.return_value = False
 
-        url = "https://example.com/file.pdf"
-        file_path = "/tmp/test_file.pdf"
+        destination = "/tmp"
+        file_name = "file.pdf"
 
-        result = patent_data_client._download_file(url, file_path)
+        result = patent_data_client._download_file(url, destination=destination, file_name=file_name)
 
         # Verify _make_request called correctly
         mock_make_request.assert_called_once_with(
@@ -1098,13 +1168,13 @@ class TestDownloadFile:
         # Verify file operations - use str(Path()) to normalize path for platform
         from pathlib import Path
 
-        expected_path = str(Path(file_path))
-        mock_file_open.assert_called_once_with(file=expected_path, mode="wb")
+        expected_path = Path(destination) / file_name
+        mock_file_open.assert_called_once_with(expected_path, "wb")
         mock_file_open().write.assert_has_calls(
             [mock.call(b"chunk1"), mock.call(b"chunk2")]
         )
 
-        assert result == expected_path
+        assert result == str(expected_path)
 
     @patch.object(BaseUSPTOClient, "_make_request")
     def test_download_file_wrong_response_type(
@@ -1119,9 +1189,7 @@ class TestDownloadFile:
         url = "https://example.com/file.pdf"
         file_path = "/tmp/test_file.pdf"
 
-        with pytest.raises(
-            TypeError, match="Expected requests.Response for streaming download"
-        ):
+        with pytest.raises(TypeError, match="Expected Response, got <class 'dict'>"):
             patent_data_client._download_file(url, file_path)
 
     @patch("builtins.open", new_callable=mock_open)
@@ -1134,7 +1202,8 @@ class TestDownloadFile:
     ) -> None:
         """Test that empty chunks are filtered out."""
         mock_response = MagicMock(spec=requests.Response)
-        mock_response.headers = {}  # Add headers to mock
+        mock_response.headers = {}
+        mock_response.url = "https://test.com/file"
         mock_response.iter_content.return_value = [b"data", b"", None, b"more"]
         mock_make_request.return_value = mock_response
 
@@ -1469,16 +1538,17 @@ class TestDownloadArchive:
         return PrintedMetaData(
             xml_file_name="patent_12345.xml",
             product_identifier="PTGRXML",
-            file_location_uri="https://bulkdata.uspto.gov/data/patent/grant/redbook/fulltext/2024/patent_12345.xml",
+            file_location_uri="https://api.uspto.gov/data/patent/grant/redbook/fulltext/2024/patent_12345.xml",
         )
 
     @pytest.fixture
-    def client_with_mocked_download(self) -> tuple[PatentDataClient, MagicMock]:
-        """Client with mocked _download_file method."""
-        client = PatentDataClient()
-        mock_download_file = MagicMock()
-        client._download_file = mock_download_file
-        return client, mock_download_file
+    def client_with_mocked_download(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> Iterator[tuple[PatentDataClient, MagicMock]]:
+        with patch.object(patent_data_client, "_download_and_extract") as mock_dl:
+            mock_dl.return_value = "/downloads/patent_12345.xml"
+            yield patent_data_client, mock_dl
 
     @patch("pathlib.Path.exists")
     @patch("pathlib.Path.mkdir")
@@ -1497,13 +1567,14 @@ class TestDownloadArchive:
         mock_download_file.return_value = expected_path
 
         result = client.download_archive(
-            printed_metadata=sample_printed_metadata, destination_path="/printedmeta"
+            printed_metadata=sample_printed_metadata, destination="/printedmeta"
         )
 
         # Verify overwrite=False is passed by default
         mock_download_file.assert_called_once_with(
             url=sample_printed_metadata.file_location_uri,
-            file_path=expected_path,
+            destination="/printedmeta",
+            file_name=None,
             overwrite=False,
         )
         assert result == expected_path
@@ -1528,18 +1599,19 @@ class TestDownloadArchive:
         result = client.download_archive(
             printed_metadata=sample_printed_metadata,
             file_name=custom_name,
-            destination_path="/printedmeta",
+            destination="/printedmeta",
         )
 
         mock_download_file.assert_called_once_with(
             url=sample_printed_metadata.file_location_uri,
-            file_path=expected_path,
+            destination="/printedmeta",
+            file_name=custom_name,
             overwrite=False,
         )
         assert result == expected_path
 
     @patch("pathlib.Path.exists")
-    def test_download_archive_no_destination_path(
+    def test_download_archive_no_destination(
         self,
         mock_exists: MagicMock,
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
@@ -1556,7 +1628,8 @@ class TestDownloadArchive:
 
         mock_download_file.assert_called_once_with(
             url=sample_printed_metadata.file_location_uri,
-            file_path=expected_path,
+            destination=None,
+            file_name=None,
             overwrite=False,
         )
         assert result == expected_path
@@ -1572,7 +1645,7 @@ class TestDownloadArchive:
         )
 
         with pytest.raises(
-            ValueError, match="PrintedMetaData must have a file_location_uri"
+            ValueError, match="PrintedMetaData has no file_location_uri"
         ):
             client.download_archive(printed_metadata=metadata_no_url)
 
@@ -1589,12 +1662,13 @@ class TestDownloadArchive:
         client, mock_download_file = client_with_mocked_download
         mock_exists.return_value = True
 
+        # Mock _download_and_extract to raise FileExistsError
+        mock_download_file.side_effect = FileExistsError("File exists. Use overwrite=True")
+
         with pytest.raises(
-            FileExistsError, match="File already exists.*Use overwrite=True"
+            FileExistsError, match="File exists.*Use overwrite=True"
         ):
             client.download_archive(printed_metadata=sample_printed_metadata)
-
-        mock_download_file.assert_not_called()
 
     @patch("pathlib.Path.exists")
     def test_download_archive_overwrite_existing(
@@ -1643,7 +1717,8 @@ class TestDownloadArchive:
 
         mock_download_file.assert_called_once_with(
             url=metadata.file_location_uri,
-            file_path=expected_path,
+            destination=None,
+            file_name=None,
             overwrite=False,
         )
         assert result == expected_path
@@ -1671,7 +1746,8 @@ class TestDownloadArchive:
 
         mock_download_file.assert_called_once_with(
             url=metadata.file_location_uri,
-            file_path=expected_path,
+            destination=None,
+            file_name=None,
             overwrite=False,
         )
         assert result == expected_path
@@ -1694,13 +1770,14 @@ class TestDownloadArchive:
         mock_download_file.return_value = expected_path
 
         result = client.download_publication(
-            printed_metadata=sample_printed_metadata, destination_path="/downloads"
+            printed_metadata=sample_printed_metadata, destination="/downloads"
         )
 
         # Verify overwrite=False is passed by default
         mock_download_file.assert_called_once_with(
             url=sample_printed_metadata.file_location_uri,
-            file_path=expected_path,
+            destination="/downloads",
+            file_name=None,
             overwrite=False,
         )
         assert result == expected_path
@@ -1725,18 +1802,19 @@ class TestDownloadArchive:
         result = client.download_publication(
             printed_metadata=sample_printed_metadata,
             file_name=custom_name,
-            destination_path="/downloads",
+            destination="/downloads",
         )
 
         mock_download_file.assert_called_once_with(
             url=sample_printed_metadata.file_location_uri,
-            file_path=expected_path,
+            destination="/downloads",
+            file_name=custom_name,
             overwrite=False,
         )
         assert result == expected_path
 
     @patch("pathlib.Path.exists")
-    def test_download_publication_no_destination_path(
+    def test_client_with_mocked_download_no_destination(
         self,
         mock_exists: MagicMock,
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
@@ -1753,7 +1831,8 @@ class TestDownloadArchive:
 
         mock_download_file.assert_called_once_with(
             url=sample_printed_metadata.file_location_uri,
-            file_path=expected_path,
+            destination=None,
+            file_name=None,
             overwrite=False,
         )
         assert result == expected_path
@@ -1769,29 +1848,27 @@ class TestDownloadArchive:
         )
 
         with pytest.raises(
-            ValueError, match="PrintedMetaData must have a file_location_uri"
+            ValueError, match="PrintedMetaData has no file_location_uri"
         ):
             client.download_publication(printed_metadata=metadata_no_url)
 
         mock_download_file.assert_not_called()
 
-    @patch("pathlib.Path.exists")
     def test_download_publication_file_exists_no_overwrite(
         self,
-        mock_exists: MagicMock,
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
         sample_printed_metadata: PrintedMetaData,
     ) -> None:
         """Test download_publication raises FileExistsError when file exists."""
         client, mock_download_file = client_with_mocked_download
-        mock_exists.return_value = True
+
+        # Mock _download_and_extract to raise FileExistsError
+        mock_download_file.side_effect = FileExistsError("File exists. Use overwrite=True")
 
         with pytest.raises(
-            FileExistsError, match="File already exists.*Use overwrite=True"
+            FileExistsError, match="File exists.*Use overwrite=True"
         ):
             client.download_publication(printed_metadata=sample_printed_metadata)
-
-        mock_download_file.assert_not_called()
 
     @patch("pathlib.Path.exists")
     def test_download_publication_overwrite_existing(

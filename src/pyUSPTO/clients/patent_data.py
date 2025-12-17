@@ -6,7 +6,6 @@ It allows you to search for and retrieve patent application data.
 
 import warnings
 from collections.abc import Iterator
-from pathlib import Path
 from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
@@ -15,8 +14,9 @@ from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
     ApplicationMetaData,
     Assignment,
+    Document,
     DocumentBag,
-    DocumentFormat,
+    DocumentMimeType,
     EventData,
     ForeignPriority,
     PatentDataResponse,
@@ -929,58 +929,67 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def download_document(
         self,
-        document_format: DocumentFormat,
+        document: Document,
+        format: str | DocumentMimeType = DocumentMimeType.PDF,
+        destination: str | None = None,
         file_name: str | None = None,
-        destination_path: str | None = None,
         overwrite: bool = False,
-        stream: bool = True,
     ) -> str:
-        """Download a document in the specified format.
+        """Download document in specified format.
+
+        Automatically extracts if USPTO sends TAR/ZIP.
 
         Args:
-            document_format: DocumentFormat object containing download URL and metadata
-            file_name: Optional filename. If not provided, extracted from URL
-            destination_path: Optional path - can be a directory OR a complete file path
-            overwrite: Whether to overwrite existing files. Default False
-            stream: Whether to stream the download. Default True for large files
+            document: Document with document_formats list
+            format: Which format (PDF, XML, MS_WORD). Can be string or DocumentMimeType enum.
+                Defaults to PDF.
+            destination: Directory to save to (default: current directory)
+            file_name: Override filename (default: from Content-Disposition)
+            overwrite: Overwrite existing file
 
         Returns:
-            str: Path to the downloaded file
+            Path to downloaded file (extracted if was in archive)
 
         Raises:
-            ValueError: If document_format has no download URL
-            FileExistsError: If file exists and overwrite=False
+            ValueError: If format not available for this document
+
+        Example:
+            >>> docs = client.get_application_documents("19312841", document_codes=["CTNF"])
+            >>> path = client.download_document(docs[0], format="XML")
+            >>> # Or using enum:
+            >>> path = client.download_document(docs[0], format=DocumentMimeType.XML)
         """
-        # Validate we have a download URL
-        if document_format.download_url is None:
-            raise ValueError("DocumentFormat must have a download_url")
+        # Find matching format
+        format_str = format.value if isinstance(format, DocumentMimeType) else format
 
-        # Get filename - either provided or extract from URL
-        if file_name is None:
-            url_filename = document_format.download_url.split("/")[-1]
-            if "." in url_filename:
-                file_name = url_filename
-            else:
-                extension = (
-                    document_format.mime_type_identifier.lower()
-                    if document_format.mime_type_identifier
-                    else "pdf"
-                )
-                file_name = f"document.{extension}"
+        doc_format = next(
+            (
+                f
+                for f in document.document_formats
+                if f.mime_type_identifier == format_str
+            ),
+            None,
+        )
 
-        # Determine final file path
-        if destination_path is None:
-            final_file_path = Path(file_name)
-        else:
-            # destination_path is ALWAYS treated as a directory path
-            destination_dir = Path(destination_path)
-            destination_dir.mkdir(parents=True, exist_ok=True)
-            final_file_path = destination_dir / file_name
+        if not doc_format:
+            available = [
+                f.mime_type_identifier
+                for f in document.document_formats
+                if f.mime_type_identifier
+            ]
+            raise ValueError(
+                f"Format '{format_str}' not available. "
+                f"Available: {', '.join(available)}"
+            )
 
-        # Download the file (overwrite check handled by base class)
-        return self._download_file(
-            url=document_format.download_url,
-            file_path=final_file_path.as_posix(),
+        if not doc_format.download_url:
+            raise ValueError("DocumentFormat has no download URL")
+
+        # Download and auto-extract (user wants document, not TAR)
+        return self._download_and_extract(
+            url=doc_format.download_url,
+            destination=destination,
+            file_name=file_name,
             overwrite=overwrite,
         )
 
@@ -1041,97 +1050,69 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def download_archive(
         self,
         printed_metadata: PrintedMetaData,
+        destination: str | None = None,
         file_name: str | None = None,
-        destination_path: str | None = None,
         overwrite: bool = False,
     ) -> str:
         """Download Printed Metadata (XML data).
 
-        These are XML files of the patent as printed.
+        These are XML files of the patent as printed. Auto-extracts if the server
+        sends a TAR/ZIP archive.
 
         Note:
             See also `download_publication()` for a clearer method name with identical functionality.
 
         Args:
             printed_metadata: ArchiveMetaData object containing download URL and metadata
-            file_name: Optional filename. If not provided, uses xml_file_name from metadata
-            destination_path: Optional directory path to save the file
+            destination: Optional directory path to save the file
+            file_name: Optional filename. If not provided, uses Content-Disposition header
             overwrite: Whether to overwrite existing files. Default False
 
         Returns:
-            str: Path to the downloaded file
+            str: Path to the downloaded file (extracted if was in archive)
 
         Raises:
             ValueError: If printed_metadata has no download URL
             FileExistsError: If file exists and overwrite=False
         """
-        # Validate we have a download URL
-        if printed_metadata.file_location_uri is None:
-            raise ValueError("PrintedMetaData must have a file_location_uri")
+        if not printed_metadata.file_location_uri:
+            raise ValueError("PrintedMetaData has no file_location_uri")
 
-        # Get filename - either provided or from metadata
-        if file_name is None:
-            if printed_metadata.xml_file_name:
-                file_name = printed_metadata.xml_file_name
-            else:
-                # Fallback: extract from URL
-                url_filename = printed_metadata.file_location_uri.split("/")[-1]
-                if "." in url_filename:
-                    file_name = url_filename
-                else:
-                    # Last resort: use product identifier
-                    product_id = printed_metadata.product_identifier or "patent_text"
-                    file_name = f"{product_id}.xml"
-
-        # Determine final file path
-        if destination_path is None:
-            final_file_path = Path(file_name)
-        else:
-            destination_dir = Path(destination_path)
-            destination_dir.mkdir(parents=True, exist_ok=True)
-            final_file_path = destination_dir / file_name
-
-        # Check for existing file
-        if final_file_path.exists() and overwrite is False:
-            raise FileExistsError(
-                f"File already exists: {final_file_path}. Use overwrite=True to replace."
-            )
-
-        # Download the Printed Metadata
-        return self._download_file(
+        return self._download_and_extract(
             url=printed_metadata.file_location_uri,
-            file_path=final_file_path.as_posix(),
+            destination=destination,
+            file_name=file_name,
             overwrite=overwrite,
         )
 
     def download_publication(
         self,
         printed_metadata: PrintedMetaData,
+        destination: str | None = None,
         file_name: str | None = None,
-        destination_path: str | None = None,
         overwrite: bool = False,
     ) -> str:
         """Download a publication XML file (grant or pre-grant publication).
 
         This method downloads publication XML files from PrintedMetaData objects,
-        such as grant documents or pre-grant publications (pgpub). The filename
-        is automatically extracted from the metadata if not provided.
+        such as grant documents or pre-grant publications (pgpub). Auto-extracts
+        if the server sends a TAR/ZIP archive.
 
         Args:
             printed_metadata: PrintedMetaData object containing the publication
                 download URL and filename information. Typically obtained from
                 `get_application_associated_documents()` or from PatentFileWrapper's
                 `grant_document_meta_data` or `pg_publication_document_meta_data`.
-            file_name: Optional custom filename. If not provided, uses the
-                `xml_file_name` from the metadata (e.g., "18915708_12307527.xml").
-            destination_path: Optional directory path where the file should be saved.
+            destination: Optional directory path where the file should be saved.
                 If not provided, saves to the current directory. The directory will
                 be created if it doesn't exist.
+            file_name: Optional custom filename. If not provided, uses the
+                `xml_file_name` from the metadata (e.g., "18915708_12307527.xml").
             overwrite: Whether to overwrite an existing file at the destination.
                 Default is False, which raises FileExistsError if file exists.
 
         Returns:
-            str: Absolute path to the downloaded publication file.
+            str: Absolute path to the downloaded publication file (extracted if was in archive).
 
         Raises:
             ValueError: If printed_metadata has no file_location_uri (download URL).
@@ -1143,7 +1124,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             >>> response = client.get_application_by_number("18/915,708")
             >>> ifw = response
             >>> grant_metadata = ifw.grant_document_meta_data
-            >>> path = client.download_publication(grant_metadata, destination_path="./downloads")
+            >>> path = client.download_publication(grant_metadata, destination="./downloads")
             >>> print(path)
             './downloads/18915708_12307527.xml'
 
@@ -1153,7 +1134,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             >>> path = client.download_publication(
             ...     pgpub_metadata,
             ...     file_name="my_publication.xml",
-            ...     destination_path="./downloads"
+            ...     destination="./downloads"
             ... )
             >>> print(path)
             './downloads/my_publication.xml'
@@ -1164,9 +1145,12 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             >>> print(path)
             './18915708_12307527.xml'
         """
-        return self.download_archive(
-            printed_metadata=printed_metadata,
+        if not printed_metadata.file_location_uri:
+            raise ValueError("PrintedMetaData has no file_location_uri")
+
+        return self._download_and_extract(
+            url=printed_metadata.file_location_uri,
+            destination=destination,
             file_name=file_name,
-            destination_path=destination_path,
             overwrite=overwrite,
         )

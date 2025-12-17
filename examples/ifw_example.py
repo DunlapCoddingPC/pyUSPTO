@@ -66,7 +66,7 @@ if app_no_ifw and app_no_ifw.pgpub_document_meta_data:
     print(json.dumps(pgpub_archive.to_dict(), indent=2))
     download_path = "./download-example"
     file_path = client.download_archive(
-        printed_metadata=pgpub_archive, destination_path=download_path, overwrite=True
+        printed_metadata=pgpub_archive, destination=download_path, overwrite=True
     )
     print(f"-Downloaded document to: {file_path}")
 
@@ -76,6 +76,6 @@ if app_no_ifw and app_no_ifw.grant_document_meta_data:
     print(json.dumps(grant_archive.to_dict(), indent=2))
     download_path = "./download-example"
     file_path = client.download_archive(
-        printed_metadata=grant_archive, destination_path=download_path, overwrite=True
+        printed_metadata=grant_archive, destination=download_path, overwrite=True
     )
     print(f"-Downloaded document to: {file_path}")

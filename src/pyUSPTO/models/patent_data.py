@@ -71,6 +71,14 @@ class ActiveIndicator(Enum):
         return super()._missing_(value=value)  # type: ignore[no-any-return]
 
 
+class DocumentMimeType(str, Enum):
+    """MIME types for document downloads from USPTO."""
+
+    PDF = "PDF"
+    XML = "XML"
+    MS_WORD = "MS_WORD"
+
+
 # --- Data Models ---
 @dataclass(frozen=True)
 class DocumentFormat:

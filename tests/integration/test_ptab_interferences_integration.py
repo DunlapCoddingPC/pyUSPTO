@@ -15,6 +15,9 @@ from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import USPTOApiError
 from pyUSPTO.models.ptab import PTABInterferenceDecision, PTABInterferenceResponse
 
+# Import shared fixtures
+from tests.integration.conftest import TEST_DOWNLOAD_DIR
+
 # Skip all tests in this module unless ENABLE_INTEGRATION_TESTS is set to 'true'
 pytestmark = pytest.mark.skipif(
     os.environ.get("ENABLE_INTEGRATION_TESTS", "").lower() != "true",
@@ -22,7 +25,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def ptab_interferences_client(config: USPTOConfig) -> PTABInterferencesClient:
     """
     Create a PTABInterferencesClient instance for integration tests.
@@ -34,6 +37,17 @@ def ptab_interferences_client(config: USPTOConfig) -> PTABInterferencesClient:
         PTABInterferencesClient: A client instance
     """
     return PTABInterferencesClient(config=config)
+
+
+@pytest.fixture(scope="class")
+def interferences_with_download_uris(
+    ptab_interferences_client: PTABInterferencesClient,
+) -> PTABInterferenceResponse:
+    """Fetch interference decisions with download URIs once and cache for all download tests."""
+    return ptab_interferences_client.search_decisions(
+        query="interferenceNumber:*",
+        limit=5,
+    )
 
 
 class TestPTABInterferencesIntegration:
@@ -63,7 +77,7 @@ class TestPTABInterferencesIntegration:
                 assert decision.interference_number is not None
 
         except USPTOApiError as e:
-            pytest.skip(
+            pytest.fail(
                 f"PTAB Interferences API error during search_decisions GET: {e}"
             )
 
@@ -94,7 +108,7 @@ class TestPTABInterferencesIntegration:
                             )
 
         except USPTOApiError as e:
-            pytest.skip(
+            pytest.fail(
                 f"PTAB Interferences API error during search_decisions with convenience params: {e}"
             )
 
@@ -119,7 +133,7 @@ class TestPTABInterferencesIntegration:
                 assert len(response.patent_interference_data_bag) <= 2
 
         except USPTOApiError as e:
-            pytest.skip(
+            pytest.fail(
                 f"PTAB Interferences API error during search_decisions POST: {e}"
             )
 
@@ -143,7 +157,7 @@ class TestPTABInterferencesIntegration:
                 assert response.patent_interference_data_bag is not None
 
         except USPTOApiError as e:
-            pytest.skip(
+            pytest.fail(
                 f"PTAB Interferences API error during search_decisions with date filters: {e}"
             )
 
@@ -173,7 +187,7 @@ class TestPTABInterferencesIntegration:
                             )
 
         except USPTOApiError as e:
-            pytest.skip(
+            pytest.fail(
                 f"PTAB Interferences API error during search by decision type: {e}"
             )
 
@@ -217,7 +231,7 @@ class TestPTABInterferencesIntegration:
                 assert response.patent_interference_data_bag is not None
 
         except USPTOApiError as e:
-            pytest.skip(
+            pytest.fail(
                 f"PTAB Interferences API error during search by patent number: {e}"
             )
 
@@ -243,7 +257,7 @@ class TestPTABInterferencesIntegration:
                 assert len(results) <= max_results
 
         except USPTOApiError as e:
-            pytest.skip(f"PTAB Interferences API error during paginate_decisions: {e}")
+            pytest.fail(f"PTAB Interferences API error during paginate_decisions: {e}")
 
     def test_search_with_optional_params(
         self, ptab_interferences_client: PTABInterferencesClient
@@ -262,7 +276,7 @@ class TestPTABInterferencesIntegration:
             assert response.count >= 0
 
         except USPTOApiError as e:
-            pytest.skip(
+            pytest.fail(
                 f"PTAB Interferences API error during search with optional params: {e}"
             )
 
@@ -284,7 +298,7 @@ class TestPTABInterferencesIntegration:
                 assert response.patent_interference_data_bag is not None
 
         except USPTOApiError as e:
-            pytest.skip(
+            pytest.fail(
                 f"PTAB Interferences API error during search by style name: {e}"
             )
 
@@ -306,7 +320,7 @@ class TestPTABInterferencesIntegration:
             )
 
             if response is None or response.count == 0:
-                pytest.skip(
+                pytest.fail(
                     "No interference decisions found for raw API comparison test"
                 )
 
@@ -397,7 +411,124 @@ class TestPTABInterferencesIntegration:
                 )
 
         except USPTOApiError as e:
-            pytest.skip(f"Raw API comparison test failed with API error: {e}")
+            pytest.fail(f"Raw API comparison test failed with API error: {e}")
+
+    def test_download_interference_archive(
+        self,
+        ptab_interferences_client: PTABInterferencesClient,
+        interferences_with_download_uris: PTABInterferenceResponse,
+    ) -> None:
+        """Test downloading interference archive file without extraction."""
+        if not interferences_with_download_uris.patent_interference_data_bag:
+            pytest.fail("No interference decisions found for archive download test")
+
+        # Try multiple decisions until one downloads successfully
+        last_error = None
+        for decision in interferences_with_download_uris.patent_interference_data_bag:
+            if (
+                not decision.interference_meta_data
+                or not decision.interference_meta_data.file_download_uri
+            ):
+                continue
+
+            try:
+                file_path = ptab_interferences_client.download_interference_archive(
+                    decision.interference_meta_data,
+                    destination=TEST_DOWNLOAD_DIR,
+                    overwrite=True,
+                )
+
+                assert file_path is not None
+                assert os.path.exists(file_path)
+                assert os.path.getsize(file_path) > 0
+                assert file_path.endswith((".zip", ".tar", ".tar.gz", ".tgz"))
+                return  # Test passed!
+
+            except USPTOApiError as e:
+                last_error = e
+                continue
+
+        # If we get here, all decisions failed to download
+        pytest.fail(
+            f"Failed to download any interference archive from {len(interferences_with_download_uris.patent_interference_data_bag)} decisions. "
+            f"Last error: {last_error}"
+        )
+
+    def test_download_interference_documents(
+        self,
+        ptab_interferences_client: PTABInterferencesClient,
+        interferences_with_download_uris: PTABInterferenceResponse,
+    ) -> None:
+        """Test downloading and extracting interference documents."""
+        if not interferences_with_download_uris.patent_interference_data_bag:
+            pytest.fail(
+                "No interference decisions found for documents download test"
+            )
+
+        # Try multiple decisions until one downloads successfully
+        last_error = None
+        for decision in interferences_with_download_uris.patent_interference_data_bag:
+            if (
+                not decision.interference_meta_data
+                or not decision.interference_meta_data.file_download_uri
+            ):
+                continue
+
+            try:
+                extracted_path = ptab_interferences_client.download_interference_documents(
+                    decision.interference_meta_data,
+                    destination=TEST_DOWNLOAD_DIR,
+                    overwrite=True,
+                )
+
+                assert extracted_path is not None
+                assert os.path.exists(extracted_path)
+                return  # Test passed!
+
+            except USPTOApiError as e:
+                last_error = e
+                continue
+
+        # If we get here, all decisions failed to download
+        pytest.fail(
+            f"Failed to download any interference documents from {len(interferences_with_download_uris.patent_interference_data_bag)} decisions. "
+            f"Last error: {last_error}"
+        )
+
+    def test_download_interference_document(
+        self, ptab_interferences_client: PTABInterferencesClient
+    ) -> None:
+        """Test downloading individual interference document."""
+        try:
+            response = ptab_interferences_client.search_decisions(
+                query="interferenceNumber:*",
+                limit=1,
+            )
+
+            if not response or not response.patent_interference_data_bag:
+                pytest.fail(
+                    "No interference decisions found for document download test"
+                )
+
+            decision = response.patent_interference_data_bag[0]
+            if (
+                not decision.document_data
+                or not decision.document_data.file_download_uri
+            ):
+                pytest.fail("No file_download_uri available for test")
+
+            file_path = ptab_interferences_client.download_interference_document(
+                decision.document_data,
+                destination=TEST_DOWNLOAD_DIR,
+                overwrite=True,
+            )
+
+            assert file_path is not None
+            assert os.path.exists(file_path)
+            assert os.path.getsize(file_path) > 0
+
+        except USPTOApiError as e:
+            pytest.fail(f"PTAB Interferences API error during document download: {e}")
 
     def test_invalid_query_handling(
         self, ptab_interferences_client: PTABInterferencesClient

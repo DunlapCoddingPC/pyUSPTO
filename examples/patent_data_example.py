@@ -156,11 +156,12 @@ try:
                 document_to_download.document_formats
                 and document_to_download.document_identifier
             ):
-                print("\nAttempting to download first document...")
+                print("\nAttempting to download first PDF document...")
                 print(json.dumps(document_to_download.to_dict(), indent=2))
                 downloaded_path = client.download_document(
-                    document_format=document_to_download.document_formats[0],
-                    destination_path=DEST_PATH,
+                    document=document_to_download,
+                    format="PDF",
+                    destination=DEST_PATH,
                     overwrite=True,
                 )
                 print(f"Downloaded document to: {downloaded_path}")
@@ -183,7 +184,7 @@ try:
             print("\nDownloading grant XML...")
             grant_path = client.download_publication(
                 printed_metadata=grant_metadata,
-                destination_path=DEST_PATH,
+                destination=DEST_PATH,
                 overwrite=True,
             )
             print(f"Downloaded grant XML to: {grant_path}")
@@ -196,7 +197,7 @@ try:
             pgpub_path = client.download_publication(
                 printed_metadata=pgpub_metadata,
                 file_name="my_pgpub.xml",
-                destination_path=DEST_PATH,
+                destination=DEST_PATH,
                 overwrite=True,
             )
             print(f"Downloaded pgpub XML to: {pgpub_path}")

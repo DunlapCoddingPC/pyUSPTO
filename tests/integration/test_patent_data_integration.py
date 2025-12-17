@@ -20,6 +20,7 @@ from pyUSPTO.models.patent_data import (
     Assignment,
     Document,
     DocumentBag,
+    DocumentMimeType,
     EventData,
     ForeignPriority,
     PatentDataResponse,
@@ -606,7 +607,7 @@ class TestPatentDataIntegration:
     def test_download_application_document(
         self, patent_data_client: PatentDataClient
     ) -> None:
-        """Test downloading a document file."""
+        """Test downloading a document file with new signature."""
         try:
             documents_bag = patent_data_client.get_application_documents(
                 self.KNOWN_APP_NUM_WITH_DOCS
@@ -630,8 +631,10 @@ class TestPatentDataIntegration:
             assert isinstance(doc_to_download.document_identifier, str)
 
             file_path = patent_data_client.download_document(
-                document_format=doc_to_download.document_formats[0],
-                destination_path=TEST_DOWNLOAD_DIR,
+                document=doc_to_download,
+                format=DocumentMimeType.PDF,
+                destination=TEST_DOWNLOAD_DIR,
+                overwrite=True,
             )
 
             assert file_path is not None
@@ -750,6 +753,105 @@ class TestPatentDataIntegration:
 
         except USPTOApiError as e:
             pytest.skip(f"Status codes POST search failed: {e}")
+
+    def test_download_xml_document_extracts_tar(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test that XML documents in TAR archives are automatically extracted."""
+        try:
+            docs = patent_data_client.get_application_documents(
+                "19312841", document_codes=["CTNF", "CTFR"]
+            )
+            if not docs or not docs.documents:
+                pytest.skip("No CTNF/CTFR documents found for test application 19312841")
+
+            xml_doc = None
+            for doc in docs.documents:
+                if doc.document_formats:
+                    for fmt in doc.document_formats:
+                        if fmt.mime_type_identifier == "XML":
+                            xml_doc = doc
+                            break
+                if xml_doc:
+                    break
+
+            if not xml_doc:
+                pytest.skip("No XML format document found for test")
+
+            file_path = patent_data_client.download_document(
+                document=xml_doc,
+                format=DocumentMimeType.XML,
+                destination=TEST_DOWNLOAD_DIR,
+            )
+
+            assert file_path is not None
+            assert os.path.exists(file_path)
+            assert file_path.endswith(".xml"), f"Expected XML file, got {file_path}"
+            assert os.path.getsize(file_path) > 0
+
+        except (USPTOApiNotFoundError, USPTOApiError) as e:
+            pytest.skip(f"API error during XML download test: {e}")
+
+    def test_content_disposition_filename_used(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test that filenames from Content-Disposition headers are used."""
+        try:
+            docs = patent_data_client.get_application_documents(
+                self.KNOWN_APP_NUM_WITH_DOCS
+            )
+            if not docs or not docs.documents:
+                pytest.skip(f"No documents found for {self.KNOWN_APP_NUM_WITH_DOCS}")
+
+            doc_to_download = next(
+                (d for d in docs.documents if d.document_formats), None
+            )
+            if not doc_to_download:
+                pytest.skip("No downloadable document found")
+
+            file_path = patent_data_client.download_document(
+                document=doc_to_download,
+                destination=TEST_DOWNLOAD_DIR,
+                overwrite=True,
+            )
+
+            assert file_path is not None
+            assert os.path.exists(file_path)
+            assert os.path.basename(file_path) != "download"
+
+        except (USPTOApiNotFoundError, USPTOApiError) as e:
+            pytest.skip(f"API error during Content-Disposition test: {e}")
+
+    def test_download_with_format_enum(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test downloading using DocumentMimeType enum."""
+        try:
+            docs = patent_data_client.get_application_documents(
+                self.KNOWN_APP_NUM_WITH_DOCS
+            )
+            if not docs or not docs.documents:
+                pytest.skip(f"No documents found for {self.KNOWN_APP_NUM_WITH_DOCS}")
+
+            doc_to_download = next(
+                (d for d in docs.documents if d.document_formats), None
+            )
+            if not doc_to_download:
+                pytest.skip("No downloadable document found")
+
+            file_path = patent_data_client.download_document(
+                document=doc_to_download,
+                format=DocumentMimeType.PDF,
+                destination=TEST_DOWNLOAD_DIR,
+                overwrite=True,
+            )
+
+            assert file_path is not None
+            assert os.path.exists(file_path)
+            assert os.path.getsize(file_path) > 0
+
+        except (USPTOApiNotFoundError, USPTOApiError) as e:
+            pytest.skip(f"API error during enum format test: {e}")
 
     def test_invalid_application_number_handling(
         self, patent_data_client: PatentDataClient

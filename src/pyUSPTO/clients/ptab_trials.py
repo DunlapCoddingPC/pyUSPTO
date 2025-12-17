@@ -14,6 +14,8 @@ from pyUSPTO.models.ptab import (
     PTABTrialDocumentResponse,
     PTABTrialProceeding,
     PTABTrialProceedingResponse,
+    TrialDocumentData,
+    TrialMetaData,
 )
 
 
@@ -502,4 +504,94 @@ class PTABTrialsClient(
             response_container_attr="patent_trial_proceeding_data_bag",
             post_body=post_body,
             **kwargs,
+        )
+
+    def download_trial_archive(
+        self,
+        trial_meta_data: TrialMetaData,
+        destination: str | None = None,
+        file_name: str | None = None,
+        overwrite: bool = False,
+    ) -> str:
+        """Download trial archive (ZIP/TAR) without extraction.
+
+        Args:
+            trial_meta_data: TrialMetaData with file_download_uri
+            destination: Directory to save to
+            file_name: Override filename
+            overwrite: Overwrite existing file
+
+        Returns:
+            Path to downloaded archive file
+
+        Raises:
+            ValueError: If trial_meta_data has no file_download_uri
+        """
+        if not trial_meta_data.file_download_uri:
+            raise ValueError("TrialMetaData has no file_download_uri")
+
+        return self._download_file(
+            url=trial_meta_data.file_download_uri,
+            destination=destination,
+            file_name=file_name,
+            overwrite=overwrite,
+        )
+
+    def download_trial_documents(
+        self,
+        trial_meta_data: TrialMetaData,
+        destination: str | None = None,
+        overwrite: bool = False,
+    ) -> str:
+        """Download and extract all trial documents.
+
+        Args:
+            trial_meta_data: TrialMetaData with file_download_uri
+            destination: Directory to save/extract to
+            overwrite: Overwrite existing files
+
+        Returns:
+            Path to extraction directory
+
+        Raises:
+            ValueError: If trial_meta_data has no file_download_uri
+        """
+        if not trial_meta_data.file_download_uri:
+            raise ValueError("TrialMetaData has no file_download_uri")
+
+        return self._download_and_extract(
+            url=trial_meta_data.file_download_uri,
+            destination=destination,
+            overwrite=overwrite,
+        )
+
+    def download_trial_document(
+        self,
+        document_data: TrialDocumentData,
+        destination: str | None = None,
+        file_name: str | None = None,
+        overwrite: bool = False,
+    ) -> str:
+        """Download individual trial document (auto-extracts if needed).
+
+        Args:
+            document_data: TrialDocumentData with file_download_uri
+            destination: Directory to save to
+            file_name: Override filename
+            overwrite: Overwrite existing file
+
+        Returns:
+            Path to downloaded file
+
+        Raises:
+            ValueError: If document_data has no file_download_uri
+        """
+        if not document_data.file_download_uri:
+            raise ValueError("TrialDocumentData has no file_download_uri")
+
+        return self._download_and_extract(
+            url=document_data.file_download_uri,
+            destination=destination,
+            file_name=file_name,
+            overwrite=overwrite,
         )

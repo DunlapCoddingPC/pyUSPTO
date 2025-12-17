@@ -422,3 +422,96 @@ class TestPTABAppealsClientPaginate:
             assert call_args[1]["technology_center_number_q"] == "3600"
             assert call_args[1]["decision_type_category_q"] == "Affirmed"
             assert call_args[1]["decision_date_from_q"] == "2023-01-01"
+
+
+class TestPTABAppealsDownloadMethods:
+    """Tests for PTAB Appeals download methods."""
+
+    def test_download_appeal_archive_missing_uri_raises_error(self) -> None:
+        """Test download_appeal_archive raises ValueError when file_download_uri is None."""
+        from pyUSPTO.models.ptab import AppealMetaData
+
+        client = PTABAppealsClient(api_key="test")
+
+        # Create AppealMetaData without file_download_uri
+        meta_data = AppealMetaData(file_download_uri=None)
+
+        with pytest.raises(ValueError, match="AppealMetaData has no file_download_uri"):
+            client.download_appeal_archive(meta_data)
+
+    def test_download_appeal_archive_with_uri(self) -> None:
+        """Test download_appeal_archive calls _download_file with URI."""
+        from pyUSPTO.models.ptab import AppealMetaData
+        from unittest.mock import patch
+
+        client = PTABAppealsClient(api_key="test")
+        meta_data = AppealMetaData(file_download_uri="https://test.com/appeal.tar")
+
+        with patch.object(client, "_download_file", return_value="/path/to/file") as mock_download:
+            result = client.download_appeal_archive(meta_data, destination="/dest", file_name="custom.tar", overwrite=True)
+            mock_download.assert_called_once_with(
+                url="https://test.com/appeal.tar",
+                destination="/dest",
+                file_name="custom.tar",
+                overwrite=True
+            )
+            assert result == "/path/to/file"
+
+    def test_download_appeal_documents_missing_uri_raises_error(self) -> None:
+        """Test download_appeal_documents raises ValueError when file_download_uri is None."""
+        from pyUSPTO.models.ptab import AppealMetaData
+
+        client = PTABAppealsClient(api_key="test")
+
+        # Create AppealMetaData without file_download_uri
+        meta_data = AppealMetaData(file_download_uri=None)
+
+        with pytest.raises(ValueError, match="AppealMetaData has no file_download_uri"):
+            client.download_appeal_documents(meta_data)
+
+    def test_download_appeal_documents_with_uri(self) -> None:
+        """Test download_appeal_documents calls _download_and_extract with URI."""
+        from pyUSPTO.models.ptab import AppealMetaData
+        from unittest.mock import patch
+
+        client = PTABAppealsClient(api_key="test")
+        meta_data = AppealMetaData(file_download_uri="https://test.com/appeal.tar")
+
+        with patch.object(client, "_download_and_extract", return_value="/path/to/extracted") as mock_extract:
+            result = client.download_appeal_documents(meta_data, destination="/dest", overwrite=True)
+            mock_extract.assert_called_once_with(
+                url="https://test.com/appeal.tar",
+                destination="/dest",
+                overwrite=True
+            )
+            assert result == "/path/to/extracted"
+
+    def test_download_appeal_document_missing_uri_raises_error(self) -> None:
+        """Test download_appeal_document raises ValueError when file_download_uri is None."""
+        from pyUSPTO.models.ptab import AppealDocumentData
+
+        client = PTABAppealsClient(api_key="test")
+
+        # Create AppealDocumentData without file_download_uri
+        document_data = AppealDocumentData(file_download_uri=None)
+
+        with pytest.raises(ValueError, match="AppealDocumentData has no file_download_uri"):
+            client.download_appeal_document(document_data)
+
+    def test_download_appeal_document_with_uri(self) -> None:
+        """Test download_appeal_document calls _download_and_extract with URI."""
+        from pyUSPTO.models.ptab import AppealDocumentData
+        from unittest.mock import patch
+
+        client = PTABAppealsClient(api_key="test")
+        document_data = AppealDocumentData(file_download_uri="https://test.com/doc.pdf")
+
+        with patch.object(client, "_download_and_extract", return_value="/path/to/doc.pdf") as mock_extract:
+            result = client.download_appeal_document(document_data, destination="/dest", file_name="doc.pdf", overwrite=True)
+            mock_extract.assert_called_once_with(
+                url="https://test.com/doc.pdf",
+                destination="/dest",
+                file_name="doc.pdf",
+                overwrite=True
+            )
+            assert result == "/path/to/doc.pdf"

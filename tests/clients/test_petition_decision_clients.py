@@ -31,9 +31,12 @@ def api_key_fixture() -> str:
 
 
 @pytest.fixture
-def petition_client(api_key_fixture: str) -> FinalPetitionDecisionsClient:
+def petition_client(api_key_fixture: str) -> Iterator[FinalPetitionDecisionsClient]:
     """Provides a FinalPetitionDecisionsClient instance."""
-    return FinalPetitionDecisionsClient(api_key=api_key_fixture)
+    client = FinalPetitionDecisionsClient(api_key=api_key_fixture)
+    with patch.object(client, "_download_and_extract") as mock_download:
+        mock_download.return_value = "/tmp/document.pdf"
+        yield client
 
 
 @pytest.fixture
@@ -567,7 +570,7 @@ class TestFinalPetitionDecisionsClientDownload:
                 format="csv",
                 decision_date_from_q="2023-01-01",
                 decision_date_to_q="2023-12-31",
-                destination_path=str(tmp_path),
+                destination=str(tmp_path),
             )
 
             assert result == expected_path
@@ -577,7 +580,7 @@ class TestFinalPetitionDecisionsClientDownload:
             # Verify _save_response_to_file was called with correct arguments
             save_call_args = mock_save.call_args
             assert save_call_args[1]["response"] == mock_response
-            assert save_call_args[1]["file_path"] == expected_path
+            assert save_call_args[1]["destination"] == str(tmp_path)
 
     def test_download_with_patent_number(
         self,
@@ -773,18 +776,19 @@ class TestFinalPetitionDecisionsClientDocumentDownload:
         mock_download_option: DocumentDownloadOption,
     ) -> None:
         """Test successful document download."""
-        with patch.object(petition_client, "_download_file") as mock_download:
+        with patch.object(petition_client, "_download_and_extract") as mock_download:
             mock_download.return_value = "/path/to/test.pdf"
 
             result = petition_client.download_petition_document(
-                mock_download_option, destination_path="/tmp"
+                mock_download_option, destination="/tmp"
             )
 
             assert result == "/path/to/test.pdf"
             mock_download.assert_called_once()
             call_args = mock_download.call_args
-            # The filename is extracted from the URL which ends in "test.pdf"
-            assert "test.pdf" in call_args[1]["file_path"]
+            # Verify destination and file_name
+            assert call_args[1]["destination"] == "/tmp"
+            assert call_args[1]["file_name"] is None
 
     def test_download_document_no_url(
         self, petition_client: FinalPetitionDecisionsClient
@@ -792,7 +796,7 @@ class TestFinalPetitionDecisionsClientDocumentDownload:
         """Test download fails without URL."""
         option = DocumentDownloadOption(mime_type_identifier="PDF", download_url=None)
 
-        with pytest.raises(ValueError, match="must have a download_url"):
+        with pytest.raises(ValueError, match="has no download_url"):
             petition_client.download_petition_document(option)
 
     def test_download_document_file_exists(
@@ -806,13 +810,17 @@ class TestFinalPetitionDecisionsClientDocumentDownload:
         existing_file = tmp_path / "document.pdf"
         existing_file.write_text("existing content")
 
-        with pytest.raises(FileExistsError, match="File already exists"):
-            petition_client.download_petition_document(
-                mock_download_option,
-                file_name="document.pdf",
-                destination_path=str(tmp_path),
-                overwrite=False,
-            )
+        # Mock _download_and_extract to raise FileExistsError
+        with patch.object(petition_client, "_download_and_extract") as mock_dl:
+            mock_dl.side_effect = FileExistsError(f"File exists: {existing_file}. Use overwrite=True")
+
+            with pytest.raises(FileExistsError, match="File exists"):
+                petition_client.download_petition_document(
+                    mock_download_option,
+                    file_name="document.pdf",
+                    destination=str(tmp_path),
+                    overwrite=False,
+                )
 
     def test_download_document_url_without_extension(
         self, petition_client: FinalPetitionDecisionsClient
@@ -824,15 +832,15 @@ class TestFinalPetitionDecisionsClientDocumentDownload:
             page_total_quantity=5,
         )
 
-        with patch.object(petition_client, "_download_file") as mock_download:
+        with patch.object(petition_client, "_download_and_extract") as mock_download:
             mock_download.return_value = "/tmp/document.pdf"
 
-            petition_client.download_petition_document(option, destination_path="/tmp")
+            petition_client.download_petition_document(option, destination="/tmp")
 
             call_args = mock_download.call_args
-            file_path = call_args[1]["file_path"]
-            # Should generate filename with extension from MIME type
-            assert "document.pdf" in file_path
+            # Verify destination
+            assert call_args[1]["destination"] == "/tmp"
+            assert call_args[1]["file_name"] is None
 
     def test_download_document_url_without_extension_no_mime(
         self, petition_client: FinalPetitionDecisionsClient
@@ -844,35 +852,35 @@ class TestFinalPetitionDecisionsClientDocumentDownload:
             page_total_quantity=3,
         )
 
-        with patch.object(petition_client, "_download_file") as mock_download:
+        with patch.object(petition_client, "_download_and_extract") as mock_download:
             mock_download.return_value = "/tmp/document.pdf"
 
-            petition_client.download_petition_document(option, destination_path="/tmp")
+            petition_client.download_petition_document(option, destination="/tmp")
 
             call_args = mock_download.call_args
-            file_path = call_args[1]["file_path"]
-            # Should default to .pdf extension
-            assert "document.pdf" in file_path
+            # Verify destination
+            assert call_args[1]["destination"] == "/tmp"
+            assert call_args[1]["file_name"] is None
 
-    def test_download_document_no_destination_path(
+    def test_download_document_no_destination(
         self, petition_client: FinalPetitionDecisionsClient
     ) -> None:
-        """Test download without destination_path saves to current directory."""
+        """Test download without destination saves to current directory."""
         option = DocumentDownloadOption(
             mime_type_identifier="PDF",
             download_url="https://api.test.uspto.gov/api/v1/download/test.pdf",
             page_total_quantity=10,
         )
 
-        with patch.object(petition_client, "_download_file") as mock_download:
+        with patch.object(petition_client, "_download_and_extract") as mock_download:
             mock_download.return_value = "test.pdf"
 
             petition_client.download_petition_document(option)
 
             call_args = mock_download.call_args
-            file_path = call_args[1]["file_path"]
-            # Should be just the filename without a directory path
-            assert file_path == "test.pdf"
+            # Verify no destination specified
+            assert call_args[1]["destination"] is None
+            assert call_args[1]["file_name"] is None
 
 
 class TestFinalPetitionDecisionsClientHelpers:

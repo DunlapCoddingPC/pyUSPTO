@@ -19,6 +19,9 @@ from pyUSPTO.models.ptab import (
     PTABTrialProceedingResponse,
 )
 
+# Import shared fixtures
+from tests.integration.conftest import TEST_DOWNLOAD_DIR
+
 # Skip all tests in this module unless ENABLE_INTEGRATION_TESTS is set to 'true'
 pytestmark = pytest.mark.skipif(
     os.environ.get("ENABLE_INTEGRATION_TESTS", "").lower() != "true",
@@ -26,7 +29,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def ptab_trials_client(config: USPTOConfig) -> PTABTrialsClient:
     """
     Create a PTABTrialsClient instance for integration tests.
@@ -38,6 +41,17 @@ def ptab_trials_client(config: USPTOConfig) -> PTABTrialsClient:
         PTABTrialsClient: A client instance
     """
     return PTABTrialsClient(config=config)
+
+
+@pytest.fixture(scope="class")
+def trials_with_download_uris(
+    ptab_trials_client: PTABTrialsClient,
+) -> PTABTrialProceedingResponse:
+    """Fetch trial proceedings with download URIs once and cache for all download tests."""
+    return ptab_trials_client.search_proceedings(
+        query="trialMetaData.trialTypeCode:IPR",
+        limit=5,
+    )
 
 
 class TestPTABTrialsIntegration:
@@ -65,7 +79,7 @@ class TestPTABTrialsIntegration:
                 assert proceeding.trial_number is not None
 
         except USPTOApiError as e:
-            pytest.skip(f"PTAB Trials API error during search_proceedings GET: {e}")
+            pytest.fail(f"PTAB Trials API error during search_proceedings GET: {e}")
 
     def test_search_proceedings_with_convenience_params(
         self, ptab_trials_client: PTABTrialsClient
@@ -92,7 +106,7 @@ class TestPTABTrialsIntegration:
                             assert proceeding.trial_meta_data.trial_type_code == "IPR"
 
         except USPTOApiError as e:
-            pytest.skip(
+            pytest.fail(
                 f"PTAB Trials API error during search_proceedings with convenience params: {e}"
             )
 
@@ -117,7 +131,7 @@ class TestPTABTrialsIntegration:
                 assert len(response.patent_trial_proceeding_data_bag) <= 2
 
         except USPTOApiError as e:
-            pytest.skip(f"PTAB Trials API error during search_proceedings POST: {e}")
+            pytest.fail(f"PTAB Trials API error during search_proceedings POST: {e}")
 
     def test_search_documents_get(self, ptab_trials_client: PTABTrialsClient) -> None:
         """Test searching PTAB trial documents using GET method."""
@@ -140,7 +154,7 @@ class TestPTABTrialsIntegration:
                 assert document.trial_number is not None
 
         except USPTOApiError as e:
-            pytest.skip(f"PTAB Trials API error during search_documents GET: {e}")
+            pytest.fail(f"PTAB Trials API error during search_documents GET: {e}")
 
     def test_search_documents_with_convenience_params(
         self, ptab_trials_client: PTABTrialsClient
@@ -160,7 +174,7 @@ class TestPTABTrialsIntegration:
                 assert response.patent_trial_document_data_bag is not None
 
         except USPTOApiError as e:
-            pytest.skip(
+            pytest.fail(
                 f"PTAB Trials API error during search_documents with convenience params: {e}"
             )
 
@@ -183,7 +197,7 @@ class TestPTABTrialsIntegration:
                 assert len(response.patent_trial_document_data_bag) <= 2
 
         except USPTOApiError as e:
-            pytest.skip(f"PTAB Trials API error during search_documents POST: {e}")
+            pytest.fail(f"PTAB Trials API error during search_documents POST: {e}")
 
     def test_search_decisions_get(self, ptab_trials_client: PTABTrialsClient) -> None:
         """Test searching PTAB trial decisions using GET method."""
@@ -206,7 +220,7 @@ class TestPTABTrialsIntegration:
                 assert decision.trial_number is not None
 
         except USPTOApiError as e:
-            pytest.skip(f"PTAB Trials API error during search_decisions GET: {e}")
+            pytest.fail(f"PTAB Trials API error during search_decisions GET: {e}")
 
     def test_search_decisions_with_convenience_params(
         self, ptab_trials_client: PTABTrialsClient
@@ -229,7 +243,7 @@ class TestPTABTrialsIntegration:
                         assert document.trial_type_code == "IPR"
 
         except USPTOApiError as e:
-            pytest.skip(
+            pytest.fail(
                 f"PTAB Trials API error during search_decisions with convenience params: {e}"
             )
 
@@ -252,7 +266,7 @@ class TestPTABTrialsIntegration:
                 assert len(response.patent_trial_document_data_bag) <= 2
 
         except USPTOApiError as e:
-            pytest.skip(f"PTAB Trials API error during search_decisions POST: {e}")
+            pytest.fail(f"PTAB Trials API error during search_decisions POST: {e}")
 
     def test_paginate_proceedings(self, ptab_trials_client: PTABTrialsClient) -> None:
         """Test paginating through trial proceedings."""
@@ -274,7 +288,7 @@ class TestPTABTrialsIntegration:
                 assert len(results) <= max_results
 
         except USPTOApiError as e:
-            pytest.skip(f"PTAB Trials API error during paginate_proceedings: {e}")
+            pytest.fail(f"PTAB Trials API error during paginate_proceedings: {e}")
 
     def test_to_dict_matches_raw_api_response_proceedings(
         self, api_key: str | None
@@ -296,7 +310,7 @@ class TestPTABTrialsIntegration:
             )
 
             if response is None or response.count == 0:
-                pytest.skip("No trial proceedings found for raw API comparison test")
+                pytest.fail("No trial proceedings found for raw API comparison test")
 
             assert (
                 response.raw_data is not None
@@ -385,7 +399,7 @@ class TestPTABTrialsIntegration:
                 )
 
         except USPTOApiError as e:
-            pytest.skip(f"Raw API comparison test failed with API error: {e}")
+            pytest.fail(f"Raw API comparison test failed with API error: {e}")
 
     def test_to_dict_matches_raw_api_response_documents(
         self, api_key: str | None
@@ -581,7 +595,120 @@ class TestPTABTrialsIntegration:
                 )
 
         except USPTOApiError as e:
-            pytest.skip(f"Raw API comparison test failed with API error: {e}")
+            pytest.fail(f"Raw API comparison test failed with API error: {e}")
+
+    def test_download_trial_archive(
+        self,
+        ptab_trials_client: PTABTrialsClient,
+        trials_with_download_uris: PTABTrialProceedingResponse,
+    ) -> None:
+        """Test downloading trial archive file without extraction."""
+        if not trials_with_download_uris.patent_trial_proceeding_data_bag:
+            pytest.fail("No trial proceedings found for archive download test")
+
+        # Try multiple proceedings until one downloads successfully
+        last_error = None
+        for proceeding in trials_with_download_uris.patent_trial_proceeding_data_bag:
+            if (
+                not proceeding.trial_meta_data
+                or not proceeding.trial_meta_data.file_download_uri
+            ):
+                continue
+
+            try:
+                file_path = ptab_trials_client.download_trial_archive(
+                    proceeding.trial_meta_data,
+                    destination=TEST_DOWNLOAD_DIR,
+                    overwrite=True,
+                )
+
+                assert file_path is not None
+                assert os.path.exists(file_path)
+                assert os.path.getsize(file_path) > 0
+                assert file_path.endswith((".zip", ".tar", ".tar.gz", ".tgz"))
+                return  # Test passed!
+
+            except USPTOApiError as e:
+                last_error = e
+                continue
+
+        # If we get here, all proceedings failed to download
+        pytest.fail(
+            f"Failed to download any trial archive from {len(trials_with_download_uris.patent_trial_proceeding_data_bag)} proceedings. "
+            f"Last error: {last_error}"
+        )
+
+    def test_download_trial_documents(
+        self,
+        ptab_trials_client: PTABTrialsClient,
+        trials_with_download_uris: PTABTrialProceedingResponse,
+    ) -> None:
+        """Test downloading and extracting trial documents."""
+        if not trials_with_download_uris.patent_trial_proceeding_data_bag:
+            pytest.fail("No trial proceedings found for documents download test")
+
+        # Try multiple proceedings until one downloads successfully
+        last_error = None
+        for proceeding in trials_with_download_uris.patent_trial_proceeding_data_bag:
+            if (
+                not proceeding.trial_meta_data
+                or not proceeding.trial_meta_data.file_download_uri
+            ):
+                continue
+
+            try:
+                extracted_path = ptab_trials_client.download_trial_documents(
+                    proceeding.trial_meta_data,
+                    destination=TEST_DOWNLOAD_DIR,
+                    overwrite=True,
+                )
+
+                assert extracted_path is not None
+                assert os.path.exists(extracted_path)
+                return  # Test passed!
+
+            except USPTOApiError as e:
+                last_error = e
+                continue
+
+        # If we get here, all proceedings failed to download
+        pytest.fail(
+            f"Failed to download any trial documents from {len(trials_with_download_uris.patent_trial_proceeding_data_bag)} proceedings. "
+            f"Last error: {last_error}"
+        )
+
+    def test_download_trial_document(
+        self, ptab_trials_client: PTABTrialsClient
+    ) -> None:
+        """Test downloading individual trial document."""
+        try:
+            response = ptab_trials_client.search_documents(
+                query="trialMetaData.trialTypeCode:IPR",
+                limit=1,
+            )
+
+            if not response or not response.patent_trial_document_data_bag:
+                pytest.fail("No trial documents found for document download test")
+
+            document = response.patent_trial_document_data_bag[0]
+            if (
+                not document.document_data
+                or not document.document_data.file_download_uri
+            ):
+                pytest.fail("No file_download_uri available for test")
+
+            file_path = ptab_trials_client.download_trial_document(
+                document.document_data,
+                destination=TEST_DOWNLOAD_DIR,
+                overwrite=True,
+            )
+
+            assert file_path is not None
+            assert os.path.exists(file_path)
+            assert os.path.getsize(file_path) > 0
+
+        except USPTOApiError as e:
+            pytest.fail(f"PTAB Trials API error during document download: {e}")
 
     def test_invalid_query_handling(self, ptab_trials_client: PTABTrialsClient) -> None:
         """Test proper error handling with an invalid query."""

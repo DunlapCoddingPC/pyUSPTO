@@ -525,3 +525,96 @@ class TestPTABInterferencesClientPaginate:
             )
             assert call_args[1]["decision_type_category_q"] == "Final Decision"
             assert call_args[1]["decision_date_from_q"] == "2023-01-01"
+
+
+class TestPTABInterferencesDownloadMethods:
+    """Tests for PTAB Interferences download methods."""
+
+    def test_download_interference_archive_missing_uri_raises_error(self) -> None:
+        """Test download_interference_archive raises ValueError when file_download_uri is None."""
+        from pyUSPTO.models.ptab import InterferenceMetaData
+
+        client = PTABInterferencesClient(api_key="test")
+
+        # Create InterferenceMetaData without file_download_uri
+        meta_data = InterferenceMetaData(file_download_uri=None)
+
+        with pytest.raises(ValueError, match="InterferenceMetaData has no file_download_uri"):
+            client.download_interference_archive(meta_data)
+
+    def test_download_interference_archive_with_uri(self) -> None:
+        """Test download_interference_archive calls _download_file with URI."""
+        from pyUSPTO.models.ptab import InterferenceMetaData
+        from unittest.mock import patch
+
+        client = PTABInterferencesClient(api_key="test")
+        meta_data = InterferenceMetaData(file_download_uri="https://test.com/interference.tar")
+
+        with patch.object(client, "_download_file", return_value="/path/to/file") as mock_download:
+            result = client.download_interference_archive(meta_data, destination="/dest", file_name="custom.tar", overwrite=True)
+            mock_download.assert_called_once_with(
+                url="https://test.com/interference.tar",
+                destination="/dest",
+                file_name="custom.tar",
+                overwrite=True
+            )
+            assert result == "/path/to/file"
+
+    def test_download_interference_documents_missing_uri_raises_error(self) -> None:
+        """Test download_interference_documents raises ValueError when file_download_uri is None."""
+        from pyUSPTO.models.ptab import InterferenceMetaData
+
+        client = PTABInterferencesClient(api_key="test")
+
+        # Create InterferenceMetaData without file_download_uri
+        meta_data = InterferenceMetaData(file_download_uri=None)
+
+        with pytest.raises(ValueError, match="InterferenceMetaData has no file_download_uri"):
+            client.download_interference_documents(meta_data)
+
+    def test_download_interference_documents_with_uri(self) -> None:
+        """Test download_interference_documents calls _download_and_extract with URI."""
+        from pyUSPTO.models.ptab import InterferenceMetaData
+        from unittest.mock import patch
+
+        client = PTABInterferencesClient(api_key="test")
+        meta_data = InterferenceMetaData(file_download_uri="https://test.com/interference.tar")
+
+        with patch.object(client, "_download_and_extract", return_value="/path/to/extracted") as mock_extract:
+            result = client.download_interference_documents(meta_data, destination="/dest", overwrite=True)
+            mock_extract.assert_called_once_with(
+                url="https://test.com/interference.tar",
+                destination="/dest",
+                overwrite=True
+            )
+            assert result == "/path/to/extracted"
+
+    def test_download_interference_document_missing_uri_raises_error(self) -> None:
+        """Test download_interference_document raises ValueError when file_download_uri is None."""
+        from pyUSPTO.models.ptab import InterferenceDocumentData
+
+        client = PTABInterferencesClient(api_key="test")
+
+        # Create InterferenceDocumentData without file_download_uri
+        document_data = InterferenceDocumentData(file_download_uri=None)
+
+        with pytest.raises(ValueError, match="InterferenceDocumentData has no file_download_uri"):
+            client.download_interference_document(document_data)
+
+    def test_download_interference_document_with_uri(self) -> None:
+        """Test download_interference_document calls _download_and_extract with URI."""
+        from pyUSPTO.models.ptab import InterferenceDocumentData
+        from unittest.mock import patch
+
+        client = PTABInterferencesClient(api_key="test")
+        document_data = InterferenceDocumentData(file_download_uri="https://test.com/doc.pdf")
+
+        with patch.object(client, "_download_and_extract", return_value="/path/to/doc.pdf") as mock_extract:
+            result = client.download_interference_document(document_data, destination="/dest", file_name="doc.pdf", overwrite=True)
+            mock_extract.assert_called_once_with(
+                url="https://test.com/doc.pdf",
+                destination="/dest",
+                file_name="doc.pdf",
+                overwrite=True
+            )
+            assert result == "/path/to/doc.pdf"
