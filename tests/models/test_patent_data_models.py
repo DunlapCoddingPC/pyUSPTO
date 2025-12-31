@@ -1853,14 +1853,14 @@ class TestPatentFileWrapper:
 
     def test_empty_patent_file_wrapper_from_dict(self) -> None:
         wrapper = PatentFileWrapper.from_dict({})
-        assert wrapper.application_number_text is None
+        assert wrapper.application_number_text == ""
         assert wrapper.application_meta_data is None
         assert wrapper.correspondence_address_bag == []
         assert wrapper.last_ingestion_date_time is None
 
     def test_empty_patent_file_wrapper_to_dict(self) -> None:
-        wrapper = PatentFileWrapper()
-        assert wrapper.to_dict() == {}
+        wrapper = PatentFileWrapper(application_number_text="")
+        assert wrapper.to_dict() == {"applicationNumberText": ""}
 
     def test_patent_file_wrapper_roundtrip(
         self,
@@ -2208,6 +2208,7 @@ class TestApplicationContinuityData:
         parent_cont = ParentContinuity.from_dict(sample_parent_continuity_data)
         child_cont = ChildContinuity.from_dict(sample_child_continuity_data)
         wrapper = PatentFileWrapper(
+            application_number_text="12345678",
             parent_continuity_bag=[parent_cont],
             child_continuity_bag=[child_cont],
         )
@@ -2218,7 +2219,11 @@ class TestApplicationContinuityData:
         assert continuity_data.child_continuity_bag[0] is child_cont
 
     def test_from_wrapper_with_empty_data(self) -> None:
-        wrapper = PatentFileWrapper(parent_continuity_bag=[], child_continuity_bag=[])
+        wrapper = PatentFileWrapper(
+            application_number_text="",
+            parent_continuity_bag=[],
+            child_continuity_bag=[],
+        )
         continuity_data = ApplicationContinuityData.from_wrapper(wrapper)
         assert len(continuity_data.parent_continuity_bag) == 0
         assert len(continuity_data.child_continuity_bag) == 0
@@ -2263,7 +2268,9 @@ class TestAssociatedDocumentsData:
         grant_meta = PrintedMetaData.from_dict(grant_meta_data)
 
         wrapper = PatentFileWrapper(
-            pgpub_document_meta_data=pgpub_meta, grant_document_meta_data=grant_meta
+            application_number_text="12345678",
+            pgpub_document_meta_data=pgpub_meta,
+            grant_document_meta_data=grant_meta,
         )
         assoc_docs = PrintedPublication.from_wrapper(wrapper)
         assert assoc_docs.pgpub_document_meta_data is pgpub_meta
@@ -2274,7 +2281,9 @@ class TestAssociatedDocumentsData:
     ) -> None:
         pgpub_meta = PrintedMetaData.from_dict(sample_document_meta_data_data)
         wrapper = PatentFileWrapper(
-            pgpub_document_meta_data=pgpub_meta, grant_document_meta_data=None
+            application_number_text="12345678",
+            pgpub_document_meta_data=pgpub_meta,
+            grant_document_meta_data=None,
         )
         assoc_docs = PrintedPublication.from_wrapper(wrapper)
         assert assoc_docs.pgpub_document_meta_data is pgpub_meta
@@ -2282,7 +2291,9 @@ class TestAssociatedDocumentsData:
 
     def test_from_wrapper_with_no_data(self) -> None:
         wrapper = PatentFileWrapper(
-            pgpub_document_meta_data=None, grant_document_meta_data=None
+            application_number_text="",
+            pgpub_document_meta_data=None,
+            grant_document_meta_data=None,
         )
         assoc_docs = PrintedPublication.from_wrapper(wrapper)
         assert assoc_docs.pgpub_document_meta_data is None

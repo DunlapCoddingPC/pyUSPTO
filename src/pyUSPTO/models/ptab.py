@@ -478,7 +478,7 @@ class TrialDocumentData:
         document_status: Public status.
     """
 
-    # document_category: Optional[str] = None  # Removed: Documented but not in API.
+    document_category: str | None = None
     document_filing_date: date | None = None
     document_identifier: str | None = None
     document_name: str | None = None
@@ -508,7 +508,7 @@ class TrialDocumentData:
         # Handle aliases
         file_download_uri = data.get("fileDownloadURI") or data.get("downloadURI")
         return cls(
-            # document_category=data.get("documentCategory"),  # Removed: Documented but not in API.
+            document_category=data.get("documentCategory"),
             document_filing_date=parse_to_date(data.get("documentFilingDate")),
             document_identifier=data.get("documentIdentifier"),
             document_name=data.get("documentName"),
@@ -531,9 +531,8 @@ class TrialDocumentData:
         """
         result: dict[str, Any] = {}
 
-        # Removed: Documented but not in API.
-        # if self.document_category is not None:
-        #     result["documentCategory"] = self.document_category
+        if self.document_category is not None:
+            result["documentCategory"] = self.document_category
         if self.document_filing_date is not None:
             result["documentFilingDate"] = serialize_date(self.document_filing_date)
         if self.document_identifier is not None:

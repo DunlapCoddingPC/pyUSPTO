@@ -19,7 +19,7 @@ import requests
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.clients.patent_data import PatentDataClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.exceptions import USPTOApiBadRequestError
+from pyUSPTO.exceptions import FormatNotAvailableError, USPTOApiBadRequestError
 from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
     ApplicationMetaData,
@@ -1099,12 +1099,12 @@ class TestPatentDocumentDownload:
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
         sample_document: Document,
     ) -> None:
-        """Test download_document raises ValueError when format not available."""
+        """Test download_document raises FormatNotAvailableError when format not available."""
         client, mock_download_extract = client_with_mocked_download
 
         with pytest.raises(
-            ValueError,
-            match="Format 'MS_WORD' not available. Available: PDF, XML",
+            FormatNotAvailableError,
+            match="Format 'MS_WORD' not available. Available formats: PDF, XML",
         ):
             client.download_document(document=sample_document, format="MS_WORD")
 
@@ -1114,7 +1114,7 @@ class TestPatentDocumentDownload:
         self,
         client_with_mocked_download: tuple[PatentDataClient, MagicMock],
     ) -> None:
-        """Test download_document raises ValueError when no download options."""
+        """Test download_document raises FormatNotAvailableError when no download options."""
         client, mock_download_extract = client_with_mocked_download
 
         document = Document(
@@ -1124,8 +1124,8 @@ class TestPatentDocumentDownload:
         )
 
         with pytest.raises(
-            ValueError,
-            match="Format 'PDF' not available. Available:",
+            FormatNotAvailableError,
+            match="Format 'PDF' not available. Available formats: none",
         ):
             client.download_document(document=document, format="PDF")
 
@@ -1158,7 +1158,9 @@ class TestDownloadFile:
         destination = "/tmp"
         file_name = "file.pdf"
 
-        result = patent_data_client._download_file(url, destination=destination, file_name=file_name)
+        result = patent_data_client._download_file(
+            url, destination=destination, file_name=file_name
+        )
 
         # Verify _make_request called correctly
         mock_make_request.assert_called_once_with(
@@ -1663,11 +1665,11 @@ class TestDownloadArchive:
         mock_exists.return_value = True
 
         # Mock _download_and_extract to raise FileExistsError
-        mock_download_file.side_effect = FileExistsError("File exists. Use overwrite=True")
+        mock_download_file.side_effect = FileExistsError(
+            "File exists. Use overwrite=True"
+        )
 
-        with pytest.raises(
-            FileExistsError, match="File exists.*Use overwrite=True"
-        ):
+        with pytest.raises(FileExistsError, match="File exists.*Use overwrite=True"):
             client.download_archive(printed_metadata=sample_printed_metadata)
 
     @patch("pathlib.Path.exists")
@@ -1863,11 +1865,11 @@ class TestDownloadArchive:
         client, mock_download_file = client_with_mocked_download
 
         # Mock _download_and_extract to raise FileExistsError
-        mock_download_file.side_effect = FileExistsError("File exists. Use overwrite=True")
+        mock_download_file.side_effect = FileExistsError(
+            "File exists. Use overwrite=True"
+        )
 
-        with pytest.raises(
-            FileExistsError, match="File exists.*Use overwrite=True"
-        ):
+        with pytest.raises(FileExistsError, match="File exists.*Use overwrite=True"):
             client.download_publication(printed_metadata=sample_printed_metadata)
 
     @patch("pathlib.Path.exists")
@@ -2632,6 +2634,265 @@ class TestDocumentModels:
         assert list(bag) == [doc1, doc2]
         docs_from_iter = [d for d in bag]
         assert docs_from_iter == [doc1, doc2]
+
+    def test_document_has_format_with_string(self) -> None:
+        """Test Document.has_format() returns True when format exists (string)."""
+        doc = Document(
+            document_identifier="TEST",
+            document_code="TEST",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF", download_url="http://example.com/pdf"
+                ),
+                DocumentFormat(
+                    mime_type_identifier="XML", download_url="http://example.com/xml"
+                ),
+            ],
+        )
+        assert doc.has_format("PDF") is True
+        assert doc.has_format("XML") is True
+
+    def test_document_has_format_with_enum(self) -> None:
+        """Test Document.has_format() returns True when format exists (enum)."""
+        doc = Document(
+            document_identifier="TEST",
+            document_code="TEST",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF", download_url="http://example.com/pdf"
+                ),
+            ],
+        )
+        assert doc.has_format(DocumentMimeType.PDF) is True
+
+    def test_document_has_format_returns_false(self) -> None:
+        """Test Document.has_format() returns False when format doesn't exist."""
+        doc = Document(
+            document_identifier="TEST",
+            document_code="TEST",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF", download_url="http://example.com/pdf"
+                ),
+            ],
+        )
+        assert doc.has_format("XML") is False
+        assert doc.has_format(DocumentMimeType.MS_WORD) is False
+
+    def test_document_has_format_empty_formats(self) -> None:
+        """Test Document.has_format() returns False with empty document_formats."""
+        doc = Document(
+            document_identifier="TEST",
+            document_code="TEST",
+            document_formats=[],
+        )
+        assert doc.has_format("PDF") is False
+
+    def test_document_get_format_with_string(self) -> None:
+        """Test Document.get_format() returns DocumentFormat when format exists (string)."""
+        pdf_format = DocumentFormat(
+            mime_type_identifier="PDF", download_url="http://example.com/pdf"
+        )
+        xml_format = DocumentFormat(
+            mime_type_identifier="XML", download_url="http://example.com/xml"
+        )
+        doc = Document(
+            document_identifier="TEST",
+            document_code="TEST",
+            document_formats=[pdf_format, xml_format],
+        )
+        result = doc.get_format("PDF")
+        assert isinstance(result, DocumentFormat)
+        assert result is pdf_format
+        assert result.mime_type_identifier == "PDF"
+        assert result.download_url == "http://example.com/pdf"
+
+    def test_document_get_format_with_enum(self) -> None:
+        """Test Document.get_format() returns DocumentFormat when format exists (enum)."""
+        pdf_format = DocumentFormat(
+            mime_type_identifier="PDF", download_url="http://example.com/pdf"
+        )
+        doc = Document(
+            document_identifier="TEST",
+            document_code="TEST",
+            document_formats=[pdf_format],
+        )
+        result = doc.get_format(DocumentMimeType.PDF)
+        assert result is pdf_format
+
+    def test_document_get_format_returns_none(self) -> None:
+        """Test Document.get_format() returns None when format doesn't exist."""
+        doc = Document(
+            document_identifier="TEST",
+            document_code="TEST",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF", download_url="http://example.com/pdf"
+                ),
+            ],
+        )
+        assert doc.get_format("XML") is None
+        assert doc.get_format(DocumentMimeType.MS_WORD) is None
+
+    def test_document_get_format_empty_formats(self) -> None:
+        """Test Document.get_format() returns None with empty document_formats."""
+        doc = Document(
+            document_identifier="TEST",
+            document_code="TEST",
+            document_formats=[],
+        )
+        assert doc.get_format("PDF") is None
+
+    def test_document_bag_filter_by_format_with_string(self) -> None:
+        """Test DocumentBag.filter_by_format() filters documents with format (string)."""
+        doc1 = Document(
+            document_identifier="D1",
+            document_code="C1",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF", download_url="http://example.com/1.pdf"
+                ),
+                DocumentFormat(
+                    mime_type_identifier="XML", download_url="http://example.com/1.xml"
+                ),
+            ],
+        )
+        doc2 = Document(
+            document_identifier="D2",
+            document_code="C2",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="XML", download_url="http://example.com/2.xml"
+                ),
+            ],
+        )
+        doc3 = Document(
+            document_identifier="D3",
+            document_code="C3",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF", download_url="http://example.com/3.pdf"
+                ),
+            ],
+        )
+        bag = DocumentBag(documents=[doc1, doc2, doc3])
+
+        xml_bag = bag.filter_by_format("XML")
+        assert len(xml_bag) == 2
+        assert list(xml_bag) == [doc1, doc2]
+
+        pdf_bag = bag.filter_by_format("PDF")
+        assert len(pdf_bag) == 2
+        assert list(pdf_bag) == [doc1, doc3]
+
+    def test_document_bag_filter_by_format_with_enum(self) -> None:
+        """Test DocumentBag.filter_by_format() filters documents with format (enum)."""
+        doc1 = Document(
+            document_identifier="D1",
+            document_code="C1",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF", download_url="http://example.com/1.pdf"
+                ),
+            ],
+        )
+        doc2 = Document(
+            document_identifier="D2",
+            document_code="C2",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="XML", download_url="http://example.com/2.xml"
+                ),
+            ],
+        )
+        bag = DocumentBag(documents=[doc1, doc2])
+
+        pdf_bag = bag.filter_by_format(DocumentMimeType.PDF)
+        assert len(pdf_bag) == 1
+        assert list(pdf_bag) == [doc1]
+
+    def test_document_bag_filter_by_format_no_matches(self) -> None:
+        """Test DocumentBag.filter_by_format() returns empty bag when no matches."""
+        doc1 = Document(
+            document_identifier="D1",
+            document_code="C1",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF", download_url="http://example.com/1.pdf"
+                ),
+            ],
+        )
+        bag = DocumentBag(documents=[doc1])
+
+        xml_bag = bag.filter_by_format("XML")
+        assert len(xml_bag) == 0
+        assert list(xml_bag) == []
+
+    def test_document_bag_filter_by_format_all_match(self) -> None:
+        """Test DocumentBag.filter_by_format() returns all documents when all match."""
+        doc1 = Document(
+            document_identifier="D1",
+            document_code="C1",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF", download_url="http://example.com/1.pdf"
+                ),
+            ],
+        )
+        doc2 = Document(
+            document_identifier="D2",
+            document_code="C2",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF", download_url="http://example.com/2.pdf"
+                ),
+            ],
+        )
+        bag = DocumentBag(documents=[doc1, doc2])
+
+        pdf_bag = bag.filter_by_format("PDF")
+        assert len(pdf_bag) == 2
+        assert list(pdf_bag) == [doc1, doc2]
+
+    def test_format_not_available_error_attributes(self) -> None:
+        """Test FormatNotAvailableError has correct attributes."""
+        doc = Document(
+            document_identifier="TEST",
+            document_code="TEST",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF", download_url="http://example.com/pdf"
+                ),
+                DocumentFormat(
+                    mime_type_identifier="XML", download_url="http://example.com/xml"
+                ),
+            ],
+        )
+
+        error = FormatNotAvailableError(
+            requested_format="MS_WORD",
+            available_formats=["PDF", "XML"],
+            document=doc,
+        )
+
+        assert error.requested_format == "MS_WORD"
+        assert error.available_formats == ["PDF", "XML"]
+        assert error.document is doc
+        assert "Format 'MS_WORD' not available" in str(error)
+        assert "Available formats: PDF, XML" in str(error)
+
+    def test_format_not_available_error_no_formats(self) -> None:
+        """Test FormatNotAvailableError with empty available_formats."""
+        error = FormatNotAvailableError(
+            requested_format="PDF",
+            available_formats=[],
+        )
+
+        assert error.requested_format == "PDF"
+        assert error.available_formats == []
+        assert error.document is None
+        assert "Format 'PDF' not available" in str(error)
+        assert "Available formats: none" in str(error)
 
 
 # New Test Class for CSV Export functionality from PatentDataResponse

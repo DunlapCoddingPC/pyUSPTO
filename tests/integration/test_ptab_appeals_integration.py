@@ -25,7 +25,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def ptab_appeals_client(config: USPTOConfig) -> PTABAppealsClient:
     """
     Create a PTABAppealsClient instance for integration tests.

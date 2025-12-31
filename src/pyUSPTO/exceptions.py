@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import requests  # requests.exceptions.HTTPError
 
+    from pyUSPTO.models.patent_data import Document
+
 
 # --- Exception Classes (largely unchanged) ---
 class USPTOApiError(Exception):
@@ -131,6 +133,43 @@ class USPTOTimeout(USPTOApiError):
     """Request to USPTO API timed out."""
 
     pass
+
+
+class FormatNotAvailableError(ValueError):
+    """Raised when a requested document format is not available.
+
+    This exception is raised when attempting to download a document in a format
+    that is not available for that specific document. It provides programmatic
+    access to the requested format and available alternatives.
+
+    Attributes:
+        requested_format: The format that was requested (e.g., "XML", "PDF")
+        available_formats: List of available format identifiers
+        document: Optional Document object for additional context
+    """
+
+    def __init__(
+        self,
+        requested_format: str,
+        available_formats: list[str],
+        document: "Document | None" = None,
+    ):
+        """Initialize FormatNotAvailableError.
+
+        Args:
+            requested_format: The format that was requested
+            available_formats: List of available format identifiers
+            document: Optional Document object for additional context
+        """
+        self.requested_format = requested_format
+        self.available_formats = available_formats
+        self.document = document
+
+        formats_str = ", ".join(available_formats) if available_formats else "none"
+        super().__init__(
+            f"Format '{requested_format}' not available. "
+            f"Available formats: {formats_str}"
+        )
 
 
 # --- Helper Structures and Functions ---

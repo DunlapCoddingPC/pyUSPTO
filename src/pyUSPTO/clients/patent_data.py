@@ -10,6 +10,7 @@ from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
+from pyUSPTO.exceptions import FormatNotAvailableError
 from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
     ApplicationMetaData,
@@ -951,7 +952,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             Path to downloaded file (extracted if was in archive)
 
         Raises:
-            ValueError: If format not available for this document
+            FormatNotAvailableError: If format not available for this document.
+                The exception includes `requested_format`, `available_formats`,
+                and `document` attributes for programmatic error handling.
 
         Example:
             >>> docs = client.get_application_documents("19312841", document_codes=["CTNF"])
@@ -977,9 +980,10 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 for f in document.document_formats
                 if f.mime_type_identifier
             ]
-            raise ValueError(
-                f"Format '{format_str}' not available. "
-                f"Available: {', '.join(available)}"
+            raise FormatNotAvailableError(
+                requested_format=format_str,
+                available_formats=available,
+                document=document,
             )
 
         if not doc_format.download_url:

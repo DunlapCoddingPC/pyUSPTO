@@ -61,33 +61,13 @@ def patent_data_client(config: USPTOConfig) -> PatentDataClient:
 
 
 @pytest.fixture(scope="module")
-def sample_application_number(patent_data_client: PatentDataClient) -> str:
+def sample_application_number() -> str:
     """Provides a sample application number for tests.
 
-    Uses module scope to execute once per test module and cache the result,
-    reducing redundant API calls from 11 to 1.
+    Uses a known application with comprehensive data including assignments
+    and foreign priority claims.
     """
-    try:
-        response = patent_data_client.search_applications(
-            query='applicationMetaData.applicationTypeLabelName:Utility AND applicationMetaData.applicationStatusDescriptionText:"Patented Case"',
-            limit=1,
-        )
-        if response.count > 0 and response.patent_file_wrapper_data_bag:
-            app_num = response.patent_file_wrapper_data_bag[0].application_number_text
-            if app_num:
-                return app_num
-
-        pytest.fail(
-            "Could not retrieve a sample application number. Ensure API is reachable and query is valid."
-        )
-
-    except USPTOApiError as e:
-        pytest.fail(f"Could not fetch sample application number due to API error: {e}")
-    except Exception as e:
-        pytest.fail(
-            f"Could not fetch sample application number due to unexpected error: {e}"
-        )
-    return ""
+    return "18116023"
 
 
 class TestPatentDataIntegration:
@@ -763,7 +743,9 @@ class TestPatentDataIntegration:
                 "19312841", document_codes=["CTNF", "CTFR"]
             )
             if not docs or not docs.documents:
-                pytest.skip("No CTNF/CTFR documents found for test application 19312841")
+                pytest.skip(
+                    "No CTNF/CTFR documents found for test application 19312841"
+                )
 
             xml_doc = None
             for doc in docs.documents:
