@@ -136,7 +136,7 @@ class TestBaseUSPTOClient:
         # Note: We can't directly check the status_forcelist because it's not exposed
         # in a consistent way across different versions of urllib3/requests
         assert cast(HTTPAdapter, http_adapter).max_retries.total == 3
-        assert cast(HTTPAdapter, http_adapter).max_retries.backoff_factor == 1
+        assert cast(HTTPAdapter, http_adapter).max_retries.backoff_factor == 2
 
     def test_make_request_get(self, mock_session: MagicMock) -> None:
         """Test _make_request method with GET."""
@@ -670,7 +670,9 @@ class TestBaseUSPTOClient:
         assert "offset" not in first_body
         assert "limit" not in first_body
         # Original fields should be preserved
-        assert first_body["q"] == "applicationMetaData.applicationStatusDate:>2025-06-16"
+        assert (
+            first_body["q"] == "applicationMetaData.applicationStatusDate:>2025-06-16"
+        )
         assert len(first_body["filters"]) == 1
         assert first_body["fields"] == ["applicationNumberText", "eventDataBag"]
 
@@ -764,6 +766,8 @@ class TestBaseUSPTOClient:
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.session = mock_session
         mock_response = MagicMock()
+        mock_response.headers = {}
+        mock_response.url = "https://api.test.com/file"
         path = "tests/clients/test_file.txt"
 
         # Pretend Path.exists() returns True
@@ -930,9 +934,7 @@ class TestBaseUSPTOClient:
         # Flat structure with user-provided offset - should raise
         post_body = {"q": "test", "offset": 10, "limit": 50}
 
-        with pytest.raises(
-            ValueError, match="Cannot specify 'offset' in post_body"
-        ):
+        with pytest.raises(ValueError, match="Cannot specify 'offset' in post_body"):
             list(
                 client.paginate_results(
                     method_name="test_method",
@@ -1080,30 +1082,8 @@ class TestSaveResponseToFile:
 
         # Verify the file was saved with extracted filename
         expected_path = tmp_path / "test_doc.pdf"
-        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        mock_file_open.assert_called_once_with(expected_path, "wb")
         assert result == str(expected_path)
-
-    @patch("builtins.open", new_callable=mock_open)
-    def test_save_to_directory_without_content_disposition(
-        self, mock_file_open: MagicMock, tmp_path: Any
-    ) -> None:
-        """Test saving to directory without Content-Disposition raises ValueError."""
-
-        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
-        )
-
-        # Mock response without Content-Disposition header
-        mock_response = MagicMock()
-        mock_response.headers = {}
-        mock_response.iter_content.return_value = [b"data"]
-
-        # Should raise ValueError when trying to save to directory without filename
-        with pytest.raises(
-            ValueError,
-            match="file_path is a directory .* but Content-Disposition header does not contain a filename",
-        ):
-            client._save_response_to_file(mock_response, str(tmp_path))
 
     @patch("builtins.open", new_callable=mock_open)
     def test_save_without_extension_uses_content_type_pdf(
@@ -1118,44 +1098,44 @@ class TestSaveResponseToFile:
         mock_response = MagicMock()
         mock_response.headers = {"Content-Type": "application/pdf"}
         mock_response.iter_content.return_value = [b"pdf data"]
+        mock_response.url = "https://test.com/document"
 
         # Save to file without extension
-        file_path = tmp_path / "document"
-        result = client._save_response_to_file(mock_response, str(file_path))
+        result = client._save_response_to_file(mock_response, destination=tmp_path)
 
         # Verify extension was added
         expected_path = tmp_path / "document.pdf"
-        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        mock_file_open.assert_called_once_with(expected_path, "wb")
         assert result == str(expected_path)
 
     @patch("builtins.open", new_callable=mock_open)
-    def test_save_without_extension_uses_content_type_tiff(
+    def test_save_url_without_extension_uses_content_type_tiff(
         self, mock_file_open: MagicMock, tmp_path: Any
     ) -> None:
-        """Test saving file without extension adds extension from Content-Type (TIFF)."""
+        """Test filename from URL without extension gets extension from Content-Type (TIFF)."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
             api_key="test", base_url="https://test.com"
         )
 
-        # Mock response with TIFF Content-Type
+        # Mock response with TIFF Content-Type, filename extracted from URL
         mock_response = MagicMock()
         mock_response.headers = {"Content-Type": "image/tiff"}
         mock_response.iter_content.return_value = [b"tiff data"]
+        mock_response.url = "https://test.com/image"
 
-        # Save to file without extension
-        file_path = tmp_path / "image"
-        result = client._save_response_to_file(mock_response, str(file_path))
+        # Save to directory, filename from URL
+        result = client._save_response_to_file(mock_response, destination=str(tmp_path))
 
         # Verify .tif extension was added
         expected_path = tmp_path / "image.tif"
-        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        mock_file_open.assert_called_once_with(expected_path, "wb")
         assert result == str(expected_path)
 
     @patch("builtins.open", new_callable=mock_open)
-    def test_save_with_existing_extension_ignores_content_type(
+    def test_save_url_with_existing_extension_ignores_content_type(
         self, mock_file_open: MagicMock, tmp_path: Any
     ) -> None:
-        """Test saving file with existing extension ignores Content-Type."""
+        """Test filename from URL with extension ignores Content-Type."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
             api_key="test", base_url="https://test.com"
         )
@@ -1164,21 +1144,23 @@ class TestSaveResponseToFile:
         mock_response = MagicMock()
         mock_response.headers = {"Content-Type": "application/pdf"}
         mock_response.iter_content.return_value = [b"data"]
+        mock_response.url = "https://test.com/document.txt"
 
-        # Save to file with existing extension
-        file_path = tmp_path / "document.txt"
-        result = client._save_response_to_file(mock_response, str(file_path))
+        # Save to directory, filename from URL with extension
+        result = client._save_response_to_file(
+            response=mock_response, destination=str(tmp_path)
+        )
 
         # Verify original extension was kept
         expected_path = tmp_path / "document.txt"
-        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        mock_file_open.assert_called_once_with(expected_path, "wb")
         assert result == str(expected_path)
 
     @patch("builtins.open", new_callable=mock_open)
-    def test_save_without_extension_unmapped_mime_type(
+    def test_save_url_without_extension_unmapped_mime_type(
         self, mock_file_open: MagicMock, tmp_path: Any
     ) -> None:
-        """Test saving file with unmapped MIME type saves without extension."""
+        """Test filename from URL with unmapped MIME type saves without extension."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
             api_key="test", base_url="https://test.com"
         )
@@ -1187,21 +1169,21 @@ class TestSaveResponseToFile:
         mock_response = MagicMock()
         mock_response.headers = {"Content-Type": "application/unknown"}
         mock_response.iter_content.return_value = [b"data"]
+        mock_response.url = "https://test.com/document"
 
-        # Save to file without extension
-        file_path = tmp_path / "document"
-        result = client._save_response_to_file(mock_response, str(file_path))
+        # Save to directory, filename from URL without extension, no mapped MIME type
+        result = client._save_response_to_file(mock_response, destination=str(tmp_path))
 
         # Verify no extension was added
         expected_path = tmp_path / "document"
-        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        mock_file_open.assert_called_once_with(expected_path, "wb")
         assert result == str(expected_path)
 
     @patch("builtins.open", new_callable=mock_open)
-    def test_save_without_extension_no_content_type(
+    def test_save_url_without_extension_no_content_type(
         self, mock_file_open: MagicMock, tmp_path: Any
     ) -> None:
-        """Test saving file without Content-Type header saves without extension."""
+        """Test filename from URL without Content-Type header saves without extension."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
             api_key="test", base_url="https://test.com"
         )
@@ -1210,14 +1192,14 @@ class TestSaveResponseToFile:
         mock_response = MagicMock()
         mock_response.headers = {}
         mock_response.iter_content.return_value = [b"data"]
+        mock_response.url = "https://test.com/document"
 
-        # Save to file without extension
-        file_path = tmp_path / "document"
-        result = client._save_response_to_file(mock_response, str(file_path))
+        # Save to directory, filename from URL without extension, no Content-Type
+        result = client._save_response_to_file(mock_response, destination=str(tmp_path))
 
         # Verify no extension was added
         expected_path = tmp_path / "document"
-        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        mock_file_open.assert_called_once_with(expected_path, "wb")
         assert result == str(expected_path)
 
     @patch("builtins.open", new_callable=mock_open)
@@ -1236,11 +1218,303 @@ class TestSaveResponseToFile:
             "Content-Type": "application/pdf",  # Different type
         }
         mock_response.iter_content.return_value = [b"data"]
+        mock_response.url = "https://test.com/document"
 
         # Save to directory (will use Content-Disposition)
         result = client._save_response_to_file(mock_response, str(tmp_path))
 
         # Verify Content-Disposition filename was used (not Content-Type)
         expected_path = tmp_path / "report.xml"
-        mock_file_open.assert_called_once_with(file=str(expected_path), mode="wb")
+        mock_file_open.assert_called_once_with(expected_path, "wb")
         assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_save_fallback_to_download_filename(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """Test fallback to 'download' filename when no filename can be determined."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Mock response with no Content-Disposition, no URL path, no extension
+        mock_response = MagicMock()
+        mock_response.headers = {}
+        mock_response.iter_content.return_value = [b"data"]
+        mock_response.url = "https://test.com/"
+
+        # Save to directory with no filename info
+        result = client._save_response_to_file(mock_response, destination=str(tmp_path))
+
+        # Verify fallback to "download"
+        expected_path = tmp_path / "download"
+        mock_file_open.assert_called_once_with(expected_path, "wb")
+        assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_save_to_current_directory_when_no_destination(
+        self, mock_file_open: MagicMock
+    ) -> None:
+        """Test saving to current working directory when destination is None."""
+        from pathlib import Path
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Mock response
+        mock_response = MagicMock()
+        mock_response.headers = {
+            "Content-Disposition": 'attachment; filename="test.pdf"'
+        }
+        mock_response.iter_content.return_value = [b"data"]
+
+        # Save with no destination (should use cwd)
+        with patch("pyUSPTO.clients.base.Path.cwd") as mock_cwd:
+            mock_cwd.return_value = Path("/fake/cwd")
+            result = client._save_response_to_file(mock_response, destination=None)
+
+            # Verify saved to current directory
+            expected_path = Path("/fake/cwd") / "test.pdf"
+            mock_file_open.assert_called_once_with(expected_path, "wb")
+            assert result == str(expected_path)
+
+
+class TestExtractArchive:
+    """Tests for _extract_archive method."""
+
+    def test_extract_tar_file(self, tmp_path: Any) -> None:
+        """Test extracting a TAR file."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Create a test TAR file
+        tar_path = tmp_path / "test.tar"
+        extract_to = tmp_path / "extracted"
+
+        with tarfile.open(tar_path, "w") as tar:
+            # Create a temp file to add to tar
+            temp_file = tmp_path / "test_file.txt"
+            temp_file.write_text("test content")
+            tar.add(temp_file, arcname="test_file.txt")
+
+        # Extract the archive
+        result = client._extract_archive(tar_path, extract_to=extract_to)
+
+        # Verify extraction
+        assert (extract_to / "test_file.txt").exists()
+        assert result == str(extract_to / "test_file.txt")  # Single file returns file path
+
+    def test_extract_tar_gz_file(self, tmp_path: Any) -> None:
+        """Test extracting a TAR.GZ file."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Create a test TAR.GZ file
+        tar_path = tmp_path / "test.tar.gz"
+        extract_to = tmp_path / "extracted"
+
+        with tarfile.open(tar_path, "w:gz") as tar:
+            temp_file = tmp_path / "test_file.txt"
+            temp_file.write_text("test content")
+            tar.add(temp_file, arcname="test_file.txt")
+
+        # Extract the archive
+        result = client._extract_archive(tar_path, extract_to=extract_to)
+
+        # Verify extraction
+        assert (extract_to / "test_file.txt").exists()
+        assert result == str(extract_to / "test_file.txt")
+
+    def test_extract_zip_file(self, tmp_path: Any) -> None:
+        """Test extracting a ZIP file."""
+        import zipfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Create a test ZIP file
+        zip_path = tmp_path / "test.zip"
+        extract_to = tmp_path / "extracted"
+
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("test_file.txt", "test content")
+
+        # Extract the archive
+        result = client._extract_archive(zip_path, extract_to=extract_to)
+
+        # Verify extraction
+        assert (extract_to / "test_file.txt").exists()
+        assert result == str(extract_to / "test_file.txt")
+
+    def test_extract_multiple_files_returns_directory(self, tmp_path: Any) -> None:
+        """Test extracting archive with multiple files returns directory path."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Create archive with multiple files
+        tar_path = tmp_path / "test.tar"
+        extract_to = tmp_path / "extracted"
+
+        with tarfile.open(tar_path, "w") as tar:
+            file1 = tmp_path / "file1.txt"
+            file2 = tmp_path / "file2.txt"
+            file1.write_text("content1")
+            file2.write_text("content2")
+            tar.add(file1, arcname="file1.txt")
+            tar.add(file2, arcname="file2.txt")
+
+        # Extract the archive
+        result = client._extract_archive(tar_path, extract_to=extract_to)
+
+        # Verify multiple files returns directory
+        assert result == str(extract_to)
+        assert (extract_to / "file1.txt").exists()
+        assert (extract_to / "file2.txt").exists()
+
+    def test_extract_with_remove_archive(self, tmp_path: Any) -> None:
+        """Test extracting archive with remove_archive=True deletes the archive."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Create a test archive
+        tar_path = tmp_path / "test.tar"
+        with tarfile.open(tar_path, "w") as tar:
+            temp_file = tmp_path / "test_file.txt"
+            temp_file.write_text("test content")
+            tar.add(temp_file, arcname="test_file.txt")
+
+        # Verify archive exists before extraction
+        assert tar_path.exists()
+
+        # Extract with remove_archive=True
+        client._extract_archive(tar_path, remove_archive=True)
+
+        # Verify archive was deleted
+        assert not tar_path.exists()
+
+    def test_extract_invalid_archive_raises_error(self, tmp_path: Any) -> None:
+        """Test extracting invalid archive raises ValueError."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Create a non-archive file
+        invalid_file = tmp_path / "not_an_archive.txt"
+        invalid_file.write_text("not an archive")
+
+        # Try to extract - should raise ValueError
+        with pytest.raises(ValueError, match="Not a valid TAR/ZIP archive"):
+            client._extract_archive(invalid_file)
+
+    def test_extract_default_extract_to_path(self, tmp_path: Any) -> None:
+        """Test extracting with default extract_to uses archive stem."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Create archive
+        tar_path = tmp_path / "myarchive.tar"
+        with tarfile.open(tar_path, "w") as tar:
+            temp_file = tmp_path / "test.txt"
+            temp_file.write_text("content")
+            tar.add(temp_file, arcname="test.txt")
+
+        # Extract without specifying extract_to
+        result = client._extract_archive(tar_path)
+
+        # Should extract to archive_path.parent / archive_path.stem
+        expected_dir = tmp_path / "myarchive"
+        assert expected_dir.exists()
+        assert (expected_dir / "test.txt").exists()
+        assert result == str(expected_dir / "test.txt")
+
+
+class TestDownloadAndExtract:
+    """Tests for _download_and_extract method."""
+
+    def test_download_and_extract_tar_file(self, tmp_path: Any) -> None:
+        """Test downloading and extracting a TAR file."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Create a real TAR file to simulate download
+        tar_path = tmp_path / "download.tar"
+        with tarfile.open(tar_path, "w") as tar:
+            temp_file = tmp_path / "document.txt"
+            temp_file.write_text("content")
+            tar.add(temp_file, arcname="document.txt")
+
+        # Mock _download_file to return the tar path
+        with patch.object(client, "_download_file", return_value=str(tar_path)):
+            result = client._download_and_extract(
+                url="https://test.com/archive.tar", destination=str(tmp_path)
+            )
+
+        # Verify it extracted (returns path to extracted content, not archive)
+        assert "download" in result or "document.txt" in result
+        # Verify archive was removed
+        assert not tar_path.exists()
+
+    def test_download_and_extract_zip_file(self, tmp_path: Any) -> None:
+        """Test downloading and extracting a ZIP file."""
+        import zipfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Create a real ZIP file
+        zip_path = tmp_path / "download.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("document.txt", "content")
+
+        # Mock _download_file to return the zip path
+        with patch.object(client, "_download_file", return_value=str(zip_path)):
+            result = client._download_and_extract(
+                url="https://test.com/archive.zip", destination=str(tmp_path)
+            )
+
+        # Verify extraction occurred
+        assert "download" in result or "document.txt" in result
+        # Verify archive was removed
+        assert not zip_path.exists()
+
+    def test_download_non_archive_returns_file_path(self, tmp_path: Any) -> None:
+        """Test downloading non-archive file returns downloaded file path."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            api_key="test", base_url="https://test.com"
+        )
+
+        # Create a non-archive file
+        file_path = tmp_path / "document.txt"
+        file_path.write_text("content")
+
+        # Mock _download_file to return the file path
+        with patch.object(client, "_download_file", return_value=str(file_path)):
+            result = client._download_and_extract(
+                url="https://test.com/document.txt", destination=str(tmp_path)
+            )
+
+        # Should return the file path without extraction
+        assert result == str(file_path)
+        # File should still exist (not removed)
+        assert file_path.exists()

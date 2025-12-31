@@ -9,7 +9,12 @@ from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.models.ptab import PTABAppealDecision, PTABAppealResponse
+from pyUSPTO.models.ptab import (
+    AppealDocumentData,
+    AppealMetaData,
+    PTABAppealDecision,
+    PTABAppealResponse,
+)
 
 
 class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
@@ -255,4 +260,94 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
             response_container_attr="patent_appeal_data_bag",
             post_body=post_body,
             **kwargs,
+        )
+
+    def download_appeal_archive(
+        self,
+        appeal_meta_data: AppealMetaData,
+        destination: str | None = None,
+        file_name: str | None = None,
+        overwrite: bool = False,
+    ) -> str:
+        """Download appeal archive (ZIP/TAR) without extraction.
+
+        Args:
+            appeal_meta_data: AppealMetaData with file_download_uri
+            destination: Directory to save to
+            file_name: Override filename
+            overwrite: Overwrite existing file
+
+        Returns:
+            Path to downloaded archive file
+
+        Raises:
+            ValueError: If appeal_meta_data has no file_download_uri
+        """
+        if not appeal_meta_data.file_download_uri:
+            raise ValueError("AppealMetaData has no file_download_uri")
+
+        return self._download_file(
+            url=appeal_meta_data.file_download_uri,
+            destination=destination,
+            file_name=file_name,
+            overwrite=overwrite,
+        )
+
+    def download_appeal_documents(
+        self,
+        appeal_meta_data: AppealMetaData,
+        destination: str | None = None,
+        overwrite: bool = False,
+    ) -> str:
+        """Download and extract all appeal documents.
+
+        Args:
+            appeal_meta_data: AppealMetaData with file_download_uri
+            destination: Directory to save/extract to
+            overwrite: Overwrite existing files
+
+        Returns:
+            Path to extraction directory
+
+        Raises:
+            ValueError: If appeal_meta_data has no file_download_uri
+        """
+        if not appeal_meta_data.file_download_uri:
+            raise ValueError("AppealMetaData has no file_download_uri")
+
+        return self._download_and_extract(
+            url=appeal_meta_data.file_download_uri,
+            destination=destination,
+            overwrite=overwrite,
+        )
+
+    def download_appeal_document(
+        self,
+        document_data: AppealDocumentData,
+        destination: str | None = None,
+        file_name: str | None = None,
+        overwrite: bool = False,
+    ) -> str:
+        """Download individual appeal document (auto-extracts if needed).
+
+        Args:
+            document_data: AppealDocumentData with file_download_uri
+            destination: Directory to save to
+            file_name: Override filename
+            overwrite: Overwrite existing file
+
+        Returns:
+            Path to downloaded file
+
+        Raises:
+            ValueError: If document_data has no file_download_uri
+        """
+        if not document_data.file_download_uri:
+            raise ValueError("AppealDocumentData has no file_download_uri")
+
+        return self._download_and_extract(
+            url=document_data.file_download_uri,
+            destination=destination,
+            file_name=file_name,
+            overwrite=overwrite,
         )

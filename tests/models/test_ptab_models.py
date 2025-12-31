@@ -205,6 +205,7 @@ def trial_document_api_sample() -> dict[str, Any]:
                     "technologyCenterNumber": "3600",
                 },
                 "documentData": {
+                    "documentCategory": "ORDER",
                     "documentTypeDescriptionText": "ORDER",
                     "documentFilingDate": "2025-07-24",
                     "documentIdentifier": "171138150",
@@ -796,7 +797,7 @@ class TestPTABTrialDocumentModels:
     def test_trial_document_data_from_dict_full(self) -> None:
         """Test TrialDocumentData.from_dict() with all fields."""
         data = {
-            # "documentCategory": "Petition",
+            "documentCategory": "Petition",
             "documentFilingDate": "2023-01-15",
             "documentIdentifier": "doc-uuid-1",
             "documentName": "Petition.pdf",
@@ -811,7 +812,7 @@ class TestPTABTrialDocumentModels:
             # "documentStatus": "Public",
         }
         result = TrialDocumentData.from_dict(data)
-        # assert result.document_category == "Petition"
+        assert result.document_category == "Petition"
         assert result.document_filing_date == date(2023, 1, 15)
         assert result.document_identifier == "doc-uuid-1"
         assert result.document_name == "Petition.pdf"

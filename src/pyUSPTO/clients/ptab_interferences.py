@@ -9,7 +9,12 @@ from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.models.ptab import PTABInterferenceDecision, PTABInterferenceResponse
+from pyUSPTO.models.ptab import (
+    InterferenceDocumentData,
+    InterferenceMetaData,
+    PTABInterferenceDecision,
+    PTABInterferenceResponse,
+)
 
 
 class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
@@ -271,4 +276,94 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
             response_container_attr="patent_interference_data_bag",
             post_body=post_body,
             **kwargs,
+        )
+
+    def download_interference_archive(
+        self,
+        interference_meta_data: InterferenceMetaData,
+        destination: str | None = None,
+        file_name: str | None = None,
+        overwrite: bool = False,
+    ) -> str:
+        """Download interference archive (ZIP/TAR) without extraction.
+
+        Args:
+            interference_meta_data: InterferenceMetaData with file_download_uri
+            destination: Directory to save to
+            file_name: Override filename
+            overwrite: Overwrite existing file
+
+        Returns:
+            Path to downloaded archive file
+
+        Raises:
+            ValueError: If interference_meta_data has no file_download_uri
+        """
+        if not interference_meta_data.file_download_uri:
+            raise ValueError("InterferenceMetaData has no file_download_uri")
+
+        return self._download_file(
+            url=interference_meta_data.file_download_uri,
+            destination=destination,
+            file_name=file_name,
+            overwrite=overwrite,
+        )
+
+    def download_interference_documents(
+        self,
+        interference_meta_data: InterferenceMetaData,
+        destination: str | None = None,
+        overwrite: bool = False,
+    ) -> str:
+        """Download and extract all interference documents.
+
+        Args:
+            interference_meta_data: InterferenceMetaData with file_download_uri
+            destination: Directory to save/extract to
+            overwrite: Overwrite existing files
+
+        Returns:
+            Path to extraction directory
+
+        Raises:
+            ValueError: If interference_meta_data has no file_download_uri
+        """
+        if not interference_meta_data.file_download_uri:
+            raise ValueError("InterferenceMetaData has no file_download_uri")
+
+        return self._download_and_extract(
+            url=interference_meta_data.file_download_uri,
+            destination=destination,
+            overwrite=overwrite,
+        )
+
+    def download_interference_document(
+        self,
+        document_data: InterferenceDocumentData,
+        destination: str | None = None,
+        file_name: str | None = None,
+        overwrite: bool = False,
+    ) -> str:
+        """Download individual interference document (auto-extracts if needed).
+
+        Args:
+            document_data: InterferenceDocumentData with file_download_uri
+            destination: Directory to save to
+            file_name: Override filename
+            overwrite: Overwrite existing file
+
+        Returns:
+            Path to downloaded file
+
+        Raises:
+            ValueError: If document_data has no file_download_uri
+        """
+        if not document_data.file_download_uri:
+            raise ValueError("InterferenceDocumentData has no file_download_uri")
+
+        return self._download_and_extract(
+            url=document_data.file_download_uri,
+            destination=destination,
+            file_name=file_name,
+            overwrite=overwrite,
         )

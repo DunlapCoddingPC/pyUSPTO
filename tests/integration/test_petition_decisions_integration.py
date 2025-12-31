@@ -508,7 +508,7 @@ class TestFinalPetitionDecisionsIntegration:
                 format="csv",
                 decision_date_from_q="2023-01-01",
                 limit=2,
-                destination_path=TEST_DOWNLOAD_DIR,
+                destination=TEST_DOWNLOAD_DIR,
             )
 
             # Should return a file path
@@ -583,7 +583,7 @@ class TestFinalPetitionDecisionsIntegration:
                     if download_option.download_url:
                         file_path = (
                             petition_decisions_client.download_petition_document(
-                                download_option, destination_path=TEST_DOWNLOAD_DIR
+                                download_option, destination=TEST_DOWNLOAD_DIR
                             )
                         )
 

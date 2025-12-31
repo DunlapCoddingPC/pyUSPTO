@@ -71,6 +71,14 @@ class ActiveIndicator(Enum):
         return super()._missing_(value=value)  # type: ignore[no-any-return]
 
 
+class DocumentMimeType(str, Enum):
+    """MIME types for document downloads from USPTO."""
+
+    PDF = "PDF"
+    XML = "XML"
+    MS_WORD = "MS_WORD"
+
+
 # --- Data Models ---
 @dataclass(frozen=True)
 class DocumentFormat:
@@ -260,6 +268,50 @@ class Document:
             if v is not None and (not isinstance(v, list) or v)
         }
 
+    def has_format(self, format: str | DocumentMimeType) -> bool:
+        """Check if this document has a specific format available.
+
+        Args:
+            format: The format to check for. Can be a string (e.g., "XML", "PDF")
+                or a DocumentMimeType enum value.
+
+        Returns:
+            True if the document has the specified format, False otherwise.
+
+        Example:
+            >>> if doc.has_format("XML"):
+            >>>     client.download_document(doc, format="XML")
+        """
+        format_str = format.value if isinstance(format, DocumentMimeType) else format
+        return any(
+            fmt.mime_type_identifier == format_str for fmt in self.document_formats
+        )
+
+    def get_format(self, format: str | DocumentMimeType) -> DocumentFormat | None:
+        """Get the DocumentFormat object for a specific format.
+
+        Args:
+            format: The format to retrieve. Can be a string (e.g., "XML", "PDF")
+                or a DocumentMimeType enum value.
+
+        Returns:
+            The DocumentFormat object if found, None otherwise.
+
+        Example:
+            >>> xml_format = doc.get_format("XML")
+            >>> if xml_format:
+            >>>     print(f"XML has {xml_format.page_total_quantity} pages")
+        """
+        format_str = format.value if isinstance(format, DocumentMimeType) else format
+        return next(
+            (
+                fmt
+                for fmt in self.document_formats
+                if fmt.mime_type_identifier == format_str
+            ),
+            None,
+        )
+
 
 class DocumentBag:
     """A collection of Document objects associated with a patent application.
@@ -350,6 +402,25 @@ class DocumentBag:
             str: Detailed representation of the DocumentBag.
         """
         return f"DocumentBag(documents={self._documents!r})"
+
+    def filter_by_format(self, format: str | DocumentMimeType) -> "DocumentBag":
+        """Filter documents to only include those with a specific format.
+
+        Args:
+            format: The format to filter by. Can be a string (e.g., "XML", "PDF")
+                or a DocumentMimeType enum value.
+
+        Returns:
+            A new DocumentBag containing only documents that have the specified format.
+
+        Example:
+            >>> all_docs = client.get_application_documents(app_no)
+            >>> xml_docs = all_docs.filter_by_format("XML")
+            >>> for doc in xml_docs:
+            >>>     client.download_document(doc, format="XML")
+        """
+        filtered = [doc for doc in self._documents if doc.has_format(format)]
+        return DocumentBag(list(filtered))
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "DocumentBag":
@@ -1979,7 +2050,7 @@ class PatentFileWrapper:
         last_ingestion_date_time: Timestamp of when this data was last ingested by the API (UTC).
     """
 
-    application_number_text: str | None = None
+    application_number_text: str
     application_meta_data: ApplicationMetaData | None = None
     correspondence_address_bag: list[Address] = field(default_factory=list)
     assignment_bag: list[Assignment] = field(default_factory=list)
@@ -2067,7 +2138,7 @@ class PatentFileWrapper:
             else None
         )
         return cls(
-            application_number_text=data.get("applicationNumberText"),
+            application_number_text=data.get("applicationNumberText", ""),
             application_meta_data=amd,
             correspondence_address_bag=corr_addrs,
             assignment_bag=assigns,

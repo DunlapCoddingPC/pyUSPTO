@@ -14,7 +14,7 @@ class TestHTTPConfig:
         assert config.timeout == 30.0
         assert config.connect_timeout == 10.0
         assert config.max_retries == 3
-        assert config.backoff_factor == 1.0
+        assert config.backoff_factor == 2.0
         assert config.retry_status_codes == [429, 500, 502, 503, 504]
         assert config.pool_connections == 10
         assert config.pool_maxsize == 10
@@ -26,7 +26,7 @@ class TestHTTPConfig:
             timeout=60.0,
             connect_timeout=15.0,
             max_retries=5,
-            backoff_factor=2.0,
+            backoff_factor=4.0,
             retry_status_codes=[500, 503],
             pool_connections=20,
             pool_maxsize=30,
@@ -35,7 +35,7 @@ class TestHTTPConfig:
         assert config.timeout == 60.0
         assert config.connect_timeout == 15.0
         assert config.max_retries == 5
-        assert config.backoff_factor == 2.0
+        assert config.backoff_factor == 4.0
         assert config.retry_status_codes == [500, 503]
         assert config.pool_connections == 20
         assert config.pool_maxsize == 30

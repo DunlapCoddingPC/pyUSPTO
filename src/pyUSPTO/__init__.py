@@ -19,6 +19,7 @@ from pyUSPTO.clients.ptab_interferences import PTABInterferencesClient
 from pyUSPTO.clients.ptab_trials import PTABTrialsClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import (
+    FormatNotAvailableError,
     USPTOApiAuthError,
     USPTOApiError,
     USPTOApiNotFoundError,
@@ -62,6 +63,7 @@ __all__ = [
     "USPTOApiAuthError",
     "USPTOApiRateLimitError",
     "USPTOApiNotFoundError",
+    "FormatNotAvailableError",
     "USPTOConfig",
     "HTTPConfig",
     # Warning classes

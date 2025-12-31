@@ -865,3 +865,96 @@ class TestPTABTrialsClientPaginate:
         """Test that paginate_proceedings raises ValueError with offset in kwargs."""
         with pytest.raises(ValueError, match="Cannot specify 'offset'"):
             list(mock_ptab_trials_client.paginate_proceedings(query="test", offset=10))
+
+
+class TestPTABTrialsDownloadMethods:
+    """Tests for PTAB Trials download methods."""
+
+    def test_download_trial_archive_missing_uri_raises_error(self) -> None:
+        """Test download_trial_archive raises ValueError when file_download_uri is None."""
+        from pyUSPTO.models.ptab import TrialMetaData
+
+        client = PTABTrialsClient(api_key="test")
+
+        # Create TrialMetaData without file_download_uri
+        meta_data = TrialMetaData(file_download_uri=None)
+
+        with pytest.raises(ValueError, match="TrialMetaData has no file_download_uri"):
+            client.download_trial_archive(meta_data)
+
+    def test_download_trial_archive_with_uri(self) -> None:
+        """Test download_trial_archive calls _download_file with URI."""
+        from pyUSPTO.models.ptab import TrialMetaData
+        from unittest.mock import patch
+
+        client = PTABTrialsClient(api_key="test")
+        meta_data = TrialMetaData(file_download_uri="https://test.com/trial.tar")
+
+        with patch.object(client, "_download_file", return_value="/path/to/file") as mock_download:
+            result = client.download_trial_archive(meta_data, destination="/dest", file_name="custom.tar", overwrite=True)
+            mock_download.assert_called_once_with(
+                url="https://test.com/trial.tar",
+                destination="/dest",
+                file_name="custom.tar",
+                overwrite=True
+            )
+            assert result == "/path/to/file"
+
+    def test_download_trial_documents_missing_uri_raises_error(self) -> None:
+        """Test download_trial_documents raises ValueError when file_download_uri is None."""
+        from pyUSPTO.models.ptab import TrialMetaData
+
+        client = PTABTrialsClient(api_key="test")
+
+        # Create TrialMetaData without file_download_uri
+        meta_data = TrialMetaData(file_download_uri=None)
+
+        with pytest.raises(ValueError, match="TrialMetaData has no file_download_uri"):
+            client.download_trial_documents(meta_data)
+
+    def test_download_trial_documents_with_uri(self) -> None:
+        """Test download_trial_documents calls _download_and_extract with URI."""
+        from pyUSPTO.models.ptab import TrialMetaData
+        from unittest.mock import patch
+
+        client = PTABTrialsClient(api_key="test")
+        meta_data = TrialMetaData(file_download_uri="https://test.com/trial.tar")
+
+        with patch.object(client, "_download_and_extract", return_value="/path/to/extracted") as mock_extract:
+            result = client.download_trial_documents(meta_data, destination="/dest", overwrite=True)
+            mock_extract.assert_called_once_with(
+                url="https://test.com/trial.tar",
+                destination="/dest",
+                overwrite=True
+            )
+            assert result == "/path/to/extracted"
+
+    def test_download_trial_document_missing_uri_raises_error(self) -> None:
+        """Test download_trial_document raises ValueError when file_download_uri is None."""
+        from pyUSPTO.models.ptab import TrialDocumentData
+
+        client = PTABTrialsClient(api_key="test")
+
+        # Create TrialDocumentData without file_download_uri
+        document_data = TrialDocumentData(file_download_uri=None)
+
+        with pytest.raises(ValueError, match="TrialDocumentData has no file_download_uri"):
+            client.download_trial_document(document_data)
+
+    def test_download_trial_document_with_uri(self) -> None:
+        """Test download_trial_document calls _download_and_extract with URI."""
+        from pyUSPTO.models.ptab import TrialDocumentData
+        from unittest.mock import patch
+
+        client = PTABTrialsClient(api_key="test")
+        document_data = TrialDocumentData(file_download_uri="https://test.com/doc.pdf")
+
+        with patch.object(client, "_download_and_extract", return_value="/path/to/doc.pdf") as mock_extract:
+            result = client.download_trial_document(document_data, destination="/dest", file_name="doc.pdf", overwrite=True)
+            mock_extract.assert_called_once_with(
+                url="https://test.com/doc.pdf",
+                destination="/dest",
+                file_name="doc.pdf",
+                overwrite=True
+            )
+            assert result == "/path/to/doc.pdf"

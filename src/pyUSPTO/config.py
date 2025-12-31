@@ -20,6 +20,9 @@ class USPTOConfig:
     accepts HTTP transport configuration via HTTPConfig.
     """
 
+    _shared_session: "requests.Session | None" = None
+    _active_clients: int = 0
+
     def __init__(
         self,
         api_key: str | None = None,

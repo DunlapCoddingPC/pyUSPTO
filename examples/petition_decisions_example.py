@@ -164,7 +164,7 @@ try:
     # Download as JSON (returns response object)
     print("\nDownloading decisions as JSON...")
     response = client.download_decisions(
-        format="json", decision_date_from_q="2023-01-01", limit=5
+        format="json", decision_date_from_q="2023-01-01", limit=5, overwrite=True
     )
     if isinstance(response, PetitionDecisionDownloadResponse):
         print(
@@ -178,7 +178,8 @@ try:
         format="csv",
         decision_date_from_q="2023-01-01",
         limit=10,
-        destination_path=DEST_PATH,
+        destination=DEST_PATH,
+        overwrite=True,
     )
     print(f"Downloaded CSV to: {csv_path}")
 
@@ -245,7 +246,8 @@ try:
 
                     print("\nDownloading document...")
                     file_path = client.download_petition_document(
-                        download_option, destination_path=DEST_PATH
+                        download_option=download_option,
+                        destination=DEST_PATH,
                     )
                     print(f"Downloaded to: {file_path}")
 
