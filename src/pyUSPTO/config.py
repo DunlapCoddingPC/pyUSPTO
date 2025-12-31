@@ -59,6 +59,9 @@ class USPTOConfig:
         # Control whether to include raw JSON data in response objects
         self.include_raw_data = include_raw_data
 
+        # Shared session for all clients using this config (created lazily)
+        self._shared_session: requests.Session | None = None
+
     @classmethod
     def from_env(cls) -> "USPTOConfig":
         """Create a USPTOConfig from environment variables.
