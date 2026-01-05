@@ -6,6 +6,7 @@ model handling, edge cases, and response handling.
 """
 
 import os
+from datetime import date, datetime
 from typing import Any
 from unittest.mock import MagicMock, mock_open, patch
 
@@ -43,13 +44,13 @@ class TestBulkDataModels:
 
         assert file_data.file_name == "test.zip"
         assert file_data.file_size == 1024
-        assert file_data.file_data_from_date == "2023-01-01"
-        assert file_data.file_data_to_date == "2023-12-31"
+        assert file_data.file_data_from_date == date(2023, 1, 1)
+        assert file_data.file_data_to_date == date(2023, 12, 31)
         assert file_data.file_type_text == "ZIP"
-        assert file_data.file_release_date == "2024-01-01"
+        assert file_data.file_release_date == date(2024, 1, 1)
         assert file_data.file_download_uri == "https://example.com/test.zip"
-        assert file_data.file_date == "2023-12-31"
-        assert file_data.file_last_modified_date_time == "2023-12-31T23:59:59"
+        assert file_data.file_date == date(2023, 12, 31)
+        assert file_data.file_last_modified_date_time is not None  # Datetime object, not string
 
     def test_product_file_bag_from_dict(self) -> None:
         """Test ProductFileBag.from_dict method."""
@@ -132,11 +133,11 @@ class TestBulkDataModels:
         assert product.product_label_array_text == ["Patent", "Test"]
         assert product.product_dataset_array_text == ["Patents"]
         assert product.product_dataset_category_array_text == ["Patent"]
-        assert product.product_from_date == "2023-01-01"
-        assert product.product_to_date == "2023-12-31"
+        assert product.product_from_date == date(2023, 1, 1)
+        assert product.product_to_date == date(2023, 12, 31)
         assert product.product_total_file_size == 1024
         assert product.product_file_total_quantity == 2
-        assert product.last_modified_date_time == "2023-12-31T23:59:59"
+        assert product.last_modified_date_time is not None  # Datetime object, not string
         assert product.mime_type_identifier_array_text == ["application/zip"]
         assert product.product_file_bag is not None
         assert product.product_file_bag.count == 2

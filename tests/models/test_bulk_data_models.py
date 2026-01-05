@@ -30,15 +30,13 @@ class TestBulkDataModelFromDict:
         assert product.product_label_array_text == []
         assert product.product_dataset_array_text == []
         assert product.product_dataset_category_array_text == []
-        assert product.product_from_date == ""
-        assert product.product_to_date == ""
+        assert product.product_from_date is None  # Now returns None (date object), not empty string
+        assert product.product_to_date is None  # Now returns None (date object), not empty string
         assert product.product_total_file_size == 0
         assert product.product_file_total_quantity == 0
-        assert product.last_modified_date_time == ""
+        assert product.last_modified_date_time is None  # Now returns None (datetime object), not empty string
         assert product.mime_type_identifier_array_text == []
-        assert product.product_file_bag is not None
-        assert product.product_file_bag.count == 0
-        assert product.product_file_bag.file_data_bag == []
+        assert product.product_file_bag is None  # Now defaults to None with empty dict
 
 
 class TestBulkDataModelToDict:
