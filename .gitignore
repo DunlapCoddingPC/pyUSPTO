@@ -20,3 +20,4 @@ dist/
 Python/
 run_integration_tests.py
 .plan.md
+CLAUDE.md
