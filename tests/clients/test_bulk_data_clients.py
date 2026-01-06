@@ -6,7 +6,7 @@ model handling, edge cases, and response handling.
 """
 
 import os
-from datetime import date, datetime
+from datetime import date
 from typing import Any
 from unittest.mock import MagicMock, mock_open, patch
 

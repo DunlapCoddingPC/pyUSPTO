@@ -79,6 +79,7 @@ class FileData:
     Attributes:
         file_name: The name of the file.
         file_size: Size of the file in bytes.
+        product_identifier: The identifier of the product this file belongs to.
         file_data_from_date: Start date of data covered in the file.
         file_data_to_date: End date of data covered in the file.
         file_type_text: Description of the file type.
@@ -91,6 +92,7 @@ class FileData:
 
     file_name: str
     file_size: int
+    product_identifier: str
     file_data_from_date: date | None
     file_data_to_date: date | None
     file_type_text: str
@@ -101,11 +103,17 @@ class FileData:
     raw_data: str | None = field(default=None, compare=False, repr=False)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], include_raw_data: bool = False) -> "FileData":
+    def from_dict(
+        cls,
+        data: dict[str, Any],
+        product_identifier: str,
+        include_raw_data: bool = False,
+    ) -> "FileData":
         """Create a FileData object from a dictionary.
 
         Args:
             data: Dictionary containing file data from API response.
+            product_identifier: The identifier of the product this file belongs to.
             include_raw_data: If True, store the raw JSON for debugging.
 
         Returns:
@@ -114,13 +122,16 @@ class FileData:
         return cls(
             file_name=data.get("fileName", ""),
             file_size=data.get("fileSize", 0),
+            product_identifier=product_identifier,
             file_data_from_date=parse_to_date(data.get("fileDataFromDate")),
             file_data_to_date=parse_to_date(data.get("fileDataToDate")),
             file_type_text=data.get("fileTypeText", ""),
             file_release_date=parse_to_date(data.get("fileReleaseDate")),
             file_download_uri=data.get("fileDownloadURI"),
             file_date=parse_to_date(data.get("fileDate")),
-            file_last_modified_date_time=parse_to_datetime_utc(data.get("fileLastModifiedDateTime")),
+            file_last_modified_date_time=parse_to_datetime_utc(
+                data.get("fileLastModifiedDateTime")
+            ),
             raw_data=json.dumps(data) if include_raw_data else None,
         )
 
@@ -163,11 +174,17 @@ class ProductFileBag:
     raw_data: str | None = field(default=None, compare=False, repr=False)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], include_raw_data: bool = False) -> "ProductFileBag":
+    def from_dict(
+        cls,
+        data: dict[str, Any],
+        product_identifier: str,
+        include_raw_data: bool = False,
+    ) -> "ProductFileBag":
         """Create a ProductFileBag object from a dictionary.
 
         Args:
             data: Dictionary containing product file bag data.
+            product_identifier: The identifier of the product this bag belongs to.
             include_raw_data: If True, store the raw JSON for debugging.
 
         Returns:
@@ -177,7 +194,11 @@ class ProductFileBag:
         file_data_bag_raw = data.get("fileDataBag", [])
         file_data_bag = (
             [
-                FileData.from_dict(file_data, include_raw_data=include_raw_data)
+                FileData.from_dict(
+                    file_data,
+                    product_identifier=product_identifier,
+                    include_raw_data=include_raw_data,
+                )
                 for file_data in file_data_bag_raw
                 if isinstance(file_data, dict)
             ]
@@ -249,7 +270,9 @@ class BulkDataProduct:
     raw_data: str | None = field(default=None, compare=False, repr=False)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], include_raw_data: bool = False) -> "BulkDataProduct":
+    def from_dict(
+        cls, data: dict[str, Any], include_raw_data: bool = False
+    ) -> "BulkDataProduct":
         """Create a BulkDataProduct object from a dictionary.
 
         Args:
@@ -276,10 +299,14 @@ class BulkDataProduct:
         if not isinstance(mime_type_array, list):
             mime_type_array = []
 
-        # Parse product file bag
+        # Parse product file bag #TODO: this does not seem to be available in search responses.
         product_file_bag_data = data.get("productFileBag")
         product_file_bag = (
-            ProductFileBag.from_dict(product_file_bag_data, include_raw_data=include_raw_data)
+            ProductFileBag.from_dict(
+                product_file_bag_data,
+                product_identifier=data.get("productIdentifier", ""),
+                include_raw_data=include_raw_data,
+            )
             if product_file_bag_data and isinstance(product_file_bag_data, dict)
             else None
         )
@@ -297,7 +324,9 @@ class BulkDataProduct:
             product_to_date=parse_to_date(data.get("productToDate")),
             product_total_file_size=data.get("productTotalFileSize", 0),
             product_file_total_quantity=data.get("productFileTotalQuantity", 0),
-            last_modified_date_time=parse_to_datetime_utc(data.get("lastModifiedDateTime")),
+            last_modified_date_time=parse_to_datetime_utc(
+                data.get("lastModifiedDateTime")
+            ),
             mime_type_identifier_array_text=mime_type_array,
             product_file_bag=product_file_bag,
             raw_data=json.dumps(data) if include_raw_data else None,
@@ -328,7 +357,9 @@ class BulkDataProduct:
                 else None
             ),
             "mimeTypeIdentifierArrayText": self.mime_type_identifier_array_text,
-            "productFileBag": self.product_file_bag.to_dict() if self.product_file_bag else None,
+            "productFileBag": (
+                self.product_file_bag.to_dict() if self.product_file_bag else None
+            ),
         }
         return {
             k: v

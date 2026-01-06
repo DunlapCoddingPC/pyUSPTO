@@ -23,7 +23,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         "products_search": "api/v1/datasets/products/search",
         "product_by_id": "api/v1/datasets/products/{product_id}",
         # Download endpoint
-        "download_file": "api/v1/datasets/products/files/{file_download_uri}",
+        "download_file": "api/v1/datasets/products/files/{productIdentifier}/{fileName}",
     }
 
     def __init__(
@@ -163,7 +163,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         uses base class helpers for consistent behavior across all clients.
 
         Args:
-            file_data: FileData object containing download URI and metadata.
+            file_data: FileData object containing download info and product_identifier.
             destination: Directory to save/extract to. Defaults to current directory.
             file_name: Override filename. Defaults to file_data.file_name.
             overwrite: Whether to overwrite existing files. Defaults to False.
@@ -173,7 +173,6 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
             str: Path to downloaded file or extracted directory.
 
         Raises:
-            ValueError: If file_data has no download URI.
             FileExistsError: If file exists and overwrite=False.
 
         Examples:
@@ -185,23 +184,27 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
             Download without extraction:
             >>> path = client.download_file(file_data, extract=False)
         """
-        if not file_data.file_download_uri:
-            raise ValueError("FileData has no download URI")
-
-        # Use file_name from file_data if not provided
+        # Resolve filename
         default_file_name = file_name or file_data.file_name
 
-        # Use base class helpers based on extract flag
+        # Construct URL from endpoint
+        endpoint = self.ENDPOINTS["download_file"].format(
+            productIdentifier=file_data.product_identifier,
+            fileName=default_file_name,
+        )
+        download_url = f"{self.base_url}/{endpoint}"
+
+        # Delegate to base class helpers
         if extract:
             return self._download_and_extract(
-                url=file_data.file_download_uri,
+                url=download_url,
                 destination=destination,
                 file_name=default_file_name,
                 overwrite=overwrite,
             )
         else:
             return self._download_file(
-                url=file_data.file_download_uri,
+                url=download_url,
                 destination=destination,
                 file_name=default_file_name,
                 overwrite=overwrite,
