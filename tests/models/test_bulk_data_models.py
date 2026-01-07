@@ -6,7 +6,12 @@ This module contains consolidated tests for all classes in pyUSPTO.models.bulk_d
 
 from typing import Any
 
-from pyUSPTO.models.bulk_data import BulkDataProduct, BulkDataResponse
+from pyUSPTO.models.bulk_data import (
+    BulkDataProduct,
+    BulkDataResponse,
+    FileTypeCategory,
+    ProductFrequency,
+)
 
 
 class TestBulkDataModelFromDict:
@@ -82,4 +87,68 @@ class TestBulkDataModelToDict:
         bulk_response = BulkDataResponse(count=0, bulk_data_product_bag=[])
         result = bulk_response.to_dict()
         assert result["count"] == 0
-        assert result["bulkDataProductBag"] == []
+        # bulkDataProductBag is filtered out when empty (by design)
+        assert "bulkDataProductBag" not in result
+
+
+class TestBulkDataEnums:
+    """Tests for enums in bulk_data models."""
+
+    def test_file_type_category_missing_method(self) -> None:
+        """Test FileTypeCategory._missing_ method for case-insensitive lookup."""
+        # Test case-insensitive lookup
+        assert FileTypeCategory("zip") == FileTypeCategory.ZIP
+        assert FileTypeCategory("tar") == FileTypeCategory.TAR
+
+        # Test tar.gz variations (all map to TAR_GZ)
+        assert FileTypeCategory("tar.gz") == FileTypeCategory.TAR_GZ
+        assert FileTypeCategory("TAR_GZ") == FileTypeCategory.TAR_GZ
+        assert FileTypeCategory("TARGZ") == FileTypeCategory.TAR_GZ
+        assert FileTypeCategory("tgz") == FileTypeCategory.TAR_GZ  # tgz also maps to TAR_GZ
+
+        # Test TGZ as exact match
+        assert FileTypeCategory("TGZ") == FileTypeCategory.TGZ
+
+        # Test return None for unknown values
+        assert FileTypeCategory._missing_("unknown") is None
+        assert FileTypeCategory._missing_(123) is None  # Non-string value
+
+    def test_product_frequency_missing_method(self) -> None:
+        """Test ProductFrequency._missing_ method for case-insensitive lookup."""
+        # Test case-insensitive lookup
+        assert ProductFrequency("daily") == ProductFrequency.DAILY
+        assert ProductFrequency("WEEKLY") == ProductFrequency.WEEKLY
+
+        # Test with spaces and hyphens
+        assert ProductFrequency("ad hoc") == ProductFrequency.AD_HOC
+        assert ProductFrequency("ad-hoc") == ProductFrequency.AD_HOC
+
+        # Test return None for unknown values
+        assert ProductFrequency._missing_("unknown") is None
+        assert ProductFrequency._missing_(456) is None  # Non-string value
+
+
+class TestBulkDataDefensiveParsing:
+    """Tests for defensive parsing in bulk_data models."""
+
+    def test_bulk_data_product_from_dict_with_non_list_arrays(self) -> None:
+        """Test BulkDataProduct.from_dict with non-list array fields."""
+        # Test with string instead of list for array fields
+        data = {
+            "productIdentifier": "TEST",
+            "productDescriptionText": "Test",
+            "productTitleText": "Test Title",
+            "productFrequencyText": "Daily",
+            "productLabelArrayText": "not a list",  # Should become []
+            "productDatasetArrayText": "also not a list",  # Should become []
+            "productDatasetCategoryArrayText": 123,  # Should become []
+            "mimeTypeIdentifierArrayText": None,  # Should become []
+        }
+
+        product = BulkDataProduct.from_dict(data)
+
+        # All array fields should be empty lists due to defensive parsing
+        assert product.product_label_array_text == []
+        assert product.product_dataset_array_text == []
+        assert product.product_dataset_category_array_text == []
+        assert product.mime_type_identifier_array_text == []

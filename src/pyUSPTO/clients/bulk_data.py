@@ -50,27 +50,6 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
 
         super().__init__(api_key=api_key, base_url=base_url, config=self.config)
 
-    def get_products(self, params: dict[str, Any] | None = None) -> BulkDataResponse:
-        """Get a list of bulk data products.
-
-        This method is deprecated. Use search_products instead.
-
-        Args:
-            params: Optional query parameters
-
-        Returns:
-            BulkDataResponse object containing the API response
-        """
-        result = self._make_request(
-            method="GET",
-            endpoint=self.ENDPOINTS["products_search"],
-            params=params,
-            response_class=BulkDataResponse,
-        )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, BulkDataResponse)
-        return result
-
     def get_product_by_id(
         self,
         product_id: str,
@@ -234,154 +213,45 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
     def search_products(
         self,
         query: str | None = None,
-        product_title: str | None = None,
-        product_description: str | None = None,
-        product_short_name: str | None = None,
-        from_date: str | None = None,
-        to_date: str | None = None,
-        categories: list[str] | None = None,
-        labels: list[str] | None = None,
-        datasets: list[str] | None = None,
-        file_types: list[str] | None = None,
         offset: int | None = None,
         limit: int | None = None,
-        include_files: bool | None = None,
-        latest: bool | None = None,
         facets: bool | None = None,
-        # Convenience query parameters
-        product_id_q: str | None = None,
-        product_title_q: str | None = None,
-        product_description_q: str | None = None,
-        dataset_q: str | None = None,
-        category_q: str | None = None,
-        label_q: str | None = None,
-        file_type_q: str | None = None,
-        from_date_q: str | None = None,
-        to_date_q: str | None = None,
-        additional_query_params: dict[str, Any] | None = None,
+        fields: list[str] | None = None,
     ) -> BulkDataResponse:
-        """Search for products with various filters.
+        """Search for Bulk Data Products.
 
-        This method supports both direct parameter filters and convenience query
-        parameters that are automatically combined into a query string.
+        Note: The USPTO Bulk Data API only supports full-text search in the query
+        parameter. Field-specific queries (e.g., field:value) do not work despite
+        being documented in the API swagger specification.
 
         Args:
-            query: Direct query string in USPTO search syntax.
-            product_title: Filter by product title (direct parameter).
-            product_description: Filter by product description (direct parameter).
-            product_short_name: Filter by product identifier (direct parameter).
-            from_date: Filter products with data from this date (YYYY-MM-DD).
-            to_date: Filter products with data until this date (YYYY-MM-DD).
-            categories: Filter by dataset categories.
-            labels: Filter by product labels.
-            datasets: Filter by datasets.
-            file_types: Filter by file types.
+            query: Full-text search query string. Field-specific syntax like
+                "productIdentifier:value" is not supported by the API.
             offset: Number of product records to skip.
             limit: Number of product records to collect.
-            include_files: Whether to include product files in the response.
-            latest: Whether to return only the latest product file for each product.
             facets: Whether to enable facets in the response.
-            product_id_q: Filter by product identifier (query syntax).
-            product_title_q: Filter by product title (query syntax).
-            product_description_q: Filter by description (query syntax).
-            dataset_q: Filter by dataset name (query syntax).
-            category_q: Filter by category (query syntax).
-            label_q: Filter by label (query syntax).
-            file_type_q: Filter by file type (query syntax).
-            from_date_q: Filter products from date (YYYY-MM-DD, query syntax).
-            to_date_q: Filter products to date (YYYY-MM-DD, query syntax).
-            additional_query_params: Additional custom query parameters.
+            fields: List of field names to include in the response.
 
         Returns:
             BulkDataResponse: Response containing matching products.
 
         Examples:
-            Search with direct query:
-            >>> response = client.search_products(query="productTitle:Patent")
-
-            Search with convenience parameters:
-            >>> response = client.search_products(
-            ...     dataset_q="Patents",
-            ...     from_date_q="2023-01-01",
-            ...     limit=50
-            ... )
-
-            Search with direct parameters:
-            >>> response = client.search_products(
-            ...     product_title="Patent Grant",
-            ...     categories=["Patents"],
-            ...     include_files=True
-            ... )
+            Search with full-text query:
+            >>> response = client.search_products(query="Patent", limit=50)
         """
         params = {}
-        final_q = query
-
-        # Build query from convenience parameters
-        if final_q is None:
-            q_parts = []
-            if product_id_q:
-                q_parts.append(f"productIdentifier:{product_id_q}")
-            if product_title_q:
-                q_parts.append(f"productTitleText:{product_title_q}")
-            if product_description_q:
-                q_parts.append(f"productDescriptionText:{product_description_q}")
-            if dataset_q:
-                q_parts.append(f"productDatasetArrayText:{dataset_q}")
-            if category_q:
-                q_parts.append(f"productDatasetCategoryArrayText:{category_q}")
-            if label_q:
-                q_parts.append(f"productLabelArrayText:{label_q}")
-            if file_type_q:
-                q_parts.append(f"mimeTypeIdentifierArrayText:{file_type_q}")
-
-            # Handle date range
-            if from_date_q and to_date_q:
-                q_parts.append(f"productFromDate:[{from_date_q} TO {to_date_q}]")
-            elif from_date_q:
-                q_parts.append(f"productFromDate:>={from_date_q}")
-            elif to_date_q:
-                q_parts.append(f"productToDate:<={to_date_q}")
-
-            if q_parts:
-                final_q = " AND ".join(q_parts)
 
         # Add query parameter
-        if final_q is not None:
-            params["q"] = final_q
-
-        # Add direct filter parameters
-        if product_title:
-            params["productTitle"] = product_title
-        if product_description:
-            params["productDescription"] = product_description
-        if product_short_name:
-            params["productShortName"] = product_short_name
-        if from_date:
-            params["fromDate"] = from_date
-        if to_date:
-            params["toDate"] = to_date
-        if categories:
-            params["categories"] = ",".join(categories)
-        if labels:
-            params["labels"] = ",".join(labels)
-        if datasets:
-            params["datasets"] = ",".join(datasets)
-        if file_types:
-            params["fileTypes"] = ",".join(file_types)
+        if query is not None:
+            params["q"] = query
         if offset is not None:
             params["offset"] = str(offset)
         if limit is not None:
             params["limit"] = str(limit)
-        if include_files is not None:
-            params["includeFiles"] = str(include_files).lower()
-        if latest is not None:
-            params["latest"] = str(latest).lower()
         if facets is not None:
             params["facets"] = str(facets).lower()
-
-        # Add additional custom parameters
-        if additional_query_params:
-            params.update(additional_query_params)
+        if fields is not None:
+            params["fields"] = ",".join(fields)
 
         result = self._make_request(
             method="GET",
