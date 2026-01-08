@@ -1,15 +1,14 @@
-"""Example usage of the uspto_api module for bulk data.
+"""Example usage of the BulkDataClient.
 
 This example demonstrates how to use the BulkDataClient to interact with the USPTO Bulk Data API.
-It shows how to retrieve product information, search for products, and download files.
+It shows how to search for products, retrieve product details, and download files.
 """
 
 import os
 
-import requests
-
-from pyUSPTO.clients import BulkDataClient  # Import from top-level package
+from pyUSPTO.clients import BulkDataClient
 from pyUSPTO.config import USPTOConfig
+from pyUSPTO.models.bulk_data import FileData
 
 
 def format_size(size_bytes: int | float) -> str:
@@ -34,93 +33,163 @@ def format_size(size_bytes: int | float) -> str:
     return f"{size_bytes:.2f} {size_names[i]}"
 
 
-# Method 1: Initialize the client with direct API key
-# This approach is simple but less flexible
+# ============================================================================
+# Client Initialization Methods
+# ============================================================================
+
+# Method 1: Initialize with API key directly
 print("Method 1: Initialize with direct API key")
 api_key = "YOUR_API_KEY_HERE"  # Replace with your actual API key
 client = BulkDataClient(api_key=api_key)
 
-# Method 2: Initialize the client with USPTOConfig
-# This approach provides more configuration options
+# Method 2: Initialize with USPTOConfig object
 print("\nMethod 2: Initialize with USPTOConfig")
-config = USPTOConfig(
-    api_key="YOUR_API_KEY_HERE",  # Replace with your actual API key
-    bulk_data_base_url="https://api.uspto.gov/api/v1/datasets",
-    patent_data_base_url="https://api.uspto.gov/api/v1/patent",
-)
+config = USPTOConfig(api_key="YOUR_API_KEY_HERE")
 client = BulkDataClient(config=config)
 
-# Method 3: Initialize the client with environment variables
-# This is the most secure approach for production use
-print("\nMethod 3: Initialize with environment variables")
-# Set environment variable (in a real scenario, this would be set outside the script)
-os.environ["USPTO_API_KEY"] = "YOUR_API_KEY_HERE"  # Replace with your actual API key
+# Method 3: Initialize from environment variables (recommended for production)
+print("\nMethod 3: Initialize from environment variables")
+os.environ["USPTO_API_KEY"] = "YOUR_API_KEY_HERE"  # Set this outside your script
 config_from_env = USPTOConfig.from_env()
 client = BulkDataClient(config=config_from_env)
 
-print("\nBeginning API requests with configured client:")
+print("\n" + "=" * 60)
+print("Beginning API requests with configured client")
+print("=" * 60)
 
-# Get all available products
-response = client.get_products()
-print(f"Found {response.count} products")
 
-# Display information about each product
+# ============================================================================
+# Example 1: Search for Products
+# ============================================================================
+
+print("\n--- Example 1: Search for Products ---")
+# The Bulk Data API supports full-text search via the query parameter
+# Field-specific queries (e.g., "productIdentifier:value") are not supported
+
+# Search for patent-related products
+response = client.search_products(query="patent", limit=5)
+print(f"Found {response.count} products matching 'patent'")
+
 for product in response.bulk_data_product_bag:
-    print(f"\nProduct: {product.product_title_text}")
-    print(f"ID: {product.product_identifier}")
-    print(f"Description: {product.product_description_text}")
-    print(f"Date range: {product.product_from_date} to {product.product_to_date}")
-    print(f"Total files: {product.product_file_total_quantity}")
-    print(f"Total size: {format_size(size_bytes=product.product_total_file_size)}")
+    print(f"\n  Product: {product.product_title_text}")
+    print(f"  ID: {product.product_identifier}")
+    print(f"  Description: {product.product_description_text[:100]}...")
+    print(f"  Total files: {product.product_file_total_quantity}")
+    print(f"  Total size: {format_size(product.product_total_file_size)}")
 
-    # Get detailed product info with files included
+
+# ============================================================================
+# Example 2: Paginate Through All Products
+# ============================================================================
+
+print("\n--- Example 2: Paginate Through Products ---")
+# Use pagination to iterate through all matching products
+
+count = 0
+for product in client.paginate_products(query="trademark", limit=10):
+    count += 1
+    print(f"  {count}. {product.product_title_text} ({product.product_identifier})")
+    if count >= 20:  # Limit output for example
+        print("  ... (stopping after 20 products)")
+        break
+
+
+# ============================================================================
+# Example 3: Get Product Details by ID
+# ============================================================================
+
+print("\n--- Example 3: Get Product by ID ---")
+# Retrieve a specific product by its identifier
+# Use include_files=True to get file listing
+
+product_id = "PTGRXML"  # Patent Grant Full-Text Data (No Images) - XML
+product = client.get_product_by_id(product_id, include_files=True, latest=True)
+
+print(f"Product: {product.product_title_text}")
+print(f"Description: {product.product_description_text}")
+print(f"Frequency: {product.product_frequency_text}")
+print(f"Labels: {product.product_label_array_text}")
+print(f"Categories: {product.product_dataset_category_array_text}")
+print(f"Date range: {product.product_from_date} to {product.product_to_date}")
+
+
+# ============================================================================
+# Example 4: List Files for a Product
+# ============================================================================
+
+print("\n--- Example 4: List Files for a Product ---")
+# Get product with files and display file details
+
+if product.product_file_bag and product.product_file_bag.file_data_bag:
+    print(f"Found {len(product.product_file_bag.file_data_bag)} file(s):")
+
+    for file_data in product.product_file_bag.file_data_bag:
+        print(f"\n  File: {file_data.file_name}")
+        print(f"  Size: {format_size(file_data.file_size)}")
+        print(f"  Type: {file_data.file_type_text}")
+        print(
+            f"  Data range: {file_data.file_data_from_date} to {file_data.file_data_to_date}"
+        )
+        print(f"  Released: {file_data.file_release_date}")
+        print(f"  Download URI: {file_data.file_download_uri}")
+else:
+    print("No files found for this product")
+
+
+# ============================================================================
+# Example 5: Download a File
+# ============================================================================
+
+print("\n--- Example 5: Download a File ---")
+# Download a file from the product
+
+min_file: FileData | None = None
+last_bytes: float = float("inf")
+
+if product.product_file_bag and product.product_file_bag.file_data_bag:
+    for file_data in product.product_file_bag.file_data_bag:
+        if file_data.file_size < last_bytes:
+            last_bytes = file_data.file_size
+            min_file = file_data
+
+if min_file:
+    print(f"Downloading smallest file: {min_file.file_name}")
+    print(f"Size: {format_size(min_file.file_size)}")
+
     try:
-        detailed_product = client.get_product_by_id(
-            product.product_identifier, include_files=True
-        )
-        if (
-            detailed_product.product_file_bag
-            and detailed_product.product_file_bag.file_data_bag
-        ):
-            print(f"\nFiles ({detailed_product.product_file_bag.count}):")
-            for file_data in detailed_product.product_file_bag.file_data_bag:
-                print(f"  - {file_data.file_name} ({format_size(file_data.file_size)})")
-                print(f"    Type: {file_data.file_type_text}")
-                print(f"    Released: {file_data.file_release_date}")
-                if file_data.file_download_uri:
-                    print(f"    Download URI: {file_data.file_download_uri}")
-        else:
-            print("\nNo files available for this product")
-    except Exception as e:
-        print(f"\nError retrieving detailed product info: {e}")
-
-# Search for products by date range
-date_filtered = client.search_products(from_date="2025-01-01", to_date="2025-03-31")
-print(f"\nFound {date_filtered.count} products in date range")
-
-# Search for products by label
-try:
-    # Using labels we saw in the API response
-    label_filtered = client.search_products(labels=["Patent"])
-    print(f"\nFound {label_filtered.count} products with label 'Patent'")
-except requests.exceptions.HTTPError as e:
-    print(f"Error searching by labels: {e}")
-
-# Get a specific product by ID
-product_id = "PEDSJSON"  # Using a real product ID from the output
-try:
-    product = client.get_product_by_id(product_id, include_files=True)
-    print(f"\nRetrieved product: {product.product_title_text}")
-
-    # Download a file from this product
-    if product.product_file_bag and product.product_file_bag.file_data_bag:
-        file_to_download = product.product_file_bag.file_data_bag[0]
-        print(f"File download URI: {file_to_download.file_download_uri}")
+        # Download with extraction (default behavior for archives)
         downloaded_path = client.download_file(
-            file_data=file_to_download, destination="./downloads"
+            file_data=min_file,
+            destination="./downloads",
+            overwrite=True,
+            extract=True,  # Auto-extract if it's a tar.gz or zip
         )
-        print(f"Downloaded file to: {downloaded_path}")
-        print(f"File size: {format_size(size_bytes=file_to_download.file_size)}")
+        print(f"SUCCESS: Downloaded to {downloaded_path}")
+    except Exception as e:
+        print(f"ERROR: {e}")
 
-except Exception as e:
-    print(f"Error retrieving product {product_id}: {e}")
+
+# ============================================================================
+# Example 6: Download Without Extraction
+# ============================================================================
+
+print("\n--- Example 6: Download Without Extraction ---")
+# Download archive file without extracting
+
+if product.product_file_bag and product.product_file_bag.file_data_bag and min_file:
+    try:
+        # Download without extraction
+        downloaded_path = client.download_file(
+            file_data=min_file,
+            destination="./downloads",
+            overwrite=True,
+            extract=False,  # Keep archive compressed
+        )
+        print(f"SUCCESS: Archive saved to {downloaded_path}")
+    except Exception as e:
+        print(f"ERROR: {e}")
+
+
+print("\n" + "=" * 60)
+print("Examples complete!")
+print("=" * 60)
