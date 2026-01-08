@@ -4,14 +4,14 @@ This module provides a client for interacting with the USPTO Open Data Portal (O
 Bulk Data API. It allows you to search for and download bulk data products.
 """
 
-import os
+import warnings
 from collections.abc import Iterator
 from typing import Any
-from urllib.parse import urlparse
 
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.bulk_data import BulkDataProduct, BulkDataResponse, FileData
+from pyUSPTO.warnings import USPTODataMismatchWarning
 
 
 class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
@@ -23,7 +23,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         "products_search": "api/v1/datasets/products/search",
         "product_by_id": "api/v1/datasets/products/{product_id}",
         # Download endpoint
-        "download_file": "api/v1/datasets/products/files/{file_download_uri}",
+        "download_file": "api/v1/datasets/products/files/{productIdentifier}/{fileName}",
     }
 
     def __init__(
@@ -50,27 +50,6 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
 
         super().__init__(api_key=api_key, base_url=base_url, config=self.config)
 
-    def get_products(self, params: dict[str, Any] | None = None) -> BulkDataResponse:
-        """Get a list of bulk data products.
-
-        This method is deprecated. Use search_products instead.
-
-        Args:
-            params: Optional query parameters
-
-        Returns:
-            BulkDataResponse object containing the API response
-        """
-        result = self._make_request(
-            method="GET",
-            endpoint=self.ENDPOINTS["products_search"],
-            params=params,
-            response_class=BulkDataResponse,
-        )
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, BulkDataResponse)
-        return result
-
     def get_product_by_id(
         self,
         product_id: str,
@@ -84,16 +63,30 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         """Get a specific bulk data product by ID.
 
         Args:
-            product_id: The product identifier
-            file_data_from_date: Filter files by data from date (YYYY-MM-DD)
-            file_data_to_date: Filter files by data to date (YYYY-MM-DD)
-            offset: Number of product file records to skip
-            limit: Number of product file records to collect
-            include_files: Whether to include product files in the response
-            latest: Whether to return only the latest product file
+            product_id: The product identifier.
+            file_data_from_date: Filter files by data from date (YYYY-MM-DD).
+            file_data_to_date: Filter files by data to date (YYYY-MM-DD).
+            offset: Number of product file records to skip.
+            limit: Number of product file records to collect.
+            include_files: Whether to include product files in the response.
+            latest: Whether to return only the latest product file.
 
         Returns:
-            BulkDataProduct object containing the product data
+            BulkDataProduct: The requested product.
+
+        Raises:
+            ValueError: If product not found in response.
+
+        Examples:
+            Get product without files:
+            >>> product = client.get_product_by_id("patent-grant-data-text")
+
+            Get product with files:
+            >>> product = client.get_product_by_id(
+            ...     "patent-grant-data-text",
+            ...     include_files=True,
+            ...     latest=True
+            ... )
         """
         endpoint = self.ENDPOINTS["product_by_id"].format(product_id=product_id)
 
@@ -111,93 +104,90 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         if latest is not None:
             params["latest"] = str(latest).lower()
 
-        result = self._make_request(method="GET", endpoint=endpoint, params=params)
+        # Use response_class for clean parsing
+        response = self._make_request(
+            method="GET",
+            endpoint=endpoint,
+            params=params if params else None,
+            response_class=BulkDataResponse,
+        )
+        assert isinstance(response, BulkDataResponse)
 
-        # Process result based on its type
-        if isinstance(result, BulkDataResponse):
-            # If it's a BulkDataResponse, extract the matching product
-            for product in result.bulk_data_product_bag:
-                if product.product_identifier == product_id:
-                    return product
-            raise ValueError(f"Product with ID {product_id} not found in response")
-
-        # If we get here, result is not a BulkDataResponse
-        if isinstance(result, dict):
-            data = result
+        # Extract the product from response
+        if response.bulk_data_product_bag:
+            product = response.bulk_data_product_bag[0]
+            # Validate it's the correct product
+            if product.product_identifier != product_id:
+                warnings.warn(
+                    f"API returned product '{product.product_identifier}' "
+                    f"but requested '{product_id}'. This may indicate an API inconsistency.",
+                    USPTODataMismatchWarning,
+                    stacklevel=2,
+                )
+            return product
         else:
-            data = result.json()
+            raise ValueError(f"Product '{product_id}' not found")
 
-        # Handling different response formats
-        if isinstance(data, dict) and "bulkDataProductBag" in data:
-            for product_data in data["bulkDataProductBag"]:
-                if (
-                    isinstance(product_data, dict)
-                    and product_data.get("productIdentifier") == product_id
-                ):
-                    return BulkDataProduct.from_dict(product_data)
-            raise ValueError(f"Product with ID {product_id} not found in response")
-        else:
-            if isinstance(data, dict):
-                return BulkDataProduct.from_dict(data)
-            else:
-                raise TypeError(f"Expected dict, got {type(data)}")
+    def download_file(
+        self,
+        file_data: FileData,
+        destination: str | None = None,
+        file_name: str | None = None,
+        overwrite: bool = False,
+        extract: bool = True,
+    ) -> str:
+        """Download a file from the bulk data API.
 
-    def download_file(self, file_data: FileData, destination: str) -> str:
-        """Download a file from the API.
+        Automatically extracts archives (tar.gz, zip) by default. The download
+        uses base class helpers for consistent behavior across all clients.
 
         Args:
-            file_data: FileData object containing file information
-            destination: Directory where the file should be saved
+            file_data: FileData object containing download info and product_identifier.
+            destination: Directory to save/extract to. Defaults to current directory.
+            file_name: Override filename. Defaults to file_data.file_name.
+            overwrite: Whether to overwrite existing files. Defaults to False.
+            extract: Whether to auto-extract archives. Defaults to True.
 
         Returns:
-            Path to the downloaded file
+            str: Path to downloaded file or extracted directory.
+
+        Raises:
+            FileExistsError: If file exists and overwrite=False.
+
+        Examples:
+            Download and extract a file:
+            >>> product = client.get_product_by_id("product-123", include_files=True)
+            >>> file_data = product.product_file_bag.file_data_bag[0]
+            >>> path = client.download_file(file_data, destination="./downloads")
+
+            Download without extraction:
+            >>> path = client.download_file(file_data, extract=False)
         """
-        if not file_data.file_download_uri:
-            raise ValueError("No download URI available for this file")
+        # Resolve filename
+        default_file_name = file_name or file_data.file_name
 
-        # For absolute URLs, split into base and path
-        if file_data.file_download_uri.startswith("http"):
-            # Parse the URL to extract components
-            parsed_url = urlparse(file_data.file_download_uri)
+        # Construct URL from endpoint
+        endpoint = self.ENDPOINTS["download_file"].format(
+            productIdentifier=file_data.product_identifier,
+            fileName=default_file_name,
+        )
+        download_url = f"{self.base_url}/{endpoint}"
 
-            # Use the scheme and netloc as the base URL
-            custom_base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
-
-            # Use the path as the endpoint (remove leading slash)
-            endpoint = parsed_url.path.lstrip("/")
-
-            result = self._make_request(
-                method="GET",
-                endpoint=endpoint,
-                stream=True,
-                custom_base_url=custom_base_url,
+        # Delegate to base class helpers
+        if extract:
+            return self._download_and_extract(
+                url=download_url,
+                destination=destination,
+                file_name=default_file_name,
+                overwrite=overwrite,
             )
         else:
-            # For relative URLs, use the endpoint directly
-            result = self._make_request(
-                method="GET",
-                endpoint=file_data.file_download_uri,
-                stream=True,
+            return self._download_file(
+                url=download_url,
+                destination=destination,
+                file_name=default_file_name,
+                overwrite=overwrite,
             )
-
-        # Ensure we have a Response object with iter_content
-        import requests
-
-        if not isinstance(result, requests.Response):
-            raise TypeError("Expected a Response object for streaming download")
-
-        if not os.path.exists(destination):
-            os.makedirs(destination)
-
-        file_path = os.path.join(destination, file_data.file_name)
-
-        with open(file_path, "wb") as f:
-            for chunk in result.iter_content(
-                chunk_size=self.http_config.download_chunk_size
-            ):
-                f.write(chunk)
-
-        return file_path
 
     def paginate_products(
         self, post_body: dict[str, Any] | None = None, **kwargs: Any
@@ -223,74 +213,45 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
     def search_products(
         self,
         query: str | None = None,
-        product_title: str | None = None,
-        product_description: str | None = None,
-        product_short_name: str | None = None,
-        from_date: str | None = None,
-        to_date: str | None = None,
-        categories: list[str] | None = None,
-        labels: list[str] | None = None,
-        datasets: list[str] | None = None,
-        file_types: list[str] | None = None,
         offset: int | None = None,
         limit: int | None = None,
-        include_files: bool | None = None,
-        latest: bool | None = None,
         facets: bool | None = None,
+        fields: list[str] | None = None,
     ) -> BulkDataResponse:
-        """Search for products with various filters.
+        """Search for Bulk Data Products.
+
+        Note: The USPTO Bulk Data API only supports full-text search in the query
+        parameter. Field-specific queries (e.g., field:value) do not work despite
+        being documented in the API swagger specification.
 
         Args:
-            query: Search text
-            product_title: Filter by product title
-            product_description: Filter by product description
-            product_short_name: Filter by product identifier (short name)
-            from_date: Filter products with data from this date (YYYY-MM-DD)
-            to_date: Filter products with data until this date (YYYY-MM-DD)
-            categories: Filter by dataset categories
-            labels: Filter by product labels
-            datasets: Filter by datasets
-            file_types: Filter by file types
-            offset: Number of product records to skip
-            limit: Number of product records to collect
-            include_files: Whether to include product files in the response
-            latest: Whether to return only the latest product file for each product
-            facets: Whether to enable facets in the response
+            query: Full-text search query string. Field-specific syntax like
+                "productIdentifier:value" is not supported by the API.
+            offset: Number of product records to skip.
+            limit: Number of product records to collect.
+            facets: Whether to enable facets in the response.
+            fields: List of field names to include in the response.
 
         Returns:
-            BulkDataResponse object containing matching products
+            BulkDataResponse: Response containing matching products.
+
+        Examples:
+            Search with full-text query:
+            >>> response = client.search_products(query="Patent", limit=50)
         """
         params = {}
-        if query:
+
+        # Add query parameter
+        if query is not None:
             params["q"] = query
-        if product_title:
-            params["productTitle"] = product_title
-        if product_description:
-            params["productDescription"] = product_description
-        if product_short_name:
-            params["productShortName"] = product_short_name
-        if from_date:
-            params["fromDate"] = from_date
-        if to_date:
-            params["toDate"] = to_date
-        if categories:
-            params["categories"] = ",".join(categories)
-        if labels:
-            params["labels"] = ",".join(labels)
-        if datasets:
-            params["datasets"] = ",".join(datasets)
-        if file_types:
-            params["fileTypes"] = ",".join(file_types)
         if offset is not None:
             params["offset"] = str(offset)
         if limit is not None:
             params["limit"] = str(limit)
-        if include_files is not None:
-            params["includeFiles"] = str(include_files).lower()
-        if latest is not None:
-            params["latest"] = str(latest).lower()
         if facets is not None:
             params["facets"] = str(facets).lower()
+        if fields is not None:
+            params["fields"] = ",".join(fields)
 
         result = self._make_request(
             method="GET",

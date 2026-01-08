@@ -1,3 +1,5 @@
+"""Docstring for docs.source.conf."""
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -6,6 +8,10 @@
 # -- Path setup --------------------------------------------------------------
 import os
 import sys
+
+# The full version, including alpha/beta/rc tags
+# Use setuptools_scm to get the version
+from importlib.metadata import version as get_version
 from typing import Any
 
 sys.path.insert(0, os.path.abspath("../.."))
@@ -17,9 +23,6 @@ project = "pyUSPTO"
 copyright = "2025, Dunlap Codding, P.C."
 author = "Andrew Piechocki"
 
-# The full version, including alpha/beta/rc tags
-# Use setuptools_scm to get the version
-from importlib.metadata import version as get_version
 
 release: str = get_version(distribution_name="pyUSPTO")
 # for example take major/minor

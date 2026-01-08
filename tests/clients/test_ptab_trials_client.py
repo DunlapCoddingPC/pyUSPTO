@@ -884,8 +884,9 @@ class TestPTABTrialsDownloadMethods:
 
     def test_download_trial_archive_with_uri(self) -> None:
         """Test download_trial_archive calls _download_file with URI."""
-        from pyUSPTO.models.ptab import TrialMetaData
         from unittest.mock import patch
+
+        from pyUSPTO.models.ptab import TrialMetaData
 
         client = PTABTrialsClient(api_key="test")
         meta_data = TrialMetaData(file_download_uri="https://test.com/trial.tar")
@@ -914,8 +915,9 @@ class TestPTABTrialsDownloadMethods:
 
     def test_download_trial_documents_with_uri(self) -> None:
         """Test download_trial_documents calls _download_and_extract with URI."""
-        from pyUSPTO.models.ptab import TrialMetaData
         from unittest.mock import patch
+
+        from pyUSPTO.models.ptab import TrialMetaData
 
         client = PTABTrialsClient(api_key="test")
         meta_data = TrialMetaData(file_download_uri="https://test.com/trial.tar")
@@ -943,8 +945,9 @@ class TestPTABTrialsDownloadMethods:
 
     def test_download_trial_document_with_uri(self) -> None:
         """Test download_trial_document calls _download_and_extract with URI."""
-        from pyUSPTO.models.ptab import TrialDocumentData
         from unittest.mock import patch
+
+        from pyUSPTO.models.ptab import TrialDocumentData
 
         client = PTABTrialsClient(api_key="test")
         document_data = TrialDocumentData(file_download_uri="https://test.com/doc.pdf")

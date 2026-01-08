@@ -72,8 +72,10 @@ dev = [
 
 [project.urls]
 GitHub = "https://github.com/DunlapCoddingPC/pyUSPTO"
+homepage = "https://github.com/DunlapCoddingPC/pyUSPTO"
 issues = "https://github.com/DunlapCoddingPC/pyUSPTO/issues"
 Documentation = "https://pyuspto.readthedocs.io/en/latest/"
+releasenotes = "https://github.com/DunlapCoddingPC/pyUSPTO/releases/latest"
 
 
 [tool.setuptools_scm]

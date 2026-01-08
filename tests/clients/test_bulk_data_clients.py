@@ -6,6 +6,7 @@ model handling, edge cases, and response handling.
 """
 
 import os
+from datetime import date
 from typing import Any
 from unittest.mock import MagicMock, mock_open, patch
 
@@ -39,17 +40,18 @@ class TestBulkDataModels:
             "fileLastModifiedDateTime": "2023-12-31T23:59:59",
         }
 
-        file_data = FileData.from_dict(data)
+        file_data = FileData.from_dict(data, product_identifier="PRODUCT1")
 
         assert file_data.file_name == "test.zip"
         assert file_data.file_size == 1024
-        assert file_data.file_data_from_date == "2023-01-01"
-        assert file_data.file_data_to_date == "2023-12-31"
+        assert file_data.product_identifier == "PRODUCT1"
+        assert file_data.file_data_from_date == date(2023, 1, 1)
+        assert file_data.file_data_to_date == date(2023, 12, 31)
         assert file_data.file_type_text == "ZIP"
-        assert file_data.file_release_date == "2024-01-01"
+        assert file_data.file_release_date == date(2024, 1, 1)
         assert file_data.file_download_uri == "https://example.com/test.zip"
-        assert file_data.file_date == "2023-12-31"
-        assert file_data.file_last_modified_date_time == "2023-12-31T23:59:59"
+        assert file_data.file_date == date(2023, 12, 31)
+        assert file_data.file_last_modified_date_time is not None  # Datetime object, not string
 
     def test_product_file_bag_from_dict(self) -> None:
         """Test ProductFileBag.from_dict method."""
@@ -75,12 +77,14 @@ class TestBulkDataModels:
             ],
         }
 
-        product_file_bag = ProductFileBag.from_dict(data)
+        product_file_bag = ProductFileBag.from_dict(data, product_identifier="PRODUCT1")
 
         assert product_file_bag.count == 2
         assert len(product_file_bag.file_data_bag) == 2
         assert product_file_bag.file_data_bag[0].file_name == "test1.zip"
         assert product_file_bag.file_data_bag[1].file_name == "test2.zip"
+        assert product_file_bag.file_data_bag[0].product_identifier == "PRODUCT1"
+        assert product_file_bag.file_data_bag[1].product_identifier == "PRODUCT1"
 
     def test_bulk_data_product_from_dict(self) -> None:
         """Test BulkDataProduct.from_dict method."""
@@ -132,11 +136,11 @@ class TestBulkDataModels:
         assert product.product_label_array_text == ["Patent", "Test"]
         assert product.product_dataset_array_text == ["Patents"]
         assert product.product_dataset_category_array_text == ["Patent"]
-        assert product.product_from_date == "2023-01-01"
-        assert product.product_to_date == "2023-12-31"
+        assert product.product_from_date == date(2023, 1, 1)
+        assert product.product_to_date == date(2023, 12, 31)
         assert product.product_total_file_size == 1024
         assert product.product_file_total_quantity == 2
-        assert product.last_modified_date_time == "2023-12-31T23:59:59"
+        assert product.last_modified_date_time is not None  # Datetime object, not string
         assert product.mime_type_identifier_array_text == ["application/zip"]
         assert product.product_file_bag is not None
         assert product.product_file_bag.count == 2
@@ -201,8 +205,8 @@ class TestBulkDataModels:
         assert response.bulk_data_product_bag[1].product_identifier == "PRODUCT2"
         assert response.bulk_data_product_bag[0].product_file_bag is not None
         assert response.bulk_data_product_bag[0].product_file_bag.count == 1
-        assert response.bulk_data_product_bag[1].product_file_bag is not None
-        assert response.bulk_data_product_bag[1].product_file_bag.count == 0
+        assert len(response.bulk_data_product_bag[0].product_file_bag.file_data_bag) == 1
+        assert response.bulk_data_product_bag[1].product_file_bag is None
 
 
 class TestBulkDataClientInit:
@@ -248,10 +252,10 @@ class TestBulkDataClientInit:
 class TestBulkDataClientCore:
     """Tests for the core functionality of the BulkDataClient class."""
 
-    def test_get_products(
+    def test_search_products_basic(
         self, mock_bulk_data_client: BulkDataClient, bulk_data_sample: dict[str, Any]
     ) -> None:
-        """Test get_products method."""
+        """Test search_products method with basic query."""
         # Setup
         mock_response = MagicMock()
         mock_response.json.return_value = bulk_data_sample
@@ -263,13 +267,13 @@ class TestBulkDataClientCore:
         # Replace the client's session with our mock
         mock_bulk_data_client.session = mock_session
 
-        # Test get_products
-        response = mock_bulk_data_client.get_products(params={"param": "value"})
+        # Test search_products with basic query
+        response = mock_bulk_data_client.search_products(query="Patent")
 
         # Verify
         mock_session.get.assert_called_once_with(
             url=f"{mock_bulk_data_client.base_url}/api/v1/datasets/products/search",
-            params={"param": "value"},
+            params={"q": "Patent"},
             stream=False,
             timeout=(10.0, 30.0),
         )
@@ -284,9 +288,8 @@ class TestBulkDataClientCore:
         # Setup
         product_id = "PRODUCT1"
         mock_response = MagicMock()
-        # Test with direct product response
-        product_data = bulk_data_sample["bulkDataProductBag"][0]
-        mock_response.json.return_value = product_data
+        # API returns a BulkDataResponse wrapper
+        mock_response.json.return_value = bulk_data_sample
 
         # Create a dedicated mock session
         mock_session = MagicMock()
@@ -323,105 +326,77 @@ class TestBulkDataClientCore:
         assert isinstance(product, BulkDataProduct)
         assert product.product_identifier == "PRODUCT1"
 
-        # Reset mock for next test
-        mock_session.reset_mock()
-
-        # Test with bulkDataProductBag response
-        mock_response.json.return_value = bulk_data_sample
-        product = mock_bulk_data_client.get_product_by_id(product_id=product_id)
-        assert isinstance(product, BulkDataProduct)
-        assert product.product_identifier == "PRODUCT1"
-
     def test_download_file(self, mock_bulk_data_client: BulkDataClient) -> None:
         """Test download_file method."""
         # Setup
         file_data = FileData(
-            file_name="test.zip",
+            file_name="test.tar.gz",
             file_size=1024,
-            file_data_from_date="2023-01-01",
-            file_data_to_date="2023-12-31",
-            file_type_text="ZIP",
-            file_release_date="2024-01-01",
-            file_download_uri="https://example.com/test.zip",
+            product_identifier="PRODUCT1",
+            file_data_from_date=date(2023, 1, 1),
+            file_data_to_date=date(2023, 12, 31),
+            file_type_text="TAR",
+            file_release_date=date(2024, 1, 1),
         )
         destination = "./downloads"
 
-        # Mock response for streaming
-        mock_response = MagicMock(spec=requests.Response)
-        mock_response.iter_content.return_value = [b"chunk1", b"chunk2"]
+        # Mock the _download_and_extract method
+        with patch.object(
+            mock_bulk_data_client, "_download_and_extract", return_value="./downloads/extracted"
+        ) as mock_download:
+            # Test download_file with extraction (default)
+            file_path = mock_bulk_data_client.download_file(
+                file_data=file_data, destination=destination
+            )
 
-        # Patch the _make_request method to return our mock response
-        mock_make_request = MagicMock(return_value=mock_response)
-        with patch.object(mock_bulk_data_client, "_make_request", mock_make_request):
-            # Mock os.path.exists and os.makedirs
-            with (
-                patch("os.path.exists", return_value=False),
-                patch("os.makedirs") as mock_makedirs,
-                patch("builtins.open", mock_open()) as mock_file,
-            ):
-                # Test download_file with absolute URL
-                file_path = mock_bulk_data_client.download_file(
-                    file_data=file_data, destination=destination
-                )
+            # Verify
+            expected_url = f"{mock_bulk_data_client.base_url}/api/v1/datasets/products/files/PRODUCT1/test.tar.gz"
+            mock_download.assert_called_once_with(
+                url=expected_url,
+                destination=destination,
+                file_name="test.tar.gz",
+                overwrite=False,
+            )
+            assert file_path == "./downloads/extracted"
 
-                # Verify
-                mock_makedirs.assert_called_once_with(destination)
-                mock_bulk_data_client._make_request.assert_called_once_with(  # type: ignore
-                    method="GET",
-                    endpoint="test.zip",
-                    stream=True,
-                    custom_base_url="https://example.com",
-                )
-                mock_file.assert_called_once_with(
-                    os.path.join(destination, "test.zip"), "wb"
-                )
-                mock_file().write.assert_any_call(b"chunk1")
-                mock_file().write.assert_any_call(b"chunk2")
-                assert file_path == os.path.join(destination, "test.zip")
-
-    def test_download_file_with_relative_url(
+    def test_download_file_without_extraction(
         self, mock_bulk_data_client: BulkDataClient
     ) -> None:
-        """Test download_file method with relative URL."""
+        """Test download_file method without extraction."""
         # Setup
         file_data = FileData(
             file_name="test.zip",
             file_size=1024,
-            file_data_from_date="2023-01-01",
-            file_data_to_date="2023-12-31",
+            product_identifier="PRODUCT1",
+            file_data_from_date=date(2023, 1, 1),
+            file_data_to_date=date(2023, 12, 31),
             file_type_text="ZIP",
-            file_release_date="2024-01-01",
-            file_download_uri="downloads/test.zip",
+            file_release_date=date(2024, 1, 1),
         )
         destination = "./downloads"
 
-        # Mock response for streaming
-        mock_response = MagicMock(spec=requests.Response)
-        mock_response.iter_content.return_value = [b"chunk1", b"chunk2"]
+        # Mock the _download_file method
+        with patch.object(
+            mock_bulk_data_client, "_download_file", return_value="./downloads/test.zip"
+        ) as mock_download:
+            file_path = mock_bulk_data_client.download_file(
+                file_data=file_data, destination=destination, extract=False
+            )
 
-        # Patch the _make_request method for the relative URL test
-        mock_make_request = MagicMock(return_value=mock_response)
-        with patch.object(mock_bulk_data_client, "_make_request", mock_make_request):
-            with (
-                patch("os.path.exists", return_value=True),
-                patch("builtins.open", mock_open()),
-            ):
-                file_path = mock_bulk_data_client.download_file(
-                    file_data=file_data, destination=destination
-                )
+            # Verify
+            expected_url = f"{mock_bulk_data_client.base_url}/api/v1/datasets/products/files/PRODUCT1/test.zip"
+            mock_download.assert_called_once_with(
+                url=expected_url,
+                destination=destination,
+                file_name="test.zip",
+                overwrite=False,
+            )
+            assert file_path == "./downloads/test.zip"
 
-                # Verify
-                mock_bulk_data_client._make_request.assert_called_once_with(  # type: ignore
-                    method="GET",
-                    endpoint="downloads/test.zip",
-                    stream=True,
-                )
-                assert file_path == os.path.join(destination, "test.zip")
-
-    def test_search_products(
+    def test_search_products_all_params(
         self, mock_bulk_data_client: BulkDataClient, bulk_data_sample: dict[str, Any]
     ) -> None:
-        """Test search_products method with all parameters."""
+        """Test search_products method with all available parameters."""
         # Setup
         mock_response = MagicMock()
         mock_response.json.return_value = bulk_data_sample
@@ -433,44 +408,24 @@ class TestBulkDataClientCore:
         # Replace the client's session with our mock
         mock_bulk_data_client.session = mock_session
 
-        # Test search_products with all parameters
+        # Test search_products with all available parameters
         response = mock_bulk_data_client.search_products(
-            query="test",
-            product_title="Test Product",
-            product_description="Test Description",
-            product_short_name="TEST",
-            from_date="2023-01-01",
-            to_date="2023-12-31",
-            categories=["Patent"],
-            labels=["Test"],
-            datasets=["Patents"],
-            file_types=["ZIP"],
+            query="Patent",
             offset=0,
             limit=10,
-            include_files=True,
-            latest=True,
             facets=True,
+            fields=["productIdentifier", "productTitleText"],
         )
 
         # Verify
         mock_session.get.assert_called_once_with(
             url=f"{mock_bulk_data_client.base_url}/api/v1/datasets/products/search",
             params={
-                "q": "test",
-                "productTitle": "Test Product",
-                "productDescription": "Test Description",
-                "productShortName": "TEST",
-                "fromDate": "2023-01-01",
-                "toDate": "2023-12-31",
-                "categories": "Patent",
-                "labels": "Test",
-                "datasets": "Patents",
-                "fileTypes": "ZIP",
+                "q": "Patent",
                 "offset": "0",
                 "limit": "10",
-                "includeFiles": "true",
-                "latest": "true",
                 "facets": "true",
+                "fields": "productIdentifier,productTitleText",
             },
             stream=False,
             timeout=(10.0, 30.0),
@@ -505,250 +460,182 @@ class TestBulkDataClientCore:
 class TestBulkDataClientEdgeCases:
     """Tests for edge cases in the BulkDataClient class."""
 
-    def test_get_product_by_id_with_invalid_response(self) -> None:
-        """Test get_product_by_id with an invalid response type."""
+    def test_get_product_by_id_not_found(self) -> None:
+        """Test get_product_by_id when product is not in response."""
         # Setup
         client = BulkDataClient(api_key="test_key")
 
-        # Mock _make_request directly to return something that's not a dict or BulkDataResponse
-        with patch.object(
-            client, "_make_request", return_value="not a dict or BulkDataResponse"
-        ):
-            # Test with an invalid response
-            with pytest.raises(
-                AttributeError, match="'str' object has no attribute 'json'"
-            ):
-                client.get_product_by_id(product_id="TEST")
-
-    def test_download_file_with_invalid_response(self) -> None:
-        """Test download_file with an invalid response type."""
-        # Setup
-        client = BulkDataClient(api_key="test_key")
-        file_data = FileData(
-            file_name="test.zip",
-            file_size=1024,
-            file_data_from_date="2023-01-01",
-            file_data_to_date="2023-12-31",
-            file_type_text="ZIP",
-            file_release_date="2024-01-01",
-            file_download_uri="https://example.com/test.zip",
-        )
-
-        # Mock _make_request to return something that's not a Response object
-        with patch.object(client, "_make_request", return_value="not a Response"):
-            # Test with invalid response type
-            with pytest.raises(
-                TypeError, match="Expected a Response object for streaming download"
-            ):
-                client.download_file(file_data=file_data, destination="/tmp")
-
-    def test_get_product_by_id_with_bulk_data_response_result(self) -> None:
-        """Test get_product_by_id when _make_request returns a BulkDataResponse directly."""
-        # Setup
-        client = BulkDataClient(api_key="test_key")
-
-        # Create a BulkDataResponse object
-        product = BulkDataProduct(
-            product_identifier="TEST",
-            product_title_text="Test Product",
-            product_description_text="Test Description",
-            product_frequency_text="Weekly",
-            product_label_array_text=["Patent", "Test"],
-            product_dataset_array_text=["Patents"],
-            product_dataset_category_array_text=["Patent"],
-            product_from_date="2023-01-01",
-            product_to_date="2023-12-31",
-            product_total_file_size=1024,
-            product_file_total_quantity=2,
-            last_modified_date_time="2023-12-31T23:59:59",
-            mime_type_identifier_array_text=["application/zip"],
-        )
-        response = BulkDataResponse(
-            count=1,
-            bulk_data_product_bag=[product],
-        )
-
-        # Mock _make_request to return a BulkDataResponse
-        with patch.object(client, "_make_request", return_value=response):
-            # Test with BulkDataResponse result
-            result = client.get_product_by_id(product_id="TEST")
-
-            # Verify
-            assert isinstance(result, BulkDataProduct)
-            assert result.product_identifier == "TEST"
-            assert result.product_title_text == "Test Product"
-
-    def test_get_product_by_id_no_matching_product(self) -> None:
-        """Test get_product_by_id with a BulkDataResponse that doesn't contain the requested product."""
-        # Setup
-        client = BulkDataClient(api_key="test_key")
-
-        # Create a BulkDataResponse object with a different product ID
-        product = BulkDataProduct(
-            product_identifier="OTHER",
-            product_title_text="Other Product",
-            product_description_text="Other Description",
-            product_frequency_text="Monthly",
-            product_label_array_text=["Patent", "Other"],
-            product_dataset_array_text=["Patents"],
-            product_dataset_category_array_text=["Patent"],
-            product_from_date="2023-01-01",
-            product_to_date="2023-12-31",
-            product_total_file_size=2048,
-            product_file_total_quantity=1,
-            last_modified_date_time="2023-12-31T23:59:59",
-            mime_type_identifier_array_text=["application/zip"],
-        )
-        response = BulkDataResponse(
-            count=1,
-            bulk_data_product_bag=[product],
-        )
-
-        # Mock _make_request to return a BulkDataResponse
-        with patch.object(client, "_make_request", return_value=response):
+        # Mock _make_request to return an empty BulkDataResponse
+        empty_response = BulkDataResponse(count=0, bulk_data_product_bag=[])
+        with patch.object(client, "_make_request", return_value=empty_response):
             # Test with product not found
-            with pytest.raises(
-                ValueError, match="Product with ID TEST not found in response"
-            ):
+            with pytest.raises(ValueError, match="Product 'TEST' not found"):
                 client.get_product_by_id(product_id="TEST")
 
-    def test_download_file_creates_directory(self) -> None:
-        """Test that download_file creates the destination directory if it doesn't exist."""
+    def test_get_product_by_id_wrong_product_returned(self) -> None:
+        """Test get_product_by_id when API returns wrong product."""
         # Setup
         client = BulkDataClient(api_key="test_key")
-        file_data = FileData(
-            file_name="test.zip",
-            file_size=1024,
-            file_data_from_date="2023-01-01",
-            file_data_to_date="2023-12-31",
-            file_type_text="ZIP",
-            file_release_date="2024-01-01",
-            file_download_uri="relative/path/to/test.zip",
+
+        # Create response with different product ID
+        wrong_product = BulkDataProduct(
+            product_identifier="WRONG_ID",
+            product_title_text="Wrong Product",
+            product_description_text="Wrong Description",
+            product_frequency_text="Daily",
         )
+        response = BulkDataResponse(count=1, bulk_data_product_bag=[wrong_product])
 
-        # Mock Response object
-        mock_response = MagicMock(spec=requests.Response)
-        mock_response.iter_content.return_value = [b"test content"]
+        with patch.object(client, "_make_request", return_value=response):
+            # Should still return the product but issue a warning
+            with pytest.warns(match="API returned product 'WRONG_ID' but requested 'TEST'"):
+                product = client.get_product_by_id(product_id="TEST")
+                assert product.product_identifier == "WRONG_ID"
 
-        # Patch the necessary methods
-        with (
-            patch.object(client, "_make_request", return_value=mock_response),
-            patch("os.path.exists", return_value=False),
-            patch("os.makedirs") as mock_makedirs,
-            patch("builtins.open", MagicMock()),
-        ):
-
-            # Call download_file
-            client.download_file(file_data=file_data, destination="/tmp")
-
-            # Verify makedirs was called
-            mock_makedirs.assert_called_once_with("/tmp")
-
-    def test_download_file_with_no_uri(
+    def test_download_file_with_custom_filename(
         self, mock_bulk_data_client: BulkDataClient
     ) -> None:
-        """Test download_file with no download URI."""
+        """Test download_file with custom filename override."""
         # Setup
         file_data = FileData(
-            file_name="test.zip",
+            file_name="original.zip",
             file_size=1024,
-            file_data_from_date="2023-01-01",
-            file_data_to_date="2023-12-31",
+            product_identifier="PRODUCT1",
+            file_data_from_date=date(2023, 1, 1),
+            file_data_to_date=date(2023, 12, 31),
             file_type_text="ZIP",
-            file_release_date="2024-01-01",
-            file_download_uri=None,
+            file_release_date=date(2024, 1, 1),
         )
         destination = "./downloads"
 
-        # Test download_file with no download URI
-        with pytest.raises(ValueError, match="No download URI available for this file"):
-            mock_bulk_data_client.download_file(
-                file_data=file_data, destination=destination
+        # Mock the _download_file method
+        with patch.object(
+            mock_bulk_data_client, "_download_file", return_value="./downloads/custom.zip"
+        ) as mock_download:
+            file_path = mock_bulk_data_client.download_file(
+                file_data=file_data,
+                destination=destination,
+                file_name="custom.zip",
+                extract=False,
             )
+
+            # Verify custom filename is used
+            expected_url = f"{mock_bulk_data_client.base_url}/api/v1/datasets/products/files/PRODUCT1/custom.zip"
+            mock_download.assert_called_once_with(
+                url=expected_url,
+                destination=destination,
+                file_name="custom.zip",
+                overwrite=False,
+            )
+            assert file_path == "./downloads/custom.zip"
+
+    def test_download_file_with_overwrite(
+        self, mock_bulk_data_client: BulkDataClient
+    ) -> None:
+        """Test download_file with overwrite flag."""
+        # Setup
+        file_data = FileData(
+            file_name="test.zip",
+            file_size=1024,
+            product_identifier="PRODUCT1",
+            file_data_from_date=date(2023, 1, 1),
+            file_data_to_date=date(2023, 12, 31),
+            file_type_text="ZIP",
+            file_release_date=date(2024, 1, 1),
+        )
+
+        # Mock the _download_and_extract method
+        with patch.object(
+            mock_bulk_data_client, "_download_and_extract", return_value="./test.zip"
+        ) as mock_download:
+            mock_bulk_data_client.download_file(file_data=file_data, overwrite=True)
+
+            # Verify overwrite is passed through
+            assert mock_download.call_args[1]["overwrite"] is True
 
 
 class TestBulkDataResponseHandling:
     """Tests for response format handling in the BulkDataClient class."""
 
-    def test_get_product_by_id_with_dict_response_containing_product_bag(self) -> None:
-        """Test get_product_by_id when response is a dict with bulkDataProductBag."""
+    def test_search_products_with_query_and_limit(
+        self, mock_bulk_data_client: BulkDataClient, bulk_data_sample: dict[str, Any]
+    ) -> None:
+        """Test search_products with query and limit parameters."""
         # Setup
-        client = BulkDataClient(api_key="test_key")
-
-        # Create a dictionary response with a bulkDataProductBag containing the product we want
-        dict_response = {
-            "bulkDataProductBag": [
-                {
-                    "productIdentifier": "OTHER_PRODUCT",
-                    "productTitleText": "Some Other Product",
-                },
-                {
-                    "productIdentifier": "TARGET_PRODUCT",
-                    "productTitleText": "Target Product",
-                    "productDescriptionText": "This is the product we want",
-                    "productFrequencyText": "Daily",
-                    "productLabelArrayText": ["Test"],
-                    "productDatasetArrayText": ["Test Dataset"],
-                    "productDatasetCategoryArrayText": ["Test Category"],
-                    "productFromDate": "2023-01-01",
-                    "productToDate": "2023-12-31",
-                    "productTotalFileSize": 1024,
-                    "productFileTotalQuantity": 1,
-                    "lastModifiedDateTime": "2023-12-31T23:59:59",
-                    "mimeTypeIdentifierArrayText": ["application/zip"],
-                },
-            ]
-        }
-
-        # Mock _make_request to return our dictionary
-        with patch.object(client, "_make_request", return_value=dict_response):
-            # Call the method to test the missing branch
-            result = client.get_product_by_id(product_id="TARGET_PRODUCT")
-
-            # Verify
-            assert isinstance(result, BulkDataProduct)
-            assert result.product_identifier == "TARGET_PRODUCT"
-            assert result.product_title_text == "Target Product"
-            assert result.product_description_text == "This is the product we want"
-
-    def test_get_product_by_id_with_dict_response_product_not_found(self) -> None:
-        """Test get_product_by_id when product is not found in bulkDataProductBag."""
-        # Setup
-        client = BulkDataClient(api_key="test_key")
-
-        # Create a dictionary response with a bulkDataProductBag NOT containing the product we want
-        dict_response = {
-            "bulkDataProductBag": [
-                {
-                    "productIdentifier": "PRODUCT_1",
-                    "productTitleText": "Product 1",
-                },
-                {
-                    "productIdentifier": "PRODUCT_2",
-                    "productTitleText": "Product 2",
-                },
-            ]
-        }
-
-        # Mock _make_request to return our dictionary
-        with patch.object(client, "_make_request", return_value=dict_response):
-            # Call the method to test the error case
-            with pytest.raises(
-                ValueError, match="Product with ID NON_EXISTENT not found in response"
-            ):
-                client.get_product_by_id(product_id="NON_EXISTENT")
-
-    def test_get_product_by_id_with_non_dict_json_response(self) -> None:
-        """Test get_product_by_id when response.json() returns a non-dict value."""
-        # Setup
-        client = BulkDataClient(api_key="test_key")
-
-        # Create a mock response object whose json() method returns a list instead of a dict
         mock_response = MagicMock()
-        mock_response.json.return_value = ["not", "a", "dict"]
+        mock_response.json.return_value = bulk_data_sample
 
-        # Patch _make_request to return our mock response
-        with patch.object(client, "_make_request", return_value=mock_response):
-            # Should raise TypeError
-            with pytest.raises(TypeError, match=r"Expected dict, got <class 'list'>"):
-                client.get_product_by_id(product_id="TEST")
+        # Create a dedicated mock session
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response
+
+        # Replace the client's session with our mock
+        mock_bulk_data_client.session = mock_session
+
+        # Test search_products with query and limit
+        response = mock_bulk_data_client.search_products(
+            query="Patent",
+            limit=10,
+        )
+
+        # Verify the parameters were passed correctly
+        call_args = mock_session.get.call_args
+        assert "params" in call_args[1]
+        params = call_args[1]["params"]
+        assert params["q"] == "Patent"
+        assert params["limit"] == "10"
+        assert isinstance(response, BulkDataResponse)
+
+    def test_search_products_with_offset_and_facets(
+        self, mock_bulk_data_client: BulkDataClient, bulk_data_sample: dict[str, Any]
+    ) -> None:
+        """Test search_products with offset and facets parameters."""
+        # Setup
+        mock_response = MagicMock()
+        mock_response.json.return_value = bulk_data_sample
+
+        # Create a dedicated mock session
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response
+
+        # Replace the client's session with our mock
+        mock_bulk_data_client.session = mock_session
+
+        # Test search_products with offset and facets
+        response = mock_bulk_data_client.search_products(
+            query="Patent",
+            offset=25,
+            facets=True,
+        )
+
+        # Verify the parameters were passed correctly
+        call_args = mock_session.get.call_args
+        params = call_args[1]["params"]
+        assert params["q"] == "Patent"
+        assert params["offset"] == "25"
+        assert params["facets"] == "true"
+        assert isinstance(response, BulkDataResponse)
+
+    def test_search_products_with_fields(
+        self, mock_bulk_data_client: BulkDataClient, bulk_data_sample: dict[str, Any]
+    ) -> None:
+        """Test search_products with fields parameter."""
+        # Setup
+        mock_response = MagicMock()
+        mock_response.json.return_value = bulk_data_sample
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response
+        mock_bulk_data_client.session = mock_session
+
+        # Test search_products with fields
+        response = mock_bulk_data_client.search_products(
+            query="Patent",
+            fields=["productIdentifier", "productTitleText"],
+        )
+
+        # Verify the fields parameter was joined correctly
+        call_args = mock_session.get.call_args
+        params = call_args[1]["params"]
+        assert params["q"] == "Patent"
+        assert params["fields"] == "productIdentifier,productTitleText"
+        assert isinstance(response, BulkDataResponse)

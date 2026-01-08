@@ -441,8 +441,9 @@ class TestPTABAppealsDownloadMethods:
 
     def test_download_appeal_archive_with_uri(self) -> None:
         """Test download_appeal_archive calls _download_file with URI."""
-        from pyUSPTO.models.ptab import AppealMetaData
         from unittest.mock import patch
+
+        from pyUSPTO.models.ptab import AppealMetaData
 
         client = PTABAppealsClient(api_key="test")
         meta_data = AppealMetaData(file_download_uri="https://test.com/appeal.tar")
@@ -471,8 +472,9 @@ class TestPTABAppealsDownloadMethods:
 
     def test_download_appeal_documents_with_uri(self) -> None:
         """Test download_appeal_documents calls _download_and_extract with URI."""
-        from pyUSPTO.models.ptab import AppealMetaData
         from unittest.mock import patch
+
+        from pyUSPTO.models.ptab import AppealMetaData
 
         client = PTABAppealsClient(api_key="test")
         meta_data = AppealMetaData(file_download_uri="https://test.com/appeal.tar")
@@ -500,8 +502,9 @@ class TestPTABAppealsDownloadMethods:
 
     def test_download_appeal_document_with_uri(self) -> None:
         """Test download_appeal_document calls _download_and_extract with URI."""
-        from pyUSPTO.models.ptab import AppealDocumentData
         from unittest.mock import patch
+
+        from pyUSPTO.models.ptab import AppealDocumentData
 
         client = PTABAppealsClient(api_key="test")
         document_data = AppealDocumentData(file_download_uri="https://test.com/doc.pdf")

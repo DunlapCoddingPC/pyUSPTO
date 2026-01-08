@@ -544,8 +544,9 @@ class TestPTABInterferencesDownloadMethods:
 
     def test_download_interference_archive_with_uri(self) -> None:
         """Test download_interference_archive calls _download_file with URI."""
-        from pyUSPTO.models.ptab import InterferenceMetaData
         from unittest.mock import patch
+
+        from pyUSPTO.models.ptab import InterferenceMetaData
 
         client = PTABInterferencesClient(api_key="test")
         meta_data = InterferenceMetaData(file_download_uri="https://test.com/interference.tar")
@@ -574,8 +575,9 @@ class TestPTABInterferencesDownloadMethods:
 
     def test_download_interference_documents_with_uri(self) -> None:
         """Test download_interference_documents calls _download_and_extract with URI."""
-        from pyUSPTO.models.ptab import InterferenceMetaData
         from unittest.mock import patch
+
+        from pyUSPTO.models.ptab import InterferenceMetaData
 
         client = PTABInterferencesClient(api_key="test")
         meta_data = InterferenceMetaData(file_download_uri="https://test.com/interference.tar")
@@ -603,8 +605,9 @@ class TestPTABInterferencesDownloadMethods:
 
     def test_download_interference_document_with_uri(self) -> None:
         """Test download_interference_document calls _download_and_extract with URI."""
-        from pyUSPTO.models.ptab import InterferenceDocumentData
         from unittest.mock import patch
+
+        from pyUSPTO.models.ptab import InterferenceDocumentData
 
         client = PTABInterferencesClient(api_key="test")
         document_data = InterferenceDocumentData(file_download_uri="https://test.com/doc.pdf")
