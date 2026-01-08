@@ -12,7 +12,7 @@ appdirs==1.4.4
     # via sphinx-immaterial
 babel==2.17.0
     # via sphinx
-certifi==2025.11.12
+certifi==2026.1.4
     # via requests
 charset-normalizer==3.4.4
     # via requests
@@ -37,7 +37,7 @@ jinja2==3.1.6
     # via
     #   myst-parser
     #   sphinx
-librt==0.7.5
+librt==0.7.7
     # via mypy
 markdown-it-py==3.0.0
     # via
@@ -73,7 +73,7 @@ pydantic==2.12.5
     #   sphinx-immaterial
 pydantic-core==2.41.5
     # via pydantic
-pydantic-extra-types==2.10.6
+pydantic-extra-types==2.11.0
     # via sphinx-immaterial
 pygments==2.19.2
     # via
@@ -144,7 +144,7 @@ typing-inspection==0.4.2
     # via pydantic
 tzdata==2025.3
     # via pyUSPTO (pyproject.toml)
-urllib3==2.6.2
+urllib3==2.6.3
     # via
     #   requests
     #   types-requests
