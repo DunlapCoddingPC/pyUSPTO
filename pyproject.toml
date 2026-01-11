@@ -155,7 +155,7 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 
-# Per-module configs for production code
+# Per-module configs
 [[tool.mypy.overrides]]
 module = "pyUSPTO.*"
 disallow_untyped_defs = true

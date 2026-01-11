@@ -27,10 +27,8 @@ cd pyUSPTO
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install development dependencies
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
-pip install -e .
+# Install package in editable mode with development dependencies
+pip install -e ".[dev]"
 ```
 
 ### Create a Branch
@@ -50,16 +48,16 @@ git checkout -b feature/your-feature-name
 
 ```bash
 # Run the test suite
-python -m pytest tests/ --cov=pyUSPTO --cov-report=term --cov-report=term-missing -vv
+python -m pytest tests/ --cov=src/pyUSPTO --cov-report=term-missing -v
 
-# Run linting and type checking
-flake8 src/pyUSPTO --count --select=E9,F63,F7,F82,D100,D101,D102,D103 --show-source --statistics
-mypy ./src/
+# Run linting
+ruff check src/pyUSPTO tests/
 
-# Correct Formatting 
-black .
+# Run type checking
+mypy src/pyUSPTO/
 
-
+# Format code
+ruff format src/pyUSPTO tests/
 ```
 
 ### Submit a Pull Request
@@ -123,44 +121,45 @@ The library includes unit and integration tests using pytest.
 1. **Run all tests (excluding integration tests)**:
 
    ```bash
-   python -m pytest pyUSPTO/tests/
+   python -m pytest tests/ --ignore=tests/integration
    ```
 
 2. **Run tests with verbose output**:
 
    ```bash
-   python -m pytest pyUSPTO/tests/ -v
+   python -m pytest tests/ --ignore=tests/integration -v
    ```
 
 3. **Run specific test files**:
 
    ```bash
-   python -m pytest pyUSPTO/tests/test_base_client.py
-   python -m pytest pyUSPTO/tests/test_bulk_data.py
-   python -m pytest pyUSPTO/tests/test_patent_data.py
+   python -m pytest tests/clients/test_base.py
+   python -m pytest tests/clients/test_bulk_data.py
+   python -m pytest tests/clients/test_patent_data.py
    ```
 
 4. **Run specific test classes or methods**:
 
    ```bash
-   python -m pytest pyUSPTO/tests/test_bulk_data.py::TestBulkDataClient
-   python -m pytest pyUSPTO/tests/test_bulk_data.py::TestBulkDataClient::test_download_file
+   python -m pytest tests/clients/test_base.py::TestSaveResponseToFile
+   python -m pytest tests/clients/test_base.py::TestSaveResponseToFile::test_successful_save
    ```
 
-5. **Run integration tests** (these are skipped by default):
+5. **Run integration tests** (these are skipped by default and require USPTO_API_KEY):
 
    ```bash
    # On Windows
    set ENABLE_INTEGRATION_TESTS=true
-   python -m pytest pyUSPTO/tests/test_integration.py -v
+   set USPTO_API_KEY=your_api_key_here
+   python -m pytest tests/integration/ -v
 
    # On Unix/Linux/macOS
-   ENABLE_INTEGRATION_TESTS=true python -m pytest pyUSPTO/tests/test_integration.py -v
+   ENABLE_INTEGRATION_TESTS=true USPTO_API_KEY=your_api_key_here python -m pytest tests/integration/ -v
    ```
 
 6. **Run tests with coverage report**:
    ```bash
-   python -m pytest pyUSPTO/tests/ --cov=pyUSPTO
+   python -m pytest tests/ --cov=src/pyUSPTO --cov-report=term-missing
    ```
 
 The tests are designed to use mocking to avoid making real API calls, making them fast and reliable. The integration tests are optional and will make real API calls to the USPTO API if enabled.

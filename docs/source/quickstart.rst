@@ -1,40 +1,9 @@
 Quick Start
 ===========
 
-This guide will help you get started with the pyUSPTO library.
+.. include:: ../../README.md
+   :parser: myst_parser.sphinx_
+   :start-after: ## Quick Start
+   :end-before: ## Configuration
 
-Configuration
-------------
-
-.. code-block:: python
-
-   from pyUSPTO import BulkDataClient, PatentDataClient
-   from pyUSPTO.config import USPTOConfig
-   import os
-
-   # Method 1: Direct API key initialization
-   client1 = BulkDataClient(api_key="your_api_key_here")
-
-   # Method 2: Using USPTOConfig
-   config = USPTOConfig(api_key="your_api_key_here")
-   client2 = BulkDataClient(config=config)
-
-   # Method 3: Using environment variables
-   os.environ["USPTO_API_KEY"] = "your_api_key_here"
-   config_from_env = USPTOConfig.from_env()
-   client3 = BulkDataClient(config=config_from_env)
-
-Examples
---------
-
-Searching for patents:
-
-.. code-block:: python
-
-   from pyUSPTO import PatentDataClient
-
-   client = PatentDataClient(api_key="your_api_key_here")
-
-   # Search for patents by inventor name
-   inventor_search = client.search_patents(inventor_name="Smith")
-   print(f"Found {inventor_search.count} patents with 'Smith' as inventor")
+For configuration options, see :doc:`configuration`.

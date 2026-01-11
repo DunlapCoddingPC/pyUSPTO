@@ -8,15 +8,13 @@ structures and functions for creating these exceptions.
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
 
-# To avoid circular imports if requests is type-hinted directly,
-# use TYPE_CHECKING guard or a string literal for the type hint.
 if TYPE_CHECKING:
-    import requests  # requests.exceptions.HTTPError
+    import requests
 
     from pyUSPTO.models.patent_data import Document
 
 
-# --- Exception Classes (largely unchanged) ---
+# --- Exception Classes  ---
 class USPTOApiError(Exception):
     """Base exception for USPTO API errors.
 
