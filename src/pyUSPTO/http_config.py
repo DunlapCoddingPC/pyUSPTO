@@ -22,7 +22,7 @@ class HTTPConfig:
         timeout: Read timeout in seconds for requests (default: 30.0)
         connect_timeout: Connection establishment timeout in seconds (default: 10.0)
         max_retries: Maximum number of retry attempts (default: 3)
-        backoff_factor: Exponential backoff multiplier for retries (default: 1.0)
+        backoff_factor: Exponential backoff multiplier for retries (default: 2.0)
         retry_status_codes: HTTP status codes that trigger retries
         pool_connections: Number of connection pools to cache (default: 10)
         pool_maxsize: Maximum number of connections per pool (default: 10)
@@ -86,7 +86,7 @@ class HTTPConfig:
             timeout=float(os.environ.get("USPTO_REQUEST_TIMEOUT", "30.0")),
             connect_timeout=float(os.environ.get("USPTO_CONNECT_TIMEOUT", "10.0")),
             max_retries=int(os.environ.get("USPTO_MAX_RETRIES", "3")),
-            backoff_factor=float(os.environ.get("USPTO_BACKOFF_FACTOR", "1.0")),
+            backoff_factor=float(os.environ.get("USPTO_BACKOFF_FACTOR", "2.0")),
             pool_connections=int(os.environ.get("USPTO_POOL_CONNECTIONS", "10")),
             pool_maxsize=int(os.environ.get("USPTO_POOL_MAXSIZE", "10")),
             download_chunk_size=int(
