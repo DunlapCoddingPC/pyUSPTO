@@ -249,8 +249,11 @@ class BaseUSPTOClient(Generic[T]):
     ) -> dict[str, Any] | T | requests.Response:
         """Make an HTTP request to the USPTO API.
 
+        Note: Only GET and POST methods are supported. Other HTTP methods will
+        raise a ValueError.
+
         Args:
-            method: HTTP method (GET, POST, etc.)
+            method: HTTP method (GET or POST only)
             endpoint: API endpoint path (without base URL)
             params: Optional query parameters
             json_data: Optional JSON body for POST requests
@@ -264,6 +267,9 @@ class BaseUSPTOClient(Generic[T]):
             - If stream=True: requests.Response object
             - If response_class is provided: Instance of response_class
             - Otherwise: Dict[str, Any] containing the JSON response
+
+        Raises:
+            ValueError: If an unsupported HTTP method is provided
         """
         url: str = ""
         if custom_url:
