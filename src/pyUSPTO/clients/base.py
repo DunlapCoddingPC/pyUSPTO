@@ -468,10 +468,35 @@ class BaseUSPTOClient(Generic[T]):
                 method = getattr(self, method_name)
                 response = method(**kwargs)
 
-            if not response.count:
+            # Validate response has required pagination attributes
+            if not hasattr(response, "count"):
+                raise AttributeError(
+                    f"Response from '{method_name}' missing required 'count' attribute for pagination"
+                )
+
+            if response.count is None:
+                # count=None means no results, stop pagination
                 break
 
+            if not response.count:
+                # count=0 means no results, stop pagination
+                break
+
+            # Validate container attribute exists
+            if not hasattr(response, response_container_attr):
+                raise AttributeError(
+                    f"Response from '{method_name}' missing required '{response_container_attr}' "
+                    f"attribute for pagination"
+                )
+
             container = getattr(response, response_container_attr)
+
+            # Validate container is iterable
+            if container is None:
+                raise ValueError(
+                    f"Container '{response_container_attr}' is None in response from '{method_name}'"
+                )
+
             yield from container
 
             if response.count < limit + offset:

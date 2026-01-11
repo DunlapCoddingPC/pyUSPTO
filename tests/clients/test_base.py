@@ -820,6 +820,107 @@ class TestBaseUSPTOClient:
                 )
             )
 
+    def test_paginate_results_missing_count_attribute(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test pagination raises AttributeError when response missing count."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
+        # Create response without count attribute
+        mock_response = MagicMock()
+        del mock_response.count  # Remove count attribute
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def test_method(self, **kwargs: Any) -> Any:
+                return mock_response
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.session = mock_session
+
+        with pytest.raises(
+            AttributeError, match="missing required 'count' attribute for pagination"
+        ):
+            list(
+                test_client.paginate_results(
+                    method_name="test_method", response_container_attr="items"
+                )
+            )
+
+    def test_paginate_results_missing_container_attribute(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test pagination raises AttributeError when response missing container."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
+        # Create response with count but without items
+        mock_response = MagicMock()
+        mock_response.count = 10
+        del mock_response.items  # Remove items attribute
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def test_method(self, **kwargs: Any) -> Any:
+                return mock_response
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.session = mock_session
+
+        with pytest.raises(
+            AttributeError, match="missing required 'items' attribute for pagination"
+        ):
+            list(
+                test_client.paginate_results(
+                    method_name="test_method", response_container_attr="items"
+                )
+            )
+
+    def test_paginate_results_count_none(self, mock_session: MagicMock) -> None:
+        """Test pagination stops gracefully when count is None."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
+        mock_response = MagicMock()
+        mock_response.count = None
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def test_method(self, **kwargs: Any) -> Any:
+                return mock_response
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.session = mock_session
+
+        # Should return empty list without error
+        results = list(
+            test_client.paginate_results(
+                method_name="test_method", response_container_attr="items"
+            )
+        )
+        assert results == []
+
+    def test_paginate_results_container_none(self, mock_session: MagicMock) -> None:
+        """Test pagination raises ValueError when container is None."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
+        mock_response = MagicMock()
+        mock_response.count = 10
+        mock_response.items = None  # Container is None
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def test_method(self, **kwargs: Any) -> Any:
+                return mock_response
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.session = mock_session
+
+        with pytest.raises(ValueError, match="Container 'items' is None"):
+            list(
+                test_client.paginate_results(
+                    method_name="test_method", response_container_attr="items"
+                )
+            )
+
     def test_save_response_to_file(self, mock_session: MagicMock) -> None:
         """Test _save_response_to_file raises FileExistsError."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
