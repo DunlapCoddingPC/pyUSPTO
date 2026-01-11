@@ -21,6 +21,7 @@ from urllib3.util.retry import Retry
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import (
     APIErrorArgs,
+    USPTOApiResponseParseError,
     USPTOConnectionError,
     USPTOTimeout,
     get_api_exception,
@@ -197,6 +198,44 @@ class BaseUSPTOClient(Generic[T]):
             USPTOConfig._shared_session = None
         self.close()
 
+    def _parse_json_response(
+        self, response: requests.Response, url: str
+    ) -> dict[str, Any]:
+        """Parse JSON response with proper error handling.
+
+        Args:
+            response: The requests Response object to parse
+            url: The URL that was requested (for error messages)
+
+        Returns:
+            Parsed JSON as a dictionary
+
+        Raises:
+            USPTOApiResponseParseError: If the response cannot be parsed as JSON
+        """
+        try:
+            json_data: dict[str, Any] = response.json()
+            return json_data
+        except (ValueError, requests.exceptions.JSONDecodeError) as json_err:
+            # Get content-type header to provide better error context
+            content_type = response.headers.get("content-type", "unknown")
+
+            # Truncate response text for error message if it's too long
+            response_preview = response.text[:500] if response.text else "(empty)"
+            if len(response.text) > 500:
+                response_preview += "... (truncated)"
+
+            raise USPTOApiResponseParseError(
+                message=f"Failed to parse JSON response from '{url}'",
+                status_code=response.status_code,
+                api_short_error="JSON Parse Error",
+                error_details=(
+                    f"Response Content-Type: {content_type}\n"
+                    f"Parse error: {str(json_err)}\n"
+                    f"Response preview: {response_preview}"
+                ),
+            ) from json_err
+
     def _make_request(
         self,
         method: str,
@@ -258,16 +297,18 @@ class BaseUSPTOClient(Generic[T]):
             if stream:
                 return response
 
+            # Parse JSON response with error handling
+            json_data = self._parse_json_response(response, url)
+
             # Parse the response based on the specified class
             if response_class:
                 parsed_response: T = response_class.from_dict(
-                    response.json(), include_raw_data=self.config.include_raw_data
+                    json_data, include_raw_data=self.config.include_raw_data
                 )
                 return parsed_response
 
             # Return the raw JSON for other requests
-            json_response: dict[str, Any] = response.json()
-            return json_response
+            return json_data
 
         except requests.exceptions.HTTPError as http_err:
             client_operation_message = f"API request to '{url}' failed with HTTPError"  # 'url' is from _make_request scope

@@ -135,6 +135,17 @@ class USPTOTimeout(USPTOApiError):
     pass
 
 
+class USPTOApiResponseParseError(USPTOApiError):
+    """Failed to parse response from USPTO API.
+
+    This exception is raised when the API returns a 2xx status code but the
+    response body cannot be parsed as JSON. This typically indicates the API
+    returned HTML error pages or other non-JSON content.
+    """
+
+    pass
+
+
 class FormatNotAvailableError(ValueError):
     """Raised when a requested document format is not available.
 
