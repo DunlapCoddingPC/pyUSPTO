@@ -20,6 +20,7 @@ from pyUSPTO.exceptions import (
     USPTOApiNotFoundError,
     USPTOApiPayloadTooLargeError,
     USPTOApiRateLimitError,
+    USPTOApiResponseParseError,
     USPTOApiServerError,
     USPTOConnectionError,
     USPTOTimeout,
@@ -489,6 +490,64 @@ class TestBaseUSPTOClient:
         expected_message_pattern = "API request to 'https://api.test.com/test' failed due to a network or request issue"
         with pytest.raises(USPTOApiError, match=expected_message_pattern):
             client._make_request(method="GET", endpoint="test")
+
+    def test_make_request_json_parse_error(self, mock_session: MagicMock) -> None:
+        """Test _make_request method with JSON parsing error."""
+        # Setup
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
+        # Mock successful HTTP response but with non-JSON content
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {"content-type": "text/html"}
+        mock_response.text = "<html><body>Error page</body></html>"
+        mock_response.json.side_effect = ValueError("Expecting value: line 1 column 1")
+        mock_response.raise_for_status.return_value = None
+
+        mock_session.get.return_value = mock_response
+
+        # Should raise USPTOApiResponseParseError
+        with pytest.raises(USPTOApiResponseParseError) as excinfo:
+            client._make_request(method="GET", endpoint="test")
+
+        # Verify error details
+        assert "Failed to parse JSON response" in str(excinfo.value)
+        assert excinfo.value.status_code == 200
+        assert excinfo.value.api_short_error == "JSON Parse Error"
+        assert "text/html" in str(excinfo.value.error_details)
+        assert "Error page" in str(excinfo.value.error_details)
+
+    def test_make_request_json_parse_error_with_response_class(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test _make_request with JSON parsing error when using response_class."""
+        # Setup
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.session = mock_session
+
+        # Mock successful HTTP response but with invalid JSON
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {"content-type": "application/json"}
+        mock_response.text = "Not valid JSON at all"
+        mock_response.json.side_effect = requests.exceptions.JSONDecodeError(
+            "Invalid JSON", "doc", 0
+        )
+        mock_response.raise_for_status.return_value = None
+
+        mock_session.get.return_value = mock_response
+
+        # Should raise USPTOApiResponseParseError even with response_class
+        with pytest.raises(USPTOApiResponseParseError) as excinfo:
+            client._make_request(
+                method="GET", endpoint="test", response_class=TestResponseClass
+            )
+
+        # Verify error details
+        assert "Failed to parse JSON response" in str(excinfo.value)
+        assert excinfo.value.status_code == 200
+        assert "application/json" in str(excinfo.value.error_details)
 
     def test_paginate_results(self, mock_session: MagicMock) -> None:
         """Test paginate_results method."""
