@@ -75,7 +75,7 @@ class TestHTTPConfig:
         assert config.timeout == 30.0
         assert config.connect_timeout == 10.0
         assert config.max_retries == 3
-        assert config.backoff_factor == 1.0
+        assert config.backoff_factor == 2.0
         assert config.pool_connections == 10
         assert config.pool_maxsize == 10
 
