@@ -352,6 +352,64 @@ patent_client = PatentDataClient(config=patent_config)
 petition_client = FinalPetitionDecisionsClient(config=petition_config)
 ```
 
+### Debugging with Raw Data Preservation
+
+When debugging API response issues or investigating data parsing problems, you can preserve the raw JSON response alongside the parsed data models using the `include_raw_data` flag:
+
+```python
+from pyUSPTO import PatentDataClient, USPTOConfig
+
+# Enable raw data preservation
+config = USPTOConfig(
+    api_key="your_api_key",
+    include_raw_data=True  # Preserve original API responses
+)
+
+client = PatentDataClient(config=config)
+
+# Make an API call
+response = client.search_applications(inventor_name_q="Smith", limit=1)
+
+# Access the parsed data normally
+print(f"Found {response.count} applications")
+
+# Access the raw JSON response for debugging
+if response.raw_data:
+    print("Raw API response:")
+    import json
+    print(json.dumps(response.raw_data, indent=2))
+```
+
+**When to use `include_raw_data`:**
+
+- **Debugging parsing issues**: When data isn't appearing in the parsed models as expected
+- **Investigating API changes**: When you need to see exactly what the API returned
+- **Reporting bugs**: Include raw responses when filing issue reports
+- **Development and testing**: Useful during development to verify API responses
+
+**Important notes:**
+
+- Raw data is stored in the `raw_data` attribute of response objects
+- This increases memory usage as both parsed and raw data are kept
+- Only enable when needed for debugging - disable in production for better performance
+- All response models support `raw_data` when this flag is enabled
+
+**Example: Debugging a missing field**
+
+```python
+config = USPTOConfig(api_key="your_api_key", include_raw_data=True)
+client = PatentDataClient(config=config)
+
+response = client.search_applications(limit=1)
+if response.patent_file_wrapper_data_bag:
+    wrapper = response.patent_file_wrapper_data_bag[0]
+
+    # Check if a field is missing in the parsed model
+    if wrapper.application_meta_data is None:
+        # Inspect the raw data to see what was actually returned
+        print("Raw wrapper data:", wrapper.raw_data)
+```
+
 ### Warning Control
 
 The library uses Python's standard `warnings` module to report data parsing issues. This allows you to control how warnings are handled based on your needs.
