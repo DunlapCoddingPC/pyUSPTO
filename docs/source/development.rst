@@ -1,20 +1,5 @@
 Development
 ===========
 
-Contributing
------------
-
-See the `CONTRIBUTING.md <https://github.com/DunlapCoddingPC/pyUSPTO/blob/main/CONTRIBUTING.md>`_ file for details on how to contribute to the project.
-
-Testing
--------
-
-The library includes a comprehensive test suite:
-
-.. code-block:: bash
-
-   # Run all tests
-   python -m pytest
-
-   # Run with coverage report
-   python -m pytest --cov=pyUSPTO
+.. include:: ../../CONTRIBUTING.md
+   :parser: myst_parser.sphinx_

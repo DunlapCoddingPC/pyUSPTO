@@ -150,9 +150,8 @@ def serialize_datetime_as_iso(dt: datetime | None) -> str | None:
     If it is naive (lacks timezone information), it is first assigned that
     assumed local timezone.
 
-    The resulting datetime is formatted as:
-        YYYY-MM-DDTHH:MM:SS.000±HHMM
-    (e.g., "2024-12-10T00:00:00.000-0500")
+    The resulting datetime is formatted as YYYY-MM-DDTHH:MM:SS.000±HHMM
+    (e.g., "2024-12-10T00:00:00.000-0500").
 
     Args:
         dt (Optional[datetime]): The datetime object to serialize.

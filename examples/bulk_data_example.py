@@ -47,7 +47,7 @@ print("\nMethod 2: Initialize with USPTOConfig")
 config = USPTOConfig(api_key="YOUR_API_KEY_HERE")
 client = BulkDataClient(config=config)
 
-# Method 3: Initialize from environment variables (recommended for production)
+# Method 3: Initialize from environment variables (recommended)
 print("\nMethod 3: Initialize from environment variables")
 os.environ["USPTO_API_KEY"] = "YOUR_API_KEY_HERE"  # Set this outside your script
 config_from_env = USPTOConfig.from_env()

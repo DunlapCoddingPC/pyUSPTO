@@ -4,8 +4,8 @@ API Reference
 .. toctree::
    :maxdepth: 2
 
-   clients
-   models
-   config
+   clients/index
+   models/index
+   config/index
    exceptions
    warnings

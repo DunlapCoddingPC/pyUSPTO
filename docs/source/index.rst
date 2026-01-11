@@ -7,6 +7,8 @@ Welcome to pyUSPTO's documentation!
 
    installation
    quickstart
+   configuration
+   advanced
    api/index
    examples/index
    development
