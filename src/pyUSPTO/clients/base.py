@@ -147,9 +147,10 @@ class BaseUSPTOClient(Generic[T]):
         proper cleanup of connection pools and resources. Alternatively, use the
         client as a context manager for automatic cleanup.
 
-        Note: If a session was provided via the `session` parameter during
-        initialization, this method will NOT close it, as the client does not
-        own the session lifecycle. Only sessions created by the client are closed.
+        Note: When multiple clients share the same config object, they share an
+        HTTP session. This method will NOT close shared sessions, as the client
+        does not own the session lifecycle. Only sessions created by the client
+        are closed.
 
         Example:
             client = PatentDataClient(api_key="...")
