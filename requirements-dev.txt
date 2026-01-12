@@ -130,7 +130,7 @@ sphinxcontrib-qthelp==2.0.0
     # via sphinx
 sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
-types-requests==2.32.4.20250913
+types-requests==2.32.4.20260107
     # via pyUSPTO (pyproject.toml)
 typing-extensions==4.15.0
     # via
