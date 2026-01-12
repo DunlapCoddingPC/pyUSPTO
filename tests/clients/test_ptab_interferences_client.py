@@ -10,13 +10,19 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from pyUSPTO import PTABInterferencesClient, USPTOConfig
-from pyUSPTO.models.ptab import PTABInterferenceResponse
+from pyUSPTO.models.ptab import InterferenceDocumentData, PTABInterferenceResponse
 
 
 @pytest.fixture
 def api_key_fixture() -> str:
     """Fixture for test API key."""
     return "test_key"
+
+
+@pytest.fixture
+def uspto_config(api_key_fixture: str) -> USPTOConfig:
+    """Provides a USPTOConfig instance with test API key."""
+    return USPTOConfig(api_key=api_key_fixture)
 
 
 @pytest.fixture
@@ -109,48 +115,38 @@ def interference_decision_sample() -> dict[str, Any]:
 
 
 @pytest.fixture
-def mock_ptab_interferences_client(api_key_fixture: str) -> PTABInterferencesClient:
+def mock_ptab_interferences_client(
+    uspto_config: USPTOConfig,
+) -> PTABInterferencesClient:
     """Fixture for mock PTABInterferencesClient."""
-    return PTABInterferencesClient(api_key=api_key_fixture)
+    return PTABInterferencesClient(config=uspto_config)
 
 
 class TestPTABInterferencesClientInit:
     """Tests for initialization of PTABInterferencesClient."""
 
-    def test_init_with_api_key(self, api_key_fixture: str) -> None:
+    def test_init_with_api_key(
+        self, api_key_fixture: str, uspto_config: USPTOConfig
+    ) -> None:
         """Test initialization with API key."""
-        client = PTABInterferencesClient(api_key=api_key_fixture)
+        client = PTABInterferencesClient(config=uspto_config)
         assert client._api_key == api_key_fixture
         assert client.base_url == "https://api.uspto.gov"
 
-    def test_init_with_custom_base_url(self, api_key_fixture: str) -> None:
+    def test_init_with_custom_base_url(
+        self, api_key_fixture: str, uspto_config: USPTOConfig
+    ) -> None:
         """Test initialization with custom base URL."""
         custom_url = "https://custom.api.test.com"
-        client = PTABInterferencesClient(api_key=api_key_fixture, base_url=custom_url)
+        client = PTABInterferencesClient(config=uspto_config, base_url=custom_url)
         assert client._api_key == api_key_fixture
         assert client.base_url == custom_url
 
-    def test_init_with_config(self) -> None:
-        """Test initialization with config object."""
-        config_key = "config_key"
-        config_url = "https://config.api.test.com"
-        config = USPTOConfig(api_key=config_key, ptab_base_url=config_url)
-        client = PTABInterferencesClient(config=config)
-        assert client._api_key == config_key
-        assert client.base_url == config_url
-        assert client.config is config
-
-    def test_init_with_api_key_and_config(self, api_key_fixture: str) -> None:
-        """Test initialization with both API key and config."""
-        config = USPTOConfig(
-            api_key="config_key",
-            ptab_base_url="https://config.api.test.com",
-        )
-        client = PTABInterferencesClient(api_key=api_key_fixture, config=config)
-        # API key parameter takes precedence
-        assert client._api_key == api_key_fixture
-        # But base_url comes from config
-        assert client.base_url == "https://config.api.test.com"
+    def test_init_without_config(self, monkeypatch: Any) -> None:
+        """Test initialization without config uses environment."""
+        monkeypatch.setenv("USPTO_API_KEY", "env_key")
+        client = PTABInterferencesClient()
+        assert client.config.api_key == "env_key"
 
 
 class TestPTABInterferencesClientSearchDecisions:
@@ -167,7 +163,7 @@ class TestPTABInterferencesClientSearchDecisions:
         mock_response = MagicMock()
         mock_response.json.return_value = interference_decision_sample
         mock_session.get.return_value = mock_response
-        mock_ptab_interferences_client.session = mock_session
+        mock_ptab_interferences_client.config._session = mock_session
 
         # Test
         result = mock_ptab_interferences_client.search_decisions(
@@ -194,7 +190,7 @@ class TestPTABInterferencesClientSearchDecisions:
         mock_response = MagicMock()
         mock_response.json.return_value = interference_decision_sample
         mock_session.get.return_value = mock_response
-        mock_ptab_interferences_client.session = mock_session
+        mock_ptab_interferences_client.config._session = mock_session
 
         # Test
         result = mock_ptab_interferences_client.search_decisions(
@@ -238,7 +234,7 @@ class TestPTABInterferencesClientSearchDecisions:
         mock_response = MagicMock()
         mock_response.json.return_value = interference_decision_sample
         mock_session.get.return_value = mock_response
-        mock_ptab_interferences_client.session = mock_session
+        mock_ptab_interferences_client.config._session = mock_session
 
         # Test
         result = mock_ptab_interferences_client.search_decisions(
@@ -262,7 +258,7 @@ class TestPTABInterferencesClientSearchDecisions:
         mock_response = MagicMock()
         mock_response.json.return_value = interference_decision_sample
         mock_session.get.return_value = mock_response
-        mock_ptab_interferences_client.session = mock_session
+        mock_ptab_interferences_client.config._session = mock_session
 
         # Test
         result = mock_ptab_interferences_client.search_decisions(
@@ -286,7 +282,7 @@ class TestPTABInterferencesClientSearchDecisions:
         mock_response = MagicMock()
         mock_response.json.return_value = interference_decision_sample
         mock_session.get.return_value = mock_response
-        mock_ptab_interferences_client.session = mock_session
+        mock_ptab_interferences_client.config._session = mock_session
 
         # Test
         result = mock_ptab_interferences_client.search_decisions(
@@ -327,7 +323,7 @@ class TestPTABInterferencesClientSearchDecisions:
         mock_response = MagicMock()
         mock_response.json.return_value = interference_decision_sample
         mock_session.get.return_value = mock_response
-        mock_ptab_interferences_client.session = mock_session
+        mock_ptab_interferences_client.config._session = mock_session
 
         # Test
         result = mock_ptab_interferences_client.search_decisions(
@@ -354,7 +350,7 @@ class TestPTABInterferencesClientSearchDecisions:
         mock_response = MagicMock()
         mock_response.json.return_value = interference_decision_sample
         mock_session.post.return_value = mock_response
-        mock_ptab_interferences_client.session = mock_session
+        mock_ptab_interferences_client.config._session = mock_session
 
         post_body = {
             "q": "interferenceOutcomeCategory:Priority to Senior Party",
@@ -381,7 +377,7 @@ class TestPTABInterferencesClientSearchDecisions:
         mock_response = MagicMock()
         mock_response.json.return_value = interference_decision_sample
         mock_session.get.return_value = mock_response
-        mock_ptab_interferences_client.session = mock_session
+        mock_ptab_interferences_client.config._session = mock_session
 
         # Test
         result = mock_ptab_interferences_client.search_decisions(
@@ -530,94 +526,124 @@ class TestPTABInterferencesClientPaginate:
 class TestPTABInterferencesDownloadMethods:
     """Tests for PTAB Interferences download methods."""
 
-    def test_download_interference_archive_missing_uri_raises_error(self) -> None:
+    def test_download_interference_archive_missing_uri_raises_error(
+        self, uspto_config: USPTOConfig
+    ) -> None:
         """Test download_interference_archive raises ValueError when file_download_uri is None."""
         from pyUSPTO.models.ptab import InterferenceMetaData
 
-        client = PTABInterferencesClient(api_key="test")
-
+        client = PTABInterferencesClient(config=uspto_config)
         # Create InterferenceMetaData without file_download_uri
         meta_data = InterferenceMetaData(file_download_uri=None)
 
-        with pytest.raises(ValueError, match="InterferenceMetaData has no file_download_uri"):
+        with pytest.raises(
+            ValueError, match="InterferenceMetaData has no file_download_uri"
+        ):
             client.download_interference_archive(meta_data)
 
-    def test_download_interference_archive_with_uri(self) -> None:
+    def test_download_interference_archive_with_uri(
+        self, uspto_config: USPTOConfig
+    ) -> None:
         """Test download_interference_archive calls _download_file with URI."""
         from unittest.mock import patch
 
         from pyUSPTO.models.ptab import InterferenceMetaData
 
-        client = PTABInterferencesClient(api_key="test")
-        meta_data = InterferenceMetaData(file_download_uri="https://test.com/interference.tar")
+        client = PTABInterferencesClient(config=uspto_config)
+        meta_data = InterferenceMetaData(
+            file_download_uri="https://test.com/interference.tar"
+        )
 
-        with patch.object(client, "_download_file", return_value="/path/to/file") as mock_download:
-            result = client.download_interference_archive(meta_data, destination="/dest", file_name="custom.tar", overwrite=True)
+        with patch.object(
+            client, "_download_file", return_value="/path/to/file"
+        ) as mock_download:
+            result = client.download_interference_archive(
+                meta_data, destination="/dest", file_name="custom.tar", overwrite=True
+            )
             mock_download.assert_called_once_with(
                 url="https://test.com/interference.tar",
                 destination="/dest",
                 file_name="custom.tar",
-                overwrite=True
+                overwrite=True,
             )
             assert result == "/path/to/file"
 
-    def test_download_interference_documents_missing_uri_raises_error(self) -> None:
+    def test_download_interference_documents_missing_uri_raises_error(
+        self, uspto_config: USPTOConfig
+    ) -> None:
         """Test download_interference_documents raises ValueError when file_download_uri is None."""
         from pyUSPTO.models.ptab import InterferenceMetaData
 
-        client = PTABInterferencesClient(api_key="test")
-
+        client = PTABInterferencesClient(config=uspto_config)
         # Create InterferenceMetaData without file_download_uri
         meta_data = InterferenceMetaData(file_download_uri=None)
 
-        with pytest.raises(ValueError, match="InterferenceMetaData has no file_download_uri"):
+        with pytest.raises(
+            ValueError, match="InterferenceMetaData has no file_download_uri"
+        ):
             client.download_interference_documents(meta_data)
 
-    def test_download_interference_documents_with_uri(self) -> None:
+    def test_download_interference_documents_with_uri(
+        self, uspto_config: USPTOConfig
+    ) -> None:
         """Test download_interference_documents calls _download_and_extract with URI."""
         from unittest.mock import patch
 
         from pyUSPTO.models.ptab import InterferenceMetaData
 
-        client = PTABInterferencesClient(api_key="test")
-        meta_data = InterferenceMetaData(file_download_uri="https://test.com/interference.tar")
+        client = PTABInterferencesClient(config=uspto_config)
+        meta_data = InterferenceMetaData(
+            file_download_uri="https://test.com/interference.tar"
+        )
 
-        with patch.object(client, "_download_and_extract", return_value="/path/to/extracted") as mock_extract:
-            result = client.download_interference_documents(meta_data, destination="/dest", overwrite=True)
+        with patch.object(
+            client, "_download_and_extract", return_value="/path/to/extracted"
+        ) as mock_extract:
+            result = client.download_interference_documents(
+                meta_data, destination="/dest", overwrite=True
+            )
             mock_extract.assert_called_once_with(
                 url="https://test.com/interference.tar",
                 destination="/dest",
-                overwrite=True
+                overwrite=True,
             )
             assert result == "/path/to/extracted"
 
-    def test_download_interference_document_missing_uri_raises_error(self) -> None:
+    def test_download_interference_document_missing_uri_raises_error(
+        self, uspto_config: USPTOConfig
+    ) -> None:
         """Test download_interference_document raises ValueError when file_download_uri is None."""
         from pyUSPTO.models.ptab import InterferenceDocumentData
 
-        client = PTABInterferencesClient(api_key="test")
-
+        client = PTABInterferencesClient(config=uspto_config)
         # Create InterferenceDocumentData without file_download_uri
         document_data = InterferenceDocumentData(file_download_uri=None)
 
-        with pytest.raises(ValueError, match="InterferenceDocumentData has no file_download_uri"):
+        with pytest.raises(
+            ValueError, match="InterferenceDocumentData has no file_download_uri"
+        ):
             client.download_interference_document(document_data)
 
-    def test_download_interference_document_with_uri(self) -> None:
+    def test_download_interference_document_with_uri(
+        self, uspto_config: USPTOConfig
+    ) -> None:
         """Test download_interference_document calls _download_and_extract with URI."""
-        from unittest.mock import patch
 
-        from pyUSPTO.models.ptab import InterferenceDocumentData
+        client = PTABInterferencesClient(config=uspto_config)
+        document_data = InterferenceDocumentData(
+            file_download_uri="https://test.com/doc.pdf"
+        )
 
-        client = PTABInterferencesClient(api_key="test")
-        document_data = InterferenceDocumentData(file_download_uri="https://test.com/doc.pdf")
-
-        with patch.object(client, "_download_and_extract", return_value="/path/to/doc.pdf") as mock_extract:
-            result = client.download_interference_document(document_data, destination="/dest", file_name="doc.pdf", overwrite=True)
+        with patch.object(
+            client, "_download_and_extract", return_value="/path/to/doc.pdf"
+        ) as mock_extract:
+            result = client.download_interference_document(
+                document_data, destination="/dest", file_name="doc.pdf", overwrite=True
+            )
             mock_extract.assert_called_once_with(
                 url="https://test.com/doc.pdf",
                 destination="/dest",
                 file_name="doc.pdf",
-                overwrite=True
+                overwrite=True,
             )
             assert result == "/path/to/doc.pdf"

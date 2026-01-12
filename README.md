@@ -24,10 +24,11 @@ pip install pyUSPTO
 > You must have an API key for the [USPTO Open Data Portal API](https://data.uspto.gov/myodp/landing).
 
 ```python
-from pyUSPTO import PatentDataClient
+from pyUSPTO import PatentDataClient, USPTOConfig
 
-# Initialize with your API key
-client = PatentDataClient(api_key="your_api_key_here")
+# Initialize with config
+config = USPTOConfig(api_key="your_api_key_here")
+client = PatentDataClient(config=config)
 
 # Search for patent applications
 results = client.search_applications(inventor_name_q="Smith", limit=10)
@@ -36,32 +37,9 @@ print(f"Found {results.count} applications")
 
 ## Configuration
 
-All clients can be configured using one of three methods:
+All clients require a `USPTOConfig` object for configuration. There are two methods:
 
-### Method 1: Direct API Key Initialization
-
-> [!NOTE]
-> This method is convenient for quick scripts but not recommended. Consider using environment variables instead.
-
-```python
-from pyUSPTO import (
-    BulkDataClient,
-    PatentDataClient,
-    FinalPetitionDecisionsClient,
-    PTABTrialsClient,
-    PTABAppealsClient,
-    PTABInterferencesClient
-)
-
-patent_client = PatentDataClient(api_key="your_api_key_here")
-bulk_client = BulkDataClient(api_key="your_api_key_here")
-petition_client = FinalPetitionDecisionsClient(api_key="your_api_key_here")
-trials_client = PTABTrialsClient(api_key="your_api_key_here")
-appeals_client = PTABAppealsClient(api_key="your_api_key_here")
-interferences_client = PTABInterferencesClient(api_key="your_api_key_here")
-```
-
-### Method 2: Using USPTOConfig
+### Method 1: Using USPTOConfig
 
 ```python
 from pyUSPTO import (
@@ -85,7 +63,7 @@ appeals_client = PTABAppealsClient(config=config)
 interferences_client = PTABInterferencesClient(config=config)
 ```
 
-### Method 3: Environment Variables (Recommended)
+### Method 2: Environment Variables (Recommended)
 
 Set the environment variable in your shell:
 
@@ -127,7 +105,8 @@ interferences_client = PTABInterferencesClient(config=config)
 ```python
 from pyUSPTO import PatentDataClient
 
-client = PatentDataClient(api_key="your_api_key_here")
+config = USPTOConfig(api_key="your_api_key_here")
+client = PatentDataClient(config=config)
 
 # Search for applications by inventor name
 response = client.search_applications(inventor_name_q="Smith", limit=2)
@@ -146,7 +125,8 @@ See [`examples/patent_data_example.py`](examples/patent_data_example.py) for det
 ```python
 from pyUSPTO import FinalPetitionDecisionsClient
 
-client = FinalPetitionDecisionsClient(api_key="your_api_key_here")
+config = USPTOConfig(api_key="your_api_key_here")
+client = FinalPetitionDecisionsClient(config=config)
 
 # Search for petition decisions
 response = client.search_decisions(
@@ -169,7 +149,8 @@ See [`examples/petition_decisions_example.py`](examples/petition_decisions_examp
 ```python
 from pyUSPTO import PTABTrialsClient
 
-client = PTABTrialsClient(api_key="your_api_key_here")
+config = USPTOConfig(api_key="your_api_key_here")
+client = PTABTrialsClient(config=config)
 
 # Search for IPR proceedings
 response = client.search_proceedings(
@@ -196,7 +177,8 @@ See [`examples/ptab_trials_example.py`](examples/ptab_trials_example.py) for det
 ```python
 from pyUSPTO import PTABAppealsClient
 
-client = PTABAppealsClient(api_key="your_api_key_here")
+config = USPTOConfig(api_key="your_api_key_here")
+client = PTABAppealsClient(config=config)
 
 # Search for appeal decisions
 response = client.search_decisions(
@@ -215,7 +197,8 @@ See [`examples/ptab_appeals_example.py`](examples/ptab_appeals_example.py) for d
 ```python
 from pyUSPTO import PTABInterferencesClient
 
-client = PTABInterferencesClient(api_key="your_api_key_here")
+config = USPTOConfig(api_key="your_api_key_here")
+client = PTABInterferencesClient(config=config)
 
 # Search for interference decisions
 response = client.search_decisions(

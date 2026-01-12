@@ -28,27 +28,31 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
 
     def __init__(
         self,
-        api_key: str | None = None,
-        base_url: str | None = None,
         config: USPTOConfig | None = None,
+        base_url: str | None = None,
     ):
         """Initialize the BulkDataClient.
 
         Args:
-            api_key: Optional API key for authentication
-            base_url: The base URL of the API, defaults to config.bulk_data_base_url or "https://api.uspto.gov/api/v1/datasets"
-            config: Optional USPTOConfig instance
+            config: USPTOConfig instance containing API key and settings. If not provided,
+                creates config from environment variables (requires USPTO_API_KEY).
+            base_url: Optional base URL override for the USPTO Bulk Data API.
+                If not provided, uses config.bulk_data_base_url or default.
         """
-        # Use config if provided, otherwise create default config
-        self.config = config or USPTOConfig(api_key=api_key)
+        # Use provided config or create from environment
+        if config is None:
+            self.config = USPTOConfig.from_env()
+        else:
+            self.config = config
 
-        # Use provided API key or get from config
-        api_key = api_key or self.config.api_key
+        # Determine effective base URL
+        effective_base_url = base_url or self.config.bulk_data_base_url
 
-        # Use provided base_url or get from config
-        base_url = base_url or self.config.bulk_data_base_url
-
-        super().__init__(api_key=api_key, base_url=base_url, config=self.config)
+        # Initialize base client
+        super().__init__(
+            base_url=effective_base_url,
+            config=self.config,
+        )
 
     def get_product_by_id(
         self,

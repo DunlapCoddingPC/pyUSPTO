@@ -11,6 +11,7 @@ claim the same patentable invention.
 import os
 
 from pyUSPTO import PTABInterferencesClient
+from pyUSPTO.config import USPTOConfig
 
 # --- Initialization ---
 # Initialize the client with direct API key
@@ -20,7 +21,8 @@ if api_key == "YOUR_API_KEY_HERE":
     raise ValueError(
         "WARNING: API key is not set. Please replace 'YOUR_API_KEY_HERE' or set USPTO_API_KEY environment variable."
     )
-client = PTABInterferencesClient(api_key=api_key)
+config = USPTOConfig(api_key=api_key)
+client = PTABInterferencesClient(config=config)
 
 print("\nBeginning PTAB Interferences API requests with configured client:")
 

@@ -33,24 +33,30 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
 
     def __init__(
         self,
-        api_key: str | None = None,
-        base_url: str | None = None,
         config: USPTOConfig | None = None,
+        base_url: str | None = None,
     ):
         """Initialize the PTABInterferencesClient.
 
         Args:
-            api_key: Optional API key for authentication.
-            base_url: Optional base URL override for the API.
-            config: Optional USPTOConfig instance for configuration.
+            config: USPTOConfig instance containing API key and settings. If not provided,
+                creates config from environment variables (requires USPTO_API_KEY).
+            base_url: Optional base URL override for the USPTO PTAB API.
+                If not provided, uses config.ptab_base_url or default.
         """
-        self.config = config or USPTOConfig(api_key=api_key)
-        api_key_to_use = api_key or self.config.api_key
+        # Use provided config or create from environment
+        if config is None:
+            self.config = USPTOConfig.from_env()
+        else:
+            self.config = config
+
+        # Determine effective base URL
         effective_base_url = (
             base_url or self.config.ptab_base_url or "https://api.uspto.gov"
         )
+
+        # Initialize base client
         super().__init__(
-            api_key=api_key_to_use,
             base_url=effective_base_url,
             config=self.config,
         )

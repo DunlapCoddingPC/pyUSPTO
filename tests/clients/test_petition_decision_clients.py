@@ -21,9 +21,8 @@ from pyUSPTO.models.petition_decisions import (
 )
 from pyUSPTO.warnings import USPTODataMismatchWarning
 
+
 # --- Fixtures ---
-
-
 @pytest.fixture
 def api_key_fixture() -> str:
     """Provides a test API key."""
@@ -31,9 +30,17 @@ def api_key_fixture() -> str:
 
 
 @pytest.fixture
-def petition_client(api_key_fixture: str) -> Iterator[FinalPetitionDecisionsClient]:
+def uspto_config(api_key_fixture: str) -> USPTOConfig:
+    """Provides a USPTOConfig instance with test API key."""
+    return USPTOConfig(api_key=api_key_fixture)
+
+
+@pytest.fixture
+def petition_client(
+    uspto_config: USPTOConfig,
+) -> Iterator[FinalPetitionDecisionsClient]:
     """Provides a FinalPetitionDecisionsClient instance."""
-    client = FinalPetitionDecisionsClient(api_key=api_key_fixture)
+    client = FinalPetitionDecisionsClient(config=uspto_config)
     with patch.object(client, "_download_and_extract") as mock_download:
         mock_download.return_value = "/tmp/document.pdf"
         yield client
@@ -98,19 +105,18 @@ def mock_download_option() -> DocumentDownloadOption:
 class TestFinalPetitionDecisionsClientInit:
     """Tests for initialization of FinalPetitionDecisionsClient."""
 
-    def test_init_with_api_key(self, api_key_fixture: str) -> None:
+    def test_init_with_api_key(
+        self, petition_client: FinalPetitionDecisionsClient, uspto_config: USPTOConfig
+    ) -> None:
         """Test initialization with API key."""
-        client = FinalPetitionDecisionsClient(api_key=api_key_fixture)
-        assert client._api_key == api_key_fixture
+        client = petition_client
+        assert client._api_key == uspto_config.api_key
         assert client.base_url == "https://api.uspto.gov"
 
-    def test_init_with_custom_base_url(self, api_key_fixture: str) -> None:
+    def test_init_with_custom_base_url(self, uspto_config: USPTOConfig) -> None:
         """Test initialization with custom base URL."""
         custom_url = "https://custom.api.test.com"
-        client = FinalPetitionDecisionsClient(
-            api_key=api_key_fixture, base_url=custom_url
-        )
-        assert client._api_key == api_key_fixture
+        client = FinalPetitionDecisionsClient(config=uspto_config, base_url=custom_url)
         assert client.base_url == custom_url
 
     def test_init_with_config(self) -> None:
@@ -123,29 +129,11 @@ class TestFinalPetitionDecisionsClientInit:
         assert client.base_url == config_url
         assert client.config is config
 
-    def test_init_with_api_key_and_config(self, api_key_fixture: str) -> None:
-        """Test initialization with both API key and config."""
-        config = USPTOConfig(
-            api_key="config_key",
-            petition_decisions_base_url="https://config.api.test.com",
-        )
-        client = FinalPetitionDecisionsClient(api_key=api_key_fixture, config=config)
-        # API key parameter takes precedence
-        assert client._api_key == api_key_fixture
-        # But base_url comes from config
-        assert client.base_url == "https://config.api.test.com"
-
-    def test_init_base_url_precedence(self, api_key_fixture: str) -> None:
-        """Test that explicit base_url takes precedence over config."""
-        config = USPTOConfig(
-            api_key="config_key",
-            petition_decisions_base_url="https://config.api.test.com",
-        )
-        custom_url = "https://custom.url.com"
-        client = FinalPetitionDecisionsClient(
-            api_key=api_key_fixture, base_url=custom_url, config=config
-        )
-        assert client.base_url == custom_url
+    def test_init_without_config(self, monkeypatch: Any) -> None:
+        """Test initialization without config uses environment."""
+        monkeypatch.setenv("USPTO_API_KEY", "env_key")
+        client = FinalPetitionDecisionsClient()
+        assert client.config.api_key == "env_key"
 
 
 class TestFinalPetitionDecisionsClientSearch:
@@ -812,7 +800,9 @@ class TestFinalPetitionDecisionsClientDocumentDownload:
 
         # Mock _download_and_extract to raise FileExistsError
         with patch.object(petition_client, "_download_and_extract") as mock_dl:
-            mock_dl.side_effect = FileExistsError(f"File exists: {existing_file}. Use overwrite=True")
+            mock_dl.side_effect = FileExistsError(
+                f"File exists: {existing_file}. Use overwrite=True"
+            )
 
             with pytest.raises(FileExistsError, match="File exists"):
                 petition_client.download_petition_document(

@@ -58,9 +58,15 @@ def api_key_fixture() -> str:
 
 
 @pytest.fixture
-def patent_data_client(api_key_fixture: str) -> PatentDataClient:
-    """Provides a PatentDataClient instance initialized with a test API key."""
-    return PatentDataClient(api_key=api_key_fixture)
+def uspto_config(api_key_fixture: str) -> USPTOConfig:
+    """Provides a USPTOConfig instance with test API key."""
+    return USPTOConfig(api_key=api_key_fixture)
+
+
+@pytest.fixture
+def patent_data_client(uspto_config: USPTOConfig) -> PatentDataClient:
+    """Provides a PatentDataClient instance initialized with a test config."""
+    return PatentDataClient(config=uspto_config)
 
 
 @pytest.fixture
@@ -248,43 +254,36 @@ def mock_requests_response() -> MagicMock:
 class TestPatentDataClientInit:
     """Tests for the initialization of the PatentDataClient."""
 
-    def test_init_with_api_key(self, api_key_fixture: str) -> None:
-        """Test initialization with API key."""
-        client = PatentDataClient(api_key=api_key_fixture)
-        assert client._api_key == api_key_fixture
-        assert client.base_url == "https://api.uspto.gov"
+    def test_init_with_config(self, uspto_config: USPTOConfig) -> None:
+        """Test initialization with config."""
+        client = PatentDataClient(config=uspto_config)
+        assert client._api_key == uspto_config.api_key
+        assert client.base_url == uspto_config.patent_data_base_url
 
-    def test_init_with_custom_base_url(self, api_key_fixture: str) -> None:
+    def test_init_with_custom_base_url(self, uspto_config: USPTOConfig) -> None:
         """Test initialization with custom base URL."""
         custom_url = "https://custom.api.test.com"
-        client = PatentDataClient(api_key=api_key_fixture, base_url=custom_url)
-        assert client._api_key == api_key_fixture
+        client = PatentDataClient(config=uspto_config, base_url=custom_url)
         assert client.base_url == custom_url
 
-    def test_init_with_config(self) -> None:
-        """Test initialization with config object."""
+    def test_init_with_config_base_url(self, uspto_config: USPTOConfig) -> None:
+        """Test initialization with config containing base URL."""
         config_key = "config_key"
         config_url = "https://config.api.test.com"
         config = USPTOConfig(api_key=config_key, patent_data_base_url=config_url)
         client = PatentDataClient(config=config)
-        assert client._api_key == config_key
         assert client.base_url == config_url
         assert client.config is config
 
-    def test_init_with_api_key_and_config(self, api_key_fixture: str) -> None:
-        """Test initialization with both API key and config."""
-        config = USPTOConfig(
-            api_key="config_key", patent_data_base_url="https://config.api.test.com"
-        )
-        client = PatentDataClient(api_key=api_key_fixture, config=config)
-        assert client._api_key == api_key_fixture
-        assert client.base_url == "https://config.api.test.com"
-
         custom_url = "https://custom.url.com"
-        client_custom_url = PatentDataClient(
-            api_key=api_key_fixture, base_url=custom_url, config=config
-        )
+        client_custom_url = PatentDataClient(config=uspto_config, base_url=custom_url)
         assert client_custom_url.base_url == custom_url
+
+    def test_init_without_config(self, monkeypatch: Any) -> None:
+        """Test initialization without config uses environment."""
+        monkeypatch.setenv("USPTO_API_KEY", "env_key")
+        client = PatentDataClient()
+        assert client.config.api_key == "env_key"
 
 
 class TestPatentApplicationSearch:
@@ -2546,11 +2545,10 @@ class TestRawDataFeature:
         assert result.raw_data is None
 
     def test_raw_data_enabled_via_config(
-        self, mock_patent_file_wrapper: PatentFileWrapper
+        self, uspto_config: USPTOConfig, mock_patent_file_wrapper: PatentFileWrapper
     ) -> None:
         """Test that raw_data is populated when config.include_raw_data=True."""
-        config = USPTOConfig(api_key="test_key", include_raw_data=True)
-        PatentDataClient(config=config)
+        PatentDataClient(config=uspto_config)
 
         # Create a response with raw_data enabled
         test_data = {

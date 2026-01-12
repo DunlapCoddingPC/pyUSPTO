@@ -53,24 +53,30 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def __init__(
         self,
-        api_key: str | None = None,
-        base_url: str | None = None,
         config: USPTOConfig | None = None,
+        base_url: str | None = None,
     ):
         """Initialize the PatentDataClient.
 
         Args:
-            api_key: USPTO API key. If not provided, uses key from config or environment.
-            base_url: Base URL for the USPTO Patent Data API. Defaults to https://api.uspto.gov.
-            config: USPTOConfig instance. If not provided, creates one with the given api_key.
+            config: USPTOConfig instance containing API key and settings. If not provided,
+                creates config from environment variables (requires USPTO_API_KEY).
+            base_url: Optional base URL override for the USPTO Patent Data API.
+                If not provided, uses config.patent_data_base_url or default.
         """
-        self.config = config or USPTOConfig(api_key=api_key)
-        api_key_to_use = api_key or self.config.api_key
+        # Use provided config or create from environment
+        if config is None:
+            self.config = USPTOConfig.from_env()
+        else:
+            self.config = config
+
+        # Determine effective base URL
         effective_base_url = (
             base_url or self.config.patent_data_base_url or "https://api.uspto.gov"
         )
+
+        # Initialize base client
         super().__init__(
-            api_key=api_key_to_use,
             base_url=effective_base_url,
             config=self.config,
         )

@@ -13,6 +13,7 @@ from requests.adapters import HTTPAdapter
 
 import pyUSPTO.models.base as BaseModels
 from pyUSPTO.clients.base import BaseUSPTOClient
+from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import (
     USPTOApiAuthError,
     USPTOApiBadRequestError,
@@ -25,6 +26,15 @@ from pyUSPTO.exceptions import (
     USPTOConnectionError,
     USPTOTimeout,
 )
+
+
+@pytest.fixture
+def uspto_config() -> USPTOConfig:
+    """Provides a USPTOConfig instance with test API key."""
+    mock_session = MagicMock()
+    config = USPTOConfig(api_key="test_key")
+    config._session = mock_session
+    return config
 
 
 class TestModelsBase:
@@ -98,7 +108,7 @@ class TestBaseUSPTOClient:
         """Test initialization of the BaseUSPTOClient."""
         # Test with API key
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test_key", base_url="https://api.test.com"
+            config=USPTOConfig(api_key="test_key"), base_url="https://api.test.com"
         )
         assert client._api_key == "test_key"
         assert client.api_key == "********"  # API key is masked
@@ -143,7 +153,7 @@ class TestBaseUSPTOClient:
         """Test _make_request method with GET."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         mock_response = MagicMock()
         mock_response.json.return_value = {"key": "value"}
@@ -167,7 +177,7 @@ class TestBaseUSPTOClient:
         """Test _make_request method with POST."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         mock_response = MagicMock()
         mock_response.json.return_value = {"key": "value"}
@@ -195,7 +205,7 @@ class TestBaseUSPTOClient:
         """Test _make_request method with response_class."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         mock_response = MagicMock()
         mock_response.json.return_value = {"key": "value"}
@@ -216,7 +226,7 @@ class TestBaseUSPTOClient:
         """Test _make_request method with custom_base_url."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         mock_response = MagicMock()
         mock_response.json.return_value = {"key": "value"}
@@ -242,7 +252,7 @@ class TestBaseUSPTOClient:
         """Test _make_request method with stream=True."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         mock_response = MagicMock()
         mock_session.get.return_value = mock_response
@@ -291,7 +301,7 @@ class TestBaseUSPTOClient:
         """Test _make_request method with HTTP errors."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Test 400 error (Bad Request)
         mock_response = MagicMock()
@@ -409,7 +419,7 @@ class TestBaseUSPTOClient:
         """Test that POST request errors include the request body in the error message."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Mock a 400 Bad Request error
         mock_response = MagicMock()
@@ -441,7 +451,7 @@ class TestBaseUSPTOClient:
         """Test _make_request method with connection error."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Test connection error
         mock_session.get.side_effect = requests.exceptions.ConnectionError(
@@ -460,7 +470,7 @@ class TestBaseUSPTOClient:
         """Test _make_request method with timeout error."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Test timeout error
         mock_session.get.side_effect = requests.exceptions.Timeout("Request timed out")
@@ -479,7 +489,7 @@ class TestBaseUSPTOClient:
         """Test _make_request method with generic request exception."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Test generic RequestException (not Timeout or ConnectionError)
         mock_session.get.side_effect = requests.exceptions.RequestException(
@@ -495,7 +505,7 @@ class TestBaseUSPTOClient:
         """Test _make_request method with JSON parsing error."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Mock successful HTTP response but with non-JSON content
         mock_response = MagicMock()
@@ -524,7 +534,7 @@ class TestBaseUSPTOClient:
         """Test _make_request with JSON parsing error when using response_class."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Mock successful HTTP response but with invalid JSON
         mock_response = MagicMock()
@@ -553,7 +563,7 @@ class TestBaseUSPTOClient:
         """Test paginate_results method."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Create mock responses
         first_response = MagicMock()
@@ -582,7 +592,7 @@ class TestBaseUSPTOClient:
 
         # Use our test client
         test_client = TestClient(base_url="https://api.test.com")
-        test_client.session = mock_session
+        test_client.config._session = mock_session
 
         # Spy on the test_method to verify calls
         with patch.object(
@@ -616,7 +626,7 @@ class TestBaseUSPTOClient:
 
             # Use our test client for partial results
             test_partial_client = TestPartialClient(base_url="https://api.test.com")
-            test_partial_client.session = mock_session
+            test_partial_client.config._session = mock_session
 
             # Test paginate_results with early return
             results = list(
@@ -641,7 +651,7 @@ class TestBaseUSPTOClient:
 
             # Use our test client for empty results
             test_empty_client = TestEmptyClient(base_url="https://api.test.com")
-            test_empty_client.session = mock_session
+            test_empty_client.config._session = mock_session
 
             # Test paginate_results with empty response
             results = list(
@@ -661,7 +671,7 @@ class TestBaseUSPTOClient:
         """Test paginate_results handles nested pagination structure correctly."""
         # Setup client
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Create mock responses
         # response.count is the TOTAL count across all pages
@@ -750,7 +760,7 @@ class TestBaseUSPTOClient:
         """Test paginate_results still works with flat (top-level) pagination structure."""
         # Setup client
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Create mock responses
         # First page: 2 items, total count shows there's only 1 item total (less than limit)
@@ -801,7 +811,7 @@ class TestBaseUSPTOClient:
     ) -> None:
         """Test that offset is rejected when provided in nested pagination."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         post_body = {
             "q": "test",
@@ -825,7 +835,7 @@ class TestBaseUSPTOClient:
     ) -> None:
         """Test pagination raises AttributeError when response missing count."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Create response without count attribute
         mock_response = MagicMock()
@@ -836,7 +846,7 @@ class TestBaseUSPTOClient:
                 return mock_response
 
         test_client = TestClient(base_url="https://api.test.com")
-        test_client.session = mock_session
+        test_client.config._session = mock_session
 
         with pytest.raises(
             AttributeError, match="missing required 'count' attribute for pagination"
@@ -852,7 +862,7 @@ class TestBaseUSPTOClient:
     ) -> None:
         """Test pagination raises AttributeError when response missing container."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Create response with count but without items
         mock_response = MagicMock()
@@ -864,7 +874,7 @@ class TestBaseUSPTOClient:
                 return mock_response
 
         test_client = TestClient(base_url="https://api.test.com")
-        test_client.session = mock_session
+        test_client.config._session = mock_session
 
         with pytest.raises(
             AttributeError, match="missing required 'items' attribute for pagination"
@@ -878,7 +888,7 @@ class TestBaseUSPTOClient:
     def test_paginate_results_count_none(self, mock_session: MagicMock) -> None:
         """Test pagination stops gracefully when count is None."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         mock_response = MagicMock()
         mock_response.count = None
@@ -888,7 +898,7 @@ class TestBaseUSPTOClient:
                 return mock_response
 
         test_client = TestClient(base_url="https://api.test.com")
-        test_client.session = mock_session
+        test_client.config._session = mock_session
 
         # Should return empty list without error
         results = list(
@@ -901,7 +911,7 @@ class TestBaseUSPTOClient:
     def test_paginate_results_container_none(self, mock_session: MagicMock) -> None:
         """Test pagination raises ValueError when container is None."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         mock_response = MagicMock()
         mock_response.count = 10
@@ -912,7 +922,7 @@ class TestBaseUSPTOClient:
                 return mock_response
 
         test_client = TestClient(base_url="https://api.test.com")
-        test_client.session = mock_session
+        test_client.config._session = mock_session
 
         with pytest.raises(ValueError, match="Container 'items' is None"):
             list(
@@ -924,7 +934,7 @@ class TestBaseUSPTOClient:
     def test_save_response_to_file(self, mock_session: MagicMock) -> None:
         """Test _save_response_to_file raises FileExistsError."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
         mock_response = MagicMock()
         mock_response.headers = {}
         mock_response.url = "https://api.test.com/file"
@@ -970,7 +980,7 @@ class TestBaseUSPTOClient:
     def test_base_client_backward_compatibility(self) -> None:
         """Test client works without HTTPConfig (backward compatibility)"""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Should create default HTTPConfig automatically
@@ -989,7 +999,7 @@ class TestBaseUSPTOClient:
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
             config=config, base_url="https://api.test.com"
         )
-        client.session = mock_session
+        client.config._session = mock_session
 
         mock_session.get.return_value.status_code = 200
         mock_session.get.return_value.json.return_value = {"test": "data"}
@@ -1016,80 +1026,46 @@ class TestBaseUSPTOClient:
         assert client._api_key == "config_key"
         assert client.config is config
 
-    def test_base_client_api_key_priority(self) -> None:
-        """Test API key priority: explicit > config"""
-        from pyUSPTO.config import USPTOConfig
-
-        config = USPTOConfig(api_key="config_key")
-        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="explicit_key", config=config, base_url="https://test.com"
-        )
-
-        # Explicit api_key should take precedence
-        assert client._api_key == "explicit_key"
-
     def test_context_manager_enters_and_exits(self, mock_session: MagicMock) -> None:
         """Test that context manager __enter__ and __exit__ work correctly."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Test __enter__ returns self
         with client as ctx_client:
             assert ctx_client is client
 
-        # Test __exit__ was called (which calls close)
-        # Since we're using mock_session, we need to verify close was called on it
-        mock_session.close.assert_called_once()
+        # Verify session not closed by client context manager
+        mock_session.close.assert_not_called()
 
-    def test_close_when_session_is_owned(self, mock_session: MagicMock) -> None:
-        """Test close() closes session when client owns it."""
+    def test_close_does_not_close_session(self, mock_session: MagicMock) -> None:
+        """Test close() does NOT close session."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        # Client creates its own session, so it owns it
-        assert client._owns_session is True
+        client.config._session = mock_session
 
-        # Replace with mock for testing
-        client.session = mock_session
-
-        # Close should close the session
-        client.close()
-        mock_session.close.assert_called_once()
-
-    def test_close_when_session_is_shared(self, mock_session: MagicMock) -> None:
-        """Test close() does NOT close session when it's shared via config."""
-        from pyUSPTO.config import USPTOConfig
-
-        # Create config with existing shared session
-        config = USPTOConfig(api_key="test")
-        config._shared_session = mock_session
-
-        # Create client - it should reuse the shared session and not own it
-        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            base_url="https://api.test.com", config=config
-        )
-        assert client._owns_session is False
-
-        # Close should NOT close the shared session
         client.close()
         mock_session.close.assert_not_called()
 
-    def test_close_backward_compatibility(self, mock_session: MagicMock) -> None:
-        """Test close() works when _owns_session attribute doesn't exist (backward compat)."""
-        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+    def test_config_context_manager(self) -> None:
+        """Test USPTOConfig context manager."""
+        config = USPTOConfig(api_key="test")
+        with config as ctx_config:
+            assert ctx_config is config
+            assert config.session is not None
 
-        # Simulate old client without _owns_session attribute
-        delattr(client, "_owns_session")
-
-        # Close should still close the session for backward compatibility
-        client.close()
-        mock_session.close.assert_called_once()
+    def test_config_close_with_session(self, uspto_config: USPTOConfig) -> None:
+        """Test USPTOConfig.close() when session exists."""
+        config = uspto_config
+        assert config._session is not None
+        config.close()
+        assert config._session is None
 
     def test_paginate_results_rejects_offset_in_flat_post_body(
         self, mock_session: MagicMock
     ) -> None:
         """Test that offset is rejected when provided in flat POST body."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
-        client.session = mock_session
+        client.config._session = mock_session
 
         # Flat structure with user-provided offset - should raise
         post_body = {"q": "test", "offset": 10, "limit": 50}
@@ -1227,7 +1203,7 @@ class TestSaveResponseToFile:
 
         # Create a test client
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Mock response with Content-Disposition header
@@ -1251,7 +1227,7 @@ class TestSaveResponseToFile:
     ) -> None:
         """Test saving file without extension adds extension from Content-Type (PDF)."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Mock response with Content-Type but no Content-Disposition
@@ -1274,7 +1250,7 @@ class TestSaveResponseToFile:
     ) -> None:
         """Test filename from URL without extension gets extension from Content-Type (TIFF)."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Mock response with TIFF Content-Type, filename extracted from URL
@@ -1297,7 +1273,7 @@ class TestSaveResponseToFile:
     ) -> None:
         """Test filename from URL with extension ignores Content-Type."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Mock response with Content-Type
@@ -1322,7 +1298,7 @@ class TestSaveResponseToFile:
     ) -> None:
         """Test filename from URL with unmapped MIME type saves without extension."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Mock response with unmapped Content-Type
@@ -1345,7 +1321,7 @@ class TestSaveResponseToFile:
     ) -> None:
         """Test filename from URL without Content-Type header saves without extension."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Mock response without Content-Type header
@@ -1368,7 +1344,7 @@ class TestSaveResponseToFile:
     ) -> None:
         """Test Content-Disposition filename takes precedence over Content-Type extension."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Mock response with both Content-Disposition and Content-Type
@@ -1394,7 +1370,7 @@ class TestSaveResponseToFile:
     ) -> None:
         """Test fallback to 'download' filename when no filename can be determined."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Mock response with no Content-Disposition, no URL path, no extension
@@ -1419,7 +1395,7 @@ class TestSaveResponseToFile:
         from pathlib import Path
 
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Mock response
@@ -1448,7 +1424,7 @@ class TestExtractArchive:
         import tarfile
 
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Create a test TAR file
@@ -1466,14 +1442,16 @@ class TestExtractArchive:
 
         # Verify extraction
         assert (extract_to / "test_file.txt").exists()
-        assert result == str(extract_to / "test_file.txt")  # Single file returns file path
+        assert result == str(
+            extract_to / "test_file.txt"
+        )  # Single file returns file path
 
     def test_extract_tar_gz_file(self, tmp_path: Any) -> None:
         """Test extracting a TAR.GZ file."""
         import tarfile
 
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Create a test TAR.GZ file
@@ -1497,7 +1475,7 @@ class TestExtractArchive:
         import zipfile
 
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Create a test ZIP file
@@ -1519,7 +1497,7 @@ class TestExtractArchive:
         import tarfile
 
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Create archive with multiple files
@@ -1547,7 +1525,7 @@ class TestExtractArchive:
         import tarfile
 
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Create a test archive
@@ -1569,7 +1547,7 @@ class TestExtractArchive:
     def test_extract_invalid_archive_raises_error(self, tmp_path: Any) -> None:
         """Test extracting invalid archive raises ValueError."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Create a non-archive file
@@ -1585,7 +1563,7 @@ class TestExtractArchive:
         import tarfile
 
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Create archive
@@ -1613,7 +1591,7 @@ class TestDownloadAndExtract:
         import tarfile
 
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Create a real TAR file to simulate download
@@ -1639,7 +1617,7 @@ class TestDownloadAndExtract:
         import zipfile
 
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Create a real ZIP file
@@ -1661,7 +1639,7 @@ class TestDownloadAndExtract:
     def test_download_non_archive_returns_file_path(self, tmp_path: Any) -> None:
         """Test downloading non-archive file returns downloaded file path."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
-            api_key="test", base_url="https://test.com"
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
 
         # Create a non-archive file
