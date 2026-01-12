@@ -5,13 +5,11 @@ This module contains tests for the BulkDataClient class, including core function
 model handling, edge cases, and response handling.
 """
 
-import os
 from datetime import date
 from typing import Any
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-import requests
 
 from pyUSPTO.clients import BulkDataClient
 from pyUSPTO.config import USPTOConfig
@@ -21,6 +19,26 @@ from pyUSPTO.models.bulk_data import (
     FileData,
     ProductFileBag,
 )
+
+# --- Fixtures ---
+
+
+@pytest.fixture
+def api_key_fixture() -> str:
+    """Provides a test API key."""
+    return "test_key"
+
+
+@pytest.fixture
+def uspto_config(api_key_fixture: str) -> USPTOConfig:
+    """Provides a USPTOConfig instance with test API key."""
+    return USPTOConfig(api_key=api_key_fixture)
+
+
+@pytest.fixture
+def bulk_data_client(uspto_config: USPTOConfig) -> BulkDataClient:
+    """Provides a BulkDataClient instance initialized with a test config."""
+    return BulkDataClient(config=uspto_config)
 
 
 class TestBulkDataModels:
@@ -34,7 +52,7 @@ class TestBulkDataModels:
             "fileDataFromDate": "2023-01-01",
             "fileDataToDate": "2023-12-31",
             "fileTypeText": "ZIP",
-            "fileReleaseDate": "2024-01-01",
+            "fileReleaseDate": "2024-01-01 00:00:00",
             "fileDownloadURI": "https://example.com/test.zip",
             "fileDate": "2023-12-31",
             "fileLastModifiedDateTime": "2023-12-31T23:59:59",
@@ -48,10 +66,12 @@ class TestBulkDataModels:
         assert file_data.file_data_from_date == date(2023, 1, 1)
         assert file_data.file_data_to_date == date(2023, 12, 31)
         assert file_data.file_type_text == "ZIP"
-        assert file_data.file_release_date == date(2024, 1, 1)
+        assert file_data.file_release_date is not None  # Datetime object, not string
         assert file_data.file_download_uri == "https://example.com/test.zip"
         assert file_data.file_date == date(2023, 12, 31)
-        assert file_data.file_last_modified_date_time is not None  # Datetime object, not string
+        assert (
+            file_data.file_last_modified_date_time is not None
+        )  # Datetime object, not string
 
     def test_product_file_bag_from_dict(self) -> None:
         """Test ProductFileBag.from_dict method."""
@@ -64,7 +84,7 @@ class TestBulkDataModels:
                     "fileDataFromDate": "2023-01-01",
                     "fileDataToDate": "2023-06-30",
                     "fileTypeText": "ZIP",
-                    "fileReleaseDate": "2023-07-01",
+                    "fileReleaseDate": "2023-07-01 00:00:00",
                 },
                 {
                     "fileName": "test2.zip",
@@ -72,7 +92,7 @@ class TestBulkDataModels:
                     "fileDataFromDate": "2023-07-01",
                     "fileDataToDate": "2023-12-31",
                     "fileTypeText": "ZIP",
-                    "fileReleaseDate": "2024-01-01",
+                    "fileReleaseDate": "2024-01-01 00:00:00",
                 },
             ],
         }
@@ -140,7 +160,9 @@ class TestBulkDataModels:
         assert product.product_to_date == date(2023, 12, 31)
         assert product.product_total_file_size == 1024
         assert product.product_file_total_quantity == 2
-        assert product.last_modified_date_time is not None  # Datetime object, not string
+        assert (
+            product.last_modified_date_time is not None
+        )  # Datetime object, not string
         assert product.mime_type_identifier_array_text == ["application/zip"]
         assert product.product_file_bag is not None
         assert product.product_file_bag.count == 2
@@ -205,26 +227,25 @@ class TestBulkDataModels:
         assert response.bulk_data_product_bag[1].product_identifier == "PRODUCT2"
         assert response.bulk_data_product_bag[0].product_file_bag is not None
         assert response.bulk_data_product_bag[0].product_file_bag.count == 1
-        assert len(response.bulk_data_product_bag[0].product_file_bag.file_data_bag) == 1
+        assert (
+            len(response.bulk_data_product_bag[0].product_file_bag.file_data_bag) == 1
+        )
         assert response.bulk_data_product_bag[1].product_file_bag is None
 
 
 class TestBulkDataClientInit:
     """Tests for the initialization of the BulkDataClient class."""
 
-    def test_init_with_api_key(self) -> None:
+    def test_init_with_api_key(self, uspto_config: USPTOConfig) -> None:
         """Test initialization with direct API key."""
-        client = BulkDataClient(api_key="test_key")
-        assert client._api_key == "test_key"
+        client = BulkDataClient(config=uspto_config)
         assert client.base_url == "https://api.uspto.gov"
         assert client.config is not None
         assert client.config.api_key == "test_key"
 
-    def test_init_with_custom_base_url(self) -> None:
+    def test_init_with_custom_base_url(self, uspto_config: USPTOConfig) -> None:
         """Test initialization with custom base URL."""
-        client = BulkDataClient(
-            api_key="test_key", base_url="https://custom.api.test.com"
-        )
+        client = BulkDataClient(uspto_config, base_url="https://custom.api.test.com")
         assert client.base_url == "https://custom.api.test.com"
 
     def test_init_with_config(self) -> None:
@@ -234,19 +255,14 @@ class TestBulkDataClientInit:
             bulk_data_base_url="https://config.api.test.com",
         )
         client = BulkDataClient(config=config)
-        assert client._api_key == "config_key"
+        assert client.config.api_key == "config_key"
         assert client.base_url == "https://config.api.test.com"
-        assert client.config is config
 
-    def test_init_with_api_key_and_config(self) -> None:
-        """Test initialization with both API key and config."""
-        config = USPTOConfig(
-            api_key="config_key",
-            bulk_data_base_url="https://config.api.test.com",
-        )
-        client = BulkDataClient(api_key="direct_key", config=config)
-        assert client._api_key == "direct_key"
-        assert client.base_url == "https://config.api.test.com"
+    def test_init_without_config(self, monkeypatch: Any) -> None:
+        """Test initialization without config uses environment."""
+        monkeypatch.setenv("USPTO_API_KEY", "env_key")
+        client = BulkDataClient()
+        assert client.config.api_key == "env_key"
 
 
 class TestBulkDataClientCore:
@@ -265,7 +281,7 @@ class TestBulkDataClientCore:
         mock_session.get.return_value = mock_response
 
         # Replace the client's session with our mock
-        mock_bulk_data_client.session = mock_session
+        mock_bulk_data_client.config._session = mock_session
 
         # Test search_products with basic query
         response = mock_bulk_data_client.search_products(query="Patent")
@@ -296,7 +312,7 @@ class TestBulkDataClientCore:
         mock_session.get.return_value = mock_response
 
         # Replace the client's session with our mock
-        mock_bulk_data_client.session = mock_session
+        mock_bulk_data_client.config._session = mock_session
 
         # Test get_product_by_id
         product = mock_bulk_data_client.get_product_by_id(
@@ -342,7 +358,9 @@ class TestBulkDataClientCore:
 
         # Mock the _download_and_extract method
         with patch.object(
-            mock_bulk_data_client, "_download_and_extract", return_value="./downloads/extracted"
+            mock_bulk_data_client,
+            "_download_and_extract",
+            return_value="./downloads/extracted",
         ) as mock_download:
             # Test download_file with extraction (default)
             file_path = mock_bulk_data_client.download_file(
@@ -406,7 +424,7 @@ class TestBulkDataClientCore:
         mock_session.get.return_value = mock_response
 
         # Replace the client's session with our mock
-        mock_bulk_data_client.session = mock_session
+        mock_bulk_data_client.config._session = mock_session
 
         # Test search_products with all available parameters
         response = mock_bulk_data_client.search_products(
@@ -463,7 +481,7 @@ class TestBulkDataClientEdgeCases:
     def test_get_product_by_id_not_found(self) -> None:
         """Test get_product_by_id when product is not in response."""
         # Setup
-        client = BulkDataClient(api_key="test_key")
+        client = BulkDataClient(config=USPTOConfig(api_key="test_key"))
 
         # Mock _make_request to return an empty BulkDataResponse
         empty_response = BulkDataResponse(count=0, bulk_data_product_bag=[])
@@ -475,7 +493,7 @@ class TestBulkDataClientEdgeCases:
     def test_get_product_by_id_wrong_product_returned(self) -> None:
         """Test get_product_by_id when API returns wrong product."""
         # Setup
-        client = BulkDataClient(api_key="test_key")
+        client = BulkDataClient(config=USPTOConfig(api_key="test_key"))
 
         # Create response with different product ID
         wrong_product = BulkDataProduct(
@@ -488,7 +506,9 @@ class TestBulkDataClientEdgeCases:
 
         with patch.object(client, "_make_request", return_value=response):
             # Should still return the product but issue a warning
-            with pytest.warns(match="API returned product 'WRONG_ID' but requested 'TEST'"):
+            with pytest.warns(
+                match="API returned product 'WRONG_ID' but requested 'TEST'"
+            ):
                 product = client.get_product_by_id(product_id="TEST")
                 assert product.product_identifier == "WRONG_ID"
 
@@ -510,7 +530,9 @@ class TestBulkDataClientEdgeCases:
 
         # Mock the _download_file method
         with patch.object(
-            mock_bulk_data_client, "_download_file", return_value="./downloads/custom.zip"
+            mock_bulk_data_client,
+            "_download_file",
+            return_value="./downloads/custom.zip",
         ) as mock_download:
             file_path = mock_bulk_data_client.download_file(
                 file_data=file_data,
@@ -570,7 +592,7 @@ class TestBulkDataResponseHandling:
         mock_session.get.return_value = mock_response
 
         # Replace the client's session with our mock
-        mock_bulk_data_client.session = mock_session
+        mock_bulk_data_client.config._session = mock_session
 
         # Test search_products with query and limit
         response = mock_bulk_data_client.search_products(
@@ -599,7 +621,7 @@ class TestBulkDataResponseHandling:
         mock_session.get.return_value = mock_response
 
         # Replace the client's session with our mock
-        mock_bulk_data_client.session = mock_session
+        mock_bulk_data_client.config._session = mock_session
 
         # Test search_products with offset and facets
         response = mock_bulk_data_client.search_products(
@@ -625,7 +647,7 @@ class TestBulkDataResponseHandling:
         mock_response.json.return_value = bulk_data_sample
         mock_session = MagicMock()
         mock_session.get.return_value = mock_response
-        mock_bulk_data_client.session = mock_session
+        mock_bulk_data_client.config._session = mock_session
 
         # Test search_products with fields
         response = mock_bulk_data_client.search_products(

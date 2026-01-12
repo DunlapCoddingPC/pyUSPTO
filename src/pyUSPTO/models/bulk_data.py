@@ -83,7 +83,7 @@ class FileData:
         file_data_from_date: Start date of data covered in the file.
         file_data_to_date: End date of data covered in the file.
         file_type_text: Description of the file type.
-        file_release_date: Date when the file was released.
+        file_release_date: Datetime when the file was released.
         file_download_uri: URL for downloading the file.
         file_date: Additional file date information.
         file_last_modified_date_time: Last modification timestamp.
@@ -96,7 +96,7 @@ class FileData:
     file_data_from_date: date | None
     file_data_to_date: date | None
     file_type_text: str
-    file_release_date: date | None
+    file_release_date: datetime | None
     file_download_uri: str | None = None
     file_date: date | None = None
     file_last_modified_date_time: datetime | None = None
@@ -126,7 +126,7 @@ class FileData:
             file_data_from_date=parse_to_date(data.get("fileDataFromDate")),
             file_data_to_date=parse_to_date(data.get("fileDataToDate")),
             file_type_text=data.get("fileTypeText", ""),
-            file_release_date=parse_to_date(data.get("fileReleaseDate")),
+            file_release_date=parse_to_datetime_utc(data.get("fileReleaseDate")),
             file_download_uri=data.get("fileDownloadURI"),
             file_date=parse_to_date(data.get("fileDate")),
             file_last_modified_date_time=parse_to_datetime_utc(
@@ -147,7 +147,11 @@ class FileData:
             "fileDataFromDate": serialize_date(self.file_data_from_date),
             "fileDataToDate": serialize_date(self.file_data_to_date),
             "fileTypeText": self.file_type_text,
-            "fileReleaseDate": serialize_date(self.file_release_date),
+            "fileReleaseDate": (
+                serialize_datetime_as_naive(self.file_release_date)
+                if self.file_release_date
+                else None
+            ),
             "fileDownloadURI": self.file_download_uri,
             "fileDate": serialize_date(self.file_date),
             "fileLastModifiedDateTime": (

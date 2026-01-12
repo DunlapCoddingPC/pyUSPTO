@@ -90,7 +90,7 @@ def bulk_data_sample() -> dict[str, Any]:
                             "fileDataFromDate": "2023-01-01",
                             "fileDataToDate": "2023-06-30",
                             "fileTypeText": "ZIP",
-                            "fileReleaseDate": "2023-07-01",
+                            "fileReleaseDate": "2023-07-01 00:00:00",
                             "fileDownloadURI": "https://example.com/test1.zip",
                         },
                         {
@@ -99,7 +99,7 @@ def bulk_data_sample() -> dict[str, Any]:
                             "fileDataFromDate": "2023-07-01",
                             "fileDataToDate": "2023-12-31",
                             "fileTypeText": "ZIP",
-                            "fileReleaseDate": "2024-01-01",
+                            "fileReleaseDate": "2024-01-01 00:00:00",
                             "fileDownloadURI": "https://example.com/test2.zip",
                         },
                     ],
@@ -128,7 +128,7 @@ def bulk_data_sample() -> dict[str, Any]:
                             "fileDataFromDate": "2023-01-01",
                             "fileDataToDate": "2023-12-31",
                             "fileTypeText": "ZIP",
-                            "fileReleaseDate": "2024-01-01",
+                            "fileReleaseDate": "2024-01-01 00:00:00",
                             "fileDownloadURI": "https://example.com/test3.zip",
                         }
                     ],
@@ -244,7 +244,7 @@ def mock_bulk_data_client(
         BulkDataClient: A client with a mocked session
     """
     client = BulkDataClient(config=uspto_config)
-    client.session = mock_session
+    client.config._session = mock_session
     return client
 
 
@@ -263,5 +263,5 @@ def mock_patent_data_client(
         PatentDataClient: A client with a mocked session
     """
     client = PatentDataClient(config=uspto_config)
-    client.session = mock_session
+    client.config._session = mock_session
     return client

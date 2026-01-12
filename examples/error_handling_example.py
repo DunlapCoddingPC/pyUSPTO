@@ -19,13 +19,14 @@ from pyUSPTO.http_config import HTTPConfig
 
 # Initialize client
 api_key = os.environ.get("USPTO_API_KEY", "YOUR_API_KEY_HERE")
-client = PatentDataClient(api_key=api_key)
+config = USPTOConfig(api_key=api_key)
+client = PatentDataClient(config=config)
 
 # Example 1: Handle authentication errors
 print("Example 1: Authentication errors")
 try:
     # This will fail with invalid API key
-    bad_client = PatentDataClient(api_key="invalid_key")
+    bad_client = PatentDataClient(config=config)
     bad_client.search_applications(limit=1)
 except USPTOApiAuthError as e:
     print(f"Authentication failed: {e}")

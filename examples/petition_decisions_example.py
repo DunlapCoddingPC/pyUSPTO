@@ -10,6 +10,7 @@ import json
 import os
 
 from pyUSPTO.clients import FinalPetitionDecisionsClient
+from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.petition_decisions import PetitionDecisionDownloadResponse
 
 # --- Initialization ---
@@ -20,7 +21,8 @@ if api_key == "YOUR_API_KEY_HERE":
     raise ValueError(
         "WARNING: API key is not set. Please replace 'YOUR_API_KEY_HERE' or set USPTO_API_KEY environment variable."
     )
-client = FinalPetitionDecisionsClient(api_key=api_key)
+config = USPTOConfig(api_key=api_key)
+client = FinalPetitionDecisionsClient(config=config)
 
 DEST_PATH = "./download-example"
 

@@ -37,18 +37,13 @@ def format_size(size_bytes: int | float) -> str:
 # Client Initialization Methods
 # ============================================================================
 
-# Method 1: Initialize with API key directly
-print("Method 1: Initialize with direct API key")
-api_key = "YOUR_API_KEY_HERE"  # Replace with your actual API key
-client = BulkDataClient(api_key=api_key)
-
-# Method 2: Initialize with USPTOConfig object
-print("\nMethod 2: Initialize with USPTOConfig")
+# Method 1: Initialize with USPTOConfig object
+print("\nMethod 1: Initialize with USPTOConfig")
 config = USPTOConfig(api_key="YOUR_API_KEY_HERE")
 client = BulkDataClient(config=config)
 
-# Method 3: Initialize from environment variables (recommended)
-print("\nMethod 3: Initialize from environment variables")
+# Method 2: Initialize from environment variables (recommended)
+print("\nMethod 2: Initialize from environment variables")
 os.environ["USPTO_API_KEY"] = "YOUR_API_KEY_HERE"  # Set this outside your script
 config_from_env = USPTOConfig.from_env()
 client = BulkDataClient(config=config_from_env)
