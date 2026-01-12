@@ -180,6 +180,7 @@ All warnings inherit from `USPTODataWarning`:
 - `USPTOBooleanParseWarning`: Y/N boolean string parsing failures
 - `USPTOTimezoneWarning`: Timezone-related issues
 - `USPTOEnumParseWarning`: Enum value parsing failures
+- `USPTODataMismatchWarning`: API returns data with different identifier than requested
 
 **Controlling Warnings**
 
@@ -190,7 +191,8 @@ from pyUSPTO.warnings import (
     USPTODateParseWarning,
     USPTOBooleanParseWarning,
     USPTOTimezoneWarning,
-    USPTOEnumParseWarning
+    USPTOEnumParseWarning,
+    USPTODataMismatchWarning
 )
 
 # Suppress all pyUSPTO data warnings

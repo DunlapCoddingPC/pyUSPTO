@@ -247,11 +247,11 @@ The library uses Python dataclasses to represent API responses. All data models 
 - `PatentDataResponse`: Top-level response from the API
 - `PatentFileWrapper`: Information about a patent application
 - `ApplicationMetaData`: Metadata about a patent application
-- `Address`: Represents an address in the patent data
 - `Person`, `Applicant`, `Inventor`, `Attorney`: Person-related data classes
 - `Assignment`, `Assignor`, `Assignee`: Assignment-related data classes
 - `Continuity`, `ParentContinuity`, `ChildContinuity`: Continuity-related data classes
 - `PatentTermAdjustmentData`: Patent term adjustment information
+- `DocumentBag`, `EntityStatus`, `RecordAttorney`: Additional data classes for patent data
 - And many more specialized classes for different aspects of patent data
 
 #### Final Petition Decisions API
@@ -259,7 +259,6 @@ The library uses Python dataclasses to represent API responses. All data models 
 - `PetitionDecisionResponse`: Top-level response from the API
 - `PetitionDecision`: Complete information about a petition decision
 - `PetitionDecisionDocument`: Document associated with a petition decision
-- `DocumentDownloadOption`: Download options for petition documents
 - `DecisionTypeCode`: Enum for petition decision types
 - `DocumentDirectionCategory`: Enum for document direction categories
 
@@ -267,26 +266,31 @@ The library uses Python dataclasses to represent API responses. All data models 
 
 - `PTABTrialProceedingResponse`: Top-level response from the API
 - `PTABTrialProceeding`: Information about a PTAB trial proceeding (IPR, PGR, CBM, DER)
+- `PTABTrialDocumentResponse`: Response containing trial documents
 - `PTABTrialDocument`: Document associated with a trial proceeding
-- `PTABTrialDecision`: Decision information for a trial proceeding
+- `TrialDecisionData`: Decision information for a trial proceeding
+- `TrialDocumentData`: Document metadata for trial documents
+- `TrialMetaData`: Trial metadata and status information
 - `RegularPetitionerData`, `RespondentData`, `DerivationPetitionerData`: Party data for different trial types
-- `PTABTrialMetaData`: Trial metadata and status information
 
 #### PTAB Appeals API
 
 - `PTABAppealResponse`: Top-level response from the API
 - `PTABAppealDecision`: Ex parte appeal decision information
 - `AppellantData`: Appellant information and application details
-- `PTABAppealMetaData`: Appeal metadata and filing information
-- `PTABAppealDocumentData`: Document and decision details
+- `AppealMetaData`: Appeal metadata and filing information
+- `AppealDocumentData`: Document and decision details
 
 #### PTAB Interferences API
 
 - `PTABInterferenceResponse`: Top-level response from the API
 - `PTABInterferenceDecision`: Interference proceeding decision information
 - `SeniorPartyData`, `JuniorPartyData`, `AdditionalPartyData`: Party data classes
-- `PTABInterferenceMetaData`: Interference metadata and status information
-- `PTABInterferenceDocumentData`: Document and outcome details
+- `InterferenceMetaData`: Interference metadata and status information
+- `InterferenceDocumentData`: Document and outcome details
+- `DecisionData`: Decision information for interference proceedings
+
+For a complete list of all data models, see the [API Reference docuentation](https://pyuspto.readthedocs.io/en/latest/api/models/index.html).
 
 ## Advanced Topics
 
