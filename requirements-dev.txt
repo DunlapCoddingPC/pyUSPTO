@@ -95,7 +95,7 @@ requests==2.32.5
     #   pyUSPTO (pyproject.toml)
     #   sphinx
     #   sphinx-immaterial
-ruff==0.14.10
+ruff==0.14.11
     # via pyUSPTO (pyproject.toml)
 snowballstemmer==3.0.1
     # via sphinx
