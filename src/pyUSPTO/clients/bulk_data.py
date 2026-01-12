@@ -138,7 +138,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         destination: str | None = None,
         file_name: str | None = None,
         overwrite: bool = False,
-        extract: bool = True,
+        extract: bool = False,
     ) -> str:
         """Download a file from the bulk data API.
 
@@ -167,15 +167,15 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
             Download without extraction:
             >>> path = client.download_file(file_data, extract=False)
         """
-        # Resolve filename
         default_file_name = file_name or file_data.file_name
-
-        # Construct URL from endpoint
-        endpoint = self.ENDPOINTS["download_file"].format(
-            productIdentifier=file_data.product_identifier,
-            fileName=default_file_name,
-        )
-        download_url = f"{self.base_url}/{endpoint}"
+        if file_data.file_download_uri:
+            download_url = file_data.file_download_uri
+        else:
+            endpoint = self.ENDPOINTS["download_file"].format(
+                productIdentifier=file_data.product_identifier,
+                fileName=default_file_name,
+            )
+            download_url = f"{self.base_url}/{endpoint}"
 
         # Delegate to base class helpers
         if extract:
