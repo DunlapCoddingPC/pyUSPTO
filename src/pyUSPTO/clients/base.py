@@ -581,24 +581,51 @@ class BaseUSPTOClient(Generic[T]):
 
         return str(final_path)
 
+    def _is_safe_path(self, base_dir: Path, target_path: Path) -> bool:
+        """Check if target_path is within base_dir (prevents path traversal).
+
+        Args:
+            base_dir: The intended base directory
+            target_path: The path to validate
+
+        Returns:
+            True if target_path is safely within base_dir, False otherwise
+        """
+        # Resolve both paths to absolute paths
+        base_resolved = base_dir.resolve()
+        target_resolved = target_path.resolve()
+
+        # Check if base_dir is in the target's parent chain
+        return (
+            base_resolved in target_resolved.parents or base_resolved == target_resolved
+        )
+
     def _extract_archive(
         self,
         archive_path: Path,
         extract_to: Path | None = None,
         remove_archive: bool = False,
+        max_size: int | None = None,
     ) -> str:
-        """Extract TAR or ZIP archive.
+        """Extract TAR or ZIP archive with security protections.
+
+        Protects against path traversal attacks. Optional protection against
+        zip bombs via max_size parameter.
 
         Args:
             archive_path: Path to archive file
             extract_to: Directory to extract to (default: archive_path.stem)
             remove_archive: Delete archive after extraction
+            max_size: Optional maximum total extracted size in bytes. If None (default),
+                no size limit is enforced. Set this to protect against zip bombs.
 
         Returns:
             Path to extracted content (single file: path to file, multiple files: directory path)
 
         Raises:
-            ValueError: If file is not a valid TAR or ZIP archive
+            ValueError: If file is not a valid TAR or ZIP archive, or if archive
+                contains paths that would extract outside the target directory,
+                or if max_size is set and extraction would exceed it
         """
         import tarfile
         import zipfile
@@ -609,14 +636,64 @@ class BaseUSPTOClient(Generic[T]):
         extract_to.mkdir(parents=True, exist_ok=True)
 
         extracted_items = []
+        total_size = 0
+
         if tarfile.is_tarfile(archive_path):
             with tarfile.open(archive_path, "r:*") as tar:
-                tar.extractall(path=extract_to)
-                extracted_items = [m.name for m in tar.getmembers() if m.isfile()]
+                # Extract members one by one with validation
+                for member in tar.getmembers():
+                    # Skip directories
+                    if member.isdir():
+                        continue
+
+                    # Path traversal check
+                    member_path = extract_to / member.name
+                    if not self._is_safe_path(extract_to, member_path):
+                        raise ValueError(
+                            f"Archive contains unsafe path that would extract outside target directory: {member.name}"
+                        )
+
+                    # Optional zip bomb check
+                    if max_size is not None:
+                        total_size += member.size
+                        if total_size > max_size:
+                            raise ValueError(
+                                f"Archive extraction aborted: total size ({total_size} bytes) "
+                                f"exceeds maximum allowed ({max_size} bytes)"
+                            )
+
+                    # Extract individual member
+                    tar.extract(member, path=extract_to)
+                    extracted_items.append(member.name)
+
         elif zipfile.is_zipfile(archive_path):
             with zipfile.ZipFile(archive_path, "r") as zip_ref:
-                zip_ref.extractall(extract_to)
-                extracted_items = [n for n in zip_ref.namelist() if not n.endswith("/")]
+                # Extract members one by one with validation
+                for zip_info in zip_ref.infolist():
+                    # Skip directories
+                    if zip_info.is_dir():
+                        continue
+
+                    # Path traversal check
+                    member_path = extract_to / zip_info.filename
+                    if not self._is_safe_path(extract_to, member_path):
+                        raise ValueError(
+                            f"Archive contains unsafe path that would extract outside target directory: {zip_info.filename}"
+                        )
+
+                    # Optional zip bomb check
+                    if max_size is not None:
+                        total_size += zip_info.file_size
+                        if total_size > max_size:
+                            raise ValueError(
+                                f"Archive extraction aborted: total size ({total_size} bytes) "
+                                f"exceeds maximum allowed ({max_size} bytes)"
+                            )
+
+                    # Extract individual member
+                    zip_ref.extract(zip_info, path=extract_to)
+                    extracted_items.append(zip_info.filename)
+
         else:
             raise ValueError(f"Not a valid TAR/ZIP archive: {archive_path}")
 

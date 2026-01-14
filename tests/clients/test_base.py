@@ -1582,6 +1582,133 @@ class TestExtractArchive:
         assert (expected_dir / "test.txt").exists()
         assert result == str(expected_dir / "test.txt")
 
+    def test_tar_path_traversal_blocked(self, tmp_path: Any) -> None:
+        """Test that tar archives with ../ paths are rejected."""
+        import io
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        archive_path = tmp_path / "malicious.tar"
+        with tarfile.open(archive_path, "w") as tar:
+            info = tarfile.TarInfo(name="../../etc/passwd")
+            info.size = 10
+            tar.addfile(info, io.BytesIO(b"malicious!"))
+
+        extract_to = tmp_path / "safe_dir"
+        extract_to.mkdir()
+
+        with pytest.raises(ValueError, match="unsafe path"):
+            client._extract_archive(archive_path, extract_to=extract_to)
+
+    def test_zip_path_traversal_blocked(self, tmp_path: Any) -> None:
+        """Test that zip archives with ../ paths are rejected."""
+        import zipfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        archive_path = tmp_path / "malicious.zip"
+        with zipfile.ZipFile(archive_path, "w") as zip_ref:
+            zip_ref.writestr("../../etc/passwd", "malicious!")
+
+        extract_to = tmp_path / "safe_dir"
+        extract_to.mkdir()
+
+        with pytest.raises(ValueError, match="unsafe path"):
+            client._extract_archive(archive_path, extract_to=extract_to)
+
+    def test_max_size_enforcement(self, tmp_path: Any) -> None:
+        """Test that max_size parameter prevents extracting large archives."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        # Create archive with known size
+        archive_path = tmp_path / "large.tar"
+        with tarfile.open(archive_path, "w") as tar:
+            temp_file = tmp_path / "large_file.txt"
+            temp_file.write_text("x" * 1000)  # 1000 bytes
+            tar.add(temp_file, arcname="large_file.txt")
+
+        extract_to = tmp_path / "extracted"
+
+        # Should fail with max_size=500
+        with pytest.raises(ValueError, match="exceeds maximum allowed"):
+            client._extract_archive(archive_path, extract_to=extract_to, max_size=500)
+
+        # Should succeed with max_size=2000
+        result = client._extract_archive(
+            archive_path, extract_to=extract_to, max_size=2000
+        )
+        assert (extract_to / "large_file.txt").exists()
+
+    def test_max_size_enforcement_zip(self, tmp_path: Any) -> None:
+        """Test that max_size parameter prevents extracting large zip archives."""
+        import zipfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        archive_path = tmp_path / "large.zip"
+        with zipfile.ZipFile(archive_path, "w") as zip_ref:
+            zip_ref.writestr("large_file.txt", "x" * 1000)
+
+        extract_to = tmp_path / "extracted"
+
+        # Should fail with max_size=500
+        with pytest.raises(ValueError, match="exceeds maximum allowed"):
+            client._extract_archive(archive_path, extract_to=extract_to, max_size=500)
+
+    def test_tar_with_directories(self, tmp_path: Any) -> None:
+        """Test that tar archives with directories extract correctly."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        archive_path = tmp_path / "with_dirs.tar"
+        with tarfile.open(archive_path, "w") as tar:
+            # Add a directory and a file
+            temp_dir = tmp_path / "testdir"
+            temp_dir.mkdir()
+            temp_file = temp_dir / "file.txt"
+            temp_file.write_text("content")
+            tar.add(temp_dir, arcname="testdir")
+
+        extract_to = tmp_path / "extracted"
+        result = client._extract_archive(archive_path, extract_to=extract_to)
+
+        # Directory entries are skipped, but files are extracted
+        assert (extract_to / "testdir" / "file.txt").exists()
+
+    def test_zip_with_directories(self, tmp_path: Any) -> None:
+        """Test that zip archives with directories extract correctly."""
+        import zipfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        archive_path = tmp_path / "with_dirs.zip"
+        with zipfile.ZipFile(archive_path, "w") as zip_ref:
+            # Add directory entry and file
+            zip_ref.writestr("testdir/", "")
+            zip_ref.writestr("testdir/file.txt", "content")
+
+        extract_to = tmp_path / "extracted"
+        result = client._extract_archive(archive_path, extract_to=extract_to)
+
+        # Directory entries are skipped, but files are extracted
+        assert (extract_to / "testdir" / "file.txt").exists()
+
 
 class TestDownloadAndExtract:
     """Tests for _download_and_extract method."""
