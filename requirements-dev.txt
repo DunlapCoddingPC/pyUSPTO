@@ -57,7 +57,7 @@ mypy-extensions==1.1.0
     # via mypy
 myst-parser==4.0.1
     # via pyUSPTO (pyproject.toml)
-packaging==25.0
+packaging==26.0
     # via
     #   pytest
     #   sphinx
