@@ -61,7 +61,7 @@ packaging==26.0
     # via
     #   pytest
     #   sphinx
-pathspec==1.0.3
+pathspec==1.0.4
     # via mypy
 pluggy==1.6.0
     # via
