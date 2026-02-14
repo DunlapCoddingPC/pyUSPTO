@@ -20,7 +20,7 @@ colorama==0.4.6
     # via
     #   pytest
     #   sphinx
-coverage==7.13.2
+coverage==7.13.4
     # via pytest-cov
 docutils==0.21.2
     # via
