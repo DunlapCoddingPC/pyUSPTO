@@ -470,7 +470,6 @@ class TestBulkDataClientCore:
             mock_paginate_results.assert_called_once_with(
                 method_name="search_products",
                 response_container_attr="bulk_data_product_bag",
-                post_body=None,
                 param="value",
             )
 

@@ -193,16 +193,11 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
                 overwrite=overwrite,
             )
 
-    def paginate_products(
-        self, post_body: dict[str, Any] | None = None, **kwargs: Any
-    ) -> Iterator[BulkDataProduct]:
+    def paginate_products(self, **kwargs: Any) -> Iterator[BulkDataProduct]:
         """Paginate through all products matching the search criteria.
 
-        Supports both GET and POST requests.
-
         Args:
-            post_body: Optional POST body for complex search queries
-            **kwargs: Keyword arguments for GET-based pagination
+            **kwargs: Keyword arguments passed to search_products
 
         Yields:
             BulkDataProduct objects
@@ -210,7 +205,6 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         return self.paginate_results(
             method_name="search_products",
             response_container_attr="bulk_data_product_bag",
-            post_body=post_body,
             **kwargs,
         )
 
