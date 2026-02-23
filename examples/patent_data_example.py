@@ -1,4 +1,4 @@
-"""Example usage of the uspto_api module for patent data.
+"""Example usage of the pyUSPTO module for patent data.
 
 This example demonstrates how to use the PatentDataClient to interact with the USPTO Patent Data API.
 It shows how to retrieve patent applications, search for patents by various criteria, and access
