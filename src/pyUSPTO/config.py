@@ -20,9 +20,6 @@ class USPTOConfig:
     accepts HTTP transport configuration via HTTPConfig.
     """
 
-    _shared_session: "requests.Session | None" = None
-    _active_clients: int = 0
-
     def __init__(
         self,
         api_key: str | None = None,
@@ -59,8 +56,8 @@ class USPTOConfig:
         # Control whether to include raw JSON data in response objects
         self.include_raw_data = include_raw_data
 
-        # Shared session for all clients using this config (created lazily)
-        self._shared_session: requests.Session | None = None
+        # Session for all clients using this config (created lazily)
+        self._session: requests.Session | None = None
 
     @classmethod
     def from_env(cls) -> "USPTOConfig":
@@ -86,3 +83,90 @@ class USPTOConfig:
             # Also read HTTP config from environment
             http_config=HTTPConfig.from_env(),
         )
+
+    @property
+    def session(self) -> "requests.Session":
+        """Get the HTTP session for this config, creating it if needed.
+
+        The session is created lazily on first access and reused for all
+        subsequent requests. All clients sharing this config will use the
+        same session for connection pooling.
+
+        Returns:
+            Session: The requests Session object with configured adapters.
+        """
+        if self._session is None:
+            self._session = self._create_session()
+        return self._session
+
+    def _create_session(self) -> "requests.Session":
+        """Create and configure a new requests Session.
+
+        Returns:
+            Session: Configured session with retry logic and connection pooling.
+        """
+        from requests import Session
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
+
+        session = Session()
+
+        # Set API key header
+        if self.api_key:
+            session.headers["X-API-KEY"] = self.api_key
+
+        # Apply custom headers from HTTP config
+        if self.http_config.custom_headers:
+            session.headers.update(self.http_config.custom_headers)
+
+        # Configure retry strategy
+        retry_strategy = Retry(
+            total=self.http_config.max_retries,
+            backoff_factor=self.http_config.backoff_factor,
+            status_forcelist=self.http_config.retry_status_codes,
+        )
+
+        # Configure connection pooling
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=self.http_config.pool_connections,
+            pool_maxsize=self.http_config.pool_maxsize,
+        )
+
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+
+        return session
+
+    def close(self) -> None:
+        """Close the HTTP session and release resources.
+
+        This should be called when you're done using this config and all
+        clients created from it. After calling close(), the session will
+        be recreated if accessed again.
+
+        Example:
+            config = USPTOConfig(api_key="...")
+            client = PatentDataClient(config=config)
+            try:
+                # Use client
+                pass
+            finally:
+                config.close()
+        """
+        if self._session is not None:
+            self._session.close()
+            self._session = None
+
+    def __enter__(self) -> "USPTOConfig":
+        """Enter context manager."""
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object | None,
+    ) -> None:
+        """Exit context manager, closing the session."""
+        self.close()

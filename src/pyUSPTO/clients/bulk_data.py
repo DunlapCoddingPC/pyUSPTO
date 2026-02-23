@@ -28,27 +28,31 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
 
     def __init__(
         self,
-        api_key: str | None = None,
-        base_url: str | None = None,
         config: USPTOConfig | None = None,
+        base_url: str | None = None,
     ):
         """Initialize the BulkDataClient.
 
         Args:
-            api_key: Optional API key for authentication
-            base_url: The base URL of the API, defaults to config.bulk_data_base_url or "https://api.uspto.gov/api/v1/datasets"
-            config: Optional USPTOConfig instance
+            config: USPTOConfig instance containing API key and settings. If not provided,
+                creates config from environment variables (requires USPTO_API_KEY).
+            base_url: Optional base URL override for the USPTO Bulk Data API.
+                If not provided, uses config.bulk_data_base_url or default.
         """
-        # Use config if provided, otherwise create default config
-        self.config = config or USPTOConfig(api_key=api_key)
+        # Use provided config or create from environment
+        if config is None:
+            self.config = USPTOConfig.from_env()
+        else:
+            self.config = config
 
-        # Use provided API key or get from config
-        api_key = api_key or self.config.api_key
+        # Determine effective base URL
+        effective_base_url = base_url or self.config.bulk_data_base_url
 
-        # Use provided base_url or get from config
-        base_url = base_url or self.config.bulk_data_base_url
-
-        super().__init__(api_key=api_key, base_url=base_url, config=self.config)
+        # Initialize base client
+        super().__init__(
+            base_url=effective_base_url,
+            config=self.config,
+        )
 
     def get_product_by_id(
         self,
@@ -134,11 +138,11 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         destination: str | None = None,
         file_name: str | None = None,
         overwrite: bool = False,
-        extract: bool = True,
+        extract: bool = False,
     ) -> str:
         """Download a file from the bulk data API.
 
-        Automatically extracts archives (tar.gz, zip) by default. The download
+        Does not extract archives (tar.gz, zip) by default. The download
         uses base class helpers for consistent behavior across all clients.
 
         Args:
@@ -146,7 +150,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
             destination: Directory to save/extract to. Defaults to current directory.
             file_name: Override filename. Defaults to file_data.file_name.
             overwrite: Whether to overwrite existing files. Defaults to False.
-            extract: Whether to auto-extract archives. Defaults to True.
+            extract: Whether to auto-extract archives. Defaults to False.
 
         Returns:
             str: Path to downloaded file or extracted directory.
@@ -156,22 +160,22 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
 
         Examples:
             Download and extract a file:
-            >>> product = client.get_product_by_id("product-123", include_files=True)
+            >>> product = client.get_product_by_id("product-123", include_files=True, extract=True)
             >>> file_data = product.product_file_bag.file_data_bag[0]
             >>> path = client.download_file(file_data, destination="./downloads")
 
             Download without extraction:
             >>> path = client.download_file(file_data, extract=False)
         """
-        # Resolve filename
         default_file_name = file_name or file_data.file_name
-
-        # Construct URL from endpoint
-        endpoint = self.ENDPOINTS["download_file"].format(
-            productIdentifier=file_data.product_identifier,
-            fileName=default_file_name,
-        )
-        download_url = f"{self.base_url}/{endpoint}"
+        if file_data.file_download_uri:
+            download_url = file_data.file_download_uri
+        else:
+            endpoint = self.ENDPOINTS["download_file"].format(
+                productIdentifier=file_data.product_identifier,
+                fileName=default_file_name,
+            )
+            download_url = f"{self.base_url}/{endpoint}"
 
         # Delegate to base class helpers
         if extract:
@@ -189,16 +193,11 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
                 overwrite=overwrite,
             )
 
-    def paginate_products(
-        self, post_body: dict[str, Any] | None = None, **kwargs: Any
-    ) -> Iterator[BulkDataProduct]:
+    def paginate_products(self, **kwargs: Any) -> Iterator[BulkDataProduct]:
         """Paginate through all products matching the search criteria.
 
-        Supports both GET and POST requests.
-
         Args:
-            post_body: Optional POST body for complex search queries
-            **kwargs: Keyword arguments for GET-based pagination
+            **kwargs: Keyword arguments passed to search_products
 
         Yields:
             BulkDataProduct objects
@@ -206,7 +205,6 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         return self.paginate_results(
             method_name="search_products",
             response_container_attr="bulk_data_product_bag",
-            post_body=post_body,
             **kwargs,
         )
 

@@ -15,8 +15,6 @@ from typing import (
 )
 
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import (
@@ -26,7 +24,6 @@ from pyUSPTO.exceptions import (
     USPTOTimeout,
     get_api_exception,
 )
-from pyUSPTO.http_config import ALLOWED_METHODS
 
 
 @runtime_checkable
@@ -48,124 +45,61 @@ class BaseUSPTOClient(Generic[T]):
 
     def __init__(
         self,
-        api_key: str | None = None,
         base_url: str = "",
         config: USPTOConfig | None = None,
     ):
         """Initialize the BaseUSPTOClient.
 
         Args:
-            api_key: API key for authentication
             base_url: The base URL of the API
-            config: Optional USPTOConfig instance. When multiple clients share the same
-                config object, they automatically share an HTTP session for better
-                performance and connection pooling.
+            config: USPTOConfig instance containing API key and HTTP settings.
+                When multiple clients share the same config object, they automatically
+                share an HTTP session for better performance and connection pooling.
+                If not provided, creates a default config (requires USPTO_API_KEY
+                environment variable).
         """
-        # Handle config if provided
-        if config:
-            self.config = config
-            self._api_key = api_key or config.api_key
+        # Use provided config or create default from environment
+        if config is None:
+            self.config = USPTOConfig.from_env()
         else:
-            # Backward compatibility: create minimal config
-            self.config = USPTOConfig(api_key=api_key)
-            self._api_key = api_key
+            self.config = config
+
+        # Store API key and HTTP config from config
+        self._api_key = self.config.api_key
+        self.http_config = self.config.http_config
 
         self.base_url = base_url.rstrip("/")
 
-        # Extract HTTP config for session creation
-        self.http_config = self.config.http_config
+        # No session creation here - clients use config's session
+        # Session is accessed via property: self.session -> self.config.session
 
-        # Use shared session from config if available, otherwise create new one
-        if self.config._shared_session is not None:
-            # Reuse existing shared session
-            self.session = self.config._shared_session
-            self._owns_session = False
-            # Still apply API key headers in case this client has a different key
-            self._apply_session_headers()
-        else:
-            # Create new session and store in config for sharing
-            self.session = self._create_session()
-            self.config._shared_session = self.session
-            self._owns_session = True
-
-    def _apply_session_headers(self) -> None:
-        """Apply API key and custom headers to the session.
-
-        This is separated from _create_session so it can be used when
-        a session is injected from outside.
-        """
-        # Set API key and default headers
-        if self._api_key:
-            self.session.headers.update(
-                {"X-API-KEY": self._api_key, "content-type": "application/json"}
-            )
-
-        # Apply custom headers from HTTP config
-        if self.http_config.custom_headers:
-            self.session.headers.update(self.http_config.custom_headers)
-
-    def _create_session(self) -> requests.Session:
-        """Create configured HTTP session from HTTPConfig settings.
+    @property
+    def session(self) -> requests.Session:
+        """Get the HTTP session from config.
 
         Returns:
-            Configured requests.Session instance
+            Session: The requests Session configured by this client's config.
         """
-        session = requests.Session()
-        self.session = session
-
-        # Apply headers using shared helper
-        self._apply_session_headers()
-
-        # Configure retry strategy from HTTP config
-        retry_strategy = Retry(
-            total=self.http_config.max_retries,
-            backoff_factor=self.http_config.backoff_factor,
-            status_forcelist=(
-                self.http_config.retry_status_codes
-                if self.http_config.max_retries > 0
-                else []
-            ),
-            allowed_methods=ALLOWED_METHODS,
-        )
-
-        # Create adapter with retry and connection pool settings
-        adapter = HTTPAdapter(
-            max_retries=retry_strategy,
-            pool_connections=self.http_config.pool_connections,
-            pool_maxsize=self.http_config.pool_maxsize,
-        )
-
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
-
-        return session
+        return self.config.session
 
     def close(self) -> None:
-        """Close the HTTP session and release connection pool resources.
+        """Close the client and release resources.
 
-        This method should be called when you're done using the client to ensure
-        proper cleanup of connection pools and resources. Alternatively, use the
-        client as a context manager for automatic cleanup.
-
-        Note: If a session was provided via the `session` parameter during
-        initialization, this method will NOT close it, as the client does not
-        own the session lifecycle. Only sessions created by the client are closed.
+        Note: This method does NOT close the HTTP session, as clients do not
+        own sessions. To close the session, call close() on the USPTOConfig
+        object that was used to create this client.
 
         Example:
-            client = PatentDataClient(api_key="...")
+            config = USPTOConfig(api_key="...")
+            client = PatentDataClient(config=config)
             try:
                 # Use client
                 pass
             finally:
-                client.close()
+                config.close()  # Close config, not client
         """
-        if hasattr(self, "_owns_session") and self._owns_session:
-            if hasattr(self, "session") and self.session:
-                self.session.close()
-        elif not hasattr(self, "_owns_session"):
-            # Backward compatibility: if _owns_session not set, close anyway
-            if hasattr(self, "session") and self.session:
-                self.session.close()
+        # Nothing to do - client doesn't own any resources
+        pass
 
     def __enter__(self) -> "BaseUSPTOClient[T]":
         """Enter context manager, returning the client instance.
@@ -174,10 +108,10 @@ class BaseUSPTOClient(Generic[T]):
             Self for use in with statements
 
         Example:
-            with PatentDataClient(api_key="...") as client:
+            config = USPTOConfig(api_key="...")
+            with PatentDataClient(config=config) as client:
                 response = client.search_applications(...)
         """
-        USPTOConfig._active_clients += 1
         return self
 
     def __exit__(
@@ -186,17 +120,13 @@ class BaseUSPTOClient(Generic[T]):
         exc_val: BaseException | None,
         exc_tb: Any | None,
     ) -> None:
-        """Exit context manager, ensuring session cleanup.
+        """Exit context manager.
 
-        Args:
-            exc_type: Exception type if an exception occurred
-            exc_val: Exception value if an exception occurred
-            exc_tb: Exception traceback if an exception occurred
+        Note: Does not close the session. Use context manager on
+        USPTOConfig instead if session cleanup is needed.
         """
-        USPTOConfig._active_clients -= 1
-        if USPTOConfig._active_clients == 0:
-            USPTOConfig._shared_session = None
-        self.close()
+        # Nothing to close - client doesn't own session
+        pass
 
     def _parse_json_response(
         self, response: requests.Response, url: str
@@ -651,24 +581,51 @@ class BaseUSPTOClient(Generic[T]):
 
         return str(final_path)
 
+    def _is_safe_path(self, base_dir: Path, target_path: Path) -> bool:
+        """Check if target_path is within base_dir (prevents path traversal).
+
+        Args:
+            base_dir: The intended base directory
+            target_path: The path to validate
+
+        Returns:
+            True if target_path is safely within base_dir, False otherwise
+        """
+        # Resolve both paths to absolute paths
+        base_resolved = base_dir.resolve()
+        target_resolved = target_path.resolve()
+
+        # Check if base_dir is in the target's parent chain
+        return (
+            base_resolved in target_resolved.parents or base_resolved == target_resolved
+        )
+
     def _extract_archive(
         self,
         archive_path: Path,
         extract_to: Path | None = None,
         remove_archive: bool = False,
+        max_size: int | None = None,
     ) -> str:
-        """Extract TAR or ZIP archive.
+        """Extract TAR or ZIP archive with security protections.
+
+        Protects against path traversal attacks. Optional protection against
+        zip bombs via max_size parameter.
 
         Args:
             archive_path: Path to archive file
             extract_to: Directory to extract to (default: archive_path.stem)
             remove_archive: Delete archive after extraction
+            max_size: Optional maximum total extracted size in bytes. If None (default),
+                no size limit is enforced. Set this to protect against zip bombs.
 
         Returns:
             Path to extracted content (single file: path to file, multiple files: directory path)
 
         Raises:
-            ValueError: If file is not a valid TAR or ZIP archive
+            ValueError: If file is not a valid TAR or ZIP archive, or if archive
+                contains paths that would extract outside the target directory,
+                or if max_size is set and extraction would exceed it
         """
         import tarfile
         import zipfile
@@ -679,14 +636,64 @@ class BaseUSPTOClient(Generic[T]):
         extract_to.mkdir(parents=True, exist_ok=True)
 
         extracted_items = []
+        total_size = 0
+
         if tarfile.is_tarfile(archive_path):
             with tarfile.open(archive_path, "r:*") as tar:
-                tar.extractall(path=extract_to)
-                extracted_items = [m.name for m in tar.getmembers() if m.isfile()]
+                # Extract members one by one with validation
+                for member in tar.getmembers():
+                    # Skip directories
+                    if member.isdir():
+                        continue
+
+                    # Path traversal check
+                    member_path = extract_to / member.name
+                    if not self._is_safe_path(extract_to, member_path):
+                        raise ValueError(
+                            f"Archive contains unsafe path that would extract outside target directory: {member.name}"
+                        )
+
+                    # Optional zip bomb check
+                    if max_size is not None:
+                        total_size += member.size
+                        if total_size > max_size:
+                            raise ValueError(
+                                f"Archive extraction aborted: total size ({total_size} bytes) "
+                                f"exceeds maximum allowed ({max_size} bytes)"
+                            )
+
+                    # Extract individual member
+                    tar.extract(member, path=extract_to)
+                    extracted_items.append(member.name)
+
         elif zipfile.is_zipfile(archive_path):
             with zipfile.ZipFile(archive_path, "r") as zip_ref:
-                zip_ref.extractall(extract_to)
-                extracted_items = [n for n in zip_ref.namelist() if not n.endswith("/")]
+                # Extract members one by one with validation
+                for zip_info in zip_ref.infolist():
+                    # Skip directories
+                    if zip_info.is_dir():
+                        continue
+
+                    # Path traversal check
+                    member_path = extract_to / zip_info.filename
+                    if not self._is_safe_path(extract_to, member_path):
+                        raise ValueError(
+                            f"Archive contains unsafe path that would extract outside target directory: {zip_info.filename}"
+                        )
+
+                    # Optional zip bomb check
+                    if max_size is not None:
+                        total_size += zip_info.file_size
+                        if total_size > max_size:
+                            raise ValueError(
+                                f"Archive extraction aborted: total size ({total_size} bytes) "
+                                f"exceeds maximum allowed ({max_size} bytes)"
+                            )
+
+                    # Extract individual member
+                    zip_ref.extract(zip_info, path=extract_to)
+                    extracted_items.append(zip_info.filename)
+
         else:
             raise ValueError(f"Not a valid TAR/ZIP archive: {archive_path}")
 

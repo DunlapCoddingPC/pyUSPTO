@@ -150,7 +150,7 @@ if response.raw_data:
 - Raw data is stored in the `raw_data` attribute of response objects
 - This increases memory usage as both parsed and raw data are kept
 - Only enable when needed for debugging - disable for better performance
-- All response models support `raw_data` when this flag is enabled
+- Response models support `raw_data` when this flag is enabled (except StatusCodeSearchResponse)
 
 **Example: Debugging a missing field**
 
@@ -180,6 +180,7 @@ All warnings inherit from `USPTODataWarning`:
 - `USPTOBooleanParseWarning`: Y/N boolean string parsing failures
 - `USPTOTimezoneWarning`: Timezone-related issues
 - `USPTOEnumParseWarning`: Enum value parsing failures
+- `USPTODataMismatchWarning`: API returns data with different identifier than requested
 
 **Controlling Warnings**
 
@@ -190,7 +191,8 @@ from pyUSPTO.warnings import (
     USPTODateParseWarning,
     USPTOBooleanParseWarning,
     USPTOTimezoneWarning,
-    USPTOEnumParseWarning
+    USPTOEnumParseWarning,
+    USPTODataMismatchWarning
 )
 
 # Suppress all pyUSPTO data warnings

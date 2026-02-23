@@ -10,6 +10,7 @@ PTAB Appeals include ex parte appeals from patent application examinations to th
 import os
 
 from pyUSPTO import PTABAppealsClient
+from pyUSPTO.config import USPTOConfig
 
 # --- Initialization ---
 # Initialize the client with direct API key
@@ -19,7 +20,8 @@ if api_key == "YOUR_API_KEY_HERE":
     raise ValueError(
         "WARNING: API key is not set. Please replace 'YOUR_API_KEY_HERE' or set USPTO_API_KEY environment variable."
     )
-client = PTABAppealsClient(api_key=api_key)
+config = USPTOConfig(api_key=api_key)
+client = PTABAppealsClient(config=config)
 
 
 print("\nBeginning PTAB Appeals API requests with configured client:")

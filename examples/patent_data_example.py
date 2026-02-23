@@ -1,4 +1,4 @@
-"""Example usage of the uspto_api module for patent data.
+"""Example usage of the pyUSPTO module for patent data.
 
 This example demonstrates how to use the PatentDataClient to interact with the USPTO Patent Data API.
 It shows how to retrieve patent applications, search for patents by various criteria, and access
@@ -9,17 +9,19 @@ import json
 import os
 
 from pyUSPTO.clients.patent_data import PatentDataClient
+from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.patent_data import ApplicationContinuityData
 
 # --- Initialization ---
 # Initialize the client with API key from ENV Var.
-print("Initialize with direct API key")
+print("Initialize with config")
 api_key = os.environ.get("USPTO_API_KEY", "YOUR_API_KEY_HERE")
 if api_key == "YOUR_API_KEY_HERE":
     raise ValueError(
         "WARNING: API key is not set. Please replace 'YOUR_API_KEY_HERE' or set USPTO_API_KEY environment variable."
     )
-client = PatentDataClient(api_key=api_key)
+config = USPTOConfig(api_key=api_key)
+client = PatentDataClient(config=config)
 
 DEST_PATH = "./download-example"
 

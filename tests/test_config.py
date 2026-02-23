@@ -1,5 +1,7 @@
 """Tests for USPTOConfig"""
 
+from pyUSPTO.clients.bulk_data import BulkDataClient
+from pyUSPTO.clients.patent_data import PatentDataClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.http_config import HTTPConfig
 
@@ -92,3 +94,30 @@ class TestUSPTOConfig:
         assert config1.http_config is config2.http_config
         assert config1.http_config.timeout == 90.0
         assert config2.http_config.timeout == 90.0
+
+    def test_session_lifecycle(self):
+        """Test session sharing, lazy creation, reuse, and cleanup behavior"""
+
+        # Test lazy session creation
+        config = USPTOConfig(api_key="test")
+        assert config._session is None  # Session not created until first access
+
+        # Test session sharing across multiple clients
+        client1 = PatentDataClient(config=config)
+        client2 = BulkDataClient(config=config)
+        assert client1.session is client2.session
+
+        # Test session reuse
+        session1 = config.session
+        session2 = config.session
+        assert session1 is session2
+
+        # Test clients don't close shared config sessions
+        shared_session = client1.session
+        client1.close()
+        assert config._session is not None
+        assert config.session is shared_session  # Session still alive
+
+        # Test config.close() clears session reference
+        config.close()
+        assert config._session is None
