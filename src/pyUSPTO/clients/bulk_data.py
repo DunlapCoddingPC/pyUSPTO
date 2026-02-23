@@ -142,7 +142,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
     ) -> str:
         """Download a file from the bulk data API.
 
-        Automatically extracts archives (tar.gz, zip) by default. The download
+        Does not extract archives (tar.gz, zip) by default. The download
         uses base class helpers for consistent behavior across all clients.
 
         Args:
@@ -150,7 +150,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
             destination: Directory to save/extract to. Defaults to current directory.
             file_name: Override filename. Defaults to file_data.file_name.
             overwrite: Whether to overwrite existing files. Defaults to False.
-            extract: Whether to auto-extract archives. Defaults to True.
+            extract: Whether to auto-extract archives. Defaults to False.
 
         Returns:
             str: Path to downloaded file or extracted directory.
@@ -160,7 +160,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
 
         Examples:
             Download and extract a file:
-            >>> product = client.get_product_by_id("product-123", include_files=True)
+            >>> product = client.get_product_by_id("product-123", include_files=True, extract=True)
             >>> file_data = product.product_file_bag.file_data_bag[0]
             >>> path = client.download_file(file_data, destination="./downloads")
 
