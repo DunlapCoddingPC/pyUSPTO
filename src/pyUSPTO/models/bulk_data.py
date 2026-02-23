@@ -98,7 +98,7 @@ class FileData:
     file_type_text: str
     file_release_date: datetime | None
     file_download_uri: str | None = None
-    file_date: date | None = None
+    file_date: datetime | None = None
     file_last_modified_date_time: datetime | None = None
     raw_data: str | None = field(default=None, compare=False, repr=False)
 
@@ -128,7 +128,7 @@ class FileData:
             file_type_text=data.get("fileTypeText", ""),
             file_release_date=parse_to_datetime_utc(data.get("fileReleaseDate")),
             file_download_uri=data.get("fileDownloadURI"),
-            file_date=parse_to_date(data.get("fileDate")),
+            file_date=parse_to_datetime_utc(data.get("fileDate")),
             file_last_modified_date_time=parse_to_datetime_utc(
                 data.get("fileLastModifiedDateTime")
             ),
@@ -153,7 +153,9 @@ class FileData:
                 else None
             ),
             "fileDownloadURI": self.file_download_uri,
-            "fileDate": serialize_date(self.file_date),
+            "fileDate": serialize_datetime_as_naive(self.file_date)
+            if self.file_date
+            else None,
             "fileLastModifiedDateTime": (
                 serialize_datetime_as_naive(self.file_last_modified_date_time)
                 if self.file_last_modified_date_time

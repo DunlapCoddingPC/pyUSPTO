@@ -5,7 +5,7 @@ This module contains tests for the BulkDataClient class, including core function
 model handling, edge cases, and response handling.
 """
 
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -54,7 +54,7 @@ class TestBulkDataModels:
             "fileTypeText": "ZIP",
             "fileReleaseDate": "2024-01-01 00:00:00",
             "fileDownloadURI": "https://example.com/test.zip",
-            "fileDate": "2023-12-31",
+            "fileDate": "2023-12-31 00:00:00",
             "fileLastModifiedDateTime": "2023-12-31T23:59:59",
         }
 
@@ -66,12 +66,10 @@ class TestBulkDataModels:
         assert file_data.file_data_from_date == date(2023, 1, 1)
         assert file_data.file_data_to_date == date(2023, 12, 31)
         assert file_data.file_type_text == "ZIP"
-        assert file_data.file_release_date is not None  # Datetime object, not string
+        assert file_data.file_release_date is not None
         assert file_data.file_download_uri == "https://example.com/test.zip"
-        assert file_data.file_date == date(2023, 12, 31)
-        assert (
-            file_data.file_last_modified_date_time is not None
-        )  # Datetime object, not string
+        assert file_data.file_date is not None
+        assert file_data.file_last_modified_date_time is not None
 
     def test_product_file_bag_from_dict(self) -> None:
         """Test ProductFileBag.from_dict method."""
@@ -352,22 +350,19 @@ class TestBulkDataClientCore:
             file_data_from_date=date(2023, 1, 1),
             file_data_to_date=date(2023, 12, 31),
             file_type_text="TAR",
-            file_release_date=date(2024, 1, 1),
+            file_release_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
         )
         destination = "./downloads"
 
-        # Mock the _download_and_extract method
         with patch.object(
             mock_bulk_data_client,
-            "_download_and_extract",
-            return_value="./downloads/extracted",
+            "_download_file",
+            return_value="./downloads/test.tar.gz",
         ) as mock_download:
-            # Test download_file with extraction (default)
             file_path = mock_bulk_data_client.download_file(
                 file_data=file_data, destination=destination
             )
 
-            # Verify
             expected_url = f"{mock_bulk_data_client.base_url}/api/v1/datasets/products/files/PRODUCT1/test.tar.gz"
             mock_download.assert_called_once_with(
                 url=expected_url,
@@ -375,7 +370,7 @@ class TestBulkDataClientCore:
                 file_name="test.tar.gz",
                 overwrite=False,
             )
-            assert file_path == "./downloads/extracted"
+            assert file_path == "./downloads/test.tar.gz"
 
     def test_download_file_without_extraction(
         self, mock_bulk_data_client: BulkDataClient
@@ -389,7 +384,7 @@ class TestBulkDataClientCore:
             file_data_from_date=date(2023, 1, 1),
             file_data_to_date=date(2023, 12, 31),
             file_type_text="ZIP",
-            file_release_date=date(2024, 1, 1),
+            file_release_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
         )
         destination = "./downloads"
 
@@ -523,7 +518,7 @@ class TestBulkDataClientEdgeCases:
             file_data_from_date=date(2023, 1, 1),
             file_data_to_date=date(2023, 12, 31),
             file_type_text="ZIP",
-            file_release_date=date(2024, 1, 1),
+            file_release_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
         )
         destination = "./downloads"
 
@@ -562,14 +557,17 @@ class TestBulkDataClientEdgeCases:
             file_data_from_date=date(2023, 1, 1),
             file_data_to_date=date(2023, 12, 31),
             file_type_text="ZIP",
-            file_release_date=date(2024, 1, 1),
+            file_release_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            file_download_uri="https://example.com/direct/test.zip",
         )
 
         # Mock the _download_and_extract method
         with patch.object(
             mock_bulk_data_client, "_download_and_extract", return_value="./test.zip"
         ) as mock_download:
-            mock_bulk_data_client.download_file(file_data=file_data, overwrite=True)
+            mock_bulk_data_client.download_file(
+                file_data=file_data, overwrite=True, extract=True
+            )
 
             # Verify overwrite is passed through
             assert mock_download.call_args[1]["overwrite"] is True

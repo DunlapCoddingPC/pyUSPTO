@@ -46,7 +46,7 @@ keywords = ["uspto", "patent", "odp", "client", "bulk data", "patent data"]
 dependencies = [
     "requests>=2.32.5",
     "typing-extensions>=4.15.0; python_version < '3.11'",
-    "tzdata>=2025.2",
+    "tzdata>=2025.3",
 ]
 dynamic = ["version"]
 
@@ -67,7 +67,7 @@ dev = [
     "mypy>=1.19.0",
     "types-requests>=2.32.4",
     # Code quality and formatting
-    "ruff>=0.8.0",
+    "ruff>=0.15.0",
 ]
 
 [project.urls]
