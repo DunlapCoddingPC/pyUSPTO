@@ -1,4 +1,4 @@
-"""Example usage of the BulkDataClient.
+"""Example usage of pyUSPTO for the BulkDataClient.
 
 This example demonstrates how to use the BulkDataClient to interact with the USPTO Bulk Data API.
 It shows how to search for products, retrieve product details, and download files.
