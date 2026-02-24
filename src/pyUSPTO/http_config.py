@@ -7,9 +7,6 @@ timeouts, retries, connection pooling, and custom headers.
 import os
 from dataclasses import dataclass, field
 
-# HTTP methods supported by the USPTO API
-ALLOWED_METHODS = ["GET", "POST"]
-
 
 @dataclass
 class HTTPConfig:
