@@ -562,12 +562,18 @@ class BaseUSPTOClient(Generic[T]):
                 else:
                     filename = "download"
 
-        if destination:
-            dest_path = Path(destination)
-            dest_path.mkdir(parents=True, exist_ok=True)
-            final_path = dest_path / filename
-        else:
-            final_path = Path.cwd() / filename
+        filename = Path(filename).name
+        if not filename or filename in (".", ".."):
+            filename = "download"
+
+        dest_path = Path(destination) if destination else Path.cwd()
+        dest_path.mkdir(parents=True, exist_ok=True)
+        final_path = dest_path / filename
+
+        if not self._is_safe_path(dest_path, final_path):
+            raise ValueError(
+                f"Filename {filename!r} resolves outside destination directory"
+            )
 
         if final_path.exists() and not overwrite:
             raise FileExistsError(f"File exists: {final_path}. Use overwrite=True")

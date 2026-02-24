@@ -1416,6 +1416,105 @@ class TestSaveResponseToFile:
             assert result == str(expected_path)
 
 
+class TestSaveResponseToFilePathTraversal:
+    """Tests for filename sanitization in _save_response_to_file."""
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_content_disposition_path_traversal_stripped(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """Filenames with directory traversal sequences are sanitized."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+        mock_response = MagicMock()
+        mock_response.headers = {
+            "Content-Disposition": 'attachment; filename="../../etc/passwd"'
+        }
+        mock_response.iter_content.return_value = [b"data"]
+
+        result = client._save_response_to_file(mock_response, str(tmp_path))
+
+        expected_path = tmp_path / "passwd"
+        mock_file_open.assert_called_once_with(expected_path, "wb")
+        assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_filename_with_path_separators_stripped(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """User-provided filenames with path separators are sanitized."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+        mock_response = MagicMock()
+        mock_response.headers = {}
+        mock_response.iter_content.return_value = [b"data"]
+
+        result = client._save_response_to_file(
+            mock_response, str(tmp_path), file_name="../evil.txt"
+        )
+
+        expected_path = tmp_path / "evil.txt"
+        mock_file_open.assert_called_once_with(expected_path, "wb")
+        assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_url_path_traversal_stripped(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """Filenames derived from URLs with traversal are sanitized."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+        mock_response = MagicMock()
+        mock_response.headers = {}
+        mock_response.url = "https://test.com/../../secret.pdf"
+        mock_response.iter_content.return_value = [b"data"]
+
+        result = client._save_response_to_file(mock_response, str(tmp_path))
+
+        expected_path = tmp_path / "secret.pdf"
+        mock_file_open.assert_called_once_with(expected_path, "wb")
+        assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_empty_filename_after_sanitization_falls_back(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """A filename that becomes empty after sanitization falls back to 'download'."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+        mock_response = MagicMock()
+        mock_response.headers = {
+            "Content-Disposition": 'attachment; filename="../../"'
+        }
+        mock_response.iter_content.return_value = [b"data"]
+
+        result = client._save_response_to_file(mock_response, str(tmp_path))
+
+        expected_path = tmp_path / "download"
+        mock_file_open.assert_called_once_with(expected_path, "wb")
+        assert result == str(expected_path)
+
+    def test_is_safe_path_rejects_unsafe_resolved_path(
+        self, tmp_path: Any
+    ) -> None:
+        """Raises ValueError when resolved path escapes destination."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+        mock_response = MagicMock()
+        mock_response.headers = {
+            "Content-Disposition": 'attachment; filename="safe.txt"'
+        }
+
+        with patch.object(client, "_is_safe_path", return_value=False):
+            with pytest.raises(ValueError, match="resolves outside"):
+                client._save_response_to_file(mock_response, str(tmp_path))
+
+
 class TestExtractArchive:
     """Tests for _extract_archive method."""
 
