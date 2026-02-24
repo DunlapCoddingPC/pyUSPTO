@@ -31,7 +31,31 @@ config = USPTOConfig(
 client = PatentDataClient(config=config)
 ```
 
-Configure HTTP settings via environment variables:
+## Session Lifecycle
+
+`USPTOConfig` manages an underlying `requests.Session`. For short-lived scripts this is cleaned up automatically, but for long-running applications or tests you may close it explicitly:
+
+```python
+from pyUSPTO import PatentDataClient, USPTOConfig
+
+# Option 1: Context manager
+with USPTOConfig(api_key="your_key") as config:
+    client = PatentDataClient(config=config)
+    response = client.search_applications(limit=1)
+
+# Option 2: Explicit close
+config = USPTOConfig(api_key="your_key")
+try:
+    client = PatentDataClient(config=config)
+    response = client.search_applications(limit=1)
+finally:
+    config.close()
+```
+
+
+## Configure HTTP settings 
+
+via environment variables:
 
 ```bash
 export USPTO_REQUEST_TIMEOUT=60.0       # Read timeout
