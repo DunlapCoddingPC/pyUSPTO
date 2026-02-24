@@ -95,6 +95,16 @@ class TestUSPTOConfig:
         assert config1.http_config.timeout == 90.0
         assert config2.http_config.timeout == 90.0
 
+    def test_session_retries_post_requests(self):
+        """Test that POST requests are included in retry configuration"""
+        config = USPTOConfig(api_key="test")
+        session = config.session
+
+        adapter = session.get_adapter("https://api.uspto.gov")
+        retry = adapter.max_retries
+        assert "POST" in retry.allowed_methods
+        assert "GET" in retry.allowed_methods
+
     def test_session_lifecycle(self):
         """Test session sharing, lazy creation, reuse, and cleanup behavior"""
 
