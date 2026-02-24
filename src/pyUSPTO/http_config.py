@@ -27,6 +27,7 @@ class HTTPConfig:
         pool_connections: Number of connection pools to cache (default: 10)
         pool_maxsize: Maximum number of connections per pool (default: 10)
         download_chunk_size: Chunk size in bytes for streaming file downloads (default: 8192)
+        max_extract_size: Maximum total bytes to extract from archives (default: None, no limit)
         custom_headers: Additional headers to include in all requests
     """
 
@@ -47,6 +48,7 @@ class HTTPConfig:
 
     # Download configuration
     download_chunk_size: int = 8192  # Bytes per chunk when streaming downloads
+    max_extract_size: int | None = None
 
     # Custom headers (User-Agent, tracking, etc.)
     custom_headers: dict[str, str] | None = None
@@ -78,6 +80,7 @@ class HTTPConfig:
             USPTO_POOL_CONNECTIONS: Connection pool size
             USPTO_POOL_MAXSIZE: Max connections per pool
             USPTO_DOWNLOAD_CHUNK_SIZE: Chunk size for streaming downloads (bytes)
+            USPTO_MAX_EXTRACT_SIZE: Maximum bytes to extract from archives
 
         Returns:
             HTTPConfig instance with values from environment or defaults
@@ -91,6 +94,9 @@ class HTTPConfig:
             pool_maxsize=int(os.environ.get("USPTO_POOL_MAXSIZE", "10")),
             download_chunk_size=int(
                 os.environ.get("USPTO_DOWNLOAD_CHUNK_SIZE", "8192")
+            ),
+            max_extract_size=(
+                int(v) if (v := os.environ.get("USPTO_MAX_EXTRACT_SIZE")) else None
             ),
         )
 

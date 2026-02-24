@@ -75,8 +75,6 @@ All clients support configuration via environment variables. This is the recomme
 | `USPTO_PATENT_DATA_BASE_URL`        | Base URL for Patent Data API                   | `https://api.uspto.gov` |
 | `USPTO_PETITION_DECISIONS_BASE_URL` | Base URL for Petition Decisions API            | `https://api.uspto.gov` |
 | `USPTO_PTAB_BASE_URL`               | Base URL for PTAB APIs                         | `https://api.uspto.gov` |
-| `USPTO_DOWNLOAD_CHUNK_SIZE`         | Chunk size in bytes for file downloads         | `8192`                  |
-
 ### HTTP Transport Configuration
 
 | Environment Variable       | Description                                | Default  |
@@ -87,6 +85,8 @@ All clients support configuration via environment variables. This is the recomme
 | `USPTO_BACKOFF_FACTOR`   | Exponential backoff multiplier for retries | `2.0`  |
 | `USPTO_POOL_CONNECTIONS` | Number of connection pools to cache        | `10`   |
 | `USPTO_POOL_MAXSIZE`     | Maximum connections per pool               | `10`   |
+| `USPTO_DOWNLOAD_CHUNK_SIZE` | Chunk size in bytes for file downloads  | `8192` |
+| `USPTO_MAX_EXTRACT_SIZE` | Maximum bytes to extract from archives     | None (no limit) |
 
 ### Example: Configuration
 
@@ -212,3 +212,31 @@ warnings.filterwarnings('always', category=USPTODataWarning)
 ```
 
 The library's permissive parsing philosophy returns `None` for fields that cannot be parsed, allowing you to retrieve partial data even when some fields have issues. Warnings inform you when this happens without stopping execution.
+
+## Archive Extraction Safety
+
+Download methods that accept `extract=True` (e.g., `BulkDataClient.download_file`) automatically extract archive files (tar.gz, zip). The extraction includes the following protections:
+
+- **Path traversal protection**: Archive members with paths that resolve outside the extraction directory are rejected.
+- **Size limits**: Set `max_extract_size` on `HTTPConfig` to cap the total bytes extracted, protecting against zip bombs.
+
+```python
+from pyUSPTO import USPTOConfig, HTTPConfig, BulkDataClient
+
+http_config = HTTPConfig(
+    max_extract_size=10 * 1024 * 1024 * 1024  # 10 GB
+)
+config = USPTOConfig(api_key="your_key", http_config=http_config)
+client = BulkDataClient(config=config)
+
+# Extraction will raise ValueError if total extracted size exceeds 10 GB
+client.download_file(product_file, destination="/tmp", extract=True)
+```
+
+Or via environment variable:
+
+```bash
+export USPTO_MAX_EXTRACT_SIZE=10737418240  # 10 GB
+```
+
+By default, `extract` is `False` on `BulkDataClient.download_file` and there is no size limit.

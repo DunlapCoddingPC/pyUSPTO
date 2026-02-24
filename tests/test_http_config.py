@@ -49,6 +49,7 @@ class TestHTTPConfig:
         monkeypatch.setenv("USPTO_BACKOFF_FACTOR", "1.5")
         monkeypatch.setenv("USPTO_POOL_CONNECTIONS", "15")
         monkeypatch.setenv("USPTO_POOL_MAXSIZE", "25")
+        monkeypatch.setenv("USPTO_MAX_EXTRACT_SIZE", "5368709120")  # 5 GB
 
         config = HTTPConfig.from_env()
         assert config.timeout == 45.0
@@ -57,6 +58,7 @@ class TestHTTPConfig:
         assert config.backoff_factor == 1.5
         assert config.pool_connections == 15
         assert config.pool_maxsize == 25
+        assert config.max_extract_size == 5368709120
 
     def test_from_env_with_defaults(self):
         """Test HTTPConfig.from_env() uses defaults when env vars not set"""
@@ -78,6 +80,7 @@ class TestHTTPConfig:
         assert config.backoff_factor == 2.0
         assert config.pool_connections == 10
         assert config.pool_maxsize == 10
+        assert config.max_extract_size is None
 
     def test_get_timeout_tuple(self):
         """Test timeout tuple generation"""

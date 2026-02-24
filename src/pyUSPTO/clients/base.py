@@ -720,6 +720,10 @@ class BaseUSPTOClient(Generic[T]):
     ) -> str:
         """Download file and auto-extract if it's an archive.
 
+        Archives are extracted with path traversal protection. Extraction size
+        can be limited via ``http_config.max_extract_size`` to guard against
+        zip bombs.
+
         Args:
             url: URL to download
             destination: Directory to save/extract to
@@ -732,7 +736,8 @@ class BaseUSPTOClient(Generic[T]):
         Raises:
             TypeError: If response is not a valid Response object
             FileExistsError: If file exists and overwrite is False
-            ValueError: If downloaded file is not a valid archive when extraction attempted
+            ValueError: If downloaded file is not a valid archive when extraction
+                attempted, or if extraction exceeds max_extract_size
         """
         import tarfile
         import zipfile
@@ -749,7 +754,11 @@ class BaseUSPTOClient(Generic[T]):
         )
 
         if is_archive:
-            return self._extract_archive(path_obj, remove_archive=True)
+            return self._extract_archive(
+                path_obj,
+                remove_archive=True,
+                max_size=self.http_config.max_extract_size,
+            )
         else:
             return downloaded_path
 
