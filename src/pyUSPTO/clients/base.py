@@ -648,8 +648,10 @@ class BaseUSPTOClient(Generic[T]):
             with tarfile.open(archive_path, "r:*") as tar:
                 # Extract members one by one with validation
                 for member in tar.getmembers():
-                    # Skip directories
+                    # Skip directories and symlinks
                     if member.isdir():
+                        continue
+                    if member.issym() or member.islnk():
                         continue
 
                     # Path traversal check
@@ -676,8 +678,10 @@ class BaseUSPTOClient(Generic[T]):
             with zipfile.ZipFile(archive_path, "r") as zip_ref:
                 # Extract members one by one with validation
                 for zip_info in zip_ref.infolist():
-                    # Skip directories
+                    # Skip directories and symlinks
                     if zip_info.is_dir():
+                        continue
+                    if (zip_info.external_attr >> 16) & 0o170000 == 0o120000:
                         continue
 
                     # Path traversal check

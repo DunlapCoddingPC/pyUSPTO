@@ -1809,6 +1809,116 @@ class TestExtractArchive:
         assert (extract_to / "testdir" / "file.txt").exists()
 
 
+class TestExtractArchiveSymlinks:
+    """Tests for symlink skipping in _extract_archive."""
+
+    def test_tar_symlink_skipped(self, tmp_path: Any) -> None:
+        """Test that symbolic links in tar archives are skipped."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        tar_path = tmp_path / "test.tar"
+        with tarfile.open(tar_path, "w") as tar:
+            # Add a regular file
+            import io
+
+            data = b"real content"
+            info = tarfile.TarInfo(name="real.txt")
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+
+            # Add a symlink pointing outside
+            sym_info = tarfile.TarInfo(name="evil_link")
+            sym_info.type = tarfile.SYMTYPE
+            sym_info.linkname = "/etc/passwd"
+            tar.addfile(sym_info)
+
+        extract_to = tmp_path / "extracted"
+        client._extract_archive(tar_path, extract_to=extract_to)
+
+        assert (extract_to / "real.txt").exists()
+        assert not (extract_to / "evil_link").exists()
+
+    def test_tar_hardlink_skipped(self, tmp_path: Any) -> None:
+        """Test that hard links in tar archives are skipped."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        tar_path = tmp_path / "test.tar"
+        with tarfile.open(tar_path, "w") as tar:
+            import io
+
+            data = b"real content"
+            info = tarfile.TarInfo(name="real.txt")
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+
+            # Add a hard link
+            link_info = tarfile.TarInfo(name="hard_link")
+            link_info.type = tarfile.LNKTYPE
+            link_info.linkname = "real.txt"
+            tar.addfile(link_info)
+
+        extract_to = tmp_path / "extracted"
+        client._extract_archive(tar_path, extract_to=extract_to)
+
+        assert (extract_to / "real.txt").exists()
+        assert not (extract_to / "hard_link").exists()
+
+    def test_zip_symlink_skipped(self, tmp_path: Any) -> None:
+        """Test that symbolic links in zip archives are skipped."""
+        import stat
+        import zipfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        zip_path = tmp_path / "test.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            # Add a regular file
+            zf.writestr("real.txt", "real content")
+
+            # Add a symlink entry (Unix symlink via external_attr)
+            sym_info = zipfile.ZipInfo("evil_link")
+            sym_info.external_attr = (stat.S_IFLNK | 0o777) << 16
+            zf.writestr(sym_info, "/etc/passwd")
+
+        extract_to = tmp_path / "extracted"
+        client._extract_archive(zip_path, extract_to=extract_to)
+
+        assert (extract_to / "real.txt").exists()
+        assert not (extract_to / "evil_link").exists()
+
+    def test_tar_only_symlinks_returns_directory(self, tmp_path: Any) -> None:
+        """Test that an archive containing only symlinks returns the directory."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        tar_path = tmp_path / "test.tar"
+        with tarfile.open(tar_path, "w") as tar:
+            sym_info = tarfile.TarInfo(name="evil_link")
+            sym_info.type = tarfile.SYMTYPE
+            sym_info.linkname = "/etc/passwd"
+            tar.addfile(sym_info)
+
+        extract_to = tmp_path / "extracted"
+        result = client._extract_archive(tar_path, extract_to=extract_to)
+
+        # No files extracted, returns directory
+        assert result == str(extract_to)
+        assert not (extract_to / "evil_link").exists()
+
+
 class TestDownloadAndExtract:
     """Tests for _download_and_extract method."""
 
