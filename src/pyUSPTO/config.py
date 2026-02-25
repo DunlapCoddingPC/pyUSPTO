@@ -124,6 +124,7 @@ class USPTOConfig:
             total=self.http_config.max_retries,
             backoff_factor=self.http_config.backoff_factor,
             status_forcelist=self.http_config.retry_status_codes,
+            allowed_methods={"GET", "POST"},
         )
 
         # Configure connection pooling

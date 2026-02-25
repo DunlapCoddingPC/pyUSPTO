@@ -31,7 +31,28 @@ config = USPTOConfig(
 client = PatentDataClient(config=config)
 ```
 
-Configure HTTP settings via environment variables:
+## Session Lifecycle
+
+`USPTOConfig` manages an underlying `requests.Session`. For short-lived scripts this is cleaned up automatically, but for long-running applications or tests you may close it explicitly:
+
+```python
+from pyUSPTO import PatentDataClient, USPTOConfig
+
+# Option 1: Context manager
+with USPTOConfig(api_key="your_key") as config:
+    client = PatentDataClient(config=config)
+    response = client.search_applications(limit=1)
+
+# Option 2: Explicit close
+config = USPTOConfig(api_key="your_key")
+try:
+    client = PatentDataClient(config=config)
+    response = client.search_applications(limit=1)
+finally:
+    config.close()
+```
+
+## HTTP Configuration via Environment Variables
 
 ```bash
 export USPTO_REQUEST_TIMEOUT=60.0       # Read timeout
@@ -75,24 +96,32 @@ All clients support configuration via environment variables. This is the recomme
 | `USPTO_PATENT_DATA_BASE_URL`        | Base URL for Patent Data API                   | `https://api.uspto.gov` |
 | `USPTO_PETITION_DECISIONS_BASE_URL` | Base URL for Petition Decisions API            | `https://api.uspto.gov` |
 | `USPTO_PTAB_BASE_URL`               | Base URL for PTAB APIs                         | `https://api.uspto.gov` |
-| `USPTO_DOWNLOAD_CHUNK_SIZE`         | Chunk size in bytes for file downloads         | `8192`                  |
+
+> [!NOTE]
+> The base URL variables are provided in case the USPTO introduces alternate environments (e.g., a development or testing endpoint) in the future. Currently there are no such endpoints, and these defaults should not be changed.
 
 ### HTTP Transport Configuration
 
-| Environment Variable       | Description                                | Default  |
-| -------------------------- | ------------------------------------------ | -------- |
-| `USPTO_REQUEST_TIMEOUT`  | Read timeout in seconds                    | `30.0` |
-| `USPTO_CONNECT_TIMEOUT`  | Connection timeout in seconds              | `10.0` |
-| `USPTO_MAX_RETRIES`      | Maximum number of retry attempts           | `3`    |
-| `USPTO_BACKOFF_FACTOR`   | Exponential backoff multiplier for retries | `2.0`  |
-| `USPTO_POOL_CONNECTIONS` | Number of connection pools to cache        | `10`   |
-| `USPTO_POOL_MAXSIZE`     | Maximum connections per pool               | `10`   |
+| Environment Variable          | Description                                | Default         |
+| ----------------------------- | ------------------------------------------ | --------------- |
+| `USPTO_REQUEST_TIMEOUT`     | Read timeout in seconds                    | `30.0`        |
+| `USPTO_CONNECT_TIMEOUT`     | Connection timeout in seconds              | `10.0`        |
+| `USPTO_MAX_RETRIES`         | Maximum number of retry attempts           | `3`           |
+| `USPTO_BACKOFF_FACTOR`      | Exponential backoff multiplier for retries | `2.0`         |
+| `USPTO_POOL_CONNECTIONS`    | Number of connection pools to cache        | `10`          |
+| `USPTO_POOL_MAXSIZE`        | Maximum connections per pool               | `10`          |
+| `USPTO_DOWNLOAD_CHUNK_SIZE` | Chunk size in bytes for file downloads     | `8192`        |
+| `USPTO_MAX_EXTRACT_SIZE`    | Maximum bytes to extract from archives     | None (no limit) |
 
 ### Example: Configuration
 
 ```bash
 # API Configuration
 export USPTO_API_KEY="your_api_key"
+export USPTO_BULK_DATA_BASE_URL="https://api.uspto.gov"
+export USPTO_PATENT_DATA_BASE_URL="https://api.uspto.gov"
+export USPTO_PETITION_DECISIONS_BASE_URL="https://api.uspto.gov"
+export USPTO_PTAB_BASE_URL="https://api.uspto.gov"
 
 # Increase timeouts for large downloads
 export USPTO_REQUEST_TIMEOUT=120.0
@@ -108,6 +137,9 @@ export USPTO_POOL_MAXSIZE=20
 
 # Larger chunk size for faster downloads
 export USPTO_DOWNLOAD_CHUNK_SIZE=65536
+
+# Limit total bytes extracted from archives
+export USPTO_MAX_EXTRACT_SIZE=10737418240
 ```
 
 ## Debugging with Raw Data Preservation
@@ -212,3 +244,31 @@ warnings.filterwarnings('always', category=USPTODataWarning)
 ```
 
 The library's permissive parsing philosophy returns `None` for fields that cannot be parsed, allowing you to retrieve partial data even when some fields have issues. Warnings inform you when this happens without stopping execution.
+
+## Archive Extraction Safety
+
+Download methods that accept `extract=True` (e.g., `BulkDataClient.download_file`) automatically extract archive files (tar.gz, zip). The extraction includes the following protections:
+
+- **Path traversal protection**: Archive members with paths that resolve outside the extraction directory are rejected.
+- **Size limits**: Set `max_extract_size` on `HTTPConfig` to cap the total bytes extracted, protecting against zip bombs or file system size limitations.
+
+```python
+from pyUSPTO import USPTOConfig, HTTPConfig, BulkDataClient
+
+http_config = HTTPConfig(
+    max_extract_size=10 * 1024 * 1024 * 1024  # 10 GB
+)
+config = USPTOConfig(api_key="your_key", http_config=http_config)
+client = BulkDataClient(config=config)
+
+# Extraction will raise ValueError if total extracted size exceeds 10 GB
+client.download_file(product_file, destination="/tmp", extract=True)
+```
+
+Or via environment variable:
+
+```bash
+export USPTO_MAX_EXTRACT_SIZE=10737418240  # 10 GB
+```
+
+By default, `extract` is `False` on `BulkDataClient.download_file` and there is no size limit.

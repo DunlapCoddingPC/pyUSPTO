@@ -10,7 +10,7 @@ A Python client library for interacting with the United Stated Patent and Tradem
 This package provides clients for interacting with the USPTO Bulk Data API, Patent Data API, Final Petition Decisions API, and PTAB (Patent Trial and Appeal Board) APIs.
 
 > [!IMPORTANT]
-> The USPTO is in the process of moving their API. This package is only concerned with the new API. The [old API](https://developer.uspto.gov/) will be retired at the end of 2025.
+> The USPTO is in the process of moving their Developer API. This package is only concerned with the new API. The [old API](https://developer.uspto.gov/) was officially retired at the end of 2025; however, some products have not yet been fully transitioned to the Open Data Portal API. The USPTO expects the remaining products to be transitioned to the Open Data Portal in early 2026.
 
 ## Quick Start
 
@@ -37,33 +37,12 @@ print(f"Found {results.count} applications")
 
 ## Configuration
 
-All clients require a `USPTOConfig` object for configuration. There are two methods:
+All clients require a `USPTOConfig` object. You can create one from environment variables (recommended) or by passing the API key directly.
 
-### Method 1: Using USPTOConfig
+> [!TIP]
+> `USPTOConfig` manages an underlying HTTP session. For long-running applications, use it as a context manager (`with USPTOConfig(...) as config:`) or call `config.close()` when done. See [ADVANCED.md](ADVANCED.md#session-lifecycle) for details.
 
-```python
-from pyUSPTO import (
-    BulkDataClient,
-    PatentDataClient,
-    FinalPetitionDecisionsClient,
-    PTABTrialsClient,
-    PTABAppealsClient,
-    PTABInterferencesClient
-)
-
-from pyUSPTO.config import USPTOConfig
-
-config = USPTOConfig(api_key="your_api_key_here")
-
-patent_client = PatentDataClient(config=config)
-bulk_client = BulkDataClient(config=config)
-petition_client = FinalPetitionDecisionsClient(config=config)
-trials_client = PTABTrialsClient(config=config)
-appeals_client = PTABAppealsClient(config=config)
-interferences_client = PTABInterferencesClient(config=config)
-```
-
-### Method 2: Environment Variables (Recommended)
+### Environment Variables (Recommended)
 
 Set the environment variable in your shell:
 
@@ -80,9 +59,9 @@ from pyUSPTO import (
     FinalPetitionDecisionsClient,
     PTABTrialsClient,
     PTABAppealsClient,
-    PTABInterferencesClient
+    PTABInterferencesClient,
+    USPTOConfig,
 )
-from pyUSPTO.config import USPTOConfig
 
 # Load configuration from environment
 config = USPTOConfig.from_env()
@@ -95,7 +74,17 @@ appeals_client = PTABAppealsClient(config=config)
 interferences_client = PTABInterferencesClient(config=config)
 ```
 
-## API Usage Examples
+### Direct API Key
+
+Alternatively, you can pass your API key directly when creating the config:
+
+```python
+from pyUSPTO import USPTOConfig
+
+config = USPTOConfig(api_key="your_api_key_here")
+```
+
+## Client Usage Examples
 
 > [!TIP]
 > For comprehensive examples with detailed explanations, see the [`examples/`](examples/) directory.
@@ -103,7 +92,7 @@ interferences_client = PTABInterferencesClient(config=config)
 ### Patent Data API
 
 ```python
-from pyUSPTO import PatentDataClient
+from pyUSPTO import PatentDataClient, USPTOConfig
 
 config = USPTOConfig(api_key="your_api_key_here")
 client = PatentDataClient(config=config)
@@ -118,12 +107,47 @@ if app.application_meta_data:
     print(f"Title: {app.application_meta_data.invention_title}")
 ```
 
+`PatentDataClient` also provides convenience methods for common lookups:
+
+```python
+# Look up a patent wrapper by any identifier type (you must use keyword names).
+wrapper = client.get_IFW_metadata(application_number="18/045,436")
+wrapper = client.get_IFW_metadata(patent_number="11,234,567")
+wrapper = client.get_IFW_metadata(publication_number="2023/0012345")
+wrapper = client.get_IFW_metadata(PCT_app_number="PCT/US24/12345")
+
+# Look up USPTO status codes
+status_codes = client.get_status_codes()
+```
+
 See [`examples/patent_data_example.py`](examples/patent_data_example.py) for detailed examples including downloading documents and publications.
+
+### Bulk Data API
+
+```python
+from pyUSPTO import BulkDataClient, USPTOConfig
+
+config = USPTOConfig(api_key="your_api_key_here")
+client = BulkDataClient(config=config)
+
+# Search for bulk data products
+response = client.search_products(query="patent", limit=5)
+print(f"Found {response.count} products matching 'patent'")
+
+for product in response.bulk_data_product_bag:
+    print(f"  {product.product_title_text} ({product.product_identifier})")
+
+# Get a specific product with its files
+product = client.get_product_by_id("PTGRXML", include_files=True, latest=True)
+print(f"Product: {product.product_title_text}")
+```
+
+See [`examples/bulk_data_example.py`](examples/bulk_data_example.py) for detailed examples including file downloads and archive extraction.
 
 ### Final Petition Decisions API
 
 ```python
-from pyUSPTO import FinalPetitionDecisionsClient
+from pyUSPTO import FinalPetitionDecisionsClient, USPTOConfig
 
 config = USPTOConfig(api_key="your_api_key_here")
 client = FinalPetitionDecisionsClient(config=config)
@@ -147,7 +171,7 @@ See [`examples/petition_decisions_example.py`](examples/petition_decisions_examp
 ### PTAB Trials API
 
 ```python
-from pyUSPTO import PTABTrialsClient
+from pyUSPTO import PTABTrialsClient, USPTOConfig
 
 config = USPTOConfig(api_key="your_api_key_here")
 client = PTABTrialsClient(config=config)
@@ -175,7 +199,7 @@ See [`examples/ptab_trials_example.py`](examples/ptab_trials_example.py) for det
 ### PTAB Appeals API
 
 ```python
-from pyUSPTO import PTABAppealsClient
+from pyUSPTO import PTABAppealsClient, USPTOConfig
 
 config = USPTOConfig(api_key="your_api_key_here")
 client = PTABAppealsClient(config=config)
@@ -195,7 +219,7 @@ See [`examples/ptab_appeals_example.py`](examples/ptab_appeals_example.py) for d
 ### PTAB Interferences API
 
 ```python
-from pyUSPTO import PTABInterferencesClient
+from pyUSPTO import PTABInterferencesClient, USPTOConfig
 
 config = USPTOConfig(api_key="your_api_key_here")
 client = PTABInterferencesClient(config=config)
@@ -216,64 +240,7 @@ Full documentation may be found on [Read the Docs](https://pyuspto.readthedocs.i
 
 ## Data Models
 
-The library uses Python dataclasses to represent API responses. All data models include type annotations for attributes and methods, making them fully compatible with static type checkers.
-
-#### Bulk Data API
-
-- `BulkDataResponse`: Top-level response from the API
-- `BulkDataProduct`: Information about a specific product
-- `ProductFileBag`: Container for file data elements
-- `FileData`: Information about an individual file
-
-#### Patent Data API
-
-- `PatentDataResponse`: Top-level response from the API
-- `PatentFileWrapper`: Information about a patent application
-- `ApplicationMetaData`: Metadata about a patent application
-- `Person`, `Applicant`, `Inventor`, `Attorney`: Person-related data classes
-- `Assignment`, `Assignor`, `Assignee`: Assignment-related data classes
-- `Continuity`, `ParentContinuity`, `ChildContinuity`: Continuity-related data classes
-- `PatentTermAdjustmentData`: Patent term adjustment information
-- `DocumentBag`, `EntityStatus`, `RecordAttorney`: Additional data classes for patent data
-- And many more specialized classes for different aspects of patent data
-
-#### Final Petition Decisions API
-
-- `PetitionDecisionResponse`: Top-level response from the API
-- `PetitionDecision`: Complete information about a petition decision
-- `PetitionDecisionDocument`: Document associated with a petition decision
-- `DecisionTypeCode`: Enum for petition decision types
-- `DocumentDirectionCategory`: Enum for document direction categories
-
-#### PTAB Trials API
-
-- `PTABTrialProceedingResponse`: Top-level response from the API
-- `PTABTrialProceeding`: Information about a PTAB trial proceeding (IPR, PGR, CBM, DER)
-- `PTABTrialDocumentResponse`: Response containing trial documents
-- `PTABTrialDocument`: Document associated with a trial proceeding
-- `TrialDecisionData`: Decision information for a trial proceeding
-- `TrialDocumentData`: Document metadata for trial documents
-- `TrialMetaData`: Trial metadata and status information
-- `RegularPetitionerData`, `RespondentData`, `DerivationPetitionerData`: Party data for different trial types
-
-#### PTAB Appeals API
-
-- `PTABAppealResponse`: Top-level response from the API
-- `PTABAppealDecision`: Ex parte appeal decision information
-- `AppellantData`: Appellant information and application details
-- `AppealMetaData`: Appeal metadata and filing information
-- `AppealDocumentData`: Document and decision details
-
-#### PTAB Interferences API
-
-- `PTABInterferenceResponse`: Top-level response from the API
-- `PTABInterferenceDecision`: Interference proceeding decision information
-- `SeniorPartyData`, `JuniorPartyData`, `AdditionalPartyData`: Party data classes
-- `InterferenceMetaData`: Interference metadata and status information
-- `InterferenceDocumentData`: Document and outcome details
-- `DecisionData`: Decision information for interference proceedings
-
-For a complete list of all data models, see the [API Reference docuentation](https://pyuspto.readthedocs.io/en/latest/api/models/index.html).
+The library uses Python dataclasses to represent API responses. All data models include type annotations and are fully compatible with static type checkers. For a complete list of all data models, see the [API Reference documentation](https://pyuspto.readthedocs.io/en/latest/api/models/index.html).
 
 ## Advanced Topics
 

@@ -562,12 +562,18 @@ class BaseUSPTOClient(Generic[T]):
                 else:
                     filename = "download"
 
-        if destination:
-            dest_path = Path(destination)
-            dest_path.mkdir(parents=True, exist_ok=True)
-            final_path = dest_path / filename
-        else:
-            final_path = Path.cwd() / filename
+        filename = Path(filename).name
+        if not filename or filename in (".", ".."):
+            filename = "download"
+
+        dest_path = Path(destination) if destination else Path.cwd()
+        dest_path.mkdir(parents=True, exist_ok=True)
+        final_path = dest_path / filename
+
+        if not self._is_safe_path(dest_path, final_path):
+            raise ValueError(
+                f"Filename {filename!r} resolves outside destination directory"
+            )
 
         if final_path.exists() and not overwrite:
             raise FileExistsError(f"File exists: {final_path}. Use overwrite=True")
@@ -642,8 +648,10 @@ class BaseUSPTOClient(Generic[T]):
             with tarfile.open(archive_path, "r:*") as tar:
                 # Extract members one by one with validation
                 for member in tar.getmembers():
-                    # Skip directories
+                    # Skip directories and symlinks
                     if member.isdir():
+                        continue
+                    if member.issym() or member.islnk():
                         continue
 
                     # Path traversal check
@@ -670,8 +678,10 @@ class BaseUSPTOClient(Generic[T]):
             with zipfile.ZipFile(archive_path, "r") as zip_ref:
                 # Extract members one by one with validation
                 for zip_info in zip_ref.infolist():
-                    # Skip directories
+                    # Skip directories and symlinks
                     if zip_info.is_dir():
+                        continue
+                    if (zip_info.external_attr >> 16) & 0o170000 == 0o120000:
                         continue
 
                     # Path traversal check
@@ -714,6 +724,10 @@ class BaseUSPTOClient(Generic[T]):
     ) -> str:
         """Download file and auto-extract if it's an archive.
 
+        Archives are extracted with path traversal protection. Extraction size
+        can be limited via ``http_config.max_extract_size`` to guard against
+        zip bombs.
+
         Args:
             url: URL to download
             destination: Directory to save/extract to
@@ -726,7 +740,8 @@ class BaseUSPTOClient(Generic[T]):
         Raises:
             TypeError: If response is not a valid Response object
             FileExistsError: If file exists and overwrite is False
-            ValueError: If downloaded file is not a valid archive when extraction attempted
+            ValueError: If downloaded file is not a valid archive when extraction
+                attempted, or if extraction exceeds max_extract_size
         """
         import tarfile
         import zipfile
@@ -743,7 +758,11 @@ class BaseUSPTOClient(Generic[T]):
         )
 
         if is_archive:
-            return self._extract_archive(path_obj, remove_archive=True)
+            return self._extract_archive(
+                path_obj,
+                remove_archive=True,
+                max_size=self.http_config.max_extract_size,
+            )
         else:
             return downloaded_path
 

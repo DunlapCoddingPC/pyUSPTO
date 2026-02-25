@@ -1406,7 +1406,10 @@ class TestSaveResponseToFile:
         mock_response.iter_content.return_value = [b"data"]
 
         # Save with no destination (should use cwd)
-        with patch("pyUSPTO.clients.base.Path.cwd") as mock_cwd:
+        with (
+            patch("pyUSPTO.clients.base.Path.cwd") as mock_cwd,
+            patch("pyUSPTO.clients.base.Path.mkdir"),
+        ):
             mock_cwd.return_value = Path("/fake/cwd")
             result = client._save_response_to_file(mock_response, destination=None)
 
@@ -1414,6 +1417,105 @@ class TestSaveResponseToFile:
             expected_path = Path("/fake/cwd") / "test.pdf"
             mock_file_open.assert_called_once_with(expected_path, "wb")
             assert result == str(expected_path)
+
+
+class TestSaveResponseToFilePathTraversal:
+    """Tests for filename sanitization in _save_response_to_file."""
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_content_disposition_path_traversal_stripped(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """Filenames with directory traversal sequences are sanitized."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+        mock_response = MagicMock()
+        mock_response.headers = {
+            "Content-Disposition": 'attachment; filename="../../etc/passwd"'
+        }
+        mock_response.iter_content.return_value = [b"data"]
+
+        result = client._save_response_to_file(mock_response, str(tmp_path))
+
+        expected_path = tmp_path / "passwd"
+        mock_file_open.assert_called_once_with(expected_path, "wb")
+        assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_filename_with_path_separators_stripped(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """User-provided filenames with path separators are sanitized."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+        mock_response = MagicMock()
+        mock_response.headers = {}
+        mock_response.iter_content.return_value = [b"data"]
+
+        result = client._save_response_to_file(
+            mock_response, str(tmp_path), file_name="../evil.txt"
+        )
+
+        expected_path = tmp_path / "evil.txt"
+        mock_file_open.assert_called_once_with(expected_path, "wb")
+        assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_url_path_traversal_stripped(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """Filenames derived from URLs with traversal are sanitized."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+        mock_response = MagicMock()
+        mock_response.headers = {}
+        mock_response.url = "https://test.com/../../secret.pdf"
+        mock_response.iter_content.return_value = [b"data"]
+
+        result = client._save_response_to_file(mock_response, str(tmp_path))
+
+        expected_path = tmp_path / "secret.pdf"
+        mock_file_open.assert_called_once_with(expected_path, "wb")
+        assert result == str(expected_path)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_empty_filename_after_sanitization_falls_back(
+        self, mock_file_open: MagicMock, tmp_path: Any
+    ) -> None:
+        """A filename that becomes empty after sanitization falls back to 'download'."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+        mock_response = MagicMock()
+        mock_response.headers = {
+            "Content-Disposition": 'attachment; filename="../../"'
+        }
+        mock_response.iter_content.return_value = [b"data"]
+
+        result = client._save_response_to_file(mock_response, str(tmp_path))
+
+        expected_path = tmp_path / "download"
+        mock_file_open.assert_called_once_with(expected_path, "wb")
+        assert result == str(expected_path)
+
+    def test_is_safe_path_rejects_unsafe_resolved_path(
+        self, tmp_path: Any
+    ) -> None:
+        """Raises ValueError when resolved path escapes destination."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+        mock_response = MagicMock()
+        mock_response.headers = {
+            "Content-Disposition": 'attachment; filename="safe.txt"'
+        }
+
+        with patch.object(client, "_is_safe_path", return_value=False):
+            with pytest.raises(ValueError, match="resolves outside"):
+                client._save_response_to_file(mock_response, str(tmp_path))
 
 
 class TestExtractArchive:
@@ -1708,6 +1810,116 @@ class TestExtractArchive:
 
         # Directory entries are skipped, but files are extracted
         assert (extract_to / "testdir" / "file.txt").exists()
+
+
+class TestExtractArchiveSymlinks:
+    """Tests for symlink skipping in _extract_archive."""
+
+    def test_tar_symlink_skipped(self, tmp_path: Any) -> None:
+        """Test that symbolic links in tar archives are skipped."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        tar_path = tmp_path / "test.tar"
+        with tarfile.open(tar_path, "w") as tar:
+            # Add a regular file
+            import io
+
+            data = b"real content"
+            info = tarfile.TarInfo(name="real.txt")
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+
+            # Add a symlink pointing outside
+            sym_info = tarfile.TarInfo(name="evil_link")
+            sym_info.type = tarfile.SYMTYPE
+            sym_info.linkname = "/etc/passwd"
+            tar.addfile(sym_info)
+
+        extract_to = tmp_path / "extracted"
+        client._extract_archive(tar_path, extract_to=extract_to)
+
+        assert (extract_to / "real.txt").exists()
+        assert not (extract_to / "evil_link").exists()
+
+    def test_tar_hardlink_skipped(self, tmp_path: Any) -> None:
+        """Test that hard links in tar archives are skipped."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        tar_path = tmp_path / "test.tar"
+        with tarfile.open(tar_path, "w") as tar:
+            import io
+
+            data = b"real content"
+            info = tarfile.TarInfo(name="real.txt")
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+
+            # Add a hard link
+            link_info = tarfile.TarInfo(name="hard_link")
+            link_info.type = tarfile.LNKTYPE
+            link_info.linkname = "real.txt"
+            tar.addfile(link_info)
+
+        extract_to = tmp_path / "extracted"
+        client._extract_archive(tar_path, extract_to=extract_to)
+
+        assert (extract_to / "real.txt").exists()
+        assert not (extract_to / "hard_link").exists()
+
+    def test_zip_symlink_skipped(self, tmp_path: Any) -> None:
+        """Test that symbolic links in zip archives are skipped."""
+        import stat
+        import zipfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        zip_path = tmp_path / "test.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            # Add a regular file
+            zf.writestr("real.txt", "real content")
+
+            # Add a symlink entry (Unix symlink via external_attr)
+            sym_info = zipfile.ZipInfo("evil_link")
+            sym_info.external_attr = (stat.S_IFLNK | 0o777) << 16
+            zf.writestr(sym_info, "/etc/passwd")
+
+        extract_to = tmp_path / "extracted"
+        client._extract_archive(zip_path, extract_to=extract_to)
+
+        assert (extract_to / "real.txt").exists()
+        assert not (extract_to / "evil_link").exists()
+
+    def test_tar_only_symlinks_returns_directory(self, tmp_path: Any) -> None:
+        """Test that an archive containing only symlinks returns the directory."""
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        tar_path = tmp_path / "test.tar"
+        with tarfile.open(tar_path, "w") as tar:
+            sym_info = tarfile.TarInfo(name="evil_link")
+            sym_info.type = tarfile.SYMTYPE
+            sym_info.linkname = "/etc/passwd"
+            tar.addfile(sym_info)
+
+        extract_to = tmp_path / "extracted"
+        result = client._extract_archive(tar_path, extract_to=extract_to)
+
+        # No files extracted, returns directory
+        assert result == str(extract_to)
+        assert not (extract_to / "evil_link").exists()
 
 
 class TestDownloadAndExtract:

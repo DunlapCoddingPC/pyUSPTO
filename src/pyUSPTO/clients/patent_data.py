@@ -1005,6 +1005,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
     def get_IFW_metadata(
         self,
+        *,
         application_number: str | None = None,
         publication_number: str | None = None,
         patent_number: str | None = None,
