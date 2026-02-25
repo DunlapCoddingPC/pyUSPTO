@@ -1406,7 +1406,10 @@ class TestSaveResponseToFile:
         mock_response.iter_content.return_value = [b"data"]
 
         # Save with no destination (should use cwd)
-        with patch("pyUSPTO.clients.base.Path.cwd") as mock_cwd:
+        with (
+            patch("pyUSPTO.clients.base.Path.cwd") as mock_cwd,
+            patch("pyUSPTO.clients.base.Path.mkdir"),
+        ):
             mock_cwd.return_value = Path("/fake/cwd")
             result = client._save_response_to_file(mock_response, destination=None)
 
