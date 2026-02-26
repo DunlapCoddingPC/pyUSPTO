@@ -275,17 +275,28 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                         f"applicationMetaData.patentNumber:{patent_number_q}"
                     )
                 if inventor_name_q:
+                    v = (
+                        f'"{inventor_name_q}"'
+                        if " " in inventor_name_q
+                        else inventor_name_q
+                    )
                     q_parts.append(
-                        f"applicationMetaData.inventorBag.inventorNameText:{inventor_name_q}"
+                        f"applicationMetaData.inventorBag.inventorNameText:{v}"
                     )
                 if applicant_name_q:
-                    q_parts.append(
-                        f"applicationMetaData.firstApplicantName:{applicant_name_q}"
+                    v = (
+                        f'"{applicant_name_q}"'
+                        if " " in applicant_name_q
+                        else applicant_name_q
                     )
+                    q_parts.append(f"applicationMetaData.firstApplicantName:{v}")
                 if assignee_name_q:
-                    q_parts.append(
-                        f"assignmentBag.assigneeBag.assigneeNameText:{assignee_name_q}"
+                    v = (
+                        f'"{assignee_name_q}"'
+                        if " " in assignee_name_q
+                        else assignee_name_q
                     )
+                    q_parts.append(f"assignmentBag.assigneeBag.assigneeNameText:{v}")
                 if classification_q:
                     q_parts.append(
                         f"applicationMetaData.cpcClassificationBag:{classification_q}"
@@ -405,17 +416,28 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                         f"applicationMetaData.patentNumber:{patent_number_q}"
                     )
                 if inventor_name_q:
+                    v = (
+                        f'"{inventor_name_q}"'
+                        if " " in inventor_name_q
+                        else inventor_name_q
+                    )
                     q_parts.append(
-                        f"applicationMetaData.inventorBag.inventorNameText:{inventor_name_q}"
+                        f"applicationMetaData.inventorBag.inventorNameText:{v}"
                     )
                 if applicant_name_q:
-                    q_parts.append(
-                        f"applicationMetaData.firstApplicantName:{applicant_name_q}"
+                    v = (
+                        f'"{applicant_name_q}"'
+                        if " " in applicant_name_q
+                        else applicant_name_q
                     )
+                    q_parts.append(f"applicationMetaData.firstApplicantName:{v}")
                 if assignee_name_q:
-                    q_parts.append(
-                        f"assignmentBag.assigneeBag.assigneeNameText:{assignee_name_q}"
+                    v = (
+                        f'"{assignee_name_q}"'
+                        if " " in assignee_name_q
+                        else assignee_name_q
                     )
+                    q_parts.append(f"assignmentBag.assigneeBag.assigneeNameText:{v}")
                 if classification_q:
                     q_parts.append(
                         f"applicationMetaData.cpcClassificationBag:{classification_q}"

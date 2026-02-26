@@ -230,7 +230,7 @@ class TestFinalPetitionDecisionsClientSearch:
         params = call_args[1]["params"]
         assert "q" in params
         query = params["q"]
-        assert "firstApplicantName:Test Corp" in query
+        assert 'firstApplicantName:"Test Corp"' in query
         assert "technologyCenter:1700" in query
         assert "decisionTypeCode:C" in query
         assert " AND " in query
@@ -284,7 +284,7 @@ class TestFinalPetitionDecisionsClientSearch:
 
         call_args = mock_make_request.call_args
         params = call_args[1]["params"]
-        assert "inventorBag:John Doe" in params["q"]
+        assert 'inventorBag:"John Doe"' in params["q"]
 
     def test_search_with_invention_title(
         self,
@@ -299,7 +299,7 @@ class TestFinalPetitionDecisionsClientSearch:
 
         call_args = mock_make_request.call_args
         params = call_args[1]["params"]
-        assert "inventionTitle:Test Invention" in params["q"]
+        assert 'inventionTitle:"Test Invention"' in params["q"]
 
     def test_search_with_final_deciding_office_name(
         self,
@@ -314,7 +314,7 @@ class TestFinalPetitionDecisionsClientSearch:
 
         call_args = mock_make_request.call_args
         params = call_args[1]["params"]
-        assert "finalDecidingOfficeName:TC Director" in params["q"]
+        assert 'finalDecidingOfficeName:"TC Director"' in params["q"]
 
     def test_search_with_decision_date_from_only(
         self,
@@ -516,7 +516,7 @@ class TestFinalPetitionDecisionsClientDownload:
         call_args = mock_make_request.call_args
         params = call_args[1]["params"]
         assert params["format"] == "json"
-        assert "firstApplicantName:Test Corp" in params.get("q", "")
+        assert 'firstApplicantName:"Test Corp"' in params.get("q", "")
 
     def test_download_csv(
         self,
@@ -613,7 +613,7 @@ class TestFinalPetitionDecisionsClientDownload:
 
         call_args = mock_make_request.call_args
         params = call_args[1]["params"]
-        assert "inventorBag:Jane Doe" in params["q"]
+        assert 'inventorBag:"Jane Doe"' in params["q"]
 
     def test_download_with_decision_date_from_only(
         self,

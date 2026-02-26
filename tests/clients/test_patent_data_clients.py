@@ -370,15 +370,15 @@ class TestPatentApplicationSearch:
             ({"patent_number_q": "PN123"}, "applicationMetaData.patentNumber:PN123"),
             (
                 {"inventor_name_q": "Doe J"},
-                "applicationMetaData.inventorBag.inventorNameText:Doe J",
+                'applicationMetaData.inventorBag.inventorNameText:"Doe J"',
             ),
             (
                 {"applicant_name_q": "Corp Inc"},
-                "applicationMetaData.firstApplicantName:Corp Inc",
+                'applicationMetaData.firstApplicantName:"Corp Inc"',
             ),
             (
                 {"assignee_name_q": "Assignee Ltd"},
-                "assignmentBag.assigneeBag.assigneeNameText:Assignee Ltd",
+                'assignmentBag.assigneeBag.assigneeNameText:"Assignee Ltd"',
             ),
             (
                 {"classification_q": "H04L"},
@@ -471,7 +471,7 @@ class TestPatentApplicationSearch:
         )
 
         expected_q = (
-            "applicationMetaData.inventorBag.inventorNameText:John Smith AND "
+            'applicationMetaData.inventorBag.inventorNameText:"John Smith" AND '
             "applicationMetaData.cpcClassificationBag:G06F AND "
             "applicationMetaData.filingDate:[2020-01-01 TO 2022-01-01]"
         )
@@ -1957,15 +1957,15 @@ class TestPatentApplicationDataRetrieval:
             ({"patent_number_q": "PN123"}, "applicationMetaData.patentNumber:PN123"),
             (
                 {"inventor_name_q": "Doe J"},
-                "applicationMetaData.inventorBag.inventorNameText:Doe J",
+                'applicationMetaData.inventorBag.inventorNameText:"Doe J"',
             ),
             (
                 {"applicant_name_q": "Corp Inc"},
-                "applicationMetaData.firstApplicantName:Corp Inc",
+                'applicationMetaData.firstApplicantName:"Corp Inc"',
             ),
             (
                 {"assignee_name_q": "Assignee Ltd"},
-                "assignmentBag.assigneeBag.assigneeNameText:Assignee Ltd",
+                'assignmentBag.assigneeBag.assigneeNameText:"Assignee Ltd"',
             ),
             (
                 {"classification_q": "H04L"},

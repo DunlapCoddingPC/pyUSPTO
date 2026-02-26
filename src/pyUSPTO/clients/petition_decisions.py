@@ -204,19 +204,37 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
                 if patent_number_q:
                     q_parts.append(f"patentNumber:{patent_number_q}")
                 if inventor_name_q:
-                    q_parts.append(f"inventorBag:{inventor_name_q}")
+                    v = (
+                        f'"{inventor_name_q}"'
+                        if " " in inventor_name_q
+                        else inventor_name_q
+                    )
+                    q_parts.append(f"inventorBag:{v}")
                 if applicant_name_q:
-                    q_parts.append(f"firstApplicantName:{applicant_name_q}")
+                    v = (
+                        f'"{applicant_name_q}"'
+                        if " " in applicant_name_q
+                        else applicant_name_q
+                    )
+                    q_parts.append(f"firstApplicantName:{v}")
                 if invention_title_q:
-                    q_parts.append(f"inventionTitle:{invention_title_q}")
+                    v = (
+                        f'"{invention_title_q}"'
+                        if " " in invention_title_q
+                        else invention_title_q
+                    )
+                    q_parts.append(f"inventionTitle:{v}")
                 if decision_type_code_q:
                     q_parts.append(f"decisionTypeCode:{decision_type_code_q}")
                 if technology_center_q:
                     q_parts.append(f"technologyCenter:{technology_center_q}")
                 if final_deciding_office_name_q:
-                    q_parts.append(
-                        f"finalDecidingOfficeName:{final_deciding_office_name_q}"
+                    v = (
+                        f'"{final_deciding_office_name_q}"'
+                        if " " in final_deciding_office_name_q
+                        else final_deciding_office_name_q
                     )
+                    q_parts.append(f"finalDecidingOfficeName:{v}")
 
                 # Handle decision date range
                 if decision_date_from_q and decision_date_to_q:
@@ -414,9 +432,19 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             if patent_number_q:
                 q_parts.append(f"patentNumber:{patent_number_q}")
             if inventor_name_q:
-                q_parts.append(f"inventorBag:{inventor_name_q}")
+                v = (
+                    f'"{inventor_name_q}"'
+                    if " " in inventor_name_q
+                    else inventor_name_q
+                )
+                q_parts.append(f"inventorBag:{v}")
             if applicant_name_q:
-                q_parts.append(f"firstApplicantName:{applicant_name_q}")
+                v = (
+                    f'"{applicant_name_q}"'
+                    if " " in applicant_name_q
+                    else applicant_name_q
+                )
+                q_parts.append(f"firstApplicantName:{v}")
 
             # Handle decision date range
             if decision_date_from_q and decision_date_to_q:
