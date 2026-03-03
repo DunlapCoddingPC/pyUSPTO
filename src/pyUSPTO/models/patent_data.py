@@ -2063,6 +2063,7 @@ class PatentFileWrapper:
     pgpub_document_meta_data: PrintedMetaData | None = None
     grant_document_meta_data: PrintedMetaData | None = None
     last_ingestion_date_time: datetime | None = None
+    document_bag: DocumentBag | None = None
 
     @classmethod
     def from_dict(

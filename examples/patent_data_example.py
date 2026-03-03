@@ -302,6 +302,23 @@ except Exception as e:
     print(f"Error with POST search: {e}")
 
 
+# Search by CPC classification code
+# CPC codes containing spaces or slashes are automatically quoted for the Lucene query.
+try:
+    print("\nSearching by CPC classification code 'H10D  64/667'...")
+    cpc_response = client.search_applications(
+        classification_q="H10D  64/667", limit=3
+    )
+    print(f"Found {cpc_response.count} applications with CPC code H10D 64/667.")
+    for patent_wrapper in cpc_response.patent_file_wrapper_data_bag:
+        if patent_wrapper.application_meta_data:
+            print(
+                f"  - App No: {patent_wrapper.application_number_text}, Title: {patent_wrapper.application_meta_data.invention_title}"
+            )
+except Exception as e:
+    print(f"Error searching by CPC classification: {e}")
+
+
 # Example of getting status codes
 try:
     print("\nGetting first 5 status codes...")

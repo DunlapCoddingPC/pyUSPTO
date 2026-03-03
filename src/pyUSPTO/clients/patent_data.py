@@ -4,6 +4,7 @@ This module provides a client for interacting with the USPTO Patent Data API.
 It allows you to search for and retrieve patent application data.
 """
 
+import dataclasses
 import warnings
 from collections.abc import Iterator
 from typing import Any
@@ -121,6 +122,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         # Example: "PCT/US2024/012345" -> "PCTUS2412345"
         if raw.startswith("PCT"):
             parts = raw.split("/")
+            if len(parts) == 1:
+                # Already sanitized (e.g. "PCTUS0812705"), return as-is
+                return raw
             if len(parts) != 3:
                 raise ValueError(
                     f"Invalid PCT application format: {input_number}. "
@@ -1064,27 +1068,33 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 comprehensive data if found using one of the identifiers,
                 otherwise None.
         """
+        wrapper = None
         if application_number:
-            return self.get_application_by_number(application_number=application_number)
-        if patent_number:
+            wrapper = self.get_application_by_number(
+                application_number=application_number
+            )
+        elif patent_number:
             pdr = self.search_applications(patent_number_q=patent_number, limit=1)
             if pdr.patent_file_wrapper_data_bag:
-                return pdr.patent_file_wrapper_data_bag[0]
-        if publication_number:
+                wrapper = pdr.patent_file_wrapper_data_bag[0]
+        elif publication_number:
             pdr = self.search_applications(
                 earliestPublicationNumber_q=publication_number, limit=1
             )
             if pdr.patent_file_wrapper_data_bag:
-                return pdr.patent_file_wrapper_data_bag[0]
-        if PCT_app_number:
-            return self.get_application_by_number(application_number=PCT_app_number)
-        if PCT_pub_number:
+                wrapper = pdr.patent_file_wrapper_data_bag[0]
+        elif PCT_app_number:
+            wrapper = self.get_application_by_number(application_number=PCT_app_number)
+        elif PCT_pub_number:
             pdr = self.search_applications(
                 pctPublicationNumber_q=PCT_pub_number, limit=1
             )
             if pdr.patent_file_wrapper_data_bag:
-                return pdr.patent_file_wrapper_data_bag[0]
-        return None
+                wrapper = pdr.patent_file_wrapper_data_bag[0]
+        if wrapper is None:
+            return None
+        doc_bag = self.get_application_documents(wrapper.application_number_text)
+        return dataclasses.replace(wrapper, document_bag=doc_bag)
 
     def download_archive(
         self,

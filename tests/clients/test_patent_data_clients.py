@@ -11,7 +11,7 @@ from collections.abc import Iterator
 from datetime import date, datetime, timezone
 from typing import Any
 from unittest import mock
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, call, mock_open, patch
 
 import pytest
 import requests
@@ -1231,20 +1231,22 @@ class TestGetIFW:
     ) -> None:
         """Test get_IFW with application_number calls get_application_by_number."""
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = PatentDataResponse(
-            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
-        )
+        mock_make_request.side_effect = [
+            PatentDataResponse(count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]),
+            {"documentBag": []},
+        ]
 
         app_num = "12345678"
         result = client.get_IFW_metadata(application_number=app_num)
 
-        # Should call get_application_by_number
-        mock_make_request.assert_called_once_with(
+        # Should call get_application_by_number first
+        assert mock_make_request.call_args_list[0] == call(
             method="GET",
             endpoint=f"api/v1/patent/applications/{app_num}",
             response_class=PatentDataResponse,
         )
-        assert result is mock_patent_file_wrapper
+        assert result.application_number_text == mock_patent_file_wrapper.application_number_text
+        assert isinstance(result.document_bag, DocumentBag)
 
     def test_get_ifw_by_patent_number(
         self,
@@ -1253,15 +1255,16 @@ class TestGetIFW:
     ) -> None:
         """Test get_IFW with patent_number calls search_applications."""
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = PatentDataResponse(
-            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
-        )
+        mock_make_request.side_effect = [
+            PatentDataResponse(count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]),
+            {"documentBag": []},
+        ]
 
         patent_num = "10000000"
         result = client.get_IFW_metadata(patent_number=patent_num)
 
-        # Should call search_applications with patent_number_q
-        mock_make_request.assert_called_once_with(
+        # Should call search_applications with patent_number_q first
+        assert mock_make_request.call_args_list[0] == call(
             method="GET",
             endpoint="api/v1/patent/applications/search",
             params={
@@ -1271,7 +1274,8 @@ class TestGetIFW:
             },
             response_class=PatentDataResponse,
         )
-        assert result is mock_patent_file_wrapper
+        assert result.application_number_text == mock_patent_file_wrapper.application_number_text
+        assert isinstance(result.document_bag, DocumentBag)
 
     def test_get_ifw_by_publication_number(
         self,
@@ -1280,15 +1284,16 @@ class TestGetIFW:
     ) -> None:
         """Test get_IFW with publication_number calls search_applications."""
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = PatentDataResponse(
-            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
-        )
+        mock_make_request.side_effect = [
+            PatentDataResponse(count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]),
+            {"documentBag": []},
+        ]
 
         pub_num = "US20240123456A1"
         result = client.get_IFW_metadata(publication_number=pub_num)
 
-        # Should call search_applications with earliestPublicationNumber_q
-        mock_make_request.assert_called_once_with(
+        # Should call search_applications with earliestPublicationNumber_q first
+        assert mock_make_request.call_args_list[0] == call(
             method="GET",
             endpoint="api/v1/patent/applications/search",
             params={
@@ -1298,7 +1303,8 @@ class TestGetIFW:
             },
             response_class=PatentDataResponse,
         )
-        assert result is mock_patent_file_wrapper
+        assert result.application_number_text == mock_patent_file_wrapper.application_number_text
+        assert isinstance(result.document_bag, DocumentBag)
 
     def test_get_ifw_by_pct_app_number(
         self,
@@ -1312,9 +1318,10 @@ class TestGetIFW:
         This is expected test behavior for validating the warning system.
         """
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = PatentDataResponse(
-            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
-        )
+        mock_make_request.side_effect = [
+            PatentDataResponse(count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]),
+            {"documentBag": []},
+        ]
 
         pct_app = "PCT/US2024/012345"
 
@@ -1322,13 +1329,14 @@ class TestGetIFW:
         with pytest.warns(USPTODataMismatchWarning):
             result = client.get_IFW_metadata(PCT_app_number=pct_app)
 
-        # Should call get_application_by_number
-        mock_make_request.assert_called_once_with(
+        # Should call get_application_by_number first
+        assert mock_make_request.call_args_list[0] == call(
             method="GET",
             endpoint="api/v1/patent/applications/PCTUS24012345",
             response_class=PatentDataResponse,
         )
-        assert result is mock_patent_file_wrapper
+        assert result.application_number_text == mock_patent_file_wrapper.application_number_text
+        assert isinstance(result.document_bag, DocumentBag)
 
     def test_get_ifw_by_short_pct_app_number(
         self,
@@ -1345,9 +1353,10 @@ class TestGetIFW:
         This is expected test behavior for validating the warning system.
         """
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = PatentDataResponse(
-            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
-        )
+        mock_make_request.side_effect = [
+            PatentDataResponse(count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]),
+            {"documentBag": []},
+        ]
 
         pct_app = "PCT/US24/012345"
 
@@ -1355,13 +1364,14 @@ class TestGetIFW:
         with pytest.warns(USPTODataMismatchWarning):
             result = client.get_IFW_metadata(PCT_app_number=pct_app)
 
-        # Should call get_application_by_number
-        mock_make_request.assert_called_once_with(
+        # Should call get_application_by_number first
+        assert mock_make_request.call_args_list[0] == call(
             method="GET",
             endpoint="api/v1/patent/applications/PCTUS24012345",
             response_class=PatentDataResponse,
         )
-        assert result is mock_patent_file_wrapper
+        assert result.application_number_text == mock_patent_file_wrapper.application_number_text
+        assert isinstance(result.document_bag, DocumentBag)
 
     def test_get_ifw_by_pct_app_number_malformed(
         self,
@@ -1467,15 +1477,16 @@ class TestGetIFW:
     ) -> None:
         """Test get_IFW with PCT_pub_number calls search_applications."""
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = PatentDataResponse(
-            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
-        )
+        mock_make_request.side_effect = [
+            PatentDataResponse(count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]),
+            {"documentBag": []},
+        ]
 
         pct_pub = "WO2024012345A1"
         result = client.get_IFW_metadata(PCT_pub_number=pct_pub)
 
-        # Should call search_applications with pctPublicationNumber_q
-        mock_make_request.assert_called_once_with(
+        # Should call search_applications with pctPublicationNumber_q first
+        assert mock_make_request.call_args_list[0] == call(
             method="GET",
             endpoint="api/v1/patent/applications/search",
             params={
@@ -1485,7 +1496,8 @@ class TestGetIFW:
             },
             response_class=PatentDataResponse,
         )
-        assert result is mock_patent_file_wrapper
+        assert result.application_number_text == mock_patent_file_wrapper.application_number_text
+        assert isinstance(result.document_bag, DocumentBag)
 
     def test_get_ifw_no_parameters_returns_none(
         self, patent_data_client: PatentDataClient
@@ -1513,9 +1525,10 @@ class TestGetIFW:
     ) -> None:
         """Test get_IFW uses application_number when multiple parameters provided."""
         client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = PatentDataResponse(
-            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
-        )
+        mock_make_request.side_effect = [
+            PatentDataResponse(count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]),
+            {"documentBag": []},
+        ]
 
         app_num = "12345678"
         # Provide multiple parameters - should use application_number
@@ -1525,13 +1538,14 @@ class TestGetIFW:
             publication_number="US20240123456A1",
         )
 
-        # Should only call get_application_by_number, not search
-        mock_make_request.assert_called_once_with(
+        # Should call get_application_by_number first, not search
+        assert mock_make_request.call_args_list[0] == call(
             method="GET",
             endpoint=f"api/v1/patent/applications/{app_num}",
             response_class=PatentDataResponse,
         )
-        assert result is mock_patent_file_wrapper
+        assert result.application_number_text == mock_patent_file_wrapper.application_number_text
+        assert isinstance(result.document_bag, DocumentBag)
 
 
 class TestDownloadArchive:
@@ -2535,6 +2549,9 @@ class TestApplicationNumberSanitization:
         # Multiple slashes
         with pytest.raises(ValueError, match="Expected format: NNNNNNNN or NN/NNNNNN"):
             patent_data_client.sanitize_application_number("08/123/456")
+
+        # Already-sanitized PCT number passes through unchanged
+        assert patent_data_client.sanitize_application_number("PCTUS0812705") == "PCTUS0812705"
 
 
 class TestRawDataFeature:
