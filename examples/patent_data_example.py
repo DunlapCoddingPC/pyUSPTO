@@ -304,6 +304,8 @@ except Exception as e:
 
 # Search by CPC classification code
 # CPC codes containing spaces or slashes are automatically quoted for the Lucene query.
+# cpc_classification_bag on ApplicationMetaData is a list[str] of all CPC codes assigned
+# to the application, so each result may have multiple codes.
 try:
     print("\nSearching by CPC classification code 'H10D  64/667'...")
     cpc_response = client.search_applications(
@@ -311,10 +313,13 @@ try:
     )
     print(f"Found {cpc_response.count} applications with CPC code H10D 64/667.")
     for patent_wrapper in cpc_response.patent_file_wrapper_data_bag:
-        if patent_wrapper.application_meta_data:
+        app_meta = patent_wrapper.application_meta_data
+        if app_meta:
             print(
-                f"  - App No: {patent_wrapper.application_number_text}, Title: {patent_wrapper.application_meta_data.invention_title}"
+                f"  - App No: {patent_wrapper.application_number_text}, Title: {app_meta.invention_title}"
             )
+            if app_meta.cpc_classification_bag:
+                print(f"    CPC codes: {', '.join(app_meta.cpc_classification_bag)}")
 except Exception as e:
     print(f"Error searching by CPC classification: {e}")
 
