@@ -29,7 +29,7 @@ docutils==0.21.2
     #   sphinx-rtd-theme
 idna==3.11
     # via requests
-imagesize==1.4.1
+imagesize==1.5.0
     # via sphinx
 iniconfig==2.3.0
     # via pytest
