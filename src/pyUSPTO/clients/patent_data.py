@@ -298,9 +298,12 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                     )
                     q_parts.append(f"assignmentBag.assigneeBag.assigneeNameText:{v}")
                 if classification_q:
-                    q_parts.append(
-                        f"applicationMetaData.cpcClassificationBag:{classification_q}"
+                    v = (
+                        f'"{classification_q}"'
+                        if any(c in classification_q for c in [" ", "/"])
+                        else classification_q
                     )
+                    q_parts.append(f"applicationMetaData.cpcClassificationBag:{v}")
                 if earliestPublicationNumber_q:
                     q_parts.append(
                         f"applicationMetaData.earliestPublicationNumber:{earliestPublicationNumber_q}"
@@ -439,9 +442,12 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                     )
                     q_parts.append(f"assignmentBag.assigneeBag.assigneeNameText:{v}")
                 if classification_q:
-                    q_parts.append(
-                        f"applicationMetaData.cpcClassificationBag:{classification_q}"
+                    v = (
+                        f'"{classification_q}"'
+                        if any(c in classification_q for c in [" ", "/"])
+                        else classification_q
                     )
+                    q_parts.append(f"applicationMetaData.cpcClassificationBag:{v}")
 
                 if filing_date_from_q and filing_date_to_q:
                     q_parts.append(

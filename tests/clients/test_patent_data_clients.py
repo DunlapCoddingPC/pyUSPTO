@@ -385,6 +385,10 @@ class TestPatentApplicationSearch:
                 "applicationMetaData.cpcClassificationBag:H04L",
             ),
             (
+                {"classification_q": "H10D  64/667"},
+                'applicationMetaData.cpcClassificationBag:"H10D  64/667"',
+            ),
+            (
                 {"earliestPublicationNumber_q": "*12345678*"},
                 "applicationMetaData.earliestPublicationNumber:*12345678*",
             ),
@@ -1970,6 +1974,10 @@ class TestPatentApplicationDataRetrieval:
             (
                 {"classification_q": "H04L"},
                 "applicationMetaData.cpcClassificationBag:H04L",
+            ),
+            (
+                {"classification_q": "H10D  64/667"},
+                'applicationMetaData.cpcClassificationBag:"H10D  64/667"',
             ),
             (
                 {"filing_date_from_q": "2021-01-01"},
