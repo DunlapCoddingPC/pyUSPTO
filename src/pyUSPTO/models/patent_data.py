@@ -2048,6 +2048,7 @@ class PatentFileWrapper:
         pgpub_document_meta_data: `PrintedMetaData` for Pre-Grant Publication.
         grant_document_meta_data: `PrintedMetaData` for the granted patent.
         last_ingestion_date_time: Timestamp of when this data was last ingested by the API (UTC).
+        document_bag: `DocumentBag` containing associated documents and their metadata.
     """
 
     application_number_text: str
@@ -2212,15 +2213,21 @@ class PatentFileWrapper:
 
 @dataclass(frozen=True)
 class IFWResult:
-    """Result of a get_IFW call: metadata wrapper and path to the downloaded archive.
+    """Result of a get_IFW call: metadata wrapper, output path, and document map.
 
     Attributes:
         wrapper: The PatentFileWrapper containing all IFW metadata and document_bag.
-        archive_path: Absolute path to the ZIP archive of downloaded prosecution documents.
+        output_path: Absolute path to the ZIP archive (when as_zip=True) or the
+            output directory (when as_zip=False).
+        downloaded_documents: Maps document_identifier to the filename of the
+            downloaded file — the arcname inside the ZIP (as_zip=True) or the
+            basename inside the output directory (as_zip=False). Documents that
+            were skipped (no PDF/DOCX URL) or failed to download are absent.
     """
 
     wrapper: PatentFileWrapper
-    archive_path: str
+    output_path: str
+    downloaded_documents: dict[str, str]
 
 
 @dataclass(frozen=True)

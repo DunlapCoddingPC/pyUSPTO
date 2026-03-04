@@ -7,6 +7,7 @@ PatentDataClient.
 
 import csv
 import io
+import os
 from collections.abc import Iterator
 from datetime import date, datetime, timezone
 from typing import Any
@@ -3170,7 +3171,7 @@ class TestGetIFWDownload:
     def test_returns_ifw_result_with_zip(
         self, patent_data_client: PatentDataClient, pdf_doc: Document, tmp_path
     ) -> None:
-        """get_IFW returns IFWResult with a valid ZIP containing the downloaded doc."""
+        """get_IFW returns IFWResult with a valid ZIP and populated downloaded_documents."""
         wrapper = self._make_wrapper(pdf_doc)
         fake_pdf = tmp_path / "staging" / "doc001.pdf"
         fake_pdf.parent.mkdir()
@@ -3191,10 +3192,41 @@ class TestGetIFWDownload:
 
         assert isinstance(result, IFWResult)
         assert result.wrapper is wrapper
-        assert result.archive_path.endswith("12345678_ifw.zip")
+        assert result.output_path.endswith("12345678_ifw.zip")
+        assert result.downloaded_documents == {"DOC001": "doc001.pdf"}
         import zipfile as zf
-        with zf.ZipFile(result.archive_path) as z:
+        with zf.ZipFile(result.output_path) as z:
             assert "doc001.pdf" in z.namelist()
+
+    def test_returns_ifw_result_as_directory(
+        self, patent_data_client: PatentDataClient, pdf_doc: Document, tmp_path
+    ) -> None:
+        """as_zip=False downloads into a subdirectory and populates downloaded_documents."""
+        wrapper = self._make_wrapper(pdf_doc)
+        out_dir = tmp_path / "out" / "12345678_ifw"
+        out_dir.mkdir(parents=True)
+        fake_pdf = out_dir / "doc001.pdf"
+        fake_pdf.write_bytes(b"%PDF fake content")
+
+        with (
+            patch.object(patent_data_client, "get_IFW_metadata", return_value=wrapper),
+            patch.object(
+                patent_data_client,
+                "_download_and_extract",
+                return_value=str(fake_pdf),
+            ),
+        ):
+            result = patent_data_client.get_IFW(
+                application_number="12345678",
+                destination=str(tmp_path / "out"),
+                as_zip=False,
+                overwrite=True,
+            )
+
+        assert isinstance(result, IFWResult)
+        assert result.output_path.endswith("12345678_ifw")
+        assert os.path.isdir(result.output_path)
+        assert result.downloaded_documents == {"DOC001": "doc001.pdf"}
 
     def test_skips_xml_only_docs_silently(
         self, patent_data_client: PatentDataClient, xml_only_doc: Document, tmp_path
@@ -3212,6 +3244,7 @@ class TestGetIFWDownload:
             )
         mock_dl.assert_not_called()
         assert isinstance(result, IFWResult)
+        assert result.downloaded_documents == {}
 
     def test_skips_no_url_docs_silently(
         self, patent_data_client: PatentDataClient, no_url_doc: Document, tmp_path
@@ -3229,6 +3262,7 @@ class TestGetIFWDownload:
             )
         mock_dl.assert_not_called()
         assert isinstance(result, IFWResult)
+        assert result.downloaded_documents == {}
 
     def test_warns_on_download_failure(
         self, patent_data_client: PatentDataClient, pdf_doc: Document, tmp_path
@@ -3250,14 +3284,14 @@ class TestGetIFWDownload:
                 destination=str(tmp_path),
             )
         assert isinstance(result, IFWResult)
+        assert result.downloaded_documents == {}
 
-    def test_raises_file_exists_error(
+    def test_raises_file_exists_error_zip(
         self, patent_data_client: PatentDataClient, pdf_doc: Document, tmp_path
     ) -> None:
         """FileExistsError raised if ZIP already exists and overwrite=False."""
         wrapper = self._make_wrapper(pdf_doc)
-        existing_zip = tmp_path / "12345678_ifw.zip"
-        existing_zip.write_bytes(b"")
+        (tmp_path / "12345678_ifw.zip").write_bytes(b"")
 
         with patch.object(patent_data_client, "get_IFW_metadata", return_value=wrapper):
             with pytest.raises(FileExistsError):
@@ -3267,13 +3301,28 @@ class TestGetIFWDownload:
                     overwrite=False,
                 )
 
+    def test_raises_file_exists_error_directory(
+        self, patent_data_client: PatentDataClient, pdf_doc: Document, tmp_path
+    ) -> None:
+        """FileExistsError raised if output directory already exists and overwrite=False."""
+        wrapper = self._make_wrapper(pdf_doc)
+        (tmp_path / "12345678_ifw").mkdir()
+
+        with patch.object(patent_data_client, "get_IFW_metadata", return_value=wrapper):
+            with pytest.raises(FileExistsError):
+                patent_data_client.get_IFW(
+                    application_number="12345678",
+                    destination=str(tmp_path),
+                    overwrite=False,
+                    as_zip=False,
+                )
+
     def test_overwrite_replaces_existing_zip(
         self, patent_data_client: PatentDataClient, pdf_doc: Document, tmp_path
     ) -> None:
         """overwrite=True replaces an existing ZIP without error."""
         wrapper = self._make_wrapper(pdf_doc)
-        existing_zip = tmp_path / "12345678_ifw.zip"
-        existing_zip.write_bytes(b"old content")
+        (tmp_path / "12345678_ifw.zip").write_bytes(b"old content")
 
         fake_pdf = tmp_path / "staging" / "doc001.pdf"
         fake_pdf.parent.mkdir()
@@ -3322,3 +3371,74 @@ class TestGetIFWDownload:
             overwrite=True,
         )
         assert isinstance(result, IFWResult)
+        assert result.downloaded_documents == {"DOC004": "doc004.docx"}
+
+    def test_directory_skips_xml_only_docs(
+        self, patent_data_client: PatentDataClient, xml_only_doc: Document, tmp_path
+    ) -> None:
+        """as_zip=False: docs with only XML are silently skipped."""
+        wrapper = self._make_wrapper(xml_only_doc)
+
+        with (
+            patch.object(patent_data_client, "get_IFW_metadata", return_value=wrapper),
+            patch.object(patent_data_client, "_download_and_extract") as mock_dl,
+        ):
+            result = patent_data_client.get_IFW(
+                application_number="12345678",
+                destination=str(tmp_path),
+                as_zip=False,
+            )
+        mock_dl.assert_not_called()
+        assert result.downloaded_documents == {}
+
+    def test_directory_warns_on_download_failure(
+        self, patent_data_client: PatentDataClient, pdf_doc: Document, tmp_path
+    ) -> None:
+        """as_zip=False: warning issued when download raises despite having a URL."""
+        wrapper = self._make_wrapper(pdf_doc)
+
+        with (
+            patch.object(patent_data_client, "get_IFW_metadata", return_value=wrapper),
+            patch.object(
+                patent_data_client,
+                "_download_and_extract",
+                side_effect=OSError("network error"),
+            ),
+            pytest.warns(match="DOC001"),
+        ):
+            result = patent_data_client.get_IFW(
+                application_number="12345678",
+                destination=str(tmp_path),
+                as_zip=False,
+            )
+        assert result.downloaded_documents == {}
+
+    def test_skips_docs_with_no_identifier(
+        self, patent_data_client: PatentDataClient, tmp_path
+    ) -> None:
+        """Documents with no document_identifier are silently skipped in both modes."""
+        no_id_doc = Document(
+            document_identifier=None,
+            document_code="CTNF",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF",
+                    download_url="https://example.com/doc.pdf",
+                ),
+            ],
+        )
+        wrapper = self._make_wrapper(no_id_doc)
+
+        for as_zip in (True, False):
+            with (
+                patch.object(patent_data_client, "get_IFW_metadata", return_value=wrapper),
+                patch.object(patent_data_client, "_download_and_extract") as mock_dl,
+            ):
+                result = patent_data_client.get_IFW(
+                    application_number="12345678",
+                    destination=str(tmp_path),
+                    as_zip=as_zip,
+                    overwrite=True,
+                )
+            mock_dl.assert_not_called()
+            assert result.downloaded_documents == {}

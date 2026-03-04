@@ -1110,8 +1110,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         PCT_pub_number: str | None = None,
         destination: str | None = None,
         overwrite: bool = False,
+        as_zip: bool = True,
     ) -> IFWResult | None:
-        """Retrieve IFW metadata and download all prosecution documents as a ZIP archive.
+        """Retrieve IFW metadata and download all prosecution documents.
 
         Combines `get_IFW_metadata` with a bulk download of all available prosecution
         history documents (PDF preferred, DOCX fallback). Documents with no downloadable
@@ -1124,15 +1125,19 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             patent_number: USPTO patent number.
             PCT_app_number: PCT application number.
             PCT_pub_number: PCT publication number.
-            destination: Directory to save the ZIP archive. Defaults to current directory.
-            overwrite: Whether to overwrite an existing ZIP. Default False.
+            destination: Directory for output. Defaults to current directory.
+            overwrite: Whether to overwrite an existing output. Default False.
+            as_zip: If True (default), package all downloads into a ZIP archive
+                at ``{destination}/{app_no}_ifw.zip``. If False, download files
+                directly into ``{destination}/{app_no}_ifw/``.
 
         Returns:
-            IFWResult with the PatentFileWrapper and the path to the ZIP archive,
-            or None if no application was found.
+            IFWResult with the PatentFileWrapper, the output path, and a mapping
+            of document_identifier to filename for each downloaded document.
+            Returns None if no application was found.
 
         Raises:
-            FileExistsError: If the ZIP archive already exists and overwrite=False.
+            FileExistsError: If the output path already exists and overwrite=False.
         """
         wrapper = self.get_IFW_metadata(
             application_number=application_number,
@@ -1146,47 +1151,90 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         dest_dir = destination or "."
         app_no = wrapper.application_number_text or "unknown"
-        zip_name = f"{app_no}_ifw.zip"
-        zip_path = os.path.join(dest_dir, zip_name)
+        downloaded_documents: dict[str, str] = {}
 
-        if os.path.exists(zip_path) and not overwrite:
-            raise FileExistsError(
-                f"ZIP archive already exists: {zip_path}. Use overwrite=True to replace."
-            )
-
-        os.makedirs(dest_dir, exist_ok=True)
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-                for doc in wrapper.document_bag:
-                    # Prefer PDF, fall back to MS_WORD; skip XML and formatless docs.
-                    fmt_obj = next(
-                        (
-                            f
-                            for f in doc.document_formats
-                            if f.mime_type_identifier in ("PDF", "MS_WORD")
-                            and f.download_url
-                        ),
-                        None,
+        if as_zip:
+            output_path = os.path.join(dest_dir, f"{app_no}_ifw.zip")
+            if os.path.exists(output_path) and not overwrite:
+                raise FileExistsError(
+                    f"ZIP archive already exists: {output_path}. Use overwrite=True to replace."
+                )
+            os.makedirs(dest_dir, exist_ok=True)
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                with zipfile.ZipFile(
+                    output_path, "w", compression=zipfile.ZIP_DEFLATED
+                ) as zf:
+                    for doc in wrapper.document_bag or []:
+                        if not doc.document_identifier:
+                            continue
+                        fmt_obj = next(
+                            (
+                                f
+                                for f in doc.document_formats
+                                if f.mime_type_identifier in ("PDF", "MS_WORD")
+                                and f.download_url
+                            ),
+                            None,
+                        )
+                        if fmt_obj is None or not fmt_obj.download_url:
+                            continue
+                        try:
+                            downloaded = self._download_and_extract(
+                                url=fmt_obj.download_url,
+                                destination=tmp_dir,
+                                overwrite=True,
+                            )
+                            arcname = os.path.basename(downloaded)
+                            zf.write(downloaded, arcname=arcname)
+                            downloaded_documents[doc.document_identifier] = arcname
+                        except Exception as exc:
+                            warnings.warn(
+                                f"Failed to download document {doc.document_identifier} "
+                                f"({doc.document_code}): {exc}",
+                                stacklevel=2,
+                            )
+        else:
+            output_path = os.path.join(dest_dir, f"{app_no}_ifw")
+            if os.path.exists(output_path) and not overwrite:
+                raise FileExistsError(
+                    f"Output directory already exists: {output_path}. Use overwrite=True to replace."
+                )
+            os.makedirs(output_path, exist_ok=True)
+            for doc in wrapper.document_bag or []:
+                if not doc.document_identifier:
+                    continue
+                fmt_obj = next(
+                    (
+                        f
+                        for f in doc.document_formats
+                        if f.mime_type_identifier in ("PDF", "MS_WORD")
+                        and f.download_url
+                    ),
+                    None,
+                )
+                if fmt_obj is None or not fmt_obj.download_url:
+                    continue
+                try:
+                    downloaded = self._download_and_extract(
+                        url=fmt_obj.download_url,
+                        destination=output_path,
+                        overwrite=overwrite,
                     )
-                    if fmt_obj is None:
-                        continue
+                    downloaded_documents[doc.document_identifier] = os.path.basename(
+                        downloaded
+                    )
+                except Exception as exc:
+                    warnings.warn(
+                        f"Failed to download document {doc.document_identifier} "
+                        f"({doc.document_code}): {exc}",
+                        stacklevel=2,
+                    )
 
-                    try:
-                        downloaded = self._download_and_extract(
-                            url=fmt_obj.download_url,
-                            destination=tmp_dir,
-                            overwrite=True,
-                        )
-                        zf.write(downloaded, arcname=os.path.basename(downloaded))
-                    except Exception as exc:
-                        warnings.warn(
-                            f"Failed to download document {doc.document_identifier} "
-                            f"({doc.document_code}): {exc}",
-                            stacklevel=2,
-                        )
-
-        return IFWResult(wrapper=wrapper, archive_path=os.path.abspath(zip_path))
+        return IFWResult(
+            wrapper=wrapper,
+            output_path=os.path.abspath(output_path),
+            downloaded_documents=downloaded_documents,
+        )
 
     def download_archive(
         self,
