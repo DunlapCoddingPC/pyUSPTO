@@ -52,11 +52,11 @@ mdit-py-plugins==0.5.0
 mdurl==0.1.2
     # via markdown-it-py
 mypy==1.19.1
-    # via pyUSPTO (pyproject.toml)
+    # via pyuspto
 mypy-extensions==1.1.0
     # via mypy
 myst-parser==5.0.0
-    # via pyUSPTO (pyproject.toml)
+    # via pyuspto
 packaging==26.0
     # via
     #   pytest
@@ -71,7 +71,7 @@ pydantic==2.12.5
     # via
     #   pydantic-extra-types
     #   sphinx-immaterial
-pydantic-core==2.42.0
+pydantic-core==2.41.5
     # via pydantic
 pydantic-extra-types==2.11.0
     # via sphinx-immaterial
@@ -81,41 +81,48 @@ pygments==2.19.2
     #   sphinx
 pytest==9.0.2
     # via
-    #   pyUSPTO (pyproject.toml)
     #   pytest-cov
     #   pytest-mock
+    #   pyuspto
 pytest-cov==7.0.0
-    # via pyUSPTO (pyproject.toml)
+    # via pyuspto
 pytest-mock==3.15.1
-    # via pyUSPTO (pyproject.toml)
+    # via pyuspto
+pyuspto @ file:///C:/Users/andrewp/Documents/GitHub/pyUSPTO
+    # via
+    #   pyUSPTO (pyproject.toml)
+    #   pyuspto
 pyyaml==6.0.3
     # via myst-parser
 requests==2.32.5
     # via
     #   pyUSPTO (pyproject.toml)
+    #   pyuspto
     #   sphinx
     #   sphinx-immaterial
+roman-numerals==4.1.0
+    # via sphinx
 ruff==0.15.4
-    # via pyUSPTO (pyproject.toml)
+    # via pyuspto
 snowballstemmer==3.0.1
     # via sphinx
 sphinx==9.1.0
     # via
     #   myst-parser
-    #   pyUSPTO (pyproject.toml)
+    #   pyuspto
     #   sphinx-autodoc-typehints
     #   sphinx-copybutton
     #   sphinx-immaterial
     #   sphinx-rtd-theme
     #   sphinxcontrib-jquery
-sphinx-autodoc-typehints==3.9.5
-    # via pyUSPTO (pyproject.toml)
+sphinx-autodoc-typehints==3.9.6
+    # via pyuspto
 sphinx-copybutton==0.5.2
-    # via pyUSPTO (pyproject.toml)
+    # via pyuspto
 sphinx-immaterial==0.13.9
-    # via pyUSPTO (pyproject.toml)
+    # via pyuspto
 sphinx-rtd-theme==3.1.0
-    # via pyUSPTO (pyproject.toml)
+    # via pyuspto
 sphinxcontrib-applehelp==2.0.0
     # via sphinx
 sphinxcontrib-devhelp==2.0.0
@@ -131,7 +138,7 @@ sphinxcontrib-qthelp==2.0.0
 sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 types-requests==2.32.4.20260107
-    # via pyUSPTO (pyproject.toml)
+    # via pyuspto
 typing-extensions==4.15.0
     # via
     #   mypy
@@ -143,7 +150,9 @@ typing-extensions==4.15.0
 typing-inspection==0.4.2
     # via pydantic
 tzdata==2025.3
-    # via pyUSPTO (pyproject.toml)
+    # via
+    #   pyUSPTO (pyproject.toml)
+    #   pyuspto
 urllib3==2.6.3
     # via
     #   requests
