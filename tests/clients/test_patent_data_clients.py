@@ -33,6 +33,7 @@ from pyUSPTO.models.patent_data import (
     DocumentMimeType,
     EventData,
     ForeignPriority,
+    IFWResult,
     Inventor,
     ParentContinuity,
     PatentDataResponse,
@@ -3094,3 +3095,230 @@ class TestPatentDataResponseCSVExport:
             assert data_rows[1][1] == "APP002"
             assert data_rows[1][2] == serialize_date(wrapper2_meta.filing_date)
             assert data_rows[1][7] == wrapper2_meta.first_inventor_name
+
+
+class TestGetIFWDownload:
+    """Tests for the get_IFW method (metadata + bulk document download)."""
+
+    @pytest.fixture
+    def pdf_doc(self) -> Document:
+        """A document that has a PDF download URL."""
+        return Document(
+            document_identifier="DOC001",
+            document_code="CTNF",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF",
+                    download_url="https://example.com/doc001.pdf",
+                ),
+            ],
+        )
+
+    @pytest.fixture
+    def xml_only_doc(self) -> Document:
+        """A document with only XML (no PDF/DOCX) — should be skipped silently."""
+        return Document(
+            document_identifier="DOC002",
+            document_code="SPEC",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="XML",
+                    download_url="https://example.com/doc002.xml",
+                ),
+            ],
+        )
+
+    @pytest.fixture
+    def no_url_doc(self) -> Document:
+        """A document with a PDF format entry but no download URL (e.g. NPL ref)."""
+        return Document(
+            document_identifier="DOC003",
+            document_code="NPL",
+            document_formats=[
+                DocumentFormat(mime_type_identifier="PDF", download_url=None),
+            ],
+        )
+
+    @pytest.fixture
+    def docx_doc(self) -> Document:
+        """A document that has only a DOCX (MS_WORD) download URL."""
+        return Document(
+            document_identifier="DOC004",
+            document_code="AMND",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="MS_WORD",
+                    download_url="https://example.com/doc004.docx",
+                ),
+            ],
+        )
+
+    def _make_wrapper(self, *docs: Document) -> PatentFileWrapper:
+        return PatentFileWrapper(
+            application_number_text="12345678",
+            document_bag=DocumentBag(documents=list(docs)),
+        )
+
+    def test_returns_none_when_not_found(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """get_IFW returns None when no application is found."""
+        with patch.object(patent_data_client, "get_IFW_metadata", return_value=None):
+            result = patent_data_client.get_IFW(application_number="00000000")
+        assert result is None
+
+    def test_returns_ifw_result_with_zip(
+        self, patent_data_client: PatentDataClient, pdf_doc: Document, tmp_path
+    ) -> None:
+        """get_IFW returns IFWResult with a valid ZIP containing the downloaded doc."""
+        wrapper = self._make_wrapper(pdf_doc)
+        fake_pdf = tmp_path / "staging" / "doc001.pdf"
+        fake_pdf.parent.mkdir()
+        fake_pdf.write_bytes(b"%PDF fake content")
+
+        with (
+            patch.object(patent_data_client, "get_IFW_metadata", return_value=wrapper),
+            patch.object(
+                patent_data_client,
+                "_download_and_extract",
+                return_value=str(fake_pdf),
+            ),
+        ):
+            result = patent_data_client.get_IFW(
+                application_number="12345678",
+                destination=str(tmp_path / "out"),
+            )
+
+        assert isinstance(result, IFWResult)
+        assert result.wrapper is wrapper
+        assert result.archive_path.endswith("12345678_ifw.zip")
+        import zipfile as zf
+        with zf.ZipFile(result.archive_path) as z:
+            assert "doc001.pdf" in z.namelist()
+
+    def test_skips_xml_only_docs_silently(
+        self, patent_data_client: PatentDataClient, xml_only_doc: Document, tmp_path
+    ) -> None:
+        """Documents with only XML format are silently skipped — _download_and_extract not called."""
+        wrapper = self._make_wrapper(xml_only_doc)
+
+        with (
+            patch.object(patent_data_client, "get_IFW_metadata", return_value=wrapper),
+            patch.object(patent_data_client, "_download_and_extract") as mock_dl,
+        ):
+            result = patent_data_client.get_IFW(
+                application_number="12345678",
+                destination=str(tmp_path),
+            )
+        mock_dl.assert_not_called()
+        assert isinstance(result, IFWResult)
+
+    def test_skips_no_url_docs_silently(
+        self, patent_data_client: PatentDataClient, no_url_doc: Document, tmp_path
+    ) -> None:
+        """Documents with no download URL are silently skipped."""
+        wrapper = self._make_wrapper(no_url_doc)
+
+        with (
+            patch.object(patent_data_client, "get_IFW_metadata", return_value=wrapper),
+            patch.object(patent_data_client, "_download_and_extract") as mock_dl,
+        ):
+            result = patent_data_client.get_IFW(
+                application_number="12345678",
+                destination=str(tmp_path),
+            )
+        mock_dl.assert_not_called()
+        assert isinstance(result, IFWResult)
+
+    def test_warns_on_download_failure(
+        self, patent_data_client: PatentDataClient, pdf_doc: Document, tmp_path
+    ) -> None:
+        """A warning is issued when a doc has a URL but the download raises."""
+        wrapper = self._make_wrapper(pdf_doc)
+
+        with (
+            patch.object(patent_data_client, "get_IFW_metadata", return_value=wrapper),
+            patch.object(
+                patent_data_client,
+                "_download_and_extract",
+                side_effect=OSError("network error"),
+            ),
+            pytest.warns(match="DOC001"),
+        ):
+            result = patent_data_client.get_IFW(
+                application_number="12345678",
+                destination=str(tmp_path),
+            )
+        assert isinstance(result, IFWResult)
+
+    def test_raises_file_exists_error(
+        self, patent_data_client: PatentDataClient, pdf_doc: Document, tmp_path
+    ) -> None:
+        """FileExistsError raised if ZIP already exists and overwrite=False."""
+        wrapper = self._make_wrapper(pdf_doc)
+        existing_zip = tmp_path / "12345678_ifw.zip"
+        existing_zip.write_bytes(b"")
+
+        with patch.object(patent_data_client, "get_IFW_metadata", return_value=wrapper):
+            with pytest.raises(FileExistsError):
+                patent_data_client.get_IFW(
+                    application_number="12345678",
+                    destination=str(tmp_path),
+                    overwrite=False,
+                )
+
+    def test_overwrite_replaces_existing_zip(
+        self, patent_data_client: PatentDataClient, pdf_doc: Document, tmp_path
+    ) -> None:
+        """overwrite=True replaces an existing ZIP without error."""
+        wrapper = self._make_wrapper(pdf_doc)
+        existing_zip = tmp_path / "12345678_ifw.zip"
+        existing_zip.write_bytes(b"old content")
+
+        fake_pdf = tmp_path / "staging" / "doc001.pdf"
+        fake_pdf.parent.mkdir()
+        fake_pdf.write_bytes(b"%PDF new")
+
+        with (
+            patch.object(patent_data_client, "get_IFW_metadata", return_value=wrapper),
+            patch.object(
+                patent_data_client,
+                "_download_and_extract",
+                return_value=str(fake_pdf),
+            ),
+        ):
+            result = patent_data_client.get_IFW(
+                application_number="12345678",
+                destination=str(tmp_path),
+                overwrite=True,
+            )
+        assert isinstance(result, IFWResult)
+
+    def test_docx_downloaded_when_no_pdf(
+        self, patent_data_client: PatentDataClient, docx_doc: Document, tmp_path
+    ) -> None:
+        """DOCX format is used as fallback when PDF is not available."""
+        wrapper = self._make_wrapper(docx_doc)
+        fake_docx = tmp_path / "staging" / "doc004.docx"
+        fake_docx.parent.mkdir()
+        fake_docx.write_bytes(b"fake docx")
+
+        with (
+            patch.object(patent_data_client, "get_IFW_metadata", return_value=wrapper),
+            patch.object(
+                patent_data_client,
+                "_download_and_extract",
+                return_value=str(fake_docx),
+            ) as mock_dl,
+        ):
+            result = patent_data_client.get_IFW(
+                application_number="12345678",
+                destination=str(tmp_path / "out"),
+            )
+
+        mock_dl.assert_called_once_with(
+            url="https://example.com/doc004.docx",
+            destination=mock.ANY,
+            overwrite=True,
+        )
+        assert isinstance(result, IFWResult)

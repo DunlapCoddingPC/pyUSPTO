@@ -2211,6 +2211,19 @@ class PatentFileWrapper:
 
 
 @dataclass(frozen=True)
+class IFWResult:
+    """Result of a get_IFW call: metadata wrapper and path to the downloaded archive.
+
+    Attributes:
+        wrapper: The PatentFileWrapper containing all IFW metadata and document_bag.
+        archive_path: Absolute path to the ZIP archive of downloaded prosecution documents.
+    """
+
+    wrapper: PatentFileWrapper
+    archive_path: str
+
+
+@dataclass(frozen=True)
 class PatentDataResponse:
     """Represents the overall response from a patent data API request.
 

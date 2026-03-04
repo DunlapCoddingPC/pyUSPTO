@@ -61,6 +61,14 @@ if pct_pub_no_ifw and pct_pub_no_ifw.application_meta_data:
     print(f" - IFW Found based on PCT Pub No: {PCT_pub_number}")
 
 
+print("\nGet IFW + download all prosecution docs as a ZIP archive -->")
+ifw_result = client.get_IFW(application_number=application_number, destination="./download-example", overwrite=True)
+if ifw_result:
+    print(f"Title: {ifw_result.wrapper.application_meta_data.invention_title if ifw_result.wrapper.application_meta_data else 'N/A'}")
+    print(f"Archive: {ifw_result.archive_path}")
+    print(f"Documents in bag: {len(ifw_result.wrapper.document_bag)}")
+
+
 print("\nNow let's download the Patent Publication Text -->")
 if app_no_ifw and app_no_ifw.pgpub_document_meta_data:
     pgpub_archive = app_no_ifw.pgpub_document_meta_data

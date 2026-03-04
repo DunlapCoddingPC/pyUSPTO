@@ -5,7 +5,10 @@ It allows you to search for and retrieve patent application data.
 """
 
 import dataclasses
+import os
+import tempfile
 import warnings
+import zipfile
 from collections.abc import Iterator
 from typing import Any
 
@@ -21,6 +24,7 @@ from pyUSPTO.models.patent_data import (
     DocumentMimeType,
     EventData,
     ForeignPriority,
+    IFWResult,
     PatentDataResponse,
     PatentFileWrapper,
     PatentTermAdjustmentData,
@@ -1095,6 +1099,94 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             return None
         doc_bag = self.get_application_documents(wrapper.application_number_text)
         return dataclasses.replace(wrapper, document_bag=doc_bag)
+
+    def get_IFW(
+        self,
+        *,
+        application_number: str | None = None,
+        publication_number: str | None = None,
+        patent_number: str | None = None,
+        PCT_app_number: str | None = None,
+        PCT_pub_number: str | None = None,
+        destination: str | None = None,
+        overwrite: bool = False,
+    ) -> IFWResult | None:
+        """Retrieve IFW metadata and download all prosecution documents as a ZIP archive.
+
+        Combines `get_IFW_metadata` with a bulk download of all available prosecution
+        history documents (PDF preferred, DOCX fallback). Documents with no downloadable
+        format (e.g., NPL references) are silently skipped. A warning is issued only
+        if a document has a download URL but the download itself fails.
+
+        Args:
+            application_number: USPTO application number (e.g., "16123456").
+            publication_number: USPTO pre-grant publication number.
+            patent_number: USPTO patent number.
+            PCT_app_number: PCT application number.
+            PCT_pub_number: PCT publication number.
+            destination: Directory to save the ZIP archive. Defaults to current directory.
+            overwrite: Whether to overwrite an existing ZIP. Default False.
+
+        Returns:
+            IFWResult with the PatentFileWrapper and the path to the ZIP archive,
+            or None if no application was found.
+
+        Raises:
+            FileExistsError: If the ZIP archive already exists and overwrite=False.
+        """
+        wrapper = self.get_IFW_metadata(
+            application_number=application_number,
+            publication_number=publication_number,
+            patent_number=patent_number,
+            PCT_app_number=PCT_app_number,
+            PCT_pub_number=PCT_pub_number,
+        )
+        if wrapper is None:
+            return None
+
+        dest_dir = destination or "."
+        app_no = wrapper.application_number_text or "unknown"
+        zip_name = f"{app_no}_ifw.zip"
+        zip_path = os.path.join(dest_dir, zip_name)
+
+        if os.path.exists(zip_path) and not overwrite:
+            raise FileExistsError(
+                f"ZIP archive already exists: {zip_path}. Use overwrite=True to replace."
+            )
+
+        os.makedirs(dest_dir, exist_ok=True)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                for doc in wrapper.document_bag:
+                    # Prefer PDF, fall back to MS_WORD; skip XML and formatless docs.
+                    fmt_obj = next(
+                        (
+                            f
+                            for f in doc.document_formats
+                            if f.mime_type_identifier in ("PDF", "MS_WORD")
+                            and f.download_url
+                        ),
+                        None,
+                    )
+                    if fmt_obj is None:
+                        continue
+
+                    try:
+                        downloaded = self._download_and_extract(
+                            url=fmt_obj.download_url,
+                            destination=tmp_dir,
+                            overwrite=True,
+                        )
+                        zf.write(downloaded, arcname=os.path.basename(downloaded))
+                    except Exception as exc:
+                        warnings.warn(
+                            f"Failed to download document {doc.document_identifier} "
+                            f"({doc.document_code}): {exc}",
+                            stacklevel=2,
+                        )
+
+        return IFWResult(wrapper=wrapper, archive_path=os.path.abspath(zip_path))
 
     def download_archive(
         self,
