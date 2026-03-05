@@ -1,7 +1,26 @@
 """Example usage of pyUSPTO for IFW data.
 
-This example demonstrates how to use the PatentDataClient to interact with the USPTO Patent Data API.
-It shows how to retrieve IFW based on various identifying values.
+This example demonstrates how to use the PatentDataClient to retrieve Image File
+Wrapper (IFW) data from the USPTO Patent Data API. It covers:
+
+- get_IFW_metadata(): retrieve a PatentFileWrapper (with populated document_bag)
+  using any of the five supported identifiers:
+    - application_number
+    - patent_number
+    - publication_number
+    - PCT_app_number
+    - PCT_pub_number
+
+- get_IFW(): retrieve metadata AND bulk-download all prosecution history documents
+  (PDF preferred, DOCX fallback; XML and formatless docs are skipped). Returns an
+  IFWResult with:
+    - wrapper: the PatentFileWrapper
+    - output_path: path to the ZIP archive (as_zip=True, default) or output directory
+    - downloaded_documents: dict mapping document_identifier -> filename, allowing
+      each Document in document_bag to be linked to its downloaded file
+
+- download_archive() / download_publication(): download the pgpub or grant XML
+  archive from PrintedMetaData.
 """
 
 import json
@@ -59,6 +78,25 @@ pct_pub_no_ifw = client.get_IFW_metadata(PCT_pub_number=PCT_pub_number)
 if pct_pub_no_ifw and pct_pub_no_ifw.application_meta_data:
     print(f"Title: {pct_pub_no_ifw.application_meta_data.invention_title}")
     print(f" - IFW Found based on PCT Pub No: {PCT_pub_number}")
+
+
+print("\nGet IFW + download all prosecution docs as a ZIP archive -->")
+ifw_result = client.get_IFW(application_number=application_number, destination="./download-example", overwrite=True)
+if ifw_result:
+    print(f"Title: {ifw_result.wrapper.application_meta_data.invention_title if ifw_result.wrapper.application_meta_data else 'N/A'}")
+    print(f"Output: {ifw_result.output_path}")
+    doc_bag = ifw_result.wrapper.document_bag or []
+    print(f"Documents downloaded: {len(ifw_result.downloaded_documents)} of {len(doc_bag)}")
+    for doc in doc_bag:
+        if doc.document_identifier:
+            filename = ifw_result.downloaded_documents.get(doc.document_identifier)
+            status = f"-> {filename}" if filename else "(skipped)"
+            print(f"  {doc.document_code} [{doc.document_identifier}] {status}")
+
+print("\nGet IFW + download all prosecution docs as a directory (no ZIP) -->")
+ifw_dir_result = client.get_IFW(application_number=application_number, destination="./download-example", overwrite=True, as_zip=False)
+if ifw_dir_result:
+    print(f"Output directory: {ifw_dir_result.output_path}")
 
 
 print("\nNow let's download the Patent Publication Text -->")

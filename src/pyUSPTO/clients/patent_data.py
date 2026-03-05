@@ -4,7 +4,11 @@ This module provides a client for interacting with the USPTO Patent Data API.
 It allows you to search for and retrieve patent application data.
 """
 
+import dataclasses
+import os
+import tempfile
 import warnings
+import zipfile
 from collections.abc import Iterator
 from typing import Any
 
@@ -20,6 +24,7 @@ from pyUSPTO.models.patent_data import (
     DocumentMimeType,
     EventData,
     ForeignPriority,
+    IFWResult,
     PatentDataResponse,
     PatentFileWrapper,
     PatentTermAdjustmentData,
@@ -121,6 +126,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         # Example: "PCT/US2024/012345" -> "PCTUS2412345"
         if raw.startswith("PCT"):
             parts = raw.split("/")
+            if len(parts) == 1:
+                # Already sanitized (e.g. "PCTUS0812705"), return as-is
+                return raw
             if len(parts) != 3:
                 raise ValueError(
                     f"Invalid PCT application format: {input_number}. "
@@ -298,9 +306,12 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                     )
                     q_parts.append(f"assignmentBag.assigneeBag.assigneeNameText:{v}")
                 if classification_q:
-                    q_parts.append(
-                        f"applicationMetaData.cpcClassificationBag:{classification_q}"
+                    v = (
+                        f'"{classification_q}"'
+                        if any(c in classification_q for c in [" ", "/"])
+                        else classification_q
                     )
+                    q_parts.append(f"applicationMetaData.cpcClassificationBag:{v}")
                 if earliestPublicationNumber_q:
                     q_parts.append(
                         f"applicationMetaData.earliestPublicationNumber:{earliestPublicationNumber_q}"
@@ -439,9 +450,12 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                     )
                     q_parts.append(f"assignmentBag.assigneeBag.assigneeNameText:{v}")
                 if classification_q:
-                    q_parts.append(
-                        f"applicationMetaData.cpcClassificationBag:{classification_q}"
+                    v = (
+                        f'"{classification_q}"'
+                        if any(c in classification_q for c in [" ", "/"])
+                        else classification_q
                     )
+                    q_parts.append(f"applicationMetaData.cpcClassificationBag:{v}")
 
                 if filing_date_from_q and filing_date_to_q:
                     q_parts.append(
@@ -1058,27 +1072,169 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 comprehensive data if found using one of the identifiers,
                 otherwise None.
         """
+        wrapper = None
         if application_number:
-            return self.get_application_by_number(application_number=application_number)
-        if patent_number:
+            wrapper = self.get_application_by_number(
+                application_number=application_number
+            )
+        elif patent_number:
             pdr = self.search_applications(patent_number_q=patent_number, limit=1)
             if pdr.patent_file_wrapper_data_bag:
-                return pdr.patent_file_wrapper_data_bag[0]
-        if publication_number:
+                wrapper = pdr.patent_file_wrapper_data_bag[0]
+        elif publication_number:
             pdr = self.search_applications(
                 earliestPublicationNumber_q=publication_number, limit=1
             )
             if pdr.patent_file_wrapper_data_bag:
-                return pdr.patent_file_wrapper_data_bag[0]
-        if PCT_app_number:
-            return self.get_application_by_number(application_number=PCT_app_number)
-        if PCT_pub_number:
+                wrapper = pdr.patent_file_wrapper_data_bag[0]
+        elif PCT_app_number:
+            wrapper = self.get_application_by_number(application_number=PCT_app_number)
+        elif PCT_pub_number:
             pdr = self.search_applications(
                 pctPublicationNumber_q=PCT_pub_number, limit=1
             )
             if pdr.patent_file_wrapper_data_bag:
-                return pdr.patent_file_wrapper_data_bag[0]
-        return None
+                wrapper = pdr.patent_file_wrapper_data_bag[0]
+        if wrapper is None:
+            return None
+        doc_bag = self.get_application_documents(wrapper.application_number_text)
+        return dataclasses.replace(wrapper, document_bag=doc_bag)
+
+    def get_IFW(
+        self,
+        *,
+        application_number: str | None = None,
+        publication_number: str | None = None,
+        patent_number: str | None = None,
+        PCT_app_number: str | None = None,
+        PCT_pub_number: str | None = None,
+        destination: str | None = None,
+        overwrite: bool = False,
+        as_zip: bool = True,
+    ) -> IFWResult | None:
+        """Retrieve IFW metadata and download all prosecution documents.
+
+        Combines `get_IFW_metadata` with a bulk download of all available prosecution
+        history documents (PDF preferred, DOCX fallback). Documents with no downloadable
+        format (e.g., NPL references) are silently skipped. A warning is issued only
+        if a document has a download URL but the download itself fails.
+
+        Args:
+            application_number: USPTO application number (e.g., "16123456").
+            publication_number: USPTO pre-grant publication number.
+            patent_number: USPTO patent number.
+            PCT_app_number: PCT application number.
+            PCT_pub_number: PCT publication number.
+            destination: Directory for output. Defaults to current directory.
+            overwrite: Whether to overwrite an existing output. Default False.
+            as_zip: If True (default), package all downloads into a ZIP archive
+                at ``{destination}/{app_no}_ifw.zip``. If False, download files
+                directly into ``{destination}/{app_no}_ifw/``.
+
+        Returns:
+            IFWResult with the PatentFileWrapper, the output path, and a mapping
+            of document_identifier to filename for each downloaded document.
+            Returns None if no application was found.
+
+        Raises:
+            FileExistsError: If the output path already exists and overwrite=False.
+        """
+        wrapper = self.get_IFW_metadata(
+            application_number=application_number,
+            publication_number=publication_number,
+            patent_number=patent_number,
+            PCT_app_number=PCT_app_number,
+            PCT_pub_number=PCT_pub_number,
+        )
+        if wrapper is None:
+            return None
+
+        dest_dir = destination or "."
+        app_no = wrapper.application_number_text or "unknown"
+        downloaded_documents: dict[str, str] = {}
+
+        if as_zip:
+            output_path = os.path.join(dest_dir, f"{app_no}_ifw.zip")
+            if os.path.exists(output_path) and not overwrite:
+                raise FileExistsError(
+                    f"ZIP archive already exists: {output_path}. Use overwrite=True to replace."
+                )
+            os.makedirs(dest_dir, exist_ok=True)
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                with zipfile.ZipFile(
+                    output_path, "w", compression=zipfile.ZIP_DEFLATED
+                ) as zf:
+                    for doc in wrapper.document_bag or []:
+                        if not doc.document_identifier:
+                            continue
+                        fmt_obj = next(
+                            (
+                                f
+                                for f in doc.document_formats
+                                if f.mime_type_identifier in ("PDF", "MS_WORD")
+                                and f.download_url
+                            ),
+                            None,
+                        )
+                        if fmt_obj is None or not fmt_obj.download_url:
+                            continue
+                        try:
+                            downloaded = self._download_and_extract(
+                                url=fmt_obj.download_url,
+                                destination=tmp_dir,
+                                overwrite=True,
+                            )
+                            arcname = os.path.basename(downloaded)
+                            zf.write(downloaded, arcname=arcname)
+                            downloaded_documents[doc.document_identifier] = arcname
+                        except Exception as exc:
+                            warnings.warn(
+                                f"Failed to download document {doc.document_identifier} "
+                                f"({doc.document_code}): {exc}",
+                                stacklevel=2,
+                            )
+        else:
+            output_path = os.path.join(dest_dir, f"{app_no}_ifw")
+            if os.path.exists(output_path) and not overwrite:
+                raise FileExistsError(
+                    f"Output directory already exists: {output_path}. Use overwrite=True to replace."
+                )
+            os.makedirs(output_path, exist_ok=True)
+            for doc in wrapper.document_bag or []:
+                if not doc.document_identifier:
+                    continue
+                fmt_obj = next(
+                    (
+                        f
+                        for f in doc.document_formats
+                        if f.mime_type_identifier in ("PDF", "MS_WORD")
+                        and f.download_url
+                    ),
+                    None,
+                )
+                if fmt_obj is None or not fmt_obj.download_url:
+                    continue
+                try:
+                    downloaded = self._download_and_extract(
+                        url=fmt_obj.download_url,
+                        destination=output_path,
+                        overwrite=overwrite,
+                    )
+                    downloaded_documents[doc.document_identifier] = os.path.basename(
+                        downloaded
+                    )
+                except Exception as exc:
+                    warnings.warn(
+                        f"Failed to download document {doc.document_identifier} "
+                        f"({doc.document_code}): {exc}",
+                        stacklevel=2,
+                    )
+
+        return IFWResult(
+            wrapper=wrapper,
+            output_path=os.path.abspath(output_path),
+            downloaded_documents=downloaded_documents,
+        )
 
     def download_archive(
         self,

@@ -22,6 +22,8 @@ cd pyUSPTO
 
 ### Set Up Development Environment
 
+> **Note:** Python 3.11+ is required for the development environment. Some dev dependencies (e.g. `myst-parser`) do not support Python 3.10. The package itself supports Python 3.10+.
+
 ```bash
 # Create and activate a virtual environment
 python -m venv venv
