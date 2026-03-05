@@ -145,6 +145,7 @@ typing-extensions==4.15.0
     #   pydantic
     #   pydantic-core
     #   pydantic-extra-types
+    #   pyuspto
     #   sphinx-immaterial
     #   typing-inspection
 typing-inspection==0.4.2
