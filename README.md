@@ -1,9 +1,10 @@
-# pyUSPTO
+# USPTO Open Data Portal Client Library
 
 [![PyPI version](https://badge.fury.io/py/pyUSPTO.svg)](https://badge.fury.io/py/pyUSPTO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Read the Docs](https://img.shields.io/readthedocs/pyuspto)](https://pyuspto.readthedocs.io/en/latest/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/pyuspto?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLUE&right_color=GREY&left_text=downloads)](https://pepy.tech/projects/pyuspto)
 
 A Python client library for interacting with the United Stated Patent and Trademark Office (USPTO) [Open Data Portal](https://data.uspto.gov/home) APIs.
 
