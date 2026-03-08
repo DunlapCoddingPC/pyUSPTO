@@ -20,7 +20,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Education",
@@ -51,7 +51,12 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
-test = ["pytest>=9.0.2", "pytest-cov>=7.0.0", "pytest-mock>=3.15.1", "typing_extensions>=4.15.0"]
+test = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.15.1",
+    "typing_extensions>=4.15.0",
+]
 docs = [
     "sphinx>=9.1.0",
     "sphinx-rtd-theme>=3.1.0",

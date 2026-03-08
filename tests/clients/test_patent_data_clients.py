@@ -1334,7 +1334,7 @@ class TestGetIFW:
         # Should call get_application_by_number first
         assert mock_make_request.call_args_list[0] == call(
             method="GET",
-            endpoint="api/v1/patent/applications/PCTUS24012345",
+            endpoint="api/v1/patent/applications/PCTUS2412345",
             response_class=PatentDataResponse,
         )
         assert result.application_number_text == mock_patent_file_wrapper.application_number_text
@@ -1348,7 +1348,7 @@ class TestGetIFW:
         """Test PCT application number sanitization with 2-digit year format (US24 vs US2024).
 
         Verifies that PCT numbers with short year format (PCT/US24/012345) are correctly
-        sanitized to PCTUS24012345 before making API request.
+        sanitized to PCTUS2412345 before making API request.
 
         Note: This will trigger a data mismatch warning because the mock_patent_file_wrapper
         has application_number_text='12345678' but we're requesting a PCT number.
@@ -1369,7 +1369,7 @@ class TestGetIFW:
         # Should call get_application_by_number first
         assert mock_make_request.call_args_list[0] == call(
             method="GET",
-            endpoint="api/v1/patent/applications/PCTUS24012345",
+            endpoint="api/v1/patent/applications/PCTUS2412345",
             response_class=PatentDataResponse,
         )
         assert result.application_number_text == mock_patent_file_wrapper.application_number_text
@@ -1548,6 +1548,166 @@ class TestGetIFW:
         )
         assert result.application_number_text == mock_patent_file_wrapper.application_number_text
         assert isinstance(result.document_bag, DocumentBag)
+
+
+class TestGetPatent:
+    """Tests for the get_patent convenience method."""
+
+    def test_get_patent_found(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test get_patent returns wrapper when patent is found."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        patent_num = "11000000"
+        result = client.get_patent(patent_num)
+
+        assert mock_make_request.call_args == call(
+            method="GET",
+            endpoint="api/v1/patent/applications/search",
+            params={
+                "q": f"applicationMetaData.patentNumber:{patent_num}",
+                "limit": 1,
+                "offset": 0,
+            },
+            response_class=PatentDataResponse,
+        )
+        assert result is not None
+        assert result.application_number_text == mock_patent_file_wrapper.application_number_text
+
+    def test_get_patent_not_found(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """Test get_patent returns None when patent is not found."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=0, patent_file_wrapper_data_bag=[]
+        )
+
+        result = client.get_patent("nonexistent")
+        assert result is None
+
+
+class TestGetPublication:
+    """Tests for the get_publication convenience method."""
+
+    def test_get_publication_found(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test get_publication returns wrapper when publication is found."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        pub_num = "20230123456"
+        result = client.get_publication(pub_num)
+
+        assert mock_make_request.call_args == call(
+            method="GET",
+            endpoint="api/v1/patent/applications/search",
+            params={
+                "q": f"applicationMetaData.earliestPublicationNumber:{pub_num}",
+                "limit": 1,
+                "offset": 0,
+            },
+            response_class=PatentDataResponse,
+        )
+        assert result is not None
+        assert result.application_number_text == mock_patent_file_wrapper.application_number_text
+
+    def test_get_publication_not_found(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """Test get_publication returns None when publication is not found."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=0, patent_file_wrapper_data_bag=[]
+        )
+
+        result = client.get_publication("nonexistent")
+        assert result is None
+
+
+class TestGetPCT:
+    """Tests for the get_pct convenience method."""
+
+    @pytest.fixture
+    def mock_pct_file_wrapper(self) -> PatentFileWrapper:
+        """Provides a mock PatentFileWrapper with a sanitized PCT application number."""
+        return PatentFileWrapper(application_number_text="PCTUS2412345")
+
+    def test_get_pct_with_app_number(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_pct_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test get_pct with PCT application number uses direct lookup."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_pct_file_wrapper]
+        )
+
+        pct_app = "PCT/US2024/012345"
+        result = client.get_pct(pct_app)
+
+        # Should call get_application_by_number (direct lookup)
+        assert mock_make_request.call_args == call(
+            method="GET",
+            endpoint="api/v1/patent/applications/PCTUS2412345",
+            response_class=PatentDataResponse,
+        )
+        assert result is not None
+        assert result.application_number_text == mock_pct_file_wrapper.application_number_text
+
+    def test_get_pct_with_pub_number(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test get_pct with PCT publication number uses search."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+        )
+
+        pct_pub = "WO2024012345A1"
+        result = client.get_pct(pct_pub)
+
+        assert mock_make_request.call_args == call(
+            method="GET",
+            endpoint="api/v1/patent/applications/search",
+            params={
+                "q": f"applicationMetaData.pctPublicationNumber:{pct_pub}",
+                "limit": 1,
+                "offset": 0,
+            },
+            response_class=PatentDataResponse,
+        )
+        assert result is not None
+        assert result.application_number_text == mock_patent_file_wrapper.application_number_text
+
+    def test_get_pct_not_found(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """Test get_pct returns None when PCT number is not found."""
+        client, mock_make_request = client_with_mocked_request
+        mock_make_request.return_value = PatentDataResponse(
+            count=0, patent_file_wrapper_data_bag=[]
+        )
+
+        result = client.get_pct("WO9999999999")
+        assert result is None
 
 
 class TestDownloadArchive:
