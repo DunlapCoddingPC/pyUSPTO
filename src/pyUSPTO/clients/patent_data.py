@@ -163,7 +163,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             if not serial.isdigit():
                 raise ValueError(f"Invalid PCT serial: {serial}. Must be numeric.")
 
-            return f"PCT{country}{year}{serial}"
+            return f"PCT{country}{year}{serial.lstrip('0')}"
 
         # Strip whitespace and remove commas/spaces
         cleaned = raw.replace(",", "").replace(" ", "")
@@ -1038,6 +1038,80 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             file_name=file_name,
             overwrite=overwrite,
         )
+
+    def _resolve_by_search(self, **search_kwargs: Any) -> PatentFileWrapper | None:
+        """Search for an application and return the first matching wrapper.
+
+        This is a shared helper for convenience methods that resolve
+        non-application-number identifiers to a PatentFileWrapper.
+
+        Args:
+            **search_kwargs: Keyword arguments passed to search_applications().
+
+        Returns:
+            Optional[PatentFileWrapper]: The first matching wrapper, or None.
+        """
+        pdr = self.search_applications(**search_kwargs, limit=1)
+        if pdr.patent_file_wrapper_data_bag:
+            return pdr.patent_file_wrapper_data_bag[0]
+        return None
+
+    def get_patent(self, patent_number: str) -> PatentFileWrapper | None:
+        """Retrieve application metadata by patent number.
+
+        Searches the USPTO API for the given patent number and returns
+        the corresponding PatentFileWrapper. This is a lightweight lookup
+        that does not fetch the full document bag.
+
+        Args:
+            patent_number (str): The USPTO patent number (e.g., "11000000").
+
+        Returns:
+            Optional[PatentFileWrapper]: The matching patent file wrapper,
+                or None if not found.
+        """
+        return self._resolve_by_search(patent_number_q=patent_number)
+
+    def get_publication(self, publication_number: str) -> PatentFileWrapper | None:
+        """Retrieve application metadata by publication number.
+
+        Searches the USPTO API for the given pre-grant publication number
+        and returns the corresponding PatentFileWrapper. This is a lightweight
+        lookup that does not fetch the full document bag.
+
+        Args:
+            publication_number (str): The USPTO publication number
+                (e.g., "20230123456").
+
+        Returns:
+            Optional[PatentFileWrapper]: The matching patent file wrapper,
+                or None if not found.
+        """
+        return self._resolve_by_search(earliestPublicationNumber_q=publication_number)
+
+    def get_pct(self, pct_number: str) -> PatentFileWrapper | None:
+        """Retrieve application metadata by PCT number.
+
+        Accepts both PCT application numbers and PCT publication numbers.
+        The format is auto-detected:
+
+        - PCT application numbers (starting with "PCT") are resolved via
+          direct lookup using get_application_by_number.
+        - PCT publication numbers (e.g., "WO2024012345A1") are resolved
+          via search.
+
+        Args:
+            pct_number (str): A PCT application number (e.g.,
+                "PCT/US2024/012345") or PCT publication number
+                (e.g., "WO2024012345A1").
+
+        Returns:
+            Optional[PatentFileWrapper]: The matching patent file wrapper,
+                or None if not found.
+        """
+        if pct_number.strip().upper().startswith("PCT"):
+            return self.get_application_by_number(application_number=pct_number)
+        return self._resolve_by_search(pctPublicationNumber_q=pct_number)
 
     def get_IFW_metadata(
         self,

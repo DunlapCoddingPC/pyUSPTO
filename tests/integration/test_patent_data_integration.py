@@ -857,3 +857,52 @@ class TestPatentDataIntegration:
             )
         except Exception as e:
             pytest.fail(f"Unexpected exception for invalid app number: {e}")
+
+
+class TestHelperMethodsIntegration:
+    """Integration tests for get_patent, get_publication, and get_pct helper methods."""
+
+    KNOWN_PATENT_NUMBER = "12565253"
+    KNOWN_PUBLICATION_NUMBER = "US20260054762A1"
+    KNOWN_PCT_APP_NUMBER = "PCT/US2025/047756"
+    KNOWN_PCT_PUB_NUMBER = "WO 2026/044302"
+
+    def test_get_patent(self, patent_data_client: PatentDataClient) -> None:
+        """Test get_patent returns a PatentFileWrapper for a known patent number."""
+        result = patent_data_client.get_patent(self.KNOWN_PATENT_NUMBER)
+
+        assert isinstance(result, PatentFileWrapper)
+        assert result.application_number_text == "19378371"
+        assert result.application_meta_data is not None
+        assert isinstance(result.application_meta_data, ApplicationMetaData)
+
+    def test_get_publication(self, patent_data_client: PatentDataClient) -> None:
+        """Test get_publication returns a PatentFileWrapper for a known publication number."""
+        result = patent_data_client.get_publication(self.KNOWN_PUBLICATION_NUMBER)
+
+        assert isinstance(result, PatentFileWrapper)
+        assert result.application_number_text == "19378371"
+        assert result.application_meta_data is not None
+        assert isinstance(result.application_meta_data, ApplicationMetaData)
+
+    def test_get_pct_with_app_number(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test get_pct with a PCT application number (direct lookup)."""
+        result = patent_data_client.get_pct(self.KNOWN_PCT_APP_NUMBER)
+
+        assert isinstance(result, PatentFileWrapper)
+        assert result.application_number_text == "PCTUS2547756"
+        assert result.application_meta_data is not None
+        assert result.application_meta_data.pct_publication_number == "WO2026044302"
+
+    def test_get_pct_with_pub_number(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Test get_pct with a PCT publication number."""
+        result = patent_data_client.get_pct(self.KNOWN_PCT_PUB_NUMBER)
+
+        assert isinstance(result, PatentFileWrapper)
+        assert result.application_number_text == "PCTUS2547756"
+        assert result.application_meta_data is not None
+        assert result.application_meta_data.pct_publication_number == "WO2026044302"
