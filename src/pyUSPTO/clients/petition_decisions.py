@@ -487,10 +487,9 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             return PetitionDecisionDownloadResponse.from_dict(result_dict)
         else:
             # For CSV or other formats, get streaming response
-            result = self._make_request(
-                method="GET", endpoint=endpoint, params=params, stream=True
+            result = self._stream_request(
+                method="GET", endpoint=endpoint, params=params
             )
-            assert isinstance(result, requests.Response)
 
             if destination is not None:
                 # Save to file using the base class helper

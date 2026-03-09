@@ -248,8 +248,8 @@ class TestBaseUSPTOClient:
         )
         assert result == {"key": "value"}
 
-    def test_make_request_with_stream(self, mock_session: MagicMock) -> None:
-        """Test _make_request method with stream=True."""
+    def test_stream_request(self, mock_session: MagicMock) -> None:
+        """Test _stream_request returns raw Response."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.config._session = mock_session
@@ -257,8 +257,7 @@ class TestBaseUSPTOClient:
         mock_response = MagicMock()
         mock_session.get.return_value = mock_response
 
-        # Test with stream=True
-        result = client._make_request(method="GET", endpoint="test", stream=True)
+        result = client._stream_request(method="GET", endpoint="test")
 
         # Verify
         mock_session.get.assert_called_once_with(

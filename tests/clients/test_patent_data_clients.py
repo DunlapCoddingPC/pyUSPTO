@@ -1142,10 +1142,10 @@ class TestDownloadFile:
 
     @patch("pathlib.Path.exists")
     @patch("builtins.open", new_callable=mock_open)
-    @patch.object(BaseUSPTOClient, "_make_request")
+    @patch.object(BaseUSPTOClient, "_stream_request")
     def test_download_file_success(
         self,
-        mock_make_request: MagicMock,
+        mock_stream_request: MagicMock,
         mock_file_open: MagicMock,
         mock_exists: MagicMock,
         patent_data_client: PatentDataClient,
@@ -1157,7 +1157,7 @@ class TestDownloadFile:
         mock_response.headers = {}
         mock_response.url = url
         mock_response.iter_content.return_value = [b"chunk1", b"chunk2", b""]
-        mock_make_request.return_value = mock_response
+        mock_stream_request.return_value = mock_response
         mock_exists.return_value = False
 
         destination = "/tmp"
@@ -1167,9 +1167,9 @@ class TestDownloadFile:
             url, destination=destination, file_name=file_name
         )
 
-        # Verify _make_request called correctly
-        mock_make_request.assert_called_once_with(
-            method="GET", endpoint="", stream=True, custom_url=url
+        # Verify _stream_request called correctly
+        mock_stream_request.assert_called_once_with(
+            method="GET", endpoint="", custom_url=url
         )
 
         # Verify file operations - use str(Path()) to normalize path for platform
@@ -1183,27 +1183,11 @@ class TestDownloadFile:
 
         assert result == str(expected_path)
 
-    @patch.object(BaseUSPTOClient, "_make_request")
-    def test_download_file_wrong_response_type(
-        self,
-        mock_make_request: MagicMock,
-        patent_data_client: PatentDataClient,
-    ) -> None:
-        """Test _download_file raises TypeError when _make_request returns wrong type."""
-        # Return a dict instead of Response
-        mock_make_request.return_value = {"not": "a response"}
-
-        url = "https://example.com/file.pdf"
-        file_path = "/tmp/test_file.pdf"
-
-        with pytest.raises(TypeError, match="Expected Response, got <class 'dict'>"):
-            patent_data_client._download_file(url, file_path)
-
     @patch("builtins.open", new_callable=mock_open)
-    @patch.object(BaseUSPTOClient, "_make_request")
+    @patch.object(BaseUSPTOClient, "_stream_request")
     def test_download_file_filters_empty_chunks(
         self,
-        mock_make_request: MagicMock,
+        mock_stream_request: MagicMock,
         mock_file_open: MagicMock,
         patent_data_client: PatentDataClient,
     ) -> None:
@@ -1212,7 +1196,7 @@ class TestDownloadFile:
         mock_response.headers = {}
         mock_response.url = "https://test.com/file"
         mock_response.iter_content.return_value = [b"data", b"", None, b"more"]
-        mock_make_request.return_value = mock_response
+        mock_stream_request.return_value = mock_response
 
         patent_data_client._download_file("https://test.com", "/tmp/file")
 
