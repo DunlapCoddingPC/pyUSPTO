@@ -520,21 +520,19 @@ class TestFinalPetitionDecisionsClientDownload:
 
     def test_download_csv(
         self,
-        client_with_mocked_request: tuple[FinalPetitionDecisionsClient, MagicMock],
+        petition_client: FinalPetitionDecisionsClient,
     ) -> None:
         """Test downloading decisions in CSV format as streaming response."""
-        client, mock_make_request = client_with_mocked_request
-
         mock_response = MagicMock(spec=requests.Response)
         mock_response.iter_content.return_value = [b"csv,data"]
-        mock_make_request.return_value = mock_response
 
-        result = client.download_decisions(format="csv")
+        with patch.object(
+            petition_client, "_stream_request", return_value=mock_response
+        ) as mock_stream_request:
+            result = petition_client.download_decisions(format="csv")
 
-        assert isinstance(result, requests.Response)
-        mock_make_request.assert_called_once()
-        call_args = mock_make_request.call_args
-        assert call_args[1]["stream"] is True
+            assert isinstance(result, requests.Response)
+            mock_stream_request.assert_called_once()
 
     def test_download_csv_to_file(
         self,
@@ -542,14 +540,14 @@ class TestFinalPetitionDecisionsClientDownload:
         tmp_path,
     ) -> None:
         """Test downloading decisions in CSV format and saving to file."""
-        # Mock both _make_request and _save_response_to_file
+        # Mock both _stream_request and _save_response_to_file
         mock_response = Mock(spec=requests.Response)
         expected_path = str(tmp_path / "petition_decisions.csv")
 
         with (
             patch.object(
-                petition_client, "_make_request", return_value=mock_response
-            ) as mock_make_request,
+                petition_client, "_stream_request", return_value=mock_response
+            ) as mock_stream_request,
             patch.object(
                 petition_client, "_save_response_to_file", return_value=expected_path
             ) as mock_save,
@@ -562,7 +560,7 @@ class TestFinalPetitionDecisionsClientDownload:
             )
 
             assert result == expected_path
-            mock_make_request.assert_called_once()
+            mock_stream_request.assert_called_once()
             mock_save.assert_called_once()
 
             # Verify _save_response_to_file was called with correct arguments

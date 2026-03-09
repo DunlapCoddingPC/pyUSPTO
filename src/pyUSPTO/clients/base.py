@@ -166,49 +166,56 @@ class BaseUSPTOClient(Generic[T]):
                 ),
             ) from json_err
 
-    def _make_request(
+    def _build_url(
+        self,
+        endpoint: str,
+        custom_url: str | None = None,
+        custom_base_url: str | None = None,
+    ) -> str:
+        """Build the request URL from endpoint or custom URL.
+
+        Args:
+            endpoint: API endpoint path (without base URL)
+            custom_url: Optional full custom URL (overrides endpoint and base URL)
+            custom_base_url: Optional custom base URL instead of self.base_url
+
+        Returns:
+            The resolved URL string.
+        """
+        if custom_url:
+            return custom_url
+        base = custom_base_url if custom_base_url else self.base_url
+        return f"{base}/{endpoint.lstrip('/')}"
+
+    def _execute_request(
         self,
         method: str,
-        endpoint: str,
+        url: str,
         params: dict[str, Any] | None = None,
         json_data: dict[str, Any] | None = None,
         stream: bool = False,
-        response_class: type[T] | None = None,
-        custom_url: str | None = None,
-        custom_base_url: str | None = None,
-    ) -> dict[str, Any] | T | requests.Response:
-        """Make an HTTP request to the USPTO API.
+    ) -> requests.Response:
+        """Execute an HTTP request and return the raw Response.
 
-        Note: Only GET and POST methods are supported. Other HTTP methods will
-        raise a ValueError.
+        Handles URL dispatch, error translation, and timeout/connection errors.
+        Callers are responsible for interpreting the response body.
 
         Args:
             method: HTTP method (GET or POST only)
-            endpoint: API endpoint path (without base URL)
+            url: Fully resolved request URL
             params: Optional query parameters
             json_data: Optional JSON body for POST requests
             stream: Whether to stream the response
-            response_class: Class to use for parsing the response
-            custom_url: Optional full custom URL to use (overrides endpoint and base URL)
-            custom_base_url: Optional custom base URL to use instead of self.base_url
 
         Returns:
-            Response data in the appropriate format:
-            - If stream=True: requests.Response object
-            - If response_class is provided: Instance of response_class
-            - Otherwise: Dict[str, Any] containing the JSON response
+            The raw requests.Response after raise_for_status().
 
         Raises:
             ValueError: If an unsupported HTTP method is provided
+            USPTOApiError: On HTTP errors from the API
+            USPTOTimeout: On request timeout
+            USPTOConnectionError: On connection failure
         """
-        url: str = ""
-        if custom_url:
-            url = custom_url
-        else:
-            base = custom_base_url if custom_base_url else self.base_url
-            url = f"{base}/{endpoint.lstrip('/')}"
-
-        # Get timeout from HTTP config
         timeout = self.http_config.get_timeout_tuple()
 
         try:
@@ -228,26 +235,10 @@ class BaseUSPTOClient(Generic[T]):
                 raise ValueError(f"Unsupported HTTP method: {method}")
 
             response.raise_for_status()
-
-            # Return the raw response for streaming requests
-            if stream:
-                return response
-
-            # Parse JSON response with error handling
-            json_data = self._parse_json_response(response, url)
-
-            # Parse the response based on the specified class
-            if response_class:
-                parsed_response: T = response_class.from_dict(
-                    json_data, include_raw_data=self.config.include_raw_data
-                )
-                return parsed_response
-
-            # Return the raw JSON for other requests
-            return json_data
+            return response
 
         except requests.exceptions.HTTPError as http_err:
-            client_operation_message = f"API request to '{url}' failed with HTTPError"  # 'url' is from _make_request scope
+            client_operation_message = f"API request to '{url}' failed with HTTPError"
 
             # Include request body for POST debugging
             if method.upper() == "POST" and json_data:
@@ -257,7 +248,6 @@ class BaseUSPTOClient(Generic[T]):
                     f"\nRequest body sent:\n{json.dumps(json_data, indent=2)}"
                 )
 
-            # Create APIErrorArgs directly from the HTTPError
             current_error_args = APIErrorArgs.from_http_error(
                 http_error=http_err, client_operation_message=client_operation_message
             )
@@ -266,7 +256,6 @@ class BaseUSPTOClient(Generic[T]):
             raise api_exception_to_raise from http_err
 
         except requests.exceptions.Timeout as timeout_err:
-            # Specific handling for timeout errors
             raise USPTOTimeout(
                 message=f"Request to '{url}' timed out",
                 api_short_error="Timeout",
@@ -274,30 +263,103 @@ class BaseUSPTOClient(Generic[T]):
             ) from timeout_err
 
         except requests.exceptions.ConnectionError as conn_err:
-            # Specific handling for connection errors (DNS, refused connection, etc.)
             raise USPTOConnectionError(
                 message=f"Failed to connect to '{url}'",
                 api_short_error="Connection Error",
                 error_details=str(conn_err),
             ) from conn_err
 
-        except (
-            requests.exceptions.RequestException
-        ) as req_err:  # Catches other non-HTTP errors from requests
-            client_operation_message = (
-                f"API request to '{url}' failed"  # 'url' is from _make_request scope
-            )
+        except requests.exceptions.RequestException as req_err:
+            client_operation_message = f"API request to '{url}' failed"
 
-            # Create APIErrorArgs from the generic RequestException
             current_error_args = APIErrorArgs.from_request_exception(
                 request_exception=req_err,
-                client_operation_message=client_operation_message,  # or pass None if you prefer default message
+                client_operation_message=client_operation_message,
             )
 
-            api_exception_to_raise = get_api_exception(
-                current_error_args
-            )  # Will default to USPTOApiError
+            api_exception_to_raise = get_api_exception(current_error_args)
             raise api_exception_to_raise from req_err
+
+    def _stream_request(
+        self,
+        method: str,
+        endpoint: str,
+        params: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
+        custom_url: str | None = None,
+        custom_base_url: str | None = None,
+    ) -> requests.Response:
+        """Make a streaming HTTP request and return the raw Response.
+
+        Args:
+            method: HTTP method (GET or POST only)
+            endpoint: API endpoint path (without base URL)
+            params: Optional query parameters
+            json_data: Optional JSON body for POST requests
+            custom_url: Optional full custom URL (overrides endpoint and base URL)
+            custom_base_url: Optional custom base URL instead of self.base_url
+
+        Returns:
+            Streaming requests.Response object.
+        """
+        url = self._build_url(
+            endpoint, custom_url=custom_url, custom_base_url=custom_base_url
+        )
+        return self._execute_request(
+            method=method, url=url, params=params, json_data=json_data, stream=True
+        )
+
+    def _make_request(
+        self,
+        method: str,
+        endpoint: str,
+        params: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
+        response_class: type[T] | None = None,
+        custom_url: str | None = None,
+        custom_base_url: str | None = None,
+    ) -> dict[str, Any] | T:
+        """Make an HTTP request to the USPTO API.
+
+        Note: Only GET and POST methods are supported. Other HTTP methods will
+        raise a ValueError.
+
+        Args:
+            method: HTTP method (GET or POST only)
+            endpoint: API endpoint path (without base URL)
+            params: Optional query parameters
+            json_data: Optional JSON body for POST requests
+            response_class: Class to use for parsing the response
+            custom_url: Optional full custom URL to use (overrides endpoint and base URL)
+            custom_base_url: Optional custom base URL to use instead of self.base_url
+
+        Returns:
+            Response data in the appropriate format:
+            - If response_class is provided: Instance of response_class
+            - Otherwise: Dict[str, Any] containing the JSON response
+
+        Raises:
+            ValueError: If an unsupported HTTP method is provided
+        """
+        url = self._build_url(
+            endpoint, custom_url=custom_url, custom_base_url=custom_base_url
+        )
+        response = self._execute_request(
+            method=method, url=url, params=params, json_data=json_data
+        )
+
+        # Parse JSON response with error handling
+        json_data = self._parse_json_response(response, url)
+
+        # Parse the response based on the specified class
+        if response_class:
+            parsed_response: T = response_class.from_dict(
+                json_data, include_raw_data=self.config.include_raw_data
+            )
+            return parsed_response
+
+        # Return the raw JSON for other requests
+        return json_data
 
     def paginate_results(
         self,
@@ -785,18 +847,13 @@ class BaseUSPTOClient(Generic[T]):
             Path to downloaded file
 
         Raises:
-            TypeError: If response is not a valid Response object
             FileExistsError: If file exists and overwrite is False
         """
-        response = self._make_request(
+        response = self._stream_request(
             method="GET",
             endpoint="",
-            stream=True,
             custom_url=url,
         )
-
-        if not isinstance(response, requests.Response):
-            raise TypeError(f"Expected Response, got {type(response)}")
 
         return self._save_response_to_file(
             response=response,
