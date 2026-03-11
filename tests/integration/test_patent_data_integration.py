@@ -144,7 +144,7 @@ class TestPatentDataIntegration:
         # API returns naive datetime strings (e.g., '2025-12-03T07:21:12') without timezone
         # indicators, but we serialize with UTC 'Z' suffix (e.g., '2025-12-03T12:21:12Z').
         # Waiting for USPTO ODP to adopt UTC standard for datetime fields.
-        # pytest.skip(
+        # pytest.fail(
         #     "Test disabled pending USPTO API fix for datetime format. See issue #17"
         # )
 
@@ -621,15 +621,15 @@ class TestPatentDataIntegration:
             assert os.path.exists(file_path)
             assert os.path.getsize(file_path) > 0
         except USPTOApiNotFoundError:
-            pytest.skip(
+            pytest.fail(
                 f"Document or application not found (404) for download: {self.KNOWN_APP_NUM_WITH_DOCS}"
             )
         except USPTOApiError as e:
-            pytest.skip(
+            pytest.fail(
                 f"Document download failed for {self.KNOWN_APP_NUM_WITH_DOCS}: {e}"
             )
         except IndexError:
-            pytest.skip(
+            pytest.fail(
                 f"No documents available in bag for {self.KNOWN_APP_NUM_WITH_DOCS} to test download."
             )
 
@@ -704,7 +704,7 @@ class TestPatentDataIntegration:
                     f"No PatentData returned for US App No.: {self.KNOWN_APP_NUM_WITH_DOCS} with: {post_body_request}"
                 )
         except USPTOApiError as e:
-            pytest.skip(f"get_search_results POST test failed: {e}")
+            pytest.fail(f"get_search_results POST test failed: {e}")
 
     def test_search_status_codes_post(
         self, patent_data_client: PatentDataClient
@@ -732,7 +732,7 @@ class TestPatentDataIntegration:
                 )
 
         except USPTOApiError as e:
-            pytest.skip(f"Status codes POST search failed: {e}")
+            pytest.fail(f"Status codes POST search failed: {e}")
 
     def test_download_xml_document_extracts_tar(
         self, patent_data_client: PatentDataClient
@@ -743,7 +743,7 @@ class TestPatentDataIntegration:
                 "19312841", document_codes=["CTNF", "CTFR"]
             )
             if not docs or not docs.documents:
-                pytest.skip(
+                pytest.fail(
                     "No CTNF/CTFR documents found for test application 19312841"
                 )
 
@@ -758,7 +758,7 @@ class TestPatentDataIntegration:
                     break
 
             if not xml_doc:
-                pytest.skip("No XML format document found for test")
+                pytest.fail("No XML format document found for test")
 
             file_path = patent_data_client.download_document(
                 document=xml_doc,
@@ -772,7 +772,7 @@ class TestPatentDataIntegration:
             assert os.path.getsize(file_path) > 0
 
         except (USPTOApiNotFoundError, USPTOApiError) as e:
-            pytest.skip(f"API error during XML download test: {e}")
+            pytest.fail(f"API error during XML download test: {e}")
 
     def test_content_disposition_filename_used(
         self, patent_data_client: PatentDataClient
@@ -783,13 +783,13 @@ class TestPatentDataIntegration:
                 self.KNOWN_APP_NUM_WITH_DOCS
             )
             if not docs or not docs.documents:
-                pytest.skip(f"No documents found for {self.KNOWN_APP_NUM_WITH_DOCS}")
+                pytest.fail(f"No documents found for {self.KNOWN_APP_NUM_WITH_DOCS}")
 
             doc_to_download = next(
                 (d for d in docs.documents if d.document_formats), None
             )
             if not doc_to_download:
-                pytest.skip("No downloadable document found")
+                pytest.fail("No downloadable document found")
 
             file_path = patent_data_client.download_document(
                 document=doc_to_download,
@@ -802,7 +802,7 @@ class TestPatentDataIntegration:
             assert os.path.basename(file_path) != "download"
 
         except (USPTOApiNotFoundError, USPTOApiError) as e:
-            pytest.skip(f"API error during Content-Disposition test: {e}")
+            pytest.fail(f"API error during Content-Disposition test: {e}")
 
     def test_download_with_format_enum(
         self, patent_data_client: PatentDataClient
@@ -813,13 +813,13 @@ class TestPatentDataIntegration:
                 self.KNOWN_APP_NUM_WITH_DOCS
             )
             if not docs or not docs.documents:
-                pytest.skip(f"No documents found for {self.KNOWN_APP_NUM_WITH_DOCS}")
+                pytest.fail(f"No documents found for {self.KNOWN_APP_NUM_WITH_DOCS}")
 
             doc_to_download = next(
                 (d for d in docs.documents if d.document_formats), None
             )
             if not doc_to_download:
-                pytest.skip("No downloadable document found")
+                pytest.fail("No downloadable document found")
 
             file_path = patent_data_client.download_document(
                 document=doc_to_download,
@@ -833,7 +833,7 @@ class TestPatentDataIntegration:
             assert os.path.getsize(file_path) > 0
 
         except (USPTOApiNotFoundError, USPTOApiError) as e:
-            pytest.skip(f"API error during enum format test: {e}")
+            pytest.fail(f"API error during enum format test: {e}")
 
     def test_invalid_application_number_handling(
         self, patent_data_client: PatentDataClient

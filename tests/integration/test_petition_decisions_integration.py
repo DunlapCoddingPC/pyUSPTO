@@ -68,14 +68,14 @@ def sample_petition_decision(
         ):
             return response.petition_decision_data_bag[0]
 
-        pytest.skip(
+        pytest.fail(
             "Could not retrieve a sample petition decision. Ensure API is reachable."
         )
 
     except USPTOApiError as e:
-        pytest.skip(f"Could not fetch sample petition decision due to API error: {e}")
+        pytest.fail(f"Could not fetch sample petition decision due to API error: {e}")
     except Exception as e:
-        pytest.skip(
+        pytest.fail(
             f"Could not fetch sample petition decision due to unexpected error: {e}"
         )
     # This return is unreachable but satisfies type checker
@@ -90,7 +90,7 @@ def sample_petition_decision_id(sample_petition_decision: PetitionDecision) -> s
     """
     if sample_petition_decision.petition_decision_record_identifier:
         return sample_petition_decision.petition_decision_record_identifier
-    pytest.skip("Sample petition decision does not have a record identifier")
+    pytest.fail("Sample petition decision does not have a record identifier")
     return ""
 
 
@@ -138,9 +138,9 @@ class TestFinalPetitionDecisionsIntegration:
                 assert len(response.petition_decision_data_bag) <= 3
         except USPTOApiNotFoundError:
             # 404 may be returned if no records match the query
-            pytest.skip("No records found matching query criteria")
+            pytest.fail("No records found matching query criteria")
         except USPTOApiError as e:
-            pytest.skip(f"Query search failed: {e}")
+            pytest.fail(f"Query search failed: {e}")
 
     def test_search_decisions_with_application_number(
         self,
@@ -150,7 +150,7 @@ class TestFinalPetitionDecisionsIntegration:
         """Test searching using convenience application_number_q parameter."""
         # Use the application number from the sample decision
         if not sample_petition_decision.application_number_text:
-            pytest.skip(
+            pytest.fail(
                 "Sample decision does not have an application number to test with"
             )
 
@@ -174,7 +174,7 @@ class TestFinalPetitionDecisionsIntegration:
                     found
                 ), f"Expected to find application number {app_num} in results"
         except USPTOApiError as e:
-            pytest.skip(f"Application number search failed: {e}")
+            pytest.fail(f"Application number search failed: {e}")
 
     def test_search_decisions_with_patent_number(
         self,
@@ -190,7 +190,7 @@ class TestFinalPetitionDecisionsIntegration:
             if not patent_num:
                 response = petition_decisions_client.search_decisions(limit=20)
                 if response.count == 0:
-                    pytest.skip("No decisions available to test patent number search")
+                    pytest.fail("No decisions available to test patent number search")
 
                 # Find a decision with a patent number
                 for decision in response.petition_decision_data_bag:
@@ -199,7 +199,7 @@ class TestFinalPetitionDecisionsIntegration:
                         break
 
                 if not patent_num:
-                    pytest.skip(
+                    pytest.fail(
                         "No decisions with patent numbers found in first 20 results"
                     )
 
@@ -223,7 +223,7 @@ class TestFinalPetitionDecisionsIntegration:
                     found
                 ), f"Expected to find patent number {patent_num} in results but count is {response.count}"
         except USPTOApiError as e:
-            pytest.skip(f"Patent number search failed: {e}")
+            pytest.fail(f"Patent number search failed: {e}")
 
     def test_search_decisions_with_technology_center(
         self, petition_decisions_client: FinalPetitionDecisionsClient
@@ -275,11 +275,11 @@ class TestFinalPetitionDecisionsIntegration:
             )
             assert decision.decision_type_code is not None
         except USPTOApiNotFoundError:
-            pytest.skip(
+            pytest.fail(
                 f"Decision not found (404) for ID {sample_petition_decision_id}"
             )
         except USPTOApiError as e:
-            pytest.skip(f"Failed to get decision by ID: {e}")
+            pytest.fail(f"Failed to get decision by ID: {e}")
 
     def test_round_trip_data_integrity(
         self,
@@ -294,7 +294,7 @@ class TestFinalPetitionDecisionsIntegration:
             )
 
             if original is None:
-                pytest.skip(
+                pytest.fail(
                     f"No decision data returned for {sample_petition_decision_id}"
                 )
 
@@ -321,11 +321,11 @@ class TestFinalPetitionDecisionsIntegration:
                 )
 
         except USPTOApiNotFoundError:
-            pytest.skip(
+            pytest.fail(
                 f"Decision not found (404) for round-trip test: {sample_petition_decision_id}"
             )
         except USPTOApiError as e:
-            pytest.skip(f"Round-trip test failed due to API error: {e}")
+            pytest.fail(f"Round-trip test failed due to API error: {e}")
 
     def test_to_dict_matches_raw_api_response(
         self, api_key: str | None, sample_petition_decision_id: str
@@ -340,7 +340,7 @@ class TestFinalPetitionDecisionsIntegration:
         # API returns naive datetime strings (e.g., '2025-12-03T07:21:12') without timezone
         # indicators, but we serialize with UTC 'Z' suffix (e.g., '2025-12-03T12:21:12Z').
         # Waiting for USPTO ODP to adopt UTC standard for datetime fields.
-        # pytest.skip(
+        # pytest.fail(
         #     "Test disabled pending USPTO API fix for datetime format. See issue #17"
         # )
 
@@ -356,7 +356,7 @@ class TestFinalPetitionDecisionsIntegration:
             )
 
             if response is None or response.count == 0:
-                pytest.skip(
+                pytest.fail(
                     f"No decision found for raw API comparison: {sample_petition_decision_id}"
                 )
 
@@ -456,11 +456,11 @@ class TestFinalPetitionDecisionsIntegration:
                 )
 
         except USPTOApiNotFoundError:
-            pytest.skip(
+            pytest.fail(
                 f"Decision not found (404) for raw API comparison: {sample_petition_decision_id}"
             )
         except USPTOApiError as e:
-            pytest.skip(f"Raw API comparison failed due to API error: {e}")
+            pytest.fail(f"Raw API comparison failed due to API error: {e}")
 
     def test_get_decision_by_invalid_id(
         self, petition_decisions_client: FinalPetitionDecisionsClient
@@ -497,7 +497,7 @@ class TestFinalPetitionDecisionsIntegration:
                 assert len(response.petition_decision_data) <= 2
                 assert isinstance(response.petition_decision_data[0], PetitionDecision)
         except USPTOApiError as e:
-            pytest.skip(f"Download endpoint failed: {e}")
+            pytest.fail(f"Download endpoint failed: {e}")
 
     def test_download_decisions_csv(
         self, petition_decisions_client: FinalPetitionDecisionsClient
@@ -528,7 +528,7 @@ class TestFinalPetitionDecisionsIntegration:
                 assert "," in first_line
 
         except USPTOApiError as e:
-            pytest.skip(f"CSV download endpoint failed: {e}")
+            pytest.fail(f"CSV download endpoint failed: {e}")
 
     def test_paginate_decisions(
         self, petition_decisions_client: FinalPetitionDecisionsClient
@@ -554,7 +554,7 @@ class TestFinalPetitionDecisionsIntegration:
             assert total_decisions > 0, "Should have retrieved at least one decision"
 
         except USPTOApiError as e:
-            pytest.skip(f"Pagination test failed: {e}")
+            pytest.fail(f"Pagination test failed: {e}")
 
     def test_decision_with_documents_and_download(
         self,
