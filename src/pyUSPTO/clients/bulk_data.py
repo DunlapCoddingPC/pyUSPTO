@@ -109,13 +109,12 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
             params["latest"] = str(latest).lower()
 
         # Use response_class for clean parsing
-        response = self._make_request(
+        response = self._get_model(
             method="GET",
             endpoint=endpoint,
-            params=params if params else None,
             response_class=BulkDataResponse,
+            params=params if params else None,
         )
-        assert isinstance(response, BulkDataResponse)
 
         # Extract the product from response
         if response.bulk_data_product_bag:
@@ -251,13 +250,9 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         if fields is not None:
             params["fields"] = ",".join(fields)
 
-        result = self._make_request(
+        return self._get_model(
             method="GET",
             endpoint=self.ENDPOINTS["products_search"],
-            params=params,
             response_class=BulkDataResponse,
+            params=params,
         )
-
-        # Since we specified response_class=BulkDataResponse, the result should be a BulkDataResponse
-        assert isinstance(result, BulkDataResponse)
-        return result

@@ -137,12 +137,12 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
 
         if post_body is not None:
             # POST request path
-            result = self._make_request(
+            result = self._get_model(
                 method="POST",
                 endpoint=endpoint,
+                response_class=PTABInterferenceResponse,
                 json_data=post_body,
                 params=additional_query_params,
-                response_class=PTABInterferenceResponse,
             )
         else:
             # GET request path
@@ -222,14 +222,12 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
             if additional_query_params:
                 params.update(additional_query_params)
 
-            result = self._make_request(
+            result = self._get_model(
                 method="GET",
                 endpoint=endpoint,
-                params=params,
                 response_class=PTABInterferenceResponse,
+                params=params,
             )
-
-        assert isinstance(result, PTABInterferenceResponse)
         return result
 
     def paginate_decisions(

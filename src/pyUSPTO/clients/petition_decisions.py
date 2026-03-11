@@ -184,12 +184,12 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
 
         if post_body is not None:
             # POST request path
-            result = self._make_request(
+            result = self._get_model(
                 method="POST",
                 endpoint=endpoint,
+                response_class=PetitionDecisionResponse,
                 json_data=post_body,
                 params=additional_query_params,
-                response_class=PetitionDecisionResponse,
             )
         else:
             # GET request path
@@ -280,14 +280,12 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             if additional_query_params:
                 params.update(additional_query_params)
 
-            result = self._make_request(
+            result = self._get_model(
                 method="GET",
                 endpoint=endpoint,
-                params=params,
                 response_class=PetitionDecisionResponse,
+                params=params,
             )
-
-        assert isinstance(result, PetitionDecisionResponse)
         return result
 
     def get_decision_by_id(
@@ -326,13 +324,12 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         if include_documents is not None:
             params["includeDocuments"] = str(include_documents).lower()
 
-        response_data = self._make_request(
+        response_data = self._get_model(
             method="GET",
             endpoint=endpoint,
-            params=params if params else None,
             response_class=PetitionDecisionResponse,
+            params=params if params else None,
         )
-        assert isinstance(response_data, PetitionDecisionResponse)
         return self._get_decision_from_response(
             response_data=response_data,
             petition_decision_record_identifier_for_validation=petition_decision_record_identifier,
@@ -480,17 +477,17 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
 
         if format.lower() == "json":
             # For JSON, parse the response
-            result_dict = self._make_request(
-                method="GET", endpoint=endpoint, params=params
+            return self._get_model(
+                method="GET",
+                endpoint=endpoint,
+                response_class=PetitionDecisionDownloadResponse,
+                params=params,
             )
-            assert isinstance(result_dict, dict)
-            return PetitionDecisionDownloadResponse.from_dict(result_dict)
         else:
             # For CSV or other formats, get streaming response
-            result = self._make_request(
-                method="GET", endpoint=endpoint, params=params, stream=True
+            result = self._stream_request(
+                method="GET", endpoint=endpoint, params=params
             )
-            assert isinstance(result, requests.Response)
 
             if destination is not None:
                 # Save to file using the base class helper

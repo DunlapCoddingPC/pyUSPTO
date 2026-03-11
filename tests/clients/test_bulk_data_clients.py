@@ -477,9 +477,9 @@ class TestBulkDataClientEdgeCases:
         # Setup
         client = BulkDataClient(config=USPTOConfig(api_key="test_key"))
 
-        # Mock _make_request to return an empty BulkDataResponse
+        # Mock _get_model to return an empty BulkDataResponse
         empty_response = BulkDataResponse(count=0, bulk_data_product_bag=[])
-        with patch.object(client, "_make_request", return_value=empty_response):
+        with patch.object(client, "_get_model", return_value=empty_response):
             # Test with product not found
             with pytest.raises(ValueError, match="Product 'TEST' not found"):
                 client.get_product_by_id(product_id="TEST")
@@ -498,7 +498,7 @@ class TestBulkDataClientEdgeCases:
         )
         response = BulkDataResponse(count=1, bulk_data_product_bag=[wrong_product])
 
-        with patch.object(client, "_make_request", return_value=response):
+        with patch.object(client, "_get_model", return_value=response):
             # Should still return the product but issue a warning
             with pytest.warns(
                 match="API returned product 'WRONG_ID' but requested 'TEST'"

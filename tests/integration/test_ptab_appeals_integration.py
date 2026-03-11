@@ -56,7 +56,7 @@ def appeals_with_download_uris(
         PTABAppealResponse: Response containing appeals with download URIs
     """
     return ptab_appeals_client.search_decisions(
-        query="appealMetaData.applicationTypeCategory:Appeal",
+        query="appealMetaData.applicationTypeCategory:REGULAR",
         limit=5,
     )
 
@@ -68,7 +68,7 @@ class TestPTABAppealsIntegration:
         """Test searching PTAB appeal decisions using GET method."""
         try:
             response = ptab_appeals_client.search_decisions(
-                query="appealMetaData.applicationTypeCategory:Appeal",
+                query="appealMetaData.applicationTypeCategory:REGULAR",
                 limit=2,
             )
 
@@ -123,7 +123,7 @@ class TestPTABAppealsIntegration:
     ) -> None:
         """Test searching PTAB appeal decisions using POST method."""
         post_body = {
-            "q": "appealMetaData.applicationTypeCategory:Appeal",
+            "q": "appealMetaData.applicationTypeCategory:REGULAR",
             "pagination": {"offset": 0, "limit": 2},
         }
 
@@ -223,7 +223,7 @@ class TestPTABAppealsIntegration:
 
         try:
             for decision in ptab_appeals_client.paginate_decisions(
-                query="appealMetaData.applicationTypeCategory:Appeal",
+                query="appealMetaData.applicationTypeCategory:REGULAR",
                 limit=page_size,
             ):
                 assert isinstance(decision, PTABAppealDecision)
@@ -245,7 +245,7 @@ class TestPTABAppealsIntegration:
         """Test searching with optional parameters like sort and facets."""
         try:
             response = ptab_appeals_client.search_decisions(
-                query="appealMetaData.applicationTypeCategory:Appeal",
+                query="appealMetaData.applicationTypeCategory:REGULAR",
                 limit=2,
                 sort="appealNumber desc",
                 offset=0,
@@ -380,7 +380,7 @@ class TestPTABAppealsIntegration:
                 not appeals_with_download_uris
                 or not appeals_with_download_uris.patent_appeal_data_bag
             ):
-                pytest.skip("No appeal decisions found for archive download test")
+                pytest.fail("No appeal decisions found for archive download test")
 
             # Try multiple appeals until one downloads successfully
             last_error = None
@@ -412,9 +412,11 @@ class TestPTABAppealsIntegration:
 
             # If we tried all appeals and none worked, fail with the last error
             if last_error:
-                pytest.fail(f"All appeal archives failed to download. Last error: {last_error}")
+                pytest.fail(
+                    f"All appeal archives failed to download. Last error: {last_error}"
+                )
             else:
-                pytest.skip("No appeal with valid file_download_uri found")
+                pytest.fail("No appeal with valid file_download_uri found")
 
         except USPTOApiError as e:
             pytest.fail(f"PTAB Appeals API error during search: {e}")
@@ -430,7 +432,7 @@ class TestPTABAppealsIntegration:
                 not appeals_with_download_uris
                 or not appeals_with_download_uris.patent_appeal_data_bag
             ):
-                pytest.skip("No appeal decisions found for documents download test")
+                pytest.fail("No appeal decisions found for documents download test")
 
             # Try multiple appeals until one downloads successfully
             last_error = None
@@ -460,9 +462,11 @@ class TestPTABAppealsIntegration:
 
             # If we tried all appeals and none worked, fail with the last error
             if last_error:
-                pytest.fail(f"All appeal documents failed to download. Last error: {last_error}")
+                pytest.fail(
+                    f"All appeal documents failed to download. Last error: {last_error}"
+                )
             else:
-                pytest.skip("No appeal with valid file_download_uri found")
+                pytest.fail("No appeal with valid file_download_uri found")
 
         except USPTOApiError as e:
             pytest.fail(f"PTAB Appeals API error during search: {e}")
@@ -473,19 +477,19 @@ class TestPTABAppealsIntegration:
         """Test downloading individual appeal document."""
         try:
             response = ptab_appeals_client.search_decisions(
-                query="appealMetaData.applicationTypeCategory:Appeal",
+                query="appealMetaData.applicationTypeCategory:REGULAR",
                 limit=1,
             )
 
             if not response or not response.patent_appeal_data_bag:
-                pytest.skip("No appeal decisions found for document download test")
+                pytest.fail("No appeal decisions found for document download test")
 
             decision = response.patent_appeal_data_bag[0]
             if (
                 not decision.document_data
                 or not decision.document_data.file_download_uri
             ):
-                pytest.skip("No file_download_uri available for test")
+                pytest.fail("No file_download_uri available for test")
 
             file_path = ptab_appeals_client.download_appeal_document(
                 decision.document_data,

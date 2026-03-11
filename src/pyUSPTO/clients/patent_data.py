@@ -263,12 +263,12 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         endpoint = self.ENDPOINTS["search_applications"]
 
         if post_body is not None:
-            result = self._make_request(
+            result = self._get_model(
                 method="POST",
                 endpoint=endpoint,
+                response_class=PatentDataResponse,
                 json_data=post_body,
                 params=additional_query_params,
-                response_class=PatentDataResponse,
             )
         else:
             params: dict[str, Any] = {}
@@ -366,13 +366,12 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
             if additional_query_params:
                 params.update(additional_query_params)
-            result = self._make_request(
+            result = self._get_model(
                 method="GET",
                 endpoint=endpoint,
-                params=params,
                 response_class=PatentDataResponse,
+                params=params,
             )
-        assert isinstance(result, PatentDataResponse)
         return result
 
     def get_search_results(
@@ -408,7 +407,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             if "format" not in post_body:
                 post_body["format"] = "json"
 
-            result = self._make_request(
+            result = self._get_json(
                 method="POST",
                 endpoint=endpoint,
                 json_data=post_body,
@@ -504,12 +503,11 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             if additional_query_params:
                 params.update(additional_query_params)
 
-            result = self._make_request(
+            result = self._get_json(
                 method="GET",
                 endpoint=endpoint,
                 params=params,
             )
-        assert isinstance(result, dict)
         amd_list = [
             ApplicationMetaData.from_dict(item["applicationMetaData"])
             for item in result["patentdata"]
@@ -541,14 +539,14 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         endpoint = self.ENDPOINTS["get_application_by_number"].format(
             application_number=self.sanitize_application_number(application_number)
         )
-        response_data = self._make_request(
+        response_data = self._get_model(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        assert isinstance(response_data, PatentDataResponse)
-        return self._get_wrapper_from_response(
+        ret = self._get_wrapper_from_response(
             response_data=response_data,
             application_number_for_validation=application_number,
         )
+        return ret
 
     def get_application_metadata(
         self, application_number: str
@@ -575,10 +573,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         endpoint = self.ENDPOINTS["get_application_metadata"].format(
             application_number=self.sanitize_application_number(application_number)
         )
-        response_data = self._make_request(
+        response_data = self._get_model(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        assert isinstance(response_data, PatentDataResponse)
         wrapper = self._get_wrapper_from_response(response_data, application_number)
         return wrapper.application_meta_data if wrapper else None
 
@@ -606,10 +603,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         endpoint = self.ENDPOINTS["get_application_adjustment"].format(
             application_number=self.sanitize_application_number(application_number)
         )
-        response_data = self._make_request(
+        response_data = self._get_model(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        assert isinstance(response_data, PatentDataResponse)
         wrapper = self._get_wrapper_from_response(response_data, application_number)
         return wrapper.patent_term_adjustment_data if wrapper else None
 
@@ -638,10 +634,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         endpoint = self.ENDPOINTS["get_application_assignment"].format(
             application_number=self.sanitize_application_number(application_number)
         )
-        response_data = self._make_request(
+        response_data = self._get_model(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        assert isinstance(response_data, PatentDataResponse)
         wrapper = self._get_wrapper_from_response(response_data, application_number)
         return wrapper.assignment_bag if wrapper else None
 
@@ -668,10 +663,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         endpoint = self.ENDPOINTS["get_application_attorney"].format(
             application_number=self.sanitize_application_number(application_number)
         )
-        response_data = self._make_request(
+        response_data = self._get_model(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        assert isinstance(response_data, PatentDataResponse)
         wrapper = self._get_wrapper_from_response(response_data, application_number)
         return wrapper.record_attorney if wrapper else None
 
@@ -701,10 +695,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         endpoint = self.ENDPOINTS["get_application_continuity"].format(
             application_number=self.sanitize_application_number(application_number)
         )
-        response_data = self._make_request(
+        response_data = self._get_model(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        assert isinstance(response_data, PatentDataResponse)
         wrapper = self._get_wrapper_from_response(response_data, application_number)
         return ApplicationContinuityData.from_wrapper(wrapper) if wrapper else None
 
@@ -733,10 +726,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         endpoint = self.ENDPOINTS["get_application_foreign_priority"].format(
             application_number=self.sanitize_application_number(application_number)
         )
-        response_data = self._make_request(
+        response_data = self._get_model(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        assert isinstance(response_data, PatentDataResponse)
         wrapper = self._get_wrapper_from_response(response_data, application_number)
         return wrapper.foreign_priority_bag if wrapper else None
 
@@ -765,10 +757,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         endpoint = self.ENDPOINTS["get_application_transactions"].format(
             application_number=self.sanitize_application_number(application_number)
         )
-        response_data = self._make_request(
+        response_data = self._get_model(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        assert isinstance(response_data, PatentDataResponse)
         wrapper = self._get_wrapper_from_response(response_data, application_number)
         return wrapper.event_data_bag if wrapper else None
 
@@ -819,11 +810,12 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         if official_date_to:
             params["officialDateTo"] = official_date_to
 
-        result_dict = self._make_request(
-            method="GET", endpoint=endpoint, params=params if params else None
+        return self._get_model(
+            method="GET",
+            endpoint=endpoint,
+            response_class=DocumentBag,
+            params=params if params else None,
         )
-        assert isinstance(result_dict, dict)
-        return DocumentBag.from_dict(result_dict)
 
     def get_application_associated_documents(
         self, application_number: str
@@ -855,10 +847,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         endpoint = self.ENDPOINTS["get_application_associated_documents"].format(
             application_number=self.sanitize_application_number(application_number)
         )
-        response_data = self._make_request(
+        response_data = self._get_model(
             method="GET", endpoint=endpoint, response_class=PatentDataResponse
         )
-        assert isinstance(response_data, PatentDataResponse)
         wrapper = self._get_wrapper_from_response(response_data, application_number)
         return PrintedPublication.from_wrapper(wrapper) if wrapper else None
 
@@ -935,11 +926,12 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 status codes, a `StatusCodeCollection` of the `StatusCode`
                 objects (code and description), and a request identifier.
         """
-        result_dict = self._make_request(
-            method="GET", endpoint=self.ENDPOINTS["status_codes"], params=params
+        return self._get_model(
+            method="GET",
+            endpoint=self.ENDPOINTS["status_codes"],
+            response_class=StatusCodeSearchResponse,
+            params=params,
         )
-        assert isinstance(result_dict, dict)
-        return StatusCodeSearchResponse.from_dict(result_dict)
 
     def search_status_codes(
         self, search_request: dict[str, Any]
@@ -962,13 +954,12 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 status codes, a `StatusCodeCollection` of the `StatusCode`
                 objects (code and description), and a request identifier.
         """
-        result_dict = self._make_request(
+        return self._get_model(
             method="POST",
             endpoint=self.ENDPOINTS["status_codes"],
+            response_class=StatusCodeSearchResponse,
             json_data=search_request,
         )
-        assert isinstance(result_dict, dict)
-        return StatusCodeSearchResponse.from_dict(result_dict)
 
     def download_document(
         self,
