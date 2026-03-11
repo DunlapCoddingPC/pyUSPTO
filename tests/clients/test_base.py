@@ -101,6 +101,39 @@ class TestResponseClass:
         return instance
 
 
+class TestImportFallback:
+    """Tests for typing import fallback logic."""
+
+    def test_import_fallback_logic(self) -> None:
+        """Tests that the module falls back to typing_extensions.Self if typing.Self fails."""
+        import builtins
+        import importlib
+        import sys
+
+        import typing_extensions
+
+        module_name = "pyUSPTO.clients.base"
+
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+
+        original_import = builtins.__import__
+
+        def mock_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "typing" and "Self" in fromlist:
+                raise ImportError("Simulated missing Self in typing")
+            return original_import(name, globals, locals, fromlist, level)
+
+        with patch("builtins.__import__", side_effect=mock_import):
+            base_module = importlib.import_module(module_name)
+
+        assert base_module.Self is typing_extensions.Self
+
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+        importlib.import_module(module_name)
+
+
 class TestBaseUSPTOClient:
     """Tests for the BaseUSPTOClient class."""
 
@@ -149,8 +182,8 @@ class TestBaseUSPTOClient:
         assert cast(HTTPAdapter, http_adapter).max_retries.total == 3
         assert cast(HTTPAdapter, http_adapter).max_retries.backoff_factor == 2
 
-    def test_make_request_get(self, mock_session: MagicMock) -> None:
-        """Test _make_request method with GET."""
+    def test_get_json_get(self, mock_session: MagicMock) -> None:
+        """Test _get_json method with GET."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.config._session = mock_session
@@ -160,7 +193,7 @@ class TestBaseUSPTOClient:
         mock_session.get.return_value = mock_response
 
         # Test GET request
-        result = client._make_request(
+        result = client._get_json(
             method="GET", endpoint="test", params={"param": "value"}
         )
 
@@ -173,8 +206,8 @@ class TestBaseUSPTOClient:
         )
         assert result == {"key": "value"}
 
-    def test_make_request_post(self, mock_session: MagicMock) -> None:
-        """Test _make_request method with POST."""
+    def test_get_json_post(self, mock_session: MagicMock) -> None:
+        """Test _get_json method with POST."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.config._session = mock_session
@@ -184,7 +217,7 @@ class TestBaseUSPTOClient:
         mock_session.post.return_value = mock_response
 
         # Test POST request
-        result = client._make_request(
+        result = client._get_json(
             method="POST",
             endpoint="test",
             params={"param": "value"},
@@ -201,8 +234,8 @@ class TestBaseUSPTOClient:
         )
         assert result == {"key": "value"}
 
-    def test_make_request_with_response_class(self, mock_session: MagicMock) -> None:
-        """Test _make_request method with response_class."""
+    def test_get_model(self, mock_session: MagicMock) -> None:
+        """Test _get_model method parses response into model class."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.config._session = mock_session
@@ -212,7 +245,7 @@ class TestBaseUSPTOClient:
         mock_session.get.return_value = mock_response
 
         # Test with response_class
-        result = client._make_request(
+        result = client._get_model(
             method="GET",
             endpoint="test",
             response_class=TestResponseClass,
@@ -222,8 +255,8 @@ class TestBaseUSPTOClient:
         assert isinstance(result, TestResponseClass)
         assert result.data == {"key": "value"}
 
-    def test_make_request_with_custom_base_url(self, mock_session: MagicMock) -> None:
-        """Test _make_request method with custom_base_url."""
+    def test_get_json_with_custom_url(self, mock_session: MagicMock) -> None:
+        """Test _get_json method with custom_url."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.config._session = mock_session
@@ -232,8 +265,8 @@ class TestBaseUSPTOClient:
         mock_response.json.return_value = {"key": "value"}
         mock_session.get.return_value = mock_response
 
-        # Test with custom_base_url
-        result = client._make_request(
+        # Test with custom_url
+        result = client._get_json(
             method="GET",
             endpoint="test",
             custom_url="https://custom.api.test.com",
@@ -269,15 +302,16 @@ class TestBaseUSPTOClient:
         assert result == mock_response
         mock_response.json.assert_not_called()
 
-    def test_make_request_invalid_method(self, mock_session: MagicMock) -> None:
-        """Test _make_request method with invalid HTTP method."""
+    def test_execute_request_invalid_method(self, mock_session: MagicMock) -> None:
+        """Test _execute_request with invalid HTTP method."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
 
         # Test with invalid method
         with pytest.raises(ValueError, match="Unsupported HTTP method: DELETE"):
-            client._make_request(method="DELETE", endpoint="test")
+            client._execute_request(method="DELETE", url="https://api.test.com/test")
 
         # Test catch-all error case with unknown status code
+        client.config._session = mock_session
         mock_response = MagicMock()
         mock_response.status_code = (
             418  # I'm a teapot (unused status in the specific handlers)
@@ -291,13 +325,13 @@ class TestBaseUSPTOClient:
         )
 
         with pytest.raises(USPTOApiError) as excinfo:
-            client._make_request(method="GET", endpoint="test")
+            client._execute_request(method="GET", url="https://api.test.com/test")
         assert "I'm a teapot" in str(excinfo.value)
         assert excinfo.value.error_details == "I'm a teapot"
         assert excinfo.value.status_code == 418
 
-    def test_make_request_http_errors(self, mock_session: MagicMock) -> None:
-        """Test _make_request method with HTTP errors."""
+    def test_execute_request_http_errors(self, mock_session: MagicMock) -> None:
+        """Test _execute_request with HTTP errors."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.config._session = mock_session
@@ -314,7 +348,7 @@ class TestBaseUSPTOClient:
         )
 
         with pytest.raises(USPTOApiBadRequestError) as excinfo:
-            client._make_request(method="GET", endpoint="test")
+            client._execute_request(method="GET", url="https://api.test.com/test")
             assert "Invalid request parameters" in str(excinfo.value)
             assert excinfo.value.error_details == "Invalid request parameters"
             assert excinfo.value.request_identifier == "req-400"
@@ -326,7 +360,7 @@ class TestBaseUSPTOClient:
             "requestIdentifier": "req-401",
         }
         with pytest.raises(expected_exception=USPTOApiAuthError) as excinfo:
-            client._make_request(method="GET", endpoint="test")
+            client._execute_request(method="GET", url="https://api.test.com/test")
             assert "Authentication failed" in str(excinfo.value)
             assert excinfo.value.error_details == "Authentication failed"
             assert excinfo.value.request_identifier == "req-401"
@@ -338,7 +372,7 @@ class TestBaseUSPTOClient:
             "requestIdentifier": "req-403",
         }
         with pytest.raises(USPTOApiAuthError) as excinfo:
-            client._make_request(method="GET", endpoint="test")
+            client._execute_request(method="GET", url="https://api.test.com/test")
             assert "Access forbidden" in str(excinfo.value)
             assert excinfo.value.error_details == "Access forbidden"
             assert excinfo.value.request_identifier == "req-403"
@@ -350,7 +384,7 @@ class TestBaseUSPTOClient:
             "requestIdentifier": "req-404",
         }
         with pytest.raises(USPTOApiNotFoundError) as excinfo:
-            client._make_request(method="GET", endpoint="test")
+            client._execute_request(method="GET", url="https://api.test.com/test")
             assert "Resource not found" in str(excinfo.value)
             assert excinfo.value.error_details == "Resource not found"
             assert excinfo.value.request_identifier == "req-404"
@@ -363,7 +397,7 @@ class TestBaseUSPTOClient:
             "requestIdentifier": "req-413",
         }
         with pytest.raises(expected_exception=USPTOApiPayloadTooLargeError) as excinfo:
-            client._make_request(method="GET", endpoint="test")
+            client._execute_request(method="GET", url="https://api.test.com/test")
             assert "Payload Too Large" in str(excinfo.value)
             assert excinfo.value.error_details == "Request entity too large."
             assert excinfo.value.request_identifier == "req-413"
@@ -375,7 +409,7 @@ class TestBaseUSPTOClient:
             "requestIdentifier": "req-429",
         }
         with pytest.raises(USPTOApiRateLimitError) as excinfo:
-            client._make_request(method="GET", endpoint="test")
+            client._execute_request(method="GET", url="https://api.test.com/test")
             assert "Rate limit exceeded" in str(excinfo.value)
             assert excinfo.value.error_details == "Rate limit exceeded"
             assert excinfo.value.request_identifier == "req-429"
@@ -387,7 +421,7 @@ class TestBaseUSPTOClient:
             "requestIdentifier": "req-500",
         }
         with pytest.raises(USPTOApiServerError) as excinfo:
-            client._make_request(method="GET", endpoint="test")
+            client._execute_request(method="GET", url="https://api.test.com/test")
             assert "Internal server error" in str(excinfo.value)
             assert excinfo.value.error_details == "Internal server error"
             assert excinfo.value.request_identifier == "req-500"
@@ -399,7 +433,7 @@ class TestBaseUSPTOClient:
             "requestIdentifier": "req-500-alt",
         }
         with pytest.raises(USPTOApiServerError) as excinfo:
-            client._make_request(method="GET", endpoint="test")
+            client._execute_request(method="GET", url="https://api.test.com/test")
             assert "Alternative error format" in str(object=excinfo.value)
             assert excinfo.value.error_details == "Alternative error format"
             assert excinfo.value.request_identifier == "req-500-alt"
@@ -408,11 +442,11 @@ class TestBaseUSPTOClient:
         mock_response.json.side_effect = ValueError("Invalid JSON")
         mock_response.text = "This is an error less than 500 chars."
         with pytest.raises(USPTOApiServerError) as excinfo:
-            client._make_request(method="GET", endpoint="test")
+            client._execute_request(method="GET", url="https://api.test.com/test")
             assert "This is an error less than 500 chars." in str(excinfo.value)
             assert excinfo.value.request_identifier is None
 
-    def test_make_request_post_error_includes_body(
+    def test_execute_request_post_error_includes_body(
         self, mock_session: MagicMock
     ) -> None:
         """Test that POST request errors include the request body in the error message."""
@@ -438,7 +472,11 @@ class TestBaseUSPTOClient:
         post_body = {"q": "test query", "pagination": {"limit": 100}}
 
         with pytest.raises(USPTOApiBadRequestError) as excinfo:
-            client._make_request(method="POST", endpoint="test", json_data=post_body)
+            client._execute_request(
+                method="POST",
+                url="https://api.test.com/test",
+                json_data=post_body,
+            )
 
         # Verify the error message includes the POST body
         error_message = str(excinfo.value)
@@ -446,8 +484,8 @@ class TestBaseUSPTOClient:
         assert '"q": "test query"' in error_message
         assert '"pagination"' in error_message
 
-    def test_make_request_connection_error(self, mock_session: MagicMock) -> None:
-        """Test _make_request method with connection error."""
+    def test_execute_request_connection_error(self, mock_session: MagicMock) -> None:
+        """Test _execute_request with connection error."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.config._session = mock_session
@@ -458,15 +496,15 @@ class TestBaseUSPTOClient:
         )
 
         with pytest.raises(USPTOConnectionError) as excinfo:
-            client._make_request(method="GET", endpoint="test")
+            client._execute_request(method="GET", url="https://api.test.com/test")
 
         # Verify error details
         assert "Failed to connect to" in str(excinfo.value)
         assert "https://api.test.com/test" in str(excinfo.value)
         assert excinfo.value.api_short_error == "Connection Error"
 
-    def test_make_request_timeout_error(self, mock_session: MagicMock) -> None:
-        """Test _make_request method with timeout error."""
+    def test_execute_request_timeout_error(self, mock_session: MagicMock) -> None:
+        """Test _execute_request with timeout error."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.config._session = mock_session
@@ -475,17 +513,17 @@ class TestBaseUSPTOClient:
         mock_session.get.side_effect = requests.exceptions.Timeout("Request timed out")
 
         with pytest.raises(USPTOTimeout) as excinfo:
-            client._make_request(method="GET", endpoint="test")
+            client._execute_request(method="GET", url="https://api.test.com/test")
 
         # Verify error details
         assert "timed out" in str(excinfo.value)
         assert "https://api.test.com/test" in str(excinfo.value)
         assert excinfo.value.api_short_error == "Timeout"
 
-    def test_make_request_generic_request_exception(
+    def test_execute_request_generic_request_exception(
         self, mock_session: MagicMock
     ) -> None:
-        """Test _make_request method with generic request exception."""
+        """Test _execute_request with generic request exception."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.config._session = mock_session
@@ -498,10 +536,10 @@ class TestBaseUSPTOClient:
         # Should fall back to generic USPTOApiError
         expected_message_pattern = "API request to 'https://api.test.com/test' failed due to a network or request issue"
         with pytest.raises(USPTOApiError, match=expected_message_pattern):
-            client._make_request(method="GET", endpoint="test")
+            client._execute_request(method="GET", url="https://api.test.com/test")
 
-    def test_make_request_json_parse_error(self, mock_session: MagicMock) -> None:
-        """Test _make_request method with JSON parsing error."""
+    def test_get_json_parse_error(self, mock_session: MagicMock) -> None:
+        """Test _get_json with JSON parsing error."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.config._session = mock_session
@@ -518,7 +556,7 @@ class TestBaseUSPTOClient:
 
         # Should raise USPTOApiResponseParseError
         with pytest.raises(USPTOApiResponseParseError) as excinfo:
-            client._make_request(method="GET", endpoint="test")
+            client._get_json(method="GET", endpoint="test")
 
         # Verify error details
         assert "Failed to parse JSON response" in str(excinfo.value)
@@ -527,10 +565,10 @@ class TestBaseUSPTOClient:
         assert "text/html" in str(excinfo.value.error_details)
         assert "Error page" in str(excinfo.value.error_details)
 
-    def test_make_request_json_parse_error_with_response_class(
+    def test_get_model_json_parse_error(
         self, mock_session: MagicMock
     ) -> None:
-        """Test _make_request with JSON parsing error when using response_class."""
+        """Test _get_model with JSON parsing error."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.config._session = mock_session
@@ -549,7 +587,7 @@ class TestBaseUSPTOClient:
 
         # Should raise USPTOApiResponseParseError even with response_class
         with pytest.raises(USPTOApiResponseParseError) as excinfo:
-            client._make_request(
+            client._get_model(
                 method="GET", endpoint="test", response_class=TestResponseClass
             )
 
@@ -1004,7 +1042,7 @@ class TestBaseUSPTOClient:
         mock_session.get.return_value.json.return_value = {"test": "data"}
 
         # Make request
-        client._make_request(method="GET", endpoint="test")
+        client._get_json(method="GET", endpoint="test")
 
         # Verify timeout was passed
         mock_session.get.assert_called_once()

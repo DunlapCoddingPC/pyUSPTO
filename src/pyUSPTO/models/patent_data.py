@@ -68,7 +68,7 @@ class ActiveIndicator(Enum):
                 return cls.FALSE
             if val_upper == "ACTIVE":
                 return cls.ACTIVE
-        return super()._missing_(value=value)  # type: ignore[no-any-return]
+        raise ValueError(f"{value!r} is not a valid {cls.__name__}")
 
 
 class DocumentMimeType(str, Enum):
@@ -423,7 +423,9 @@ class DocumentBag:
         return DocumentBag(list(filtered))
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "DocumentBag":
+    def from_dict(
+        cls, data: dict[str, Any], include_raw_data: bool = False
+    ) -> "DocumentBag":
         """Create a `DocumentBag` instance from a dictionary representation.
 
         Expects a dictionary with a "documentBag" key containing a list of
@@ -432,6 +434,7 @@ class DocumentBag:
         Args:
             data (Dict[str, Any]): A dictionary, typically from an API response,
                 containing the document bag.
+            include_raw_data: Unused. Present for FromDictProtocol conformance.
 
         Returns:
             DocumentBag: An instance of `DocumentBag`.
@@ -2526,11 +2529,14 @@ class StatusCodeSearchResponse:
     request_identifier: str | None = None
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "StatusCodeSearchResponse":
+    def from_dict(
+        cls, data: dict[str, Any], include_raw_data: bool = False
+    ) -> "StatusCodeSearchResponse":
         """Create a `StatusCodeSearchResponse` instance from a dictionary.
 
         Args:
             data (Dict[str, Any]): Dictionary with API response data for status codes.
+            include_raw_data: Unused. Present for FromDictProtocol conformance.
 
         Returns:
             StatusCodeSearchResponse: An instance of `StatusCodeSearchResponse`.

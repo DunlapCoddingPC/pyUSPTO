@@ -14,6 +14,10 @@ from typing import (
     runtime_checkable,
 )
 
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 import requests
 
 from pyUSPTO.config import USPTOConfig
@@ -31,13 +35,16 @@ class FromDictProtocol(Protocol):
     """Protocol for classes that can be created from a dictionary."""
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], include_raw_data: bool = False) -> Any:
+    def from_dict(cls, data: dict[str, Any], include_raw_data: bool = False) -> Self:
         """Create an object from a dictionary."""
         ...
 
 
 # Type variable for response classes
 T = TypeVar("T", bound=FromDictProtocol)
+
+# Type variable for response classes
+M = TypeVar("M", bound=FromDictProtocol)
 
 
 class BaseUSPTOClient(Generic[T]):
@@ -309,37 +316,29 @@ class BaseUSPTOClient(Generic[T]):
             method=method, url=url, params=params, json_data=json_data, stream=True
         )
 
-    def _make_request(
+    def _get_model(
         self,
         method: str,
         endpoint: str,
+        response_class: type[M],
         params: dict[str, Any] | None = None,
         json_data: dict[str, Any] | None = None,
-        response_class: type[T] | None = None,
         custom_url: str | None = None,
         custom_base_url: str | None = None,
-    ) -> dict[str, Any] | T:
-        """Make an HTTP request to the USPTO API.
-
-        Note: Only GET and POST methods are supported. Other HTTP methods will
-        raise a ValueError.
+    ) -> M:
+        """Make an HTTP request and parse the response into a model.
 
         Args:
             method: HTTP method (GET or POST only)
             endpoint: API endpoint path (without base URL)
+            response_class: Class to use for parsing the response
             params: Optional query parameters
             json_data: Optional JSON body for POST requests
-            response_class: Class to use for parsing the response
-            custom_url: Optional full custom URL to use (overrides endpoint and base URL)
-            custom_base_url: Optional custom base URL to use instead of self.base_url
+            custom_url: Optional full custom URL (overrides endpoint and base URL)
+            custom_base_url: Optional custom base URL instead of self.base_url
 
         Returns:
-            Response data in the appropriate format:
-            - If response_class is provided: Instance of response_class
-            - Otherwise: Dict[str, Any] containing the JSON response
-
-        Raises:
-            ValueError: If an unsupported HTTP method is provided
+            Instance of response_class parsed from the JSON response.
         """
         url = self._build_url(
             endpoint, custom_url=custom_url, custom_base_url=custom_base_url
@@ -347,19 +346,43 @@ class BaseUSPTOClient(Generic[T]):
         response = self._execute_request(
             method=method, url=url, params=params, json_data=json_data
         )
+        data = self._parse_json_response(response, url)
 
-        # Parse JSON response with error handling
-        json_data = self._parse_json_response(response, url)
+        ret = response_class.from_dict(
+            data, include_raw_data=self.config.include_raw_data
+        )
+        assert isinstance(ret, response_class)
+        return ret
 
-        # Parse the response based on the specified class
-        if response_class:
-            parsed_response: T = response_class.from_dict(
-                json_data, include_raw_data=self.config.include_raw_data
-            )
-            return parsed_response
+    def _get_json(
+        self,
+        method: str,
+        endpoint: str,
+        params: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
+        custom_url: str | None = None,
+        custom_base_url: str | None = None,
+    ) -> dict[str, Any]:
+        """Make an HTTP request and return the parsed JSON response.
 
-        # Return the raw JSON for other requests
-        return json_data
+        Args:
+            method: HTTP method (GET or POST only)
+            endpoint: API endpoint path (without base URL)
+            params: Optional query parameters
+            json_data: Optional JSON body for POST requests
+            custom_url: Optional full custom URL (overrides endpoint and base URL)
+            custom_base_url: Optional custom base URL instead of self.base_url
+
+        Returns:
+            Dict containing the JSON response.
+        """
+        url = self._build_url(
+            endpoint, custom_url=custom_url, custom_base_url=custom_base_url
+        )
+        response = self._execute_request(
+            method=method, url=url, params=params, json_data=json_data
+        )
+        return self._parse_json_response(response, url)
 
     def paginate_results(
         self,

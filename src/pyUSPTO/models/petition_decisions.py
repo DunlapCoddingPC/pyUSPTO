@@ -44,7 +44,7 @@ class DecisionTypeCode(Enum):
                 return cls.DENIED
             # if val_upper == "DISMISSED":
             #     return cls.DISMISSED
-        return super()._missing_(value=value)  # type: ignore[no-any-return]
+        raise ValueError(f"{value!r} is not a valid {cls.__name__}")
 
 
 class DocumentDirectionCategory(Enum):
@@ -62,7 +62,7 @@ class DocumentDirectionCategory(Enum):
                 return cls.INCOMING
             if val_upper == "OUTGOING":
                 return cls.OUTGOING
-        return super()._missing_(value=value)  # type: ignore[no-any-return]
+        raise ValueError(f"{value!r} is not a valid {cls.__name__}")
 
 
 # --- Data Models ---
@@ -468,11 +468,14 @@ class PetitionDecisionDownloadResponse:
     petition_decision_data: list[PetitionDecision] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "PetitionDecisionDownloadResponse":
+    def from_dict(
+        cls, data: dict[str, Any], include_raw_data: bool = False
+    ) -> "PetitionDecisionDownloadResponse":
         """Create a PetitionDecisionDownloadResponse instance from a dictionary.
 
         Args:
             data: Dictionary containing download API response data.
+            include_raw_data: Unused. Present for FromDictProtocol conformance.
 
         Returns:
             PetitionDecisionDownloadResponse: An instance of PetitionDecisionDownloadResponse.

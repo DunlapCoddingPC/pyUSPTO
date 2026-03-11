@@ -8,7 +8,7 @@ documents, and decisions.
 from collections.abc import Iterator
 from typing import Any
 
-from pyUSPTO.clients.base import BaseUSPTOClient
+from pyUSPTO.clients.base import BaseUSPTOClient, M
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.ptab import (
     PTABTrialDocumentResponse,
@@ -70,7 +70,7 @@ class PTABTrialsClient(
     def _perform_search(
         self,
         endpoint_key: str,
-        response_class: Any,
+        response_class: type[M],
         query: str | None,
         query_parts: list[str],
         post_body: dict[str, Any] | None,
@@ -82,7 +82,7 @@ class PTABTrialsClient(
         filters: str | None,
         range_filters: str | None,
         additional_params: dict[str, Any] | None,
-    ) -> PTABTrialProceedingResponse | PTABTrialDocumentResponse:
+    ) -> M:
         """Execute a PTAB trial search request using GET or POST.
 
         If a POST body is provided, perform a POST request; otherwise, build
@@ -92,14 +92,13 @@ class PTABTrialsClient(
 
         # Handle POST request
         if post_body is not None:
-            result = self._make_request(
+            return self._get_model(
                 method="POST",
                 endpoint=endpoint,
+                response_class=response_class,
                 json_data=post_body,
                 params=additional_params,
-                response_class=response_class,
             )
-            return result  # type: ignore
 
         # Handle GET request
         params: dict[str, Any] = {}
@@ -129,13 +128,12 @@ class PTABTrialsClient(
         if additional_params:
             params.update(additional_params)
 
-        result = self._make_request(
+        return self._get_model(
             method="GET",
             endpoint=endpoint,
-            params=params,
             response_class=response_class,
+            params=params,
         )
-        return result  # type: ignore
 
     def search_proceedings(
         self,
@@ -245,7 +243,7 @@ class PTABTrialsClient(
             filters=filters,
             range_filters=range_filters,
             additional_params=additional_query_params,
-        )  # type: ignore
+        )
 
     def search_documents(
         self,
@@ -361,7 +359,7 @@ class PTABTrialsClient(
             filters=filters,
             range_filters=range_filters,
             additional_params=additional_query_params,
-        )  # type: ignore
+        )
 
     def search_decisions(
         self,
@@ -489,7 +487,7 @@ class PTABTrialsClient(
             filters=filters,
             range_filters=range_filters,
             additional_params=additional_query_params,
-        )  # type: ignore
+        )
 
     def paginate_proceedings(
         self, post_body: dict[str, Any] | None = None, **kwargs: Any

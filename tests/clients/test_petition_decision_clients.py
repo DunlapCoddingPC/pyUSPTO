@@ -82,11 +82,11 @@ def mock_petition_response_empty() -> PetitionDecisionResponse:
 def client_with_mocked_request(
     petition_client: FinalPetitionDecisionsClient,
 ) -> Iterator[tuple[FinalPetitionDecisionsClient, MagicMock]]:
-    """Provides a client with mocked _make_request method."""
+    """Provides a client with mocked _get_model method."""
     with patch.object(
-        petition_client, "_make_request", autospec=True
-    ) as mock_make_request:
-        yield petition_client, mock_make_request
+        petition_client, "_get_model", autospec=True
+    ) as mock_get_model:
+        yield petition_client, mock_get_model
 
 
 @pytest.fixture
@@ -145,12 +145,12 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with direct query string."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         result = client.search_decisions(query="Test", limit=10, offset=0)
 
-        mock_make_request.assert_called_once_with(
+        mock_get_model.assert_called_once_with(
             method="GET",
             endpoint="api/v1/petition/decisions/search",
             params={"q": "Test", "limit": 10, "offset": 0},
@@ -164,8 +164,8 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with application number convenience parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         result = client.search_decisions(application_number_q="17765301", limit=25)
 
@@ -174,7 +174,7 @@ class TestFinalPetitionDecisionsClientSearch:
             "limit": 25,
             "offset": 0,
         }
-        mock_make_request.assert_called_once_with(
+        mock_get_model.assert_called_once_with(
             method="GET",
             endpoint="api/v1/petition/decisions/search",
             params=expected_params,
@@ -188,8 +188,8 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with date range."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         client.search_decisions(
             decision_date_from_q="2022-01-01",
@@ -202,7 +202,7 @@ class TestFinalPetitionDecisionsClientSearch:
             "limit": 25,
             "offset": 0,
         }
-        mock_make_request.assert_called_once_with(
+        mock_get_model.assert_called_once_with(
             method="GET",
             endpoint="api/v1/petition/decisions/search",
             params=expected_params,
@@ -215,8 +215,8 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search combining multiple parameters."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         client.search_decisions(
             applicant_name_q="Test Corp",
@@ -226,7 +226,7 @@ class TestFinalPetitionDecisionsClientSearch:
         )
 
         # Check that the query contains all three conditions joined with AND
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert "q" in params
         query = params["q"]
@@ -242,13 +242,13 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with POST body."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         post_body = {"q": "technologyCenter:1700", "limit": 100}
         client.search_decisions(post_body=post_body)
 
-        mock_make_request.assert_called_once_with(
+        mock_get_model.assert_called_once_with(
             method="POST",
             endpoint="api/v1/petition/decisions/search",
             json_data=post_body,
@@ -262,12 +262,12 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with patent_number_q parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         client.search_decisions(patent_number_q="10123456")
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert "patentNumber:10123456" in params["q"]
 
@@ -277,12 +277,12 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with inventor_name_q parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         client.search_decisions(inventor_name_q="John Doe")
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert 'inventorBag:"John Doe"' in params["q"]
 
@@ -292,12 +292,12 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with invention_title_q parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         client.search_decisions(invention_title_q="Test Invention")
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert 'inventionTitle:"Test Invention"' in params["q"]
 
@@ -307,12 +307,12 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with final_deciding_office_name_q parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         client.search_decisions(final_deciding_office_name_q="TC Director")
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert 'finalDecidingOfficeName:"TC Director"' in params["q"]
 
@@ -322,12 +322,12 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with only decision_date_from_q parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         client.search_decisions(decision_date_from_q="2023-01-01")
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert "decisionDate:>=2023-01-01" in params["q"]
 
@@ -337,12 +337,12 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with only decision_date_to_q parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         client.search_decisions(decision_date_to_q="2023-12-31")
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert "decisionDate:<=2023-12-31" in params["q"]
 
@@ -352,12 +352,12 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with only petition_mail_date_from_q parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         client.search_decisions(petition_mail_date_from_q="2023-01-01")
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert "petitionMailDate:>=2023-01-01" in params["q"]
 
@@ -367,12 +367,12 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with only petition_mail_date_to_q parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         client.search_decisions(petition_mail_date_to_q="2023-12-31")
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert "petitionMailDate:<=2023-12-31" in params["q"]
 
@@ -382,15 +382,15 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with petition mail date range."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         client.search_decisions(
             petition_mail_date_from_q="2023-01-01",
             petition_mail_date_to_q="2023-12-31",
         )
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert "petitionMailDate:[2023-01-01 TO 2023-12-31]" in params["q"]
 
@@ -400,8 +400,8 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with optional sort, facets, fields, filters, and range_filters."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         client.search_decisions(
             query="test",
@@ -412,7 +412,7 @@ class TestFinalPetitionDecisionsClientSearch:
             range_filters="decisionDate:[2020 TO 2024]",
         )
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert params["sort"] == "decisionDate desc"
         assert params["facets"] == "technologyCenter"
@@ -426,14 +426,14 @@ class TestFinalPetitionDecisionsClientSearch:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test search with additional_query_params."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         client.search_decisions(
             query="test", additional_query_params={"customParam": "customValue"}
         )
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert params["customParam"] == "customValue"
 
@@ -447,13 +447,13 @@ class TestFinalPetitionDecisionsClientGetById:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test retrieving decision by ID."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         record_id = "9f1a4a2b-eee1-58ec-a3aa-167c4075aed4"
         result = client.get_decision_by_id(record_id)
 
-        mock_make_request.assert_called_once_with(
+        mock_get_model.assert_called_once_with(
             method="GET",
             endpoint=f"api/v1/petition/decisions/{record_id}",
             params=None,
@@ -468,13 +468,13 @@ class TestFinalPetitionDecisionsClientGetById:
         mock_petition_response_with_data: PetitionDecisionResponse,
     ) -> None:
         """Test retrieving decision by ID with includeDocuments parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_with_data
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
 
         record_id = "9f1a4a2b-eee1-58ec-a3aa-167c4075aed4"
         result = client.get_decision_by_id(record_id, include_documents=True)
 
-        mock_make_request.assert_called_once_with(
+        mock_get_model.assert_called_once_with(
             method="GET",
             endpoint=f"api/v1/petition/decisions/{record_id}",
             params={"includeDocuments": "true"},
@@ -488,8 +488,8 @@ class TestFinalPetitionDecisionsClientGetById:
         mock_petition_response_empty: PetitionDecisionResponse,
     ) -> None:
         """Test retrieving non-existent decision returns None."""
-        client, mock_make_request = client_with_mocked_request
-        mock_make_request.return_value = mock_petition_response_empty
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_empty
 
         result = client.get_decision_by_id("nonexistent-id")
         assert result is None
@@ -503,20 +503,32 @@ class TestFinalPetitionDecisionsClientDownload:
         client_with_mocked_request: tuple[FinalPetitionDecisionsClient, MagicMock],
     ) -> None:
         """Test downloading decisions in JSON format."""
-        client, mock_make_request = client_with_mocked_request
+        client, mock_get_model = client_with_mocked_request
 
-        mock_dict = {"petitionDecisionData": [{"applicationNumberText": "12345678"}]}
-        mock_make_request.return_value = mock_dict
+        mock_response = PetitionDecisionDownloadResponse(
+            petition_decision_data=[
+                PetitionDecision(
+                    application_number_text="12345678",
+                    petition_decision_record_identifier="test-id",
+                )
+            ]
+        )
+        mock_get_model.return_value = mock_response
 
         result = client.download_decisions(format="json", applicant_name_q="Test Corp")
 
         assert isinstance(result, PetitionDecisionDownloadResponse)
         assert len(result.petition_decision_data) == 1
 
-        call_args = mock_make_request.call_args
-        params = call_args[1]["params"]
-        assert params["format"] == "json"
-        assert 'firstApplicantName:"Test Corp"' in params.get("q", "")
+        mock_get_model.assert_called_once_with(
+            method="GET",
+            endpoint="api/v1/petition/decisions/search/download",
+            response_class=PetitionDecisionDownloadResponse,
+            params={
+                "format": "json",
+                "q": 'firstApplicantName:"Test Corp"',
+            },
+        )
 
     def test_download_csv(
         self,
@@ -573,13 +585,14 @@ class TestFinalPetitionDecisionsClientDownload:
         client_with_mocked_request: tuple[FinalPetitionDecisionsClient, MagicMock],
     ) -> None:
         """Test download with patent_number_q parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_dict = {"petitionDecisionData": []}
-        mock_make_request.return_value = mock_dict
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = PetitionDecisionDownloadResponse(
+            petition_decision_data=[]
+        )
 
         client.download_decisions(format="json", patent_number_q="10123456")
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert "patentNumber:10123456" in params["q"]
 
@@ -588,13 +601,14 @@ class TestFinalPetitionDecisionsClientDownload:
         client_with_mocked_request: tuple[FinalPetitionDecisionsClient, MagicMock],
     ) -> None:
         """Test download with application_number_q parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_dict = {"petitionDecisionData": []}
-        mock_make_request.return_value = mock_dict
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = PetitionDecisionDownloadResponse(
+            petition_decision_data=[]
+        )
 
         client.download_decisions(format="json", application_number_q="17765301")
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert "applicationNumberText:17765301" in params["q"]
 
@@ -603,13 +617,14 @@ class TestFinalPetitionDecisionsClientDownload:
         client_with_mocked_request: tuple[FinalPetitionDecisionsClient, MagicMock],
     ) -> None:
         """Test download with inventor_name_q parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_dict = {"petitionDecisionData": []}
-        mock_make_request.return_value = mock_dict
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = PetitionDecisionDownloadResponse(
+            petition_decision_data=[]
+        )
 
         client.download_decisions(format="json", inventor_name_q="Jane Doe")
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert 'inventorBag:"Jane Doe"' in params["q"]
 
@@ -618,13 +633,14 @@ class TestFinalPetitionDecisionsClientDownload:
         client_with_mocked_request: tuple[FinalPetitionDecisionsClient, MagicMock],
     ) -> None:
         """Test download with only decision_date_from_q parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_dict = {"petitionDecisionData": []}
-        mock_make_request.return_value = mock_dict
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = PetitionDecisionDownloadResponse(
+            petition_decision_data=[]
+        )
 
         client.download_decisions(format="json", decision_date_from_q="2023-01-01")
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert "decisionDate:>=2023-01-01" in params["q"]
 
@@ -633,13 +649,14 @@ class TestFinalPetitionDecisionsClientDownload:
         client_with_mocked_request: tuple[FinalPetitionDecisionsClient, MagicMock],
     ) -> None:
         """Test download with only decision_date_to_q parameter."""
-        client, mock_make_request = client_with_mocked_request
-        mock_dict = {"petitionDecisionData": []}
-        mock_make_request.return_value = mock_dict
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = PetitionDecisionDownloadResponse(
+            petition_decision_data=[]
+        )
 
         client.download_decisions(format="json", decision_date_to_q="2023-12-31")
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert "decisionDate:<=2023-12-31" in params["q"]
 
@@ -648,9 +665,10 @@ class TestFinalPetitionDecisionsClientDownload:
         client_with_mocked_request: tuple[FinalPetitionDecisionsClient, MagicMock],
     ) -> None:
         """Test download with optional sort, fields, filters, and range_filters."""
-        client, mock_make_request = client_with_mocked_request
-        mock_dict = {"petitionDecisionData": []}
-        mock_make_request.return_value = mock_dict
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = PetitionDecisionDownloadResponse(
+            petition_decision_data=[]
+        )
 
         client.download_decisions(
             format="json",
@@ -661,7 +679,7 @@ class TestFinalPetitionDecisionsClientDownload:
             range_filters="decisionDate:[2020 TO 2024]",
         )
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert params["sort"] == "decisionDate desc"
         assert params["fields"] == "applicationNumberText"
@@ -673,13 +691,14 @@ class TestFinalPetitionDecisionsClientDownload:
         client_with_mocked_request: tuple[FinalPetitionDecisionsClient, MagicMock],
     ) -> None:
         """Test download with offset and limit parameters."""
-        client, mock_make_request = client_with_mocked_request
-        mock_dict = {"petitionDecisionData": []}
-        mock_make_request.return_value = mock_dict
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = PetitionDecisionDownloadResponse(
+            petition_decision_data=[]
+        )
 
         client.download_decisions(format="json", offset=50, limit=100)
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert params["offset"] == 50
         assert params["limit"] == 100
@@ -689,15 +708,16 @@ class TestFinalPetitionDecisionsClientDownload:
         client_with_mocked_request: tuple[FinalPetitionDecisionsClient, MagicMock],
     ) -> None:
         """Test download with additional_query_params."""
-        client, mock_make_request = client_with_mocked_request
-        mock_dict = {"petitionDecisionData": []}
-        mock_make_request.return_value = mock_dict
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = PetitionDecisionDownloadResponse(
+            petition_decision_data=[]
+        )
 
         client.download_decisions(
             format="json", additional_query_params={"customParam": "customValue"}
         )
 
-        call_args = mock_make_request.call_args
+        call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert params["customParam"] == "customValue"
 

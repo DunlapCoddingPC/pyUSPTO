@@ -133,12 +133,12 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
 
         if post_body is not None:
             # POST request path
-            result = self._make_request(
+            result = self._get_model(
                 method="POST",
                 endpoint=endpoint,
+                response_class=PTABAppealResponse,
                 json_data=post_body,
                 params=additional_query_params,
-                response_class=PTABAppealResponse,
             )
         else:
             # GET request path
@@ -207,14 +207,12 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
             if additional_query_params:
                 params.update(additional_query_params)
 
-            result = self._make_request(
+            result = self._get_model(
                 method="GET",
                 endpoint=endpoint,
-                params=params,
                 response_class=PTABAppealResponse,
+                params=params,
             )
-
-        assert isinstance(result, PTABAppealResponse)
         return result
 
     def paginate_decisions(
