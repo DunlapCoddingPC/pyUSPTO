@@ -1782,7 +1782,7 @@ class TestExtractArchive:
             client._extract_archive(archive_path, extract_to=extract_to, max_size=500)
 
         # Should succeed with max_size=2000
-        result = client._extract_archive(
+        client._extract_archive(
             archive_path, extract_to=extract_to, max_size=2000
         )
         assert (extract_to / "large_file.txt").exists()
@@ -1823,7 +1823,7 @@ class TestExtractArchive:
             tar.add(temp_dir, arcname="testdir")
 
         extract_to = tmp_path / "extracted"
-        result = client._extract_archive(archive_path, extract_to=extract_to)
+        client._extract_archive(archive_path, extract_to=extract_to)
 
         # Directory entries are skipped, but files are extracted
         assert (extract_to / "testdir" / "file.txt").exists()
@@ -1843,7 +1843,7 @@ class TestExtractArchive:
             zip_ref.writestr("testdir/file.txt", "content")
 
         extract_to = tmp_path / "extracted"
-        result = client._extract_archive(archive_path, extract_to=extract_to)
+        client._extract_archive(archive_path, extract_to=extract_to)
 
         # Directory entries are skipped, but files are extracted
         assert (extract_to / "testdir" / "file.txt").exists()
