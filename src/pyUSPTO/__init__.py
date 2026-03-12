@@ -24,6 +24,8 @@ from pyUSPTO.exceptions import (
     USPTOApiError,
     USPTOApiNotFoundError,
     USPTOApiRateLimitError,
+    USPTOConnectionError,
+    USPTOTimeout,
 )
 from pyUSPTO.http_config import HTTPConfig
 
@@ -34,10 +36,15 @@ from pyUSPTO.models.bulk_data import (
     FileData,
     ProductFileBag,
 )
-from pyUSPTO.models.patent_data import PatentDataResponse, PatentFileWrapper
+from pyUSPTO.models.patent_data import (
+    ApplicationContinuityData,
+    PatentDataResponse,
+    PatentFileWrapper,
+)
 from pyUSPTO.models.petition_decisions import (
     PetitionDecision,
     PetitionDecisionDocument,
+    PetitionDecisionDownloadResponse,
     PetitionDecisionResponse,
 )
 from pyUSPTO.models.ptab import (
@@ -64,6 +71,8 @@ __all__ = [
     "USPTOApiRateLimitError",
     "USPTOApiNotFoundError",
     "FormatNotAvailableError",
+    "USPTOConnectionError",
+    "USPTOTimeout",
     "USPTOConfig",
     "HTTPConfig",
     # Warning classes
@@ -81,6 +90,7 @@ __all__ = [
     "FileData",
     # Patent Data API
     "PatentDataClient",
+    "ApplicationContinuityData",
     "PatentDataResponse",
     "PatentFileWrapper",
     # Final Petition Decisions API
@@ -88,6 +98,7 @@ __all__ = [
     "PetitionDecisionResponse",
     "PetitionDecision",
     "PetitionDecisionDocument",
+    "PetitionDecisionDownloadResponse",
     # PTAB API
     "PTABTrialsClient",
     "PTABAppealsClient",
