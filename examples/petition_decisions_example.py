@@ -24,7 +24,7 @@ if api_key == "YOUR_API_KEY_HERE":
 config = USPTOConfig(api_key=api_key)
 client = FinalPetitionDecisionsClient(config=config)
 
-DEST_PATH = "./download-example"
+DEST_PATH = "./notes/download-example"
 
 print("\nBeginning API requests with configured client:")
 
@@ -234,7 +234,9 @@ try:
         d = client.get_decision_by_id(
             decision.petition_decision_record_identifier, include_documents=True
         )
-        print(f"Getting docs for patent: {d.invention_title} with id: {d.petition_decision_record_identifier}")  # type: ignore
+        print(
+            f"Getting docs for patent: {d.invention_title} with id: {d.petition_decision_record_identifier}"
+        )  # type: ignore
         if d and d.document_bag:
             for doc in d.document_bag:
                 if doc.download_option_bag and len(doc.download_option_bag) > 0:

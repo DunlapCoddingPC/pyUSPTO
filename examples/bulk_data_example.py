@@ -10,6 +10,8 @@ from pyUSPTO.clients import BulkDataClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.bulk_data import FileData
 
+DEST_PATH = "./notes/download-example"
+
 
 def format_size(size_bytes: int | float) -> str:
     """Format a size in bytes to a human-readable string (KB, MB, GB, etc.).
@@ -155,7 +157,7 @@ if min_file:
         # Download with extraction (default behavior for archives)
         downloaded_path = client.download_file(
             file_data=min_file,
-            destination="./downloads",
+            destination=DEST_PATH,
             overwrite=True,
             extract=True,  # Auto-extract if it's a tar.gz or zip
         )
@@ -176,7 +178,7 @@ if product.product_file_bag and product.product_file_bag.file_data_bag and min_f
         # Download without extraction
         downloaded_path = client.download_file(
             file_data=min_file,
-            destination="./downloads",
+            destination=DEST_PATH,
             overwrite=True,
             extract=False,  # Keep archive compressed
         )

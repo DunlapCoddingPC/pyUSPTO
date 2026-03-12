@@ -23,7 +23,7 @@ if api_key == "YOUR_API_KEY_HERE":
 config = USPTOConfig(api_key=api_key)
 client = PatentDataClient(config=config)
 
-DEST_PATH = "./download-example"
+DEST_PATH = "./notes/download-example"
 
 print("\nBeginning API requests with configured client:")
 
@@ -78,9 +78,11 @@ try:
         print("\nGenerating CSV for the current response (first few rows shown):")
         csv_data = response.to_csv()
         # You could save this csv_data to a file:
-        # with open("patent_search_results.csv", "w", newline="", encoding="utf-8") as f:
-        # f.write(csv_data)
-        # print("\nFull CSV data saved to patent_search_results.csv (example).")
+        csv_path = os.path.join(DEST_PATH, "patent_search_results.csv")
+        os.makedirs(DEST_PATH, exist_ok=True)
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            f.write(csv_data)
+            print(f"\nFull CSV data saved to {csv_path}.")
 
 
 except Exception as e:
@@ -308,9 +310,7 @@ except Exception as e:
 # to the application, so each result may have multiple codes.
 try:
     print("\nSearching by CPC classification code 'H10D  64/667'...")
-    cpc_response = client.search_applications(
-        classification_q="H10D  64/667", limit=3
-    )
+    cpc_response = client.search_applications(classification_q="H10D  64/667", limit=3)
     print(f"Found {cpc_response.count} applications with CPC code H10D 64/667.")
     for patent_wrapper in cpc_response.patent_file_wrapper_data_bag:
         app_meta = patent_wrapper.application_meta_data
