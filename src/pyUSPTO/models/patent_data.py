@@ -1983,18 +1983,12 @@ class ApplicationMetaData:
         d["publicationDateBag"] = [
             serialize_date(dt) for dt in self.publication_date_bag if dt
         ]
-        if (
-            "publication_date_bag" in d
-            and "publication_date_bag" != "publicationDateBag"
-        ):
+        if "publication_date_bag" in d:
             d.pop("publication_date_bag")
         d["firstInventorToFileIndicator"] = serialize_bool_to_yn(
             self.first_inventor_to_file_indicator
         )
-        if (
-            "first_inventor_to_file_indicator" in d
-            and "first_inventor_to_file_indicator" != "firstInventorToFileIndicator"
-        ):
+        if "first_inventor_to_file_indicator" in d:
             d.pop("first_inventor_to_file_indicator")
         if self.entity_status_data:
             d["entityStatusData"] = self.entity_status_data.to_dict()
@@ -2002,10 +1996,10 @@ class ApplicationMetaData:
             d.pop("entityStatusData", None)
             d.pop("entity_status_data", None)
         d["applicantBag"] = [a.to_dict() for a in self.applicant_bag]
-        if "applicant_bag" in d and "applicant_bag" != "applicantBag":
+        if "applicant_bag" in d:
             d.pop("applicant_bag")
         d["inventorBag"] = [i.to_dict() for i in self.inventor_bag]
-        if "inventor_bag" in d and "inventor_bag" != "inventorBag":
+        if "inventor_bag" in d:
             d.pop("inventor_bag")
         if "class_field" in d:
             d["class"] = d.pop("class_field")

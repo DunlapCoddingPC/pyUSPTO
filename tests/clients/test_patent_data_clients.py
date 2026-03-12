@@ -2654,7 +2654,6 @@ class TestGeneralEdgeCasesAndErrors:
             client.search_applications(query="test")
 
 
-
 class TestApplicationNumberSanitization:
     """Tests for application number sanitization and validation."""
 
@@ -3246,57 +3245,38 @@ class TestPatentDataResponseCSVExport:
         )
 
         meta2_dict = mock_application_meta_data.to_dict()
-        if meta2_dict:
-            meta2_dict["inventionTitle"] = "Another Test Invention"
-            meta2_dict["filingDate"] = "2021-02-02"
-            meta2_dict["firstInventorName"] = "Jane Inventor"
-            # Ensure other fields needed for CSV are present if they were None in original mock_app_meta
-            meta2_dict.setdefault("applicationTypeLabelName", "Design")
-            meta2_dict.setdefault("publicationCategoryBag", ["S1"])
-            meta2_dict.setdefault("applicationStatusDescriptionText", "Allowed")
-            meta2_dict.setdefault("applicationStatusDate", "2023-10-10")
+        meta2_dict["inventionTitle"] = "Another Test Invention"
+        meta2_dict["filingDate"] = "2021-02-02"
+        meta2_dict["firstInventorName"] = "Jane Inventor"
+        meta2_dict.setdefault("applicationTypeLabelName", "Design")
+        meta2_dict.setdefault("publicationCategoryBag", ["S1"])
+        meta2_dict.setdefault("applicationStatusDescriptionText", "Allowed")
+        meta2_dict.setdefault("applicationStatusDate", "2023-10-10")
 
-            wrapper2_meta = ApplicationMetaData.from_dict(meta2_dict)
-            wrapper2 = PatentFileWrapper(
-                application_number_text="APP002", application_meta_data=wrapper2_meta
-            )
-            response = PatentDataResponse(
-                count=2, patent_file_wrapper_data_bag=[wrapper1, wrapper2]
-            )
-        else:
-            wrapper2_meta = ApplicationMetaData(
-                invention_title="Fallback Title",
-                first_inventor_name="Fallback Inventor",
-                filing_date=date(2021, 2, 2),
-                application_type_label_name="Utility",
-                publication_category_bag=["A1"],
-                application_status_description_text="Status",
-                application_status_date=date(2021, 2, 3),
-            )
-            wrapper2 = PatentFileWrapper(
-                application_number_text="APP002", application_meta_data=wrapper2_meta
-            )
-            response = PatentDataResponse(
-                count=1, patent_file_wrapper_data_bag=[wrapper1]
-            )  # fallback to 1 if dict was None
+        wrapper2_meta = ApplicationMetaData.from_dict(meta2_dict)
+        wrapper2 = PatentFileWrapper(
+            application_number_text="APP002", application_meta_data=wrapper2_meta
+        )
+        response = PatentDataResponse(
+            count=2, patent_file_wrapper_data_bag=[wrapper1, wrapper2]
+        )
 
         csv_string = response.to_csv()
         reader = csv.reader(io.StringIO(csv_string))
         next(reader)
         data_rows = list(reader)
 
-        assert len(data_rows) == response.count
+        assert len(data_rows) == 2
 
         assert data_rows[0][0] == wrapper1_meta.invention_title
         assert data_rows[0][1] == "APP001"
         assert data_rows[0][2] == serialize_date(wrapper1_meta.filing_date)
         assert data_rows[0][7] == wrapper1_meta.first_inventor_name
 
-        if response.count > 1:
-            assert data_rows[1][0] == wrapper2_meta.invention_title
-            assert data_rows[1][1] == "APP002"
-            assert data_rows[1][2] == serialize_date(wrapper2_meta.filing_date)
-            assert data_rows[1][7] == wrapper2_meta.first_inventor_name
+        assert data_rows[1][0] == wrapper2_meta.invention_title
+        assert data_rows[1][1] == "APP002"
+        assert data_rows[1][2] == serialize_date(wrapper2_meta.filing_date)
+        assert data_rows[1][7] == wrapper2_meta.first_inventor_name
 
 
 class TestGetIFWDownload:

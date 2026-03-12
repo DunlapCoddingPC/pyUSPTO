@@ -286,7 +286,6 @@ class PTABTrialProceeding:
 
     Attributes:
         trial_number: Trial number (e.g., "IPR2023-00123").
-        trial_record_identifier: UUID identifier for the trial record.
         last_modified_date_time: Last modification timestamp.
         trial_meta_data: Trial metadata.
         patent_owner_data: Patent owner information.
@@ -297,7 +296,6 @@ class PTABTrialProceeding:
     """
 
     trial_number: str | None = None
-    # trial_record_identifier: Optional[str] = None  # Removed: Documented but not in API.
     last_modified_date_time: datetime | None = None
     trial_meta_data: TrialMetaData | None = None
     patent_owner_data: PatentOwnerData | None = None
@@ -345,7 +343,6 @@ class PTABTrialProceeding:
 
         return cls(
             trial_number=data.get("trialNumber"),
-            # trial_record_identifier=data.get("trialRecordIdentifier"),
             last_modified_date_time=parse_to_datetime_utc(
                 data.get("lastModifiedDateTime")
             ),
@@ -367,9 +364,6 @@ class PTABTrialProceeding:
 
         if self.trial_number is not None:
             result["trialNumber"] = self.trial_number
-        # Removed: Documented but not in API.
-        # if self.trial_record_identifier is not None:
-        #     result["trialRecordIdentifier"] = self.trial_record_identifier
         if self.last_modified_date_time is not None:
             result["lastModifiedDateTime"] = serialize_datetime_as_naive(
                 self.last_modified_date_time
@@ -489,8 +483,6 @@ class TrialDocumentData:
     document_type_description_text: str | None = None
     file_download_uri: str | None = None
     filing_party_category: str | None = None
-    # mime_type_identifier: Optional[str] = None  # Removed: Documented but not in API.
-    # document_status: Optional[str] = None  # Removed: Documented but not in API.
 
     @classmethod
     def from_dict(
@@ -519,8 +511,6 @@ class TrialDocumentData:
             document_type_description_text=data.get("documentTypeDescriptionText"),
             file_download_uri=file_download_uri,
             filing_party_category=data.get("filingPartyCategory"),
-            # mime_type_identifier=data.get("mimeTypeIdentifier"),
-            # document_status=data.get("documentStatus"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -553,11 +543,6 @@ class TrialDocumentData:
             result["fileDownloadURI"] = self.file_download_uri  # Uppercase URI
         if self.filing_party_category is not None:
             result["filingPartyCategory"] = self.filing_party_category
-        # Removed: Documented but not in API.
-        # if self.mime_type_identifier is not None:
-        #     result["mimeTypeIdentifier"] = self.mime_type_identifier
-        # if self.document_status is not None:
-        #     result["documentStatus"] = self.document_status
 
         return result
 
