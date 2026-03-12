@@ -497,10 +497,8 @@ class TestDecisionTypeCodeEnum:
 
     def test_enum_values(self) -> None:
         """Test enum has expected values."""
-        assert DecisionTypeCode.DENIED == DecisionTypeCode.DENIED
-        assert DecisionTypeCode.C == DecisionTypeCode.C
-        # assert DecisionTypeCode.DISMISSED == DecisionTypeCode.DISMISSED
-        # assert DecisionTypeCode.GRANTED == DecisionTypeCode.GRANTED
+        assert DecisionTypeCode("DENIED") == DecisionTypeCode.DENIED
+        assert DecisionTypeCode.C == DecisionTypeCode.DENIED
 
     def test_missing_case_insensitive(self) -> None:
         """Test _missing_ handles case-insensitive lookup."""
@@ -508,10 +506,6 @@ class TestDecisionTypeCodeEnum:
         assert DecisionTypeCode("C") == DecisionTypeCode.DENIED
         with pytest.raises(ValueError):
             DecisionTypeCode("not_a_real_code")
-        # assert DecisionTypeCode("DISMISSED") == DecisionTypeCode.DISMISSED
-        # assert DecisionTypeCode("granted") == DecisionTypeCode.GRANTED
-        # assert DecisionTypeCode("GRANTED") == DecisionTypeCode.GRANTED
-        # assert DecisionTypeCode("dismissed") == DecisionTypeCode.DISMISSED
 
 
 class TestDocumentDirectionCategoryEnum:
@@ -519,8 +513,12 @@ class TestDocumentDirectionCategoryEnum:
 
     def test_enum_values(self) -> None:
         """Test enum has expected values."""
-        assert DocumentDirectionCategory.INCOMING == DocumentDirectionCategory.INCOMING
-        assert DocumentDirectionCategory.OUTGOING == DocumentDirectionCategory.OUTGOING
+        assert (
+            DocumentDirectionCategory("INCOMING") == DocumentDirectionCategory.INCOMING
+        )
+        assert (
+            DocumentDirectionCategory("OUTGOING") == DocumentDirectionCategory.OUTGOING
+        )
 
     def test_missing_case_insensitive(self) -> None:
         """Test _missing_ handles case-insensitive lookup."""
