@@ -28,9 +28,7 @@ class DecisionTypeCode(Enum):
     Hopefully the USPTO will give access to others in the future.
     """
 
-    # GRANTED = "GRANTED"
     DENIED = "DENIED"
-    # DISMISSED = "DISMISSED"
     C = DENIED
 
     @classmethod
@@ -38,12 +36,8 @@ class DecisionTypeCode(Enum):
         """Handle case-insensitive lookup and common aliases."""
         if isinstance(value, str):
             val_upper = value.upper()
-            # if val_upper == "GRANTED":
-            #     return cls.GRANTED
             if val_upper in ("DENIED", "C"):
                 return cls.DENIED
-            # if val_upper == "DISMISSED":
-            #     return cls.DISMISSED
         raise ValueError(f"{value!r} is not a valid {cls.__name__}")
 
 
