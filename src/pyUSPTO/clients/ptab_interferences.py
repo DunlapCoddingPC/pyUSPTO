@@ -51,9 +51,7 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
             self.config = config
 
         # Determine effective base URL
-        effective_base_url = (
-            base_url or self.config.ptab_base_url or "https://api.uspto.gov"
-        )
+        effective_base_url = base_url or self.config.ptab_base_url
 
         # Initialize base client
         super().__init__(

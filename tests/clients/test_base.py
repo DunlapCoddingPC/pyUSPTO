@@ -349,9 +349,9 @@ class TestBaseUSPTOClient:
 
         with pytest.raises(USPTOApiBadRequestError) as excinfo:
             client._execute_request(method="GET", url="https://api.test.com/test")
-            assert "Invalid request parameters" in str(excinfo.value)
-            assert excinfo.value.error_details == "Invalid request parameters"
-            assert excinfo.value.request_identifier == "req-400"
+        assert "Invalid request parameters" in str(excinfo.value)
+        assert excinfo.value.error_details == "Invalid request parameters"
+        assert excinfo.value.request_identifier == "req-400"
 
         # Test 401 error (Auth Error)
         mock_response.status_code = 401
@@ -361,9 +361,9 @@ class TestBaseUSPTOClient:
         }
         with pytest.raises(expected_exception=USPTOApiAuthError) as excinfo:
             client._execute_request(method="GET", url="https://api.test.com/test")
-            assert "Authentication failed" in str(excinfo.value)
-            assert excinfo.value.error_details == "Authentication failed"
-            assert excinfo.value.request_identifier == "req-401"
+        assert "Authentication failed" in str(excinfo.value)
+        assert excinfo.value.error_details == "Authentication failed"
+        assert excinfo.value.request_identifier == "req-401"
 
         # Test 403 error (Auth Error)
         mock_response.status_code = 403
@@ -373,9 +373,9 @@ class TestBaseUSPTOClient:
         }
         with pytest.raises(USPTOApiAuthError) as excinfo:
             client._execute_request(method="GET", url="https://api.test.com/test")
-            assert "Access forbidden" in str(excinfo.value)
-            assert excinfo.value.error_details == "Access forbidden"
-            assert excinfo.value.request_identifier == "req-403"
+        assert "Access forbidden" in str(excinfo.value)
+        assert excinfo.value.error_details == "Access forbidden"
+        assert excinfo.value.request_identifier == "req-403"
 
         # Test 404 error (Not Found)
         mock_response.status_code = 404
@@ -385,9 +385,9 @@ class TestBaseUSPTOClient:
         }
         with pytest.raises(USPTOApiNotFoundError) as excinfo:
             client._execute_request(method="GET", url="https://api.test.com/test")
-            assert "Resource not found" in str(excinfo.value)
-            assert excinfo.value.error_details == "Resource not found"
-            assert excinfo.value.request_identifier == "req-404"
+        assert "Resource not found" in str(excinfo.value)
+        assert excinfo.value.error_details == "Resource not found"
+        assert excinfo.value.request_identifier == "req-404"
 
         # Test 413 error (Payload Too Large)
         mock_response.status_code = 413
@@ -398,9 +398,9 @@ class TestBaseUSPTOClient:
         }
         with pytest.raises(expected_exception=USPTOApiPayloadTooLargeError) as excinfo:
             client._execute_request(method="GET", url="https://api.test.com/test")
-            assert "Payload Too Large" in str(excinfo.value)
-            assert excinfo.value.error_details == "Request entity too large."
-            assert excinfo.value.request_identifier == "req-413"
+        assert "Payload Too Large" in str(excinfo.value)
+        assert excinfo.value.error_details == "Request entity too large."
+        assert excinfo.value.request_identifier == "req-413"
 
         # Test 429 error (Rate Limit)
         mock_response.status_code = 429
@@ -410,9 +410,9 @@ class TestBaseUSPTOClient:
         }
         with pytest.raises(USPTOApiRateLimitError) as excinfo:
             client._execute_request(method="GET", url="https://api.test.com/test")
-            assert "Rate limit exceeded" in str(excinfo.value)
-            assert excinfo.value.error_details == "Rate limit exceeded"
-            assert excinfo.value.request_identifier == "req-429"
+        assert "Rate limit exceeded" in str(excinfo.value)
+        assert excinfo.value.error_details == "Rate limit exceeded"
+        assert excinfo.value.request_identifier == "req-429"
 
         # Test 500 error (Server Error)
         mock_response.status_code = 500
@@ -422,9 +422,9 @@ class TestBaseUSPTOClient:
         }
         with pytest.raises(USPTOApiServerError) as excinfo:
             client._execute_request(method="GET", url="https://api.test.com/test")
-            assert "Internal server error" in str(excinfo.value)
-            assert excinfo.value.error_details == "Internal server error"
-            assert excinfo.value.request_identifier == "req-500"
+        assert "Internal server error" in str(excinfo.value)
+        assert excinfo.value.error_details == "Internal server error"
+        assert excinfo.value.request_identifier == "req-500"
 
         # Test detailedError field instead of errorDetails
         mock_response.status_code = 500
@@ -434,17 +434,17 @@ class TestBaseUSPTOClient:
         }
         with pytest.raises(USPTOApiServerError) as excinfo:
             client._execute_request(method="GET", url="https://api.test.com/test")
-            assert "Alternative error format" in str(object=excinfo.value)
-            assert excinfo.value.error_details == "Alternative error format"
-            assert excinfo.value.request_identifier == "req-500-alt"
+        assert "Alternative error format" in str(excinfo.value)
+        assert excinfo.value.error_details == "Alternative error format"
+        assert excinfo.value.request_identifier == "req-500-alt"
 
         # Test other HTTP error without JSON response
         mock_response.json.side_effect = ValueError("Invalid JSON")
         mock_response.text = "This is an error less than 500 chars."
         with pytest.raises(USPTOApiServerError) as excinfo:
             client._execute_request(method="GET", url="https://api.test.com/test")
-            assert "This is an error less than 500 chars." in str(excinfo.value)
-            assert excinfo.value.request_identifier is None
+        assert "This is an error less than 500 chars." in str(excinfo.value)
+        assert excinfo.value.request_identifier is None
 
     def test_execute_request_post_error_includes_body(
         self, mock_session: MagicMock
@@ -565,9 +565,7 @@ class TestBaseUSPTOClient:
         assert "text/html" in str(excinfo.value.error_details)
         assert "Error page" in str(excinfo.value.error_details)
 
-    def test_get_model_json_parse_error(
-        self, mock_session: MagicMock
-    ) -> None:
+    def test_get_model_json_parse_error(self, mock_session: MagicMock) -> None:
         """Test _get_model with JSON parsing error."""
         # Setup
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
@@ -1527,9 +1525,7 @@ class TestSaveResponseToFilePathTraversal:
             config=USPTOConfig(api_key="test"), base_url="https://test.com"
         )
         mock_response = MagicMock()
-        mock_response.headers = {
-            "Content-Disposition": 'attachment; filename="../../"'
-        }
+        mock_response.headers = {"Content-Disposition": 'attachment; filename="../../"'}
         mock_response.iter_content.return_value = [b"data"]
 
         result = client._save_response_to_file(mock_response, str(tmp_path))
@@ -1538,9 +1534,7 @@ class TestSaveResponseToFilePathTraversal:
         mock_file_open.assert_called_once_with(expected_path, "wb")
         assert result == str(expected_path)
 
-    def test_is_safe_path_rejects_unsafe_resolved_path(
-        self, tmp_path: Any
-    ) -> None:
+    def test_is_safe_path_rejects_unsafe_resolved_path(self, tmp_path: Any) -> None:
         """Raises ValueError when resolved path escapes destination."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
             config=USPTOConfig(api_key="test"), base_url="https://test.com"
@@ -1782,9 +1776,7 @@ class TestExtractArchive:
             client._extract_archive(archive_path, extract_to=extract_to, max_size=500)
 
         # Should succeed with max_size=2000
-        client._extract_archive(
-            archive_path, extract_to=extract_to, max_size=2000
-        )
+        client._extract_archive(archive_path, extract_to=extract_to, max_size=2000)
         assert (extract_to / "large_file.txt").exists()
 
     def test_max_size_enforcement_zip(self, tmp_path: Any) -> None:

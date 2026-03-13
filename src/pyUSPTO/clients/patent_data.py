@@ -76,9 +76,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             self.config = config
 
         # Determine effective base URL
-        effective_base_url = (
-            base_url or self.config.patent_data_base_url or "https://api.uspto.gov"
-        )
+        effective_base_url = base_url or self.config.patent_data_base_url
 
         # Initialize base client
         super().__init__(

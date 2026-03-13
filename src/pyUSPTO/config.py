@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 from pyUSPTO.http_config import HTTPConfig
 
+DEFAULT_BASE_URL = "https://api.uspto.gov"
+
 
 class USPTOConfig:
     """Configuration for USPTO API clients.
@@ -23,10 +25,10 @@ class USPTOConfig:
     def __init__(
         self,
         api_key: str | None = None,
-        bulk_data_base_url: str = "https://api.uspto.gov",
-        patent_data_base_url: str = "https://api.uspto.gov",
-        petition_decisions_base_url: str = "https://api.uspto.gov",
-        ptab_base_url: str = "https://api.uspto.gov",
+        bulk_data_base_url: str = DEFAULT_BASE_URL,
+        patent_data_base_url: str = DEFAULT_BASE_URL,
+        petition_decisions_base_url: str = DEFAULT_BASE_URL,
+        ptab_base_url: str = DEFAULT_BASE_URL,
         http_config: HTTPConfig | None = None,
         include_raw_data: bool = False,
     ):
@@ -69,17 +71,15 @@ class USPTOConfig:
         return cls(
             api_key=os.environ.get("USPTO_API_KEY"),
             bulk_data_base_url=os.environ.get(
-                "USPTO_BULK_DATA_BASE_URL", "https://api.uspto.gov"
+                "USPTO_BULK_DATA_BASE_URL", DEFAULT_BASE_URL
             ),
             patent_data_base_url=os.environ.get(
-                "USPTO_PATENT_DATA_BASE_URL", "https://api.uspto.gov"
+                "USPTO_PATENT_DATA_BASE_URL", DEFAULT_BASE_URL
             ),
             petition_decisions_base_url=os.environ.get(
-                "USPTO_PETITION_DECISIONS_BASE_URL", "https://api.uspto.gov"
+                "USPTO_PETITION_DECISIONS_BASE_URL", DEFAULT_BASE_URL
             ),
-            ptab_base_url=os.environ.get(
-                "USPTO_PTAB_BASE_URL", "https://api.uspto.gov"
-            ),
+            ptab_base_url=os.environ.get("USPTO_PTAB_BASE_URL", DEFAULT_BASE_URL),
             # Also read HTTP config from environment
             http_config=HTTPConfig.from_env(),
         )
