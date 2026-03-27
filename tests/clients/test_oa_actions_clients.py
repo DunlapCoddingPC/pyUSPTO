@@ -5,7 +5,6 @@ field retrieval, and pagination.
 """
 
 from collections.abc import Iterator
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,8 +17,8 @@ from pyUSPTO.models.oa_actions import (
     OAActionsResponse,
 )
 
-
 # --- Fixtures ---
+
 
 @pytest.fixture
 def api_key_fixture() -> str:
@@ -67,13 +66,16 @@ def client_with_mocked_request(
 
 # --- TestInit ---
 
+
 class TestOAActionsClientInit:
     def test_default_base_url(self, uspto_config: USPTOConfig) -> None:
         client = OAActionsClient(config=uspto_config)
         assert client.base_url == "https://api.uspto.gov"
 
     def test_custom_base_url(self, uspto_config: USPTOConfig) -> None:
-        client = OAActionsClient(config=uspto_config, base_url="https://custom.example.com")
+        client = OAActionsClient(
+            config=uspto_config, base_url="https://custom.example.com"
+        )
         assert client.base_url == "https://custom.example.com"
 
     def test_config_base_url(self) -> None:
@@ -99,6 +101,7 @@ class TestOAActionsClientInit:
 
 
 # --- TestSearch ---
+
 
 class TestOAActionsClientSearch:
     def test_post_body_passthrough(
@@ -172,7 +175,9 @@ class TestOAActionsClientSearch:
         client.search(patent_application_number_q="14485382")
 
         call_kwargs = mock_get_model.call_args.kwargs
-        assert call_kwargs["json_data"]["criteria"] == "patentApplicationNumber:14485382"
+        assert (
+            call_kwargs["json_data"]["criteria"] == "patentApplicationNumber:14485382"
+        )
 
     def test_legacy_document_code_identifier_q(
         self,
@@ -365,6 +370,7 @@ class TestOAActionsClientSearch:
 
 # --- TestGetFields ---
 
+
 class TestOAActionsClientGetFields:
     def test_get_fields_calls_correct_endpoint(
         self, oa_actions_client: OAActionsClient
@@ -390,6 +396,7 @@ class TestOAActionsClientGetFields:
 
 
 # --- TestPaginate ---
+
 
 class TestOAActionsClientPaginate:
     def test_delegates_to_paginate_solr_results(

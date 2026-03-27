@@ -8,7 +8,7 @@
 
 A Python client library for interacting with the United Stated Patent and Trademark Office (USPTO) [Open Data Portal](https://data.uspto.gov/home) APIs.
 
-This package provides clients for interacting with the USPTO Bulk Data API, Patent Data API, Final Petition Decisions API, and PTAB (Patent Trial and Appeal Board) APIs.
+This package provides clients for interacting with the USPTO Bulk Data API, Patent Data API, Final Petition Decisions API, PTAB (Patent Trial and Appeal Board) APIs, Enriched Citations API, and Office Action Text Retrieval API.
 
 > [!IMPORTANT]
 > The USPTO is in the process of moving their Developer API. This package is only concerned with the new API. The [old API](https://developer.uspto.gov/) was officially retired at the end of 2025; however, some products have not yet been fully transitioned to the Open Data Portal API. The USPTO expects the remaining products to be transitioned to the Open Data Portal in early 2026.
@@ -56,6 +56,8 @@ Then use it in your Python code:
 ```python
 from pyUSPTO import (
     BulkDataClient,
+    EnrichedCitationsClient,
+    OAActionsClient,
     PatentDataClient,
     FinalPetitionDecisionsClient,
     PTABTrialsClient,
@@ -73,6 +75,8 @@ petition_client = FinalPetitionDecisionsClient(config=config)
 trials_client = PTABTrialsClient(config=config)
 appeals_client = PTABAppealsClient(config=config)
 interferences_client = PTABInterferencesClient(config=config)
+citations_client = EnrichedCitationsClient(config=config)
+oa_client = OAActionsClient(config=config)
 ```
 
 ### Direct API Key
@@ -234,6 +238,42 @@ print(f"Found {response.count} interference decisions since 2023")
 ```
 
 See [`examples/ptab_interferences_example.py`](examples/ptab_interferences_example.py) for detailed examples including searching by party name and outcome.
+
+### Enriched Citations API
+
+```python
+from pyUSPTO import EnrichedCitationsClient, USPTOConfig
+
+config = USPTOConfig(api_key="your_api_key_here")
+client = EnrichedCitationsClient(config=config)
+
+# Search for enriched citations by technology center
+response = client.search_citations(
+    tech_center_q="1700",
+    rows=5,
+)
+print(f"Found {response.count} citations from TC 1700")
+```
+
+See [`examples/enriched_citations_example.py`](examples/enriched_citations_example.py) for detailed examples including searching by application number and citation category.
+
+### Office Action Text Retrieval API
+
+```python
+from pyUSPTO import OAActionsClient, USPTOConfig
+
+config = USPTOConfig(api_key="your_api_key_here")
+client = OAActionsClient(config=config)
+
+# Search for office actions by technology center
+response = client.search(
+    tech_center_q="1700",
+    rows=5,
+)
+print(f"Found {response.count} office actions from TC 1700")
+```
+
+See [`examples/oa_actions_example.py`](examples/oa_actions_example.py) for detailed examples including searching by document code and paginating results.
 
 ## Documentation
 
