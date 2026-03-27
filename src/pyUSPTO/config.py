@@ -30,6 +30,7 @@ class USPTOConfig:
         petition_decisions_base_url: str = DEFAULT_BASE_URL,
         ptab_base_url: str = DEFAULT_BASE_URL,
         enriched_citations_base_url: str = DEFAULT_BASE_URL,
+        oa_actions_base_url: str = DEFAULT_BASE_URL,
         http_config: HTTPConfig | None = None,
         include_raw_data: bool = False,
     ):
@@ -42,6 +43,7 @@ class USPTOConfig:
             petition_decisions_base_url: Base URL for the Final Petition Decisions API
             ptab_base_url: Base URL for the PTAB (Patent Trial and Appeal Board) API
             enriched_citations_base_url: Base URL for the Enriched Citations API
+            oa_actions_base_url: Base URL for the Office Action Text Retrieval API
             http_config: Optional HTTPConfig for request handling (uses defaults if None)
             include_raw_data: If True, store raw JSON in response objects for debugging (default: False)
         """
@@ -54,6 +56,7 @@ class USPTOConfig:
         self.petition_decisions_base_url = petition_decisions_base_url
         self.ptab_base_url = ptab_base_url
         self.enriched_citations_base_url = enriched_citations_base_url
+        self.oa_actions_base_url = oa_actions_base_url
 
         # Use provided HTTPConfig or create default
         self.http_config = http_config if http_config is not None else HTTPConfig()
@@ -85,6 +88,9 @@ class USPTOConfig:
             ptab_base_url=os.environ.get("USPTO_PTAB_BASE_URL", DEFAULT_BASE_URL),
             enriched_citations_base_url=os.environ.get(
                 "USPTO_ENRICHED_CITATIONS_BASE_URL", DEFAULT_BASE_URL
+            ),
+            oa_actions_base_url=os.environ.get(
+                "USPTO_OA_ACTIONS_BASE_URL", DEFAULT_BASE_URL
             ),
             # Also read HTTP config from environment
             http_config=HTTPConfig.from_env(),

@@ -6,6 +6,7 @@ Examples
 
    bulk_data
    enriched_citations
+   oa_actions
    patent_data
    ifw_example
    petition_decisions

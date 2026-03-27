@@ -15,6 +15,7 @@ from typing import (
 )
 
 from pyUSPTO.models.enriched_citations import EnrichedCitationResponse
+from pyUSPTO.models.oa_actions import OAActionsResponse
 
 try:
     from typing import Self
@@ -357,8 +358,10 @@ class BaseUSPTOClient(Generic[T]):
             endpoint, custom_url=custom_url, custom_base_url=custom_base_url
         )
 
-        if response_class == EnrichedCitationResponse:
-            # Handling for EnrichedCitationResponse to support form-urlencoded POST requests
+        if (
+            response_class == EnrichedCitationResponse
+            or response_class == OAActionsResponse
+        ):
             response = self._execute_request(
                 method=method,
                 url=url,

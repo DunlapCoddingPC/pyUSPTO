@@ -17,6 +17,7 @@ class TestUSPTOConfig:
         assert config.patent_data_base_url == "https://api.uspto.gov"
         assert config.petition_decisions_base_url == "https://api.uspto.gov"
         assert config.enriched_citations_base_url == "https://api.uspto.gov"
+        assert config.oa_actions_base_url == "https://api.uspto.gov"
         assert config.http_config is not None
         assert isinstance(config.http_config, HTTPConfig)
 
@@ -66,11 +67,13 @@ class TestUSPTOConfig:
             patent_data_base_url="https://patent.example.com",
             petition_decisions_base_url="https://petition.example.com",
             enriched_citations_base_url="https://citations.example.com",
+            oa_actions_base_url="https://oa.example.com",
         )
         assert config.bulk_data_base_url == "https://bulk.example.com"
         assert config.patent_data_base_url == "https://patent.example.com"
         assert config.petition_decisions_base_url == "https://petition.example.com"
         assert config.enriched_citations_base_url == "https://citations.example.com"
+        assert config.oa_actions_base_url == "https://oa.example.com"
 
     def test_config_from_env_custom_urls(self, monkeypatch):
         """Test USPTOConfig.from_env() reads custom URLs"""
@@ -83,12 +86,14 @@ class TestUSPTOConfig:
         monkeypatch.setenv(
             "USPTO_ENRICHED_CITATIONS_BASE_URL", "https://citations.example.com"
         )
+        monkeypatch.setenv("USPTO_OA_ACTIONS_BASE_URL", "https://oa.example.com")
 
         config = USPTOConfig.from_env()
         assert config.bulk_data_base_url == "https://bulk.example.com"
         assert config.patent_data_base_url == "https://patent.example.com"
         assert config.petition_decisions_base_url == "https://petition.example.com"
         assert config.enriched_citations_base_url == "https://citations.example.com"
+        assert config.oa_actions_base_url == "https://oa.example.com"
 
     def test_http_config_sharing(self):
         """Test HTTPConfig can be shared across multiple USPTOConfig instances"""
