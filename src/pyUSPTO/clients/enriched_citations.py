@@ -63,8 +63,8 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
         self,
         query: str | None = None,
         sort: str | None = None,
-        offset: int | None = 0,
-        limit: int | None = 25,
+        start: int | None = 0,
+        rows: int | None = 25,
         post_body: dict[str, Any] | None = None,
         # Convenience query parameters
         patent_application_number_q: str | None = None,
@@ -87,8 +87,8 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
         Args:
             query: Direct query string in USPTO search syntax.
             sort: Sort order for results.
-            offset: Number of records to skip (pagination).
-            limit: Maximum number of records to return.
+            start: Starting index for pagination.
+            rows: Maximum number of records to return.
             post_body: Optional POST body for complex queries. When provided,
                 all other parameters are ignored.
             patent_application_number_q: Filter by patent application number.
@@ -115,7 +115,7 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
             >>> response = client.search_citations(
             ...     tech_center_q="2800",
             ...     citation_category_code_q="X",
-            ...     limit=50,
+            ...     rows=50,
             ... )
 
             # Search with POST body
@@ -178,13 +178,13 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
                 final_q = " AND ".join(q_parts)
 
         if final_q is not None:
-            body["q"] = final_q
+            body["criteria"] = final_q
         if sort is not None:
             body["sort"] = sort
-        if offset is not None:
-            body["offset"] = offset
-        if limit is not None:
-            body["limit"] = limit
+        if start is not None:
+            body["start"] = start
+        if rows is not None:
+            body["rows"] = rows
 
         if additional_query_params:
             body.update(additional_query_params)

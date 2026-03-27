@@ -53,8 +53,6 @@ class CitationCategoryCode(Enum):
             for member in cls:
                 if member.value.upper() == val_upper:
                     return member
-            if value == "&":
-                return cls.AMPERSAND
         raise ValueError(f"{value!r} is not a valid {cls.__name__}")
 
 
@@ -209,7 +207,7 @@ class EnrichedCitationResponse:
 
     Attributes:
         num_found: Total number of matching records.
-        start: The offset of the first result in this page.
+        start: The start index of the first result in this page.
         docs: List of enriched citation records in this page.
         raw_data: Optional raw JSON data from the API response (for debugging).
     """

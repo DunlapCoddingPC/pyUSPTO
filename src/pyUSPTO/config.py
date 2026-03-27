@@ -120,6 +120,7 @@ class USPTOConfig:
         # Set API key header
         if self.api_key:
             session.headers["X-API-KEY"] = self.api_key
+            session.headers["Accept"] = "application/json"
 
         # Apply custom headers from HTTP config
         if self.http_config.custom_headers:

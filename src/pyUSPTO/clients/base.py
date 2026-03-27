@@ -14,6 +14,8 @@ from typing import (
     runtime_checkable,
 )
 
+from pyUSPTO.models.enriched_citations import EnrichedCitationResponse
+
 try:
     from typing import Self
 except ImportError:
@@ -201,6 +203,7 @@ class BaseUSPTOClient(Generic[T]):
         params: dict[str, Any] | None = None,
         json_data: dict[str, Any] | None = None,
         stream: bool = False,
+        form_urlencoded: bool = False,
     ) -> requests.Response:
         """Execute an HTTP request and return the raw Response.
 
@@ -213,6 +216,7 @@ class BaseUSPTOClient(Generic[T]):
             params: Optional query parameters
             json_data: Optional JSON body for POST requests
             stream: Whether to stream the response
+            form_urlencoded: Whether to send POST body as application/x-www-form-urlencoded instead of JSON
 
         Returns:
             The raw requests.Response after raise_for_status().
@@ -231,13 +235,22 @@ class BaseUSPTOClient(Generic[T]):
                     url=url, params=params, stream=stream, timeout=timeout
                 )
             elif method.upper() == "POST":
-                response = self.session.post(
-                    url=url,
-                    params=params,
-                    json=json_data,
-                    stream=stream,
-                    timeout=timeout,
-                )
+                if form_urlencoded:
+                    response = self.session.post(
+                        url=url,
+                        params=params,
+                        data=json_data,  # Send as form data
+                        stream=stream,
+                        timeout=timeout,
+                    )
+                else:
+                    response = self.session.post(
+                        url=url,
+                        params=params,
+                        json=json_data,
+                        stream=stream,
+                        timeout=timeout,
+                    )
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
 
@@ -343,9 +356,20 @@ class BaseUSPTOClient(Generic[T]):
         url = self._build_url(
             endpoint, custom_url=custom_url, custom_base_url=custom_base_url
         )
-        response = self._execute_request(
-            method=method, url=url, params=params, json_data=json_data
-        )
+
+        if response_class == EnrichedCitationResponse:
+            # Handling for EnrichedCitationResponse to support form-urlencoded POST requests
+            response = self._execute_request(
+                method=method,
+                url=url,
+                params=params,
+                json_data=json_data,
+                form_urlencoded=True,
+            )
+        else:
+            response = self._execute_request(
+                method=method, url=url, params=params, json_data=json_data
+            )
         data = self._parse_json_response(response, url)
 
         ret = response_class.from_dict(
