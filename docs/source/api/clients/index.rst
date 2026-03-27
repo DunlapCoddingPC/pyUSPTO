@@ -5,6 +5,7 @@ Clients
    :maxdepth: 2
 
    bulk_data
+   enriched_citations
    patent_data
    petition_decisions
    ptab_appeals

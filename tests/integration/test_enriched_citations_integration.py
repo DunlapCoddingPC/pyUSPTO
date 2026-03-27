@@ -13,7 +13,6 @@ import pytest
 from pyUSPTO.clients import EnrichedCitationsClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.enriched_citations import (
-    EnrichedCitation,
     EnrichedCitationFieldsResponse,
     EnrichedCitationResponse,
 )
@@ -48,7 +47,7 @@ class TestEnrichedCitationsSearch:
         """Test searching citations by application number."""
         response = enriched_citations_client.search_citations(
             patent_application_number_q="15739603",
-            limit=5,
+            rows=10,
         )
         assert isinstance(response, EnrichedCitationResponse)
         assert response.num_found > 0
@@ -61,7 +60,7 @@ class TestEnrichedCitationsSearch:
         """Test searching citations by technology center."""
         response = enriched_citations_client.search_citations(
             tech_center_q="2800",
-            limit=3,
+            rows=3,
         )
         assert isinstance(response, EnrichedCitationResponse)
         assert response.num_found > 0
