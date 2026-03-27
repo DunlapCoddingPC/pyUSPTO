@@ -12,6 +12,7 @@ except PackageNotFoundError:
     pass
 
 from pyUSPTO.clients.bulk_data import BulkDataClient
+from pyUSPTO.clients.enriched_citations import EnrichedCitationsClient
 from pyUSPTO.clients.patent_data import PatentDataClient
 from pyUSPTO.clients.petition_decisions import FinalPetitionDecisionsClient
 from pyUSPTO.clients.ptab_appeals import PTABAppealsClient
@@ -28,13 +29,19 @@ from pyUSPTO.exceptions import (
     USPTOTimeout,
 )
 from pyUSPTO.http_config import HTTPConfig
-
-# Import model implementations
 from pyUSPTO.models.bulk_data import (
     BulkDataProduct,
     BulkDataResponse,
     FileData,
     ProductFileBag,
+)
+
+# Import model implementations
+from pyUSPTO.models.enriched_citations import (
+    CitationCategoryCode,
+    EnrichedCitation,
+    EnrichedCitationFieldsResponse,
+    EnrichedCitationResponse,
 )
 from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
@@ -82,6 +89,12 @@ __all__ = [
     "USPTOTimezoneWarning",
     "USPTOEnumParseWarning",
     "USPTODataMismatchWarning",
+    # Enriched Citations API
+    "EnrichedCitationsClient",
+    "CitationCategoryCode",
+    "EnrichedCitation",
+    "EnrichedCitationResponse",
+    "EnrichedCitationFieldsResponse",
     # Bulk Data API
     "BulkDataClient",
     "BulkDataResponse",
