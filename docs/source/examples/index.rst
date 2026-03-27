@@ -5,6 +5,7 @@ Examples
    :maxdepth: 2
 
    bulk_data
+   enriched_citations
    patent_data
    ifw_example
    petition_decisions
