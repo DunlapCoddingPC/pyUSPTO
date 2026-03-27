@@ -8,7 +8,7 @@
 
 A Python client library for interacting with the United Stated Patent and Trademark Office (USPTO) [Open Data Portal](https://data.uspto.gov/home) APIs.
 
-This package provides clients for interacting with the USPTO Bulk Data API, Patent Data API, Final Petition Decisions API, PTAB (Patent Trial and Appeal Board) APIs, Enriched Citations API, and Office Action Text Retrieval API.
+This package provides clients for interacting with the USPTO Bulk Data API, Patent Data API, Final Petition Decisions API, PTAB (Patent Trial and Appeal Board) APIs, Enriched Citations API, Office Action Text Retrieval API, and Office Action Rejections API.
 
 > [!IMPORTANT]
 > The USPTO is in the process of moving their Developer API. This package is only concerned with the new API. The [old API](https://developer.uspto.gov/) was officially retired at the end of 2025; however, some products have not yet been fully transitioned to the Open Data Portal API. The USPTO expects the remaining products to be transitioned to the Open Data Portal in early 2026.
@@ -58,6 +58,7 @@ from pyUSPTO import (
     BulkDataClient,
     EnrichedCitationsClient,
     OAActionsClient,
+    OARejectionsClient,
     PatentDataClient,
     FinalPetitionDecisionsClient,
     PTABTrialsClient,
@@ -77,6 +78,7 @@ appeals_client = PTABAppealsClient(config=config)
 interferences_client = PTABInterferencesClient(config=config)
 citations_client = EnrichedCitationsClient(config=config)
 oa_client = OAActionsClient(config=config)
+rejections_client = OARejectionsClient(config=config)
 ```
 
 ### Direct API Key
@@ -274,6 +276,24 @@ print(f"Found {response.count} office actions from TC 1700")
 ```
 
 See [`examples/oa_actions_example.py`](examples/oa_actions_example.py) for detailed examples including searching by document code and paginating results.
+
+### Office Action Rejections API
+
+```python
+from pyUSPTO import OARejectionsClient, USPTOConfig
+
+config = USPTOConfig(api_key="your_api_key_here")
+client = OARejectionsClient(config=config)
+
+# Search for rejections by application number
+response = client.search(
+    patent_application_number_q="12190351",
+    rows=5,
+)
+print(f"Found {response.count} rejection records for application 12190351")
+```
+
+See [`examples/oa_rejections_example.py`](examples/oa_rejections_example.py) for detailed examples including searching by document code and inspecting rejection flags.
 
 ## Documentation
 
