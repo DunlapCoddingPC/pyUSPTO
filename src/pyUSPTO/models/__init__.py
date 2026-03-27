@@ -22,6 +22,11 @@ from pyUSPTO.models.oa_actions import (
     OAActionsResponse,
     OAActionsSection,
 )
+from pyUSPTO.models.oa_citations import (
+    OACitationRecord,
+    OACitationsFieldsResponse,
+    OACitationsResponse,
+)
 from pyUSPTO.models.oa_rejections import (
     OARejectionsFieldsResponse,
     OARejectionsRecord,
@@ -52,6 +57,10 @@ __all__ = [
     "OAActionsResponse",
     "OAActionsSection",
     "OAActionsFieldsResponse",
+    # OA Citations Models
+    "OACitationRecord",
+    "OACitationsResponse",
+    "OACitationsFieldsResponse",
     # OA Rejections Models
     "OARejectionsRecord",
     "OARejectionsResponse",

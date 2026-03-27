@@ -8,7 +8,7 @@
 
 A Python client library for interacting with the United Stated Patent and Trademark Office (USPTO) [Open Data Portal](https://data.uspto.gov/home) APIs.
 
-This package provides clients for interacting with the USPTO Bulk Data API, Patent Data API, Final Petition Decisions API, PTAB (Patent Trial and Appeal Board) APIs, Enriched Citations API, Office Action Text Retrieval API, and Office Action Rejections API.
+This package provides clients for interacting with the USPTO Bulk Data API, Patent Data API, Final Petition Decisions API, PTAB (Patent Trial and Appeal Board) APIs, Enriched Citations API, Office Action Text Retrieval API, Office Action Rejections API, and Office Action Citations API.
 
 > [!IMPORTANT]
 > The USPTO is in the process of moving their Developer API. This package is only concerned with the new API. The [old API](https://developer.uspto.gov/) was officially retired at the end of 2025; however, some products have not yet been fully transitioned to the Open Data Portal API. The USPTO expects the remaining products to be transitioned to the Open Data Portal in early 2026.
@@ -58,6 +58,7 @@ from pyUSPTO import (
     BulkDataClient,
     EnrichedCitationsClient,
     OAActionsClient,
+    OACitationsClient,
     OARejectionsClient,
     PatentDataClient,
     FinalPetitionDecisionsClient,
@@ -78,6 +79,7 @@ appeals_client = PTABAppealsClient(config=config)
 interferences_client = PTABInterferencesClient(config=config)
 citations_client = EnrichedCitationsClient(config=config)
 oa_client = OAActionsClient(config=config)
+oa_citations_client = OACitationsClient(config=config)
 rejections_client = OARejectionsClient(config=config)
 ```
 
@@ -294,6 +296,25 @@ print(f"Found {response.count} rejection records for application 12190351")
 ```
 
 See [`examples/oa_rejections_example.py`](examples/oa_rejections_example.py) for detailed examples including searching by document code and inspecting rejection flags.
+
+### Office Action Citations API
+
+```python
+from pyUSPTO import OACitationsClient, USPTOConfig
+
+config = USPTOConfig(api_key="your_api_key_here")
+client = OACitationsClient(config=config)
+
+# Search for citations by legal section code
+response = client.search(
+    legal_section_code_q="103",
+    tech_center_q="2800",
+    rows=5,
+)
+print(f"Found {response.count} section 103 citations in tech center 2800")
+```
+
+See [`examples/oa_citations_example.py`](examples/oa_citations_example.py) for detailed examples including searching by examiner-cited indicator and paginating results.
 
 ## Documentation
 

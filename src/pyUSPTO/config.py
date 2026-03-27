@@ -32,6 +32,7 @@ class USPTOConfig:
         enriched_citations_base_url: str = DEFAULT_BASE_URL,
         oa_actions_base_url: str = DEFAULT_BASE_URL,
         oa_rejections_base_url: str = DEFAULT_BASE_URL,
+        oa_citations_base_url: str = DEFAULT_BASE_URL,
         http_config: HTTPConfig | None = None,
         include_raw_data: bool = False,
     ):
@@ -46,6 +47,7 @@ class USPTOConfig:
             enriched_citations_base_url: Base URL for the Enriched Citations API
             oa_actions_base_url: Base URL for the Office Action Text Retrieval API
             oa_rejections_base_url: Base URL for the Office Action Rejections API
+            oa_citations_base_url: Base URL for the Office Action Citations API
             http_config: Optional HTTPConfig for request handling (uses defaults if None)
             include_raw_data: If True, store raw JSON in response objects for debugging (default: False)
         """
@@ -60,6 +62,7 @@ class USPTOConfig:
         self.enriched_citations_base_url = enriched_citations_base_url
         self.oa_actions_base_url = oa_actions_base_url
         self.oa_rejections_base_url = oa_rejections_base_url
+        self.oa_citations_base_url = oa_citations_base_url
 
         # Use provided HTTPConfig or create default
         self.http_config = http_config if http_config is not None else HTTPConfig()
@@ -97,6 +100,9 @@ class USPTOConfig:
             ),
             oa_rejections_base_url=os.environ.get(
                 "USPTO_OA_REJECTIONS_BASE_URL", DEFAULT_BASE_URL
+            ),
+            oa_citations_base_url=os.environ.get(
+                "USPTO_OA_CITATIONS_BASE_URL", DEFAULT_BASE_URL
             ),
             # Also read HTTP config from environment
             http_config=HTTPConfig.from_env(),

@@ -7,6 +7,7 @@ Clients
    bulk_data
    enriched_citations
    oa_actions
+   oa_citations
    oa_rejections
    patent_data
    petition_decisions

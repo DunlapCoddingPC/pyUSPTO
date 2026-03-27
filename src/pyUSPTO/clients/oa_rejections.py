@@ -132,9 +132,7 @@ class OARejectionsClient(BaseUSPTOClient[OARejectionsResponse]):
         if final_criteria is None:
             q_parts = []
             if patent_application_number_q:
-                q_parts.append(
-                    f"patentApplicationNumber:{patent_application_number_q}"
-                )
+                q_parts.append(f"patentApplicationNumber:{patent_application_number_q}")
             if legacy_document_code_identifier_q:
                 q_parts.append(
                     f"legacyDocumentCodeIdentifier:{legacy_document_code_identifier_q}"

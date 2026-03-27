@@ -14,6 +14,7 @@ except PackageNotFoundError:
 from pyUSPTO.clients.bulk_data import BulkDataClient
 from pyUSPTO.clients.enriched_citations import EnrichedCitationsClient
 from pyUSPTO.clients.oa_actions import OAActionsClient
+from pyUSPTO.clients.oa_citations import OACitationsClient
 from pyUSPTO.clients.oa_rejections import OARejectionsClient
 from pyUSPTO.clients.patent_data import PatentDataClient
 from pyUSPTO.clients.petition_decisions import FinalPetitionDecisionsClient
@@ -50,6 +51,11 @@ from pyUSPTO.models.oa_actions import (
     OAActionsRecord,
     OAActionsResponse,
     OAActionsSection,
+)
+from pyUSPTO.models.oa_citations import (
+    OACitationRecord,
+    OACitationsFieldsResponse,
+    OACitationsResponse,
 )
 from pyUSPTO.models.oa_rejections import (
     OARejectionsFieldsResponse,
@@ -108,6 +114,11 @@ __all__ = [
     "OAActionsResponse",
     "OAActionsSection",
     "OAActionsFieldsResponse",
+    # OA Citations API
+    "OACitationsClient",
+    "OACitationRecord",
+    "OACitationsResponse",
+    "OACitationsFieldsResponse",
     # OA Rejections API
     "OARejectionsClient",
     "OARejectionsRecord",
