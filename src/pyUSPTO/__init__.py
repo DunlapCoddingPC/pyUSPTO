@@ -36,6 +36,12 @@ from pyUSPTO.models.bulk_data import (
     FileData,
     ProductFileBag,
 )
+from pyUSPTO.models.enriched_citations import (
+    CitationCategoryCode,
+    EnrichedCitation,
+    EnrichedCitationFieldsResponse,
+    EnrichedCitationResponse,
+)
 
 # Import model implementations
 from pyUSPTO.models.oa_actions import (
@@ -43,12 +49,6 @@ from pyUSPTO.models.oa_actions import (
     OAActionsRecord,
     OAActionsResponse,
     OAActionsSection,
-)
-from pyUSPTO.models.enriched_citations import (
-    CitationCategoryCode,
-    EnrichedCitation,
-    EnrichedCitationFieldsResponse,
-    EnrichedCitationResponse,
 )
 from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,

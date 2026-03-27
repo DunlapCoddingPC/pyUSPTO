@@ -308,7 +308,9 @@ class OAActionsRecord:
             legacy_document_code_identifier=_get_list("legacyDocumentCodeIdentifier"),
             application_status_number=data.get("applicationStatusNumber"),
             national_class=_get_list("nationalClass"),
-            effective_filing_date=parse_to_datetime_utc(data.get("effectiveFilingDate")),
+            effective_filing_date=parse_to_datetime_utc(
+                data.get("effectiveFilingDate")
+            ),
             body_text=_get_list("bodyText"),
             obsolete_document_identifier=_get_list("obsoleteDocumentIdentifier"),
             access_level_category=_get_list("accessLevelCategory"),
@@ -330,7 +332,9 @@ class OAActionsRecord:
             examiner_employee_number=_get_list("examinerEmployeeNumber"),
             create_date_time=parse_to_datetime_utc(data.get("createDateTime")),
             tech_center=_get_list("techCenter"),
-            invention_subject_matter_category=_get_list("inventionSubjectMatterCategory"),
+            invention_subject_matter_category=_get_list(
+                "inventionSubjectMatterCategory"
+            ),
             source_system_name=_get_list("sourceSystemName"),
             legacy_cms_identifier=_get_list("legacyCMSIdentifier"),
             section=section,
@@ -353,7 +357,9 @@ class OAActionsRecord:
             ),
             "workGroup": self.work_group,
             "filingDate": (
-                serialize_datetime_as_naive(self.filing_date) if self.filing_date else None
+                serialize_datetime_as_naive(self.filing_date)
+                if self.filing_date
+                else None
             ),
             "documentActiveIndicator": self.document_active_indicator,
             "legacyDocumentCodeIdentifier": self.legacy_document_code_identifier,
@@ -371,7 +377,9 @@ class OAActionsRecord:
             "patentNumber": self.patent_number,
             "patentApplicationNumber": self.patent_application_number,
             "grantDate": (
-                serialize_datetime_as_naive(self.grant_date) if self.grant_date else None
+                serialize_datetime_as_naive(self.grant_date)
+                if self.grant_date
+                else None
             ),
             "submissionDate": (
                 serialize_datetime_as_naive(self.submission_date)

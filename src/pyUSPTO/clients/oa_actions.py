@@ -134,9 +134,7 @@ class OAActionsClient(BaseUSPTOClient[OAActionsResponse]):
         if final_criteria is None:
             q_parts = []
             if patent_application_number_q:
-                q_parts.append(
-                    f"patentApplicationNumber:{patent_application_number_q}"
-                )
+                q_parts.append(f"patentApplicationNumber:{patent_application_number_q}")
             if legacy_document_code_identifier_q:
                 q_parts.append(
                     f"legacyDocumentCodeIdentifier:{legacy_document_code_identifier_q}"
@@ -148,9 +146,7 @@ class OAActionsClient(BaseUSPTOClient[OAActionsResponse]):
             if access_level_category_q:
                 q_parts.append(f"accessLevelCategory:{access_level_category_q}")
             if application_type_category_q:
-                q_parts.append(
-                    f"applicationTypeCategory:{application_type_category_q}"
-                )
+                q_parts.append(f"applicationTypeCategory:{application_type_category_q}")
 
             if submission_date_from_q and submission_date_to_q:
                 q_parts.append(

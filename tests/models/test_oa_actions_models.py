@@ -207,6 +207,11 @@ class TestOAActionsSectionFromDict:
         assert section.filing_date is not None
         assert section.filing_date.year == 2006
 
+    def test_str_field_as_nonempty_list(self) -> None:
+        data = {"sections.section101RejectionText": ["some rejection text"]}
+        section = OAActionsSection.from_dict(data)
+        assert section.section_101_rejection_text == "some rejection text"
+
     def test_form_paragraph_fields_absent(self) -> None:
         section = OAActionsSection.from_dict({})
         assert section.section_101_rejection_form_paragraph_text == []

@@ -345,6 +345,23 @@ class TestOAActionsClientSearch:
         call_kwargs = mock_get_model.call_args.kwargs
         assert "criteria" not in call_kwargs["json_data"]
 
+    def test_additional_query_params_merged_into_body(
+        self,
+        client_with_mocked_request: tuple[OAActionsClient, MagicMock],
+        mock_response_with_data: OAActionsResponse,
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_response_with_data
+
+        client.search(
+            tech_center_q="1700",
+            additional_query_params={"fl": "id,patentApplicationNumber"},
+        )
+
+        call_kwargs = mock_get_model.call_args.kwargs
+        assert call_kwargs["json_data"]["fl"] == "id,patentApplicationNumber"
+        assert "techCenter:1700" in call_kwargs["json_data"]["criteria"]
+
 
 # --- TestGetFields ---
 
