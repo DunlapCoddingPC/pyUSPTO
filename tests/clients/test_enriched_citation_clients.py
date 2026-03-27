@@ -401,13 +401,13 @@ class TestEnrichedCitationsClientGetFields:
 class TestEnrichedCitationsClientPaginate:
     """Tests for paginate_citations method."""
 
-    def test_paginate_calls_paginate_results(
+    def test_paginate_calls_paginate_solr_results(
         self,
         enriched_client: EnrichedCitationsClient,
     ) -> None:
-        """Test paginate_citations delegates to paginate_results."""
+        """Test paginate_citations delegates to paginate_solr_results."""
         with patch.object(
-            enriched_client, "paginate_results", autospec=True
+            enriched_client, "paginate_solr_results", autospec=True
         ) as mock_paginate:
             mock_paginate.return_value = iter([])
 
@@ -424,9 +424,9 @@ class TestEnrichedCitationsClientPaginate:
         self,
         enriched_client: EnrichedCitationsClient,
     ) -> None:
-        """Test paginate_citations passes post_body to paginate_results."""
+        """Test paginate_citations passes post_body to paginate_solr_results."""
         with patch.object(
-            enriched_client, "paginate_results", autospec=True
+            enriched_client, "paginate_solr_results", autospec=True
         ) as mock_paginate:
             mock_paginate.return_value = iter([])
             post_body = {"q": "techCenter:2800", "rows": 50}
@@ -446,7 +446,7 @@ class TestEnrichedCitationsClientPaginate:
     ) -> None:
         """Test paginate_citations yields EnrichedCitation objects."""
         with patch.object(
-            enriched_client, "paginate_results", autospec=True
+            enriched_client, "paginate_solr_results", autospec=True
         ) as mock_paginate:
             mock_paginate.return_value = iter([mock_enriched_citation])
 

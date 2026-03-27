@@ -408,76 +408,64 @@ class BaseUSPTOClient(Generic[T]):
         )
         return self._parse_json_response(response, url)
 
-    def paginate_results(
+    def _paginate_core(
         self,
         method_name: str,
         response_container_attr: str,
         post_body: dict[str, Any] | None = None,
+        *,
+        offset_key: str,
+        limit_key: str,
+        supports_nested_pagination: bool = True,
         **kwargs: Any,
     ) -> Generator[Any, None, None]:
-        """Paginate through all results of a method, supporting both GET and POST.
+        """Core pagination loop parameterized on key names.
 
         Args:
             method_name: Name of the method to call
             response_container_attr: Attribute name of the container in the response
-            post_body: Optional POST body for POST-based pagination. If provided,
-                pagination parameters (offset, limit) will be injected into this body.
+            post_body: Optional POST body for POST-based pagination
+            offset_key: Key name for the position parameter (e.g. "offset" or "start")
+            limit_key: Key name for the page-size parameter (e.g. "limit" or "rows")
+            supports_nested_pagination: Whether to check for a nested
+                ``post_body["pagination"]`` dict. Set to False for Solr-style APIs.
             **kwargs: Keyword arguments to pass to the method (for GET pagination)
 
         Yields:
             Items from the response container
-
-        Raises:
-            ValueError: If offset is provided in kwargs or post_body (offset is managed
-                automatically by pagination)
-
-        Examples:
-            # GET pagination
-            for app in client.paginate_results(
-                "search_applications",
-                "patent_file_wrapper_data_bag",
-                query="test"
-            ):
-                print(app)
-
-            # POST pagination with custom limit
-            for app in client.paginate_results(
-                "search_applications",
-                "patent_file_wrapper_data_bag",
-                post_body={"q": "test", "limit": 50}
-            ):
-                print(app)
         """
         # Determine if POST body uses nested pagination structure
         uses_nested_pagination = False
-        if post_body is not None:
+        if supports_nested_pagination and post_body is not None:
             uses_nested_pagination = "pagination" in post_body and isinstance(
                 post_body["pagination"], dict
             )
 
-        # Validate that offset is not provided by the user
+        # Validate that the position key is not provided by the user
         if post_body is not None:
             if uses_nested_pagination:
                 # Check nested pagination object
-                if "offset" in post_body["pagination"]:
+                if offset_key in post_body["pagination"]:
                     raise ValueError(
-                        "Cannot specify 'offset' in post_body['pagination']. "
-                        "Pagination manages offset automatically."
+                        f"Cannot specify '{offset_key}' in post_body['pagination']. "
+                        f"Pagination manages {offset_key} automatically."
                     )
-                limit = post_body["pagination"].get("limit", 25)
+                limit = post_body["pagination"].get(limit_key, 25)
             else:
                 # Check top-level
-                if "offset" in post_body:
+                if offset_key in post_body:
                     raise ValueError(
-                        "Cannot specify 'offset' in post_body. Pagination manages offset automatically."
+                        f"Cannot specify '{offset_key}' in post_body. "
+                        f"Pagination manages {offset_key} automatically."
                     )
-                limit = post_body.get("limit", 25)
+                limit = post_body.get(limit_key, 25)
         else:
-            if "offset" in kwargs:
+            if offset_key in kwargs:
                 raise ValueError(
-                    "Cannot specify 'offset' in kwargs. Pagination manages offset automatically."
+                    f"Cannot specify '{offset_key}' in kwargs. "
+                    f"Pagination manages {offset_key} automatically."
                 )
-            limit = kwargs.get("limit", 25)
+            limit = kwargs.get(limit_key, 25)
 
         offset = 0
 
@@ -490,19 +478,19 @@ class BaseUSPTOClient(Generic[T]):
                 if uses_nested_pagination:
                     # Update nested pagination object
                     current_body["pagination"] = current_body["pagination"].copy()
-                    current_body["pagination"]["offset"] = offset
-                    current_body["pagination"]["limit"] = limit
+                    current_body["pagination"][offset_key] = offset
+                    current_body["pagination"][limit_key] = limit
                 else:
                     # Update top-level pagination params
-                    current_body["offset"] = offset
-                    current_body["limit"] = limit
+                    current_body[offset_key] = offset
+                    current_body[limit_key] = limit
 
                 method = getattr(self, method_name)
                 response = method(post_body=current_body, **kwargs)
             else:
                 # GET request: update kwargs with pagination params
-                kwargs["offset"] = offset
-                kwargs["limit"] = limit
+                kwargs[offset_key] = offset
+                kwargs[limit_key] = limit
 
                 method = getattr(self, method_name)
                 response = method(**kwargs)
@@ -542,6 +530,105 @@ class BaseUSPTOClient(Generic[T]):
                 break
 
             offset += limit
+
+    def paginate_results(
+        self,
+        method_name: str,
+        response_container_attr: str,
+        post_body: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> Generator[Any, None, None]:
+        """Paginate through all results using offset/limit style.
+
+        For APIs that use ``start``/``rows`` pagination (e.g. Solr-style),
+        use :meth:`paginate_solr_results` instead.
+
+        Args:
+            method_name: Name of the method to call
+            response_container_attr: Attribute name of the container in the response
+            post_body: Optional POST body for POST-based pagination. If provided,
+                pagination parameters (offset, limit) will be injected into this body.
+            **kwargs: Keyword arguments to pass to the method (for GET pagination)
+
+        Yields:
+            Items from the response container
+
+        Raises:
+            ValueError: If offset is provided in kwargs or post_body (offset is managed
+                automatically by pagination)
+
+        Examples:
+            # GET pagination
+            for app in client.paginate_results(
+                "search_applications",
+                "patent_file_wrapper_data_bag",
+                query="test"
+            ):
+                print(app)
+
+            # POST pagination with custom limit
+            for app in client.paginate_results(
+                "search_applications",
+                "patent_file_wrapper_data_bag",
+                post_body={"q": "test", "limit": 50}
+            ):
+                print(app)
+        """
+        return self._paginate_core(
+            method_name=method_name,
+            response_container_attr=response_container_attr,
+            post_body=post_body,
+            offset_key="offset",
+            limit_key="limit",
+            supports_nested_pagination=True,
+            **kwargs,
+        )
+
+    def paginate_solr_results(
+        self,
+        method_name: str,
+        response_container_attr: str,
+        post_body: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> Generator[Any, None, None]:
+        """Paginate through all results using Solr start/rows style.
+
+        For APIs that use ``offset``/``limit`` pagination (most USPTO APIs),
+        use :meth:`paginate_results` instead.
+
+        Args:
+            method_name: Name of the method to call
+            response_container_attr: Attribute name of the container in the response
+            post_body: Optional POST body for POST-based pagination. If provided,
+                pagination parameters (start, rows) will be injected at the top level.
+                Nested pagination is not supported for Solr-style APIs.
+            **kwargs: Keyword arguments to pass to the method (for GET pagination)
+
+        Yields:
+            Items from the response container
+
+        Raises:
+            ValueError: If start is provided in kwargs or post_body (start is managed
+                automatically by pagination)
+
+        Examples:
+            # POST pagination with custom rows
+            for citation in client.paginate_solr_results(
+                "search_citations",
+                "docs",
+                post_body={"criteria": "techCenter:2800", "rows": 50}
+            ):
+                print(citation)
+        """
+        return self._paginate_core(
+            method_name=method_name,
+            response_container_attr=response_container_attr,
+            post_body=post_body,
+            offset_key="start",
+            limit_key="rows",
+            supports_nested_pagination=False,
+            **kwargs,
+        )
 
     @staticmethod
     def _extract_filename_from_content_disposition(

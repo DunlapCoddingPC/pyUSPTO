@@ -225,7 +225,7 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
         This method simplifies fetching all enriched citations matching a search query
         by automatically handling pagination.
 
-        The offset parameter is managed by the pagination logic; setting it directly
+        The start parameter is managed by the pagination logic; setting it directly
         in kwargs or post_body will raise a ValueError.
 
         Args:
@@ -242,11 +242,11 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
 
             # Paginate with POST body
             >>> for citation in client.paginate_citations(
-            ...     post_body={"q": "techCenter:2800", "limit": 50}
+            ...     post_body={"q": "techCenter:2800", "rows": 50}
             ... ):
             ...     process_citation(citation)
         """
-        return self.paginate_results(
+        return self.paginate_solr_results(
             method_name="search_citations",
             response_container_attr="docs",
             post_body=post_body,
