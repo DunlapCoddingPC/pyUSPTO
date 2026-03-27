@@ -10,6 +10,12 @@ from pyUSPTO.models.bulk_data import (
     FileData,
     ProductFileBag,
 )
+from pyUSPTO.models.enriched_citations import (
+    CitationCategoryCode,
+    EnrichedCitation,
+    EnrichedCitationFieldsResponse,
+    EnrichedCitationResponse,
+)
 from pyUSPTO.models.petition_decisions import (
     DocumentDownloadOption,
     PetitionDecision,
@@ -28,6 +34,11 @@ from pyUSPTO.models.ptab import (
 
 __all__ = [
     "FromDictProtocol",
+    # Enriched Citations Models
+    "CitationCategoryCode",
+    "EnrichedCitation",
+    "EnrichedCitationResponse",
+    "EnrichedCitationFieldsResponse",
     "FileData",
     "ProductFileBag",
     "BulkDataProduct",

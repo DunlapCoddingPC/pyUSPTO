@@ -1115,6 +1115,277 @@ class TestBaseUSPTOClient:
             )
 
 
+class TestPaginateSolrResults:
+    """Tests for paginate_solr_results method (start/rows style)."""
+
+    def test_paginate_solr_results(self, mock_session: MagicMock) -> None:
+        """Test multi-page Solr pagination with start/rows keys."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.config._session = mock_session
+
+        first_response = MagicMock()
+        first_response.count = 3
+        first_response.docs = ["doc1", "doc2"]
+
+        second_response = MagicMock()
+        second_response.count = 3
+        second_response.docs = ["doc3"]
+
+        received_bodies: list[dict[str, Any]] = []
+
+        def mock_search(
+            post_body: dict[str, Any] | None = None, **kwargs: Any
+        ) -> Any:
+            if post_body:
+                received_bodies.append(post_body.copy())
+            start = post_body["start"] if post_body else 0
+            if start == 0:
+                return first_response
+            elif start == 2:
+                return second_response
+            return MagicMock(count=0, docs=[])
+
+        client.search = mock_search  # type: ignore[attr-defined]
+
+        results = list(
+            client.paginate_solr_results(
+                method_name="search",
+                response_container_attr="docs",
+                post_body={"criteria": "test", "rows": 2},
+            )
+        )
+
+        assert results == ["doc1", "doc2", "doc3"]
+        assert len(received_bodies) == 2
+
+        # First request: start=0, rows=2
+        assert received_bodies[0]["start"] == 0
+        assert received_bodies[0]["rows"] == 2
+        assert received_bodies[0]["criteria"] == "test"
+        # Should NOT have offset/limit keys
+        assert "offset" not in received_bodies[0]
+        assert "limit" not in received_bodies[0]
+
+        # Second request: start=2, rows=2
+        assert received_bodies[1]["start"] == 2
+        assert received_bodies[1]["rows"] == 2
+
+    def test_paginate_solr_results_get(self, mock_session: MagicMock) -> None:
+        """Test Solr pagination via GET kwargs."""
+        response = MagicMock()
+        response.count = 1
+        response.docs = ["doc1"]
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def search(self, **kwargs: Any) -> Any:
+                return response
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.config._session = mock_session
+
+        with patch.object(
+            test_client, "search", wraps=test_client.search
+        ) as spy:
+            results = list(
+                test_client.paginate_solr_results(
+                    method_name="search",
+                    response_container_attr="docs",
+                    query="test",
+                    rows=10,
+                )
+            )
+
+            assert results == ["doc1"]
+            spy.assert_called_once_with(query="test", start=0, rows=10)
+
+    def test_paginate_solr_results_custom_rows(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test that rows is extracted from post_body and used as page size."""
+        response = MagicMock()
+        response.count = 1
+        response.docs = ["doc1"]
+
+        received_bodies: list[dict[str, Any]] = []
+
+        def mock_search(
+            post_body: dict[str, Any] | None = None, **kwargs: Any
+        ) -> Any:
+            if post_body:
+                received_bodies.append(post_body.copy())
+            return response
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.config._session = mock_session
+        client.search = mock_search  # type: ignore[attr-defined]
+
+        results = list(
+            client.paginate_solr_results(
+                method_name="search",
+                response_container_attr="docs",
+                post_body={"criteria": "test", "rows": 100},
+            )
+        )
+
+        assert results == ["doc1"]
+        assert received_bodies[0]["rows"] == 100
+        assert received_bodies[0]["start"] == 0
+
+    def test_paginate_solr_results_default_rows(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test that rows defaults to 25 when not specified."""
+        response = MagicMock()
+        response.count = 1
+        response.docs = ["doc1"]
+
+        received_bodies: list[dict[str, Any]] = []
+
+        def mock_search(
+            post_body: dict[str, Any] | None = None, **kwargs: Any
+        ) -> Any:
+            if post_body:
+                received_bodies.append(post_body.copy())
+            return response
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.config._session = mock_session
+        client.search = mock_search  # type: ignore[attr-defined]
+
+        list(
+            client.paginate_solr_results(
+                method_name="search",
+                response_container_attr="docs",
+                post_body={"criteria": "test"},
+            )
+        )
+
+        assert received_bodies[0]["rows"] == 25
+
+    def test_paginate_solr_results_rejects_start_in_post_body(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test that start is rejected when provided in POST body."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.config._session = mock_session
+
+        post_body = {"criteria": "test", "start": 10, "rows": 50}
+
+        with pytest.raises(
+            ValueError, match="Cannot specify 'start' in post_body"
+        ):
+            list(
+                client.paginate_solr_results(
+                    method_name="search",
+                    response_container_attr="docs",
+                    post_body=post_body,
+                )
+            )
+
+    def test_paginate_solr_results_rejects_start_in_kwargs(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test that start is rejected when provided in kwargs."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.config._session = mock_session
+
+        with pytest.raises(
+            ValueError, match="Cannot specify 'start' in kwargs"
+        ):
+            list(
+                client.paginate_solr_results(
+                    method_name="search",
+                    response_container_attr="docs",
+                    start=10,
+                )
+            )
+
+    def test_paginate_solr_results_stop_count_zero(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test Solr pagination stops on count=0."""
+        response = MagicMock()
+        response.count = 0
+        response.docs = []
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def search(self, **kwargs: Any) -> Any:
+                return response
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.config._session = mock_session
+
+        results = list(
+            test_client.paginate_solr_results(
+                method_name="search", response_container_attr="docs"
+            )
+        )
+        assert results == []
+
+    def test_paginate_solr_results_stop_count_none(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test Solr pagination stops on count=None."""
+        response = MagicMock()
+        response.count = None
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def search(self, **kwargs: Any) -> Any:
+                return response
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.config._session = mock_session
+
+        results = list(
+            test_client.paginate_solr_results(
+                method_name="search", response_container_attr="docs"
+            )
+        )
+        assert results == []
+
+    def test_paginate_solr_results_no_nested_pagination(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test that nested 'pagination' key is treated as normal data, not special."""
+        response = MagicMock()
+        response.count = 1
+        response.docs = ["doc1"]
+
+        received_bodies: list[dict[str, Any]] = []
+
+        def mock_search(
+            post_body: dict[str, Any] | None = None, **kwargs: Any
+        ) -> Any:
+            if post_body:
+                received_bodies.append(post_body.copy())
+            return response
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.config._session = mock_session
+        client.search = mock_search  # type: ignore[attr-defined]
+
+        # Even though "pagination" dict is present, Solr style should ignore it
+        # and treat the body as flat
+        post_body: dict[str, Any] = {
+            "criteria": "test",
+            "pagination": {"rows": 10},
+        }
+
+        list(
+            client.paginate_solr_results(
+                method_name="search",
+                response_container_attr="docs",
+                post_body=post_body,
+            )
+        )
+
+        # start/rows should be at top level, not inside pagination
+        assert received_bodies[0]["start"] == 0
+        assert received_bodies[0]["rows"] == 25  # default, not from pagination dict
+        # The pagination key should still be there as data
+        assert received_bodies[0]["pagination"] == {"rows": 10}
+
+
 class TestContentDispositionParsing:
     """Tests for Content-Disposition header parsing."""
 
