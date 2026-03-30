@@ -51,7 +51,7 @@ print(f"\nFound {response.count} records via POST body")
 
 # --- Example 6: Paginate through results ---
 count = 0
-for record in client.paginate(
+for _ in client.paginate(
     legal_section_code_q="103",
     submission_date_from_q="2020-01-01",
     submission_date_to_q="2020-01-31",
@@ -61,9 +61,3 @@ for record in client.paginate(
     if count >= 50:
         break
 print(f"\nIterated through {count} records")
-
-# --- Example 7: Get available fields ---
-fields = client.get_fields()
-print(f"\nAPI: {fields.api_key} ({fields.api_version_number})")
-print(f"Status: {fields.api_status}")
-print(f"Fields ({fields.field_count}): {fields.fields[:5]}...")
