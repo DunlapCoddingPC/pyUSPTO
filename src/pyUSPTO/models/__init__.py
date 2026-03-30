@@ -16,6 +16,22 @@ from pyUSPTO.models.enriched_citations import (
     EnrichedCitationFieldsResponse,
     EnrichedCitationResponse,
 )
+from pyUSPTO.models.oa_actions import (
+    OAActionsFieldsResponse,
+    OAActionsRecord,
+    OAActionsResponse,
+    OAActionsSection,
+)
+from pyUSPTO.models.oa_citations import (
+    OACitationRecord,
+    OACitationsFieldsResponse,
+    OACitationsResponse,
+)
+from pyUSPTO.models.oa_rejections import (
+    OARejectionsFieldsResponse,
+    OARejectionsRecord,
+    OARejectionsResponse,
+)
 from pyUSPTO.models.petition_decisions import (
     DocumentDownloadOption,
     PetitionDecision,
@@ -36,6 +52,19 @@ __all__ = [
     "FromDictProtocol",
     # Enriched Citations Models
     "CitationCategoryCode",
+    # OA Actions Models
+    "OAActionsRecord",
+    "OAActionsResponse",
+    "OAActionsSection",
+    "OAActionsFieldsResponse",
+    # OA Citations Models
+    "OACitationRecord",
+    "OACitationsResponse",
+    "OACitationsFieldsResponse",
+    # OA Rejections Models
+    "OARejectionsRecord",
+    "OARejectionsResponse",
+    "OARejectionsFieldsResponse",
     "EnrichedCitation",
     "EnrichedCitationResponse",
     "EnrichedCitationFieldsResponse",

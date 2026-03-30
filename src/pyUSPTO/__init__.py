@@ -13,6 +13,9 @@ except PackageNotFoundError:
 
 from pyUSPTO.clients.bulk_data import BulkDataClient
 from pyUSPTO.clients.enriched_citations import EnrichedCitationsClient
+from pyUSPTO.clients.oa_actions import OAActionsClient
+from pyUSPTO.clients.oa_citations import OACitationsClient
+from pyUSPTO.clients.oa_rejections import OARejectionsClient
 from pyUSPTO.clients.patent_data import PatentDataClient
 from pyUSPTO.clients.petition_decisions import FinalPetitionDecisionsClient
 from pyUSPTO.clients.ptab_appeals import PTABAppealsClient
@@ -35,13 +38,29 @@ from pyUSPTO.models.bulk_data import (
     FileData,
     ProductFileBag,
 )
-
-# Import model implementations
 from pyUSPTO.models.enriched_citations import (
     CitationCategoryCode,
     EnrichedCitation,
     EnrichedCitationFieldsResponse,
     EnrichedCitationResponse,
+)
+
+# Import model implementations
+from pyUSPTO.models.oa_actions import (
+    OAActionsFieldsResponse,
+    OAActionsRecord,
+    OAActionsResponse,
+    OAActionsSection,
+)
+from pyUSPTO.models.oa_citations import (
+    OACitationRecord,
+    OACitationsFieldsResponse,
+    OACitationsResponse,
+)
+from pyUSPTO.models.oa_rejections import (
+    OARejectionsFieldsResponse,
+    OARejectionsRecord,
+    OARejectionsResponse,
 )
 from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
@@ -89,6 +108,22 @@ __all__ = [
     "USPTOTimezoneWarning",
     "USPTOEnumParseWarning",
     "USPTODataMismatchWarning",
+    # OA Actions API
+    "OAActionsClient",
+    "OAActionsRecord",
+    "OAActionsResponse",
+    "OAActionsSection",
+    "OAActionsFieldsResponse",
+    # OA Citations API
+    "OACitationsClient",
+    "OACitationRecord",
+    "OACitationsResponse",
+    "OACitationsFieldsResponse",
+    # OA Rejections API
+    "OARejectionsClient",
+    "OARejectionsRecord",
+    "OARejectionsResponse",
+    "OARejectionsFieldsResponse",
     # Enriched Citations API
     "EnrichedCitationsClient",
     "CitationCategoryCode",
