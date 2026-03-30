@@ -111,7 +111,7 @@ print("-" * 40)
 
 max_items = 30
 count = 0
-for citation in client.paginate_citations(
+for _ in client.paginate_citations(
     tech_center_q="2800", rows=10
 ):
     count += 1
