@@ -4,7 +4,6 @@ This module contains comprehensive tests for all classes in pyUSPTO.models.oa_ci
 """
 
 import warnings
-from datetime import datetime, timezone
 from typing import Any
 
 import pytest

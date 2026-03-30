@@ -87,7 +87,7 @@ print("-" * 40)
 
 max_items = 30
 count = 0
-for record in client.paginate(tech_center_q="2800", rows=10):
+for _ in client.paginate(tech_center_q="2800", rows=10):
     count += 1
     if count >= max_items:
         print(f"  ... (stopping at {max_items} items)")
