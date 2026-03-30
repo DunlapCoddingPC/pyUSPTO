@@ -1,6 +1,6 @@
 # Contributing to pyUSPTO
 
-We welcome contributions from the community! pyUSPTO is designed to be a useful tool for interacting with USPTO APIs, and your input helps make it better for everyone.
+We welcome contributions from the community! pyUSPTO is designed to be a useful tool for interacting with USPTO APIs, and your input helps make it better for everyone. The repository is hosted on [GitHub](https://github.com/DunlapCoddingPC/pyUSPTO).
 
 ## Ways to Contribute
 

@@ -5,6 +5,7 @@ Welcome to pyUSPTO's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   about
    installation
    quickstart
    configuration

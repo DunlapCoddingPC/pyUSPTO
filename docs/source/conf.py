@@ -52,6 +52,14 @@ language = "en"
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 
+html_context = {
+    "display_github": True,
+    "github_user": "DunlapCoddingPC",
+    "github_repo": "pyUSPTO",
+    "github_version": "main",
+    "conf_py_path": "/docs/source/",
+}
+
 # -- Extension configuration -------------------------------------------------
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
