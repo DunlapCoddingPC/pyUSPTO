@@ -1159,6 +1159,103 @@ class TestPatentDocumentDownload:
 
         mock_download_extract.assert_not_called()
 
+    @pytest.fixture
+    def client_with_mocked_stream(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> Iterator[tuple[PatentDataClient, MagicMock]]:
+        with patch.object(patent_data_client, "_stream_request") as mock_stream:
+            mock_stream.return_value = MagicMock(spec=requests.Response)
+            yield patent_data_client, mock_stream
+
+    def test_stream_document_basic(
+        self,
+        client_with_mocked_stream: tuple[PatentDataClient, MagicMock],
+        sample_document: Document,
+    ) -> None:
+        """Test stream_document calls _stream_request with the correct URL."""
+        client, mock_stream = client_with_mocked_stream
+
+        response = client.stream_document(document=sample_document, format="PDF")
+
+        mock_stream.assert_called_once_with(
+            method="GET",
+            endpoint="",
+            custom_url="https://api.uspto.gov/api/v1/patent/application/documents/16123123/LDXBTPQ7XBLUEX3.pdf",
+        )
+        assert isinstance(response, requests.Response)
+
+    def test_stream_document_xml_format(
+        self,
+        client_with_mocked_stream: tuple[PatentDataClient, MagicMock],
+        sample_document: Document,
+    ) -> None:
+        """Test stream_document selects the correct URL for XML format."""
+        client, mock_stream = client_with_mocked_stream
+
+        client.stream_document(document=sample_document, format="XML")
+
+        mock_stream.assert_called_once_with(
+            method="GET",
+            endpoint="",
+            custom_url="https://api.uspto.gov/api/v1/patent/application/documents/16123123/LDXBTPQ7XBLUEX3.xml",
+        )
+
+    def test_stream_document_with_enum(
+        self,
+        client_with_mocked_stream: tuple[PatentDataClient, MagicMock],
+        sample_document: Document,
+    ) -> None:
+        """Test stream_document resolves DocumentMimeType enum to string."""
+        client, mock_stream = client_with_mocked_stream
+
+        client.stream_document(document=sample_document, format=DocumentMimeType.PDF)
+
+        mock_stream.assert_called_once_with(
+            method="GET",
+            endpoint="",
+            custom_url="https://api.uspto.gov/api/v1/patent/application/documents/16123123/LDXBTPQ7XBLUEX3.pdf",
+        )
+
+    def test_stream_document_format_not_available(
+        self,
+        client_with_mocked_stream: tuple[PatentDataClient, MagicMock],
+        sample_document: Document,
+    ) -> None:
+        """Test stream_document raises FormatNotAvailableError when format not available."""
+        client, mock_stream = client_with_mocked_stream
+
+        with pytest.raises(
+            FormatNotAvailableError,
+            match="Format 'MS_WORD' not available. Available formats: PDF, XML",
+        ):
+            client.stream_document(document=sample_document, format="MS_WORD")
+
+        mock_stream.assert_not_called()
+
+    def test_stream_document_missing_url(
+        self,
+        client_with_mocked_stream: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """Test stream_document raises ValueError when DocumentFormat has no download URL."""
+        client, mock_stream = client_with_mocked_stream
+
+        document = Document(
+            document_identifier="TEST-456",
+            document_code="TEST",
+            document_formats=[
+                DocumentFormat(
+                    mime_type_identifier="PDF",
+                    download_url=None,
+                )
+            ],
+        )
+
+        with pytest.raises(ValueError, match="DocumentFormat has no download URL"):
+            client.stream_document(document=document, format="PDF")
+
+        mock_stream.assert_not_called()
+
 
 class TestDownloadFile:
     """Tests for the _download_file method in BaseUSPTOClient."""

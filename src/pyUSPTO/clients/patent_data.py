@@ -12,6 +12,8 @@ import zipfile
 from collections.abc import Iterator
 from typing import Any
 
+import requests
+
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import FormatNotAvailableError
@@ -21,6 +23,7 @@ from pyUSPTO.models.patent_data import (
     Assignment,
     Document,
     DocumentBag,
+    DocumentFormat,
     DocumentMimeType,
     EventData,
     ForeignPriority,
@@ -993,7 +996,35 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             >>> # Or using enum:
             >>> path = client.download_document(docs[0], format=DocumentMimeType.XML)
         """
-        # Find matching format
+        doc_format = self._resolve_document_format(document=document, format=format)
+
+        assert doc_format.download_url is not None
+
+        return self._download_and_extract(
+            url=doc_format.download_url,
+            destination=destination,
+            file_name=file_name,
+            overwrite=overwrite,
+        )
+
+    def _resolve_document_format(
+        self,
+        document: Document,
+        format: str | DocumentMimeType,
+    ) -> DocumentFormat:
+        """Resolve a format specifier to a DocumentFormat with a download URL.
+
+        Args:
+            document: Document with document_formats list.
+            format: MIME type string or DocumentMimeType enum.
+
+        Returns:
+            Matching DocumentFormat.
+
+        Raises:
+            FormatNotAvailableError: If no format matches.
+            ValueError: If the matched format has no download_url.
+        """
         format_str = format.value if isinstance(format, DocumentMimeType) else format
 
         doc_format = next(
@@ -1020,12 +1051,43 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         if not doc_format.download_url:
             raise ValueError("DocumentFormat has no download URL")
 
-        # Download and auto-extract (user wants document, not TAR)
-        return self._download_and_extract(
-            url=doc_format.download_url,
-            destination=destination,
-            file_name=file_name,
-            overwrite=overwrite,
+        return doc_format
+
+    def stream_document(
+        self,
+        document: Document,
+        format: str | DocumentMimeType = DocumentMimeType.PDF,
+    ) -> requests.Response:
+        """Stream a document in the specified format without saving to disk.
+
+        Returns a streaming ``requests.Response``. The caller is responsible
+        for consuming and closing it — use as a context manager or call
+        ``response.close()`` when done.
+
+        Args:
+            document: Document with document_formats list.
+            format: Which format (PDF, XML, MS_WORD). Can be string or DocumentMimeType enum.
+                Defaults to PDF.
+
+        Returns:
+            Streaming requests.Response object.
+
+        Raises:
+            FormatNotAvailableError: If format not available for this document.
+            ValueError: If the matched DocumentFormat has no download URL.
+
+        Example:
+            >>> docs = client.get_application_documents("19312841", document_codes=["CTNF"])
+            >>> with client.stream_document(docs[0]) as response:
+            ...     for chunk in response.iter_content(chunk_size=8192):
+            ...         process(chunk)
+        """
+        doc_format = self._resolve_document_format(document=document, format=format)
+
+        return self._stream_request(
+            method="GET",
+            endpoint="",
+            custom_url=doc_format.download_url,
         )
 
     def _resolve_by_search(self, **search_kwargs: Any) -> PatentFileWrapper | None:
