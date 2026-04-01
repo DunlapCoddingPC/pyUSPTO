@@ -154,6 +154,13 @@ if patent_wrapper_detail:
                 overwrite=True,
             )
             print(f"Downloaded document to: {downloaded_path}")
+
+            print("\nStreaming same document to memory...")
+            with client.stream_document(
+                document=document_to_download, format="PDF"
+            ) as response:
+                content = response.content
+                print(f"Streamed {len(content)} bytes")
         else:
             print(
                 "No downloadable formats available for the first document or document identifier missing."
