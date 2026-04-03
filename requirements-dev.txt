@@ -98,7 +98,7 @@ requests==2.33.1
     #   sphinx-immaterial
 roman-numerals==4.1.0
     # via sphinx
-ruff==0.15.8
+ruff==0.15.9
     # via pyuspto
 snowballstemmer==3.0.1
     # via sphinx
