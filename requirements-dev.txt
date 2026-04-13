@@ -67,7 +67,7 @@ pluggy==1.6.0
     # via
     #   pytest
     #   pytest-cov
-pydantic==2.12.5
+pydantic==2.13.0
     # via
     #   pydantic-extra-types
     #   sphinx-immaterial
