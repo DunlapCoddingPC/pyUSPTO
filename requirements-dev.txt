@@ -83,7 +83,7 @@ requests==2.33.1
     #   sphinx
 roman-numerals==4.1.0
     # via sphinx
-ruff==0.15.10
+ruff==0.15.11
     # via pyuspto
 snowballstemmer==3.0.1
     # via sphinx
