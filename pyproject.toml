@@ -47,6 +47,7 @@ dependencies = [
     "requests>=2.32.5",
     "typing-extensions>=4.15.0; python_version < '3.11'",
     "tzdata>=2026.1",
+    "urllib3>=2.0.0",
 ]
 dynamic = ["version"]
 
@@ -171,3 +172,13 @@ warn_unreachable = false
 [[tool.mypy.overrides]]
 module = ["pytest.*", "pytest", "requests.*", "urllib3.*"]
 ignore_missing_imports = true
+
+[tool.deptry.per_rule_ignores]
+DEP002 = [
+    "tzdata",
+    "pytest", "pytest-cov", "pytest-mock",
+    "sphinx", "sphinx-rtd-theme", "sphinx-autodoc-typehints",
+    "sphinx-copybutton", "myst-parser",
+    "mypy", "types-requests",
+    "ruff",
+]

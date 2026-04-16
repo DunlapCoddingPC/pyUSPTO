@@ -1,4 +1,4 @@
-Welcome to pyUSPTO's documentation!
+pyUSPTO documentation
 ===================================
 
 .. toctree::

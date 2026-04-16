@@ -495,38 +495,69 @@ class TestPetitionDecisionDownloadResponseToDict:
 class TestDecisionTypeCodeEnum:
     """Tests for DecisionTypeCode enum."""
 
-    def test_enum_values(self) -> None:
-        """Test enum has expected values."""
-        assert DecisionTypeCode("DENIED") == DecisionTypeCode.DENIED
-        assert DecisionTypeCode.C == DecisionTypeCode.DENIED
+    def test_c_is_alias_of_denied(self) -> None:
+        """The C class-level alias points at the same member as DENIED."""
+        assert DecisionTypeCode.C is DecisionTypeCode.DENIED
 
-    def test_missing_case_insensitive(self) -> None:
-        """Test _missing_ handles case-insensitive lookup."""
-        assert DecisionTypeCode("c") == DecisionTypeCode.DENIED
-        assert DecisionTypeCode("C") == DecisionTypeCode.DENIED
+    @pytest.mark.parametrize(
+        "value",
+        ["DENIED", "denied", "Denied", "DeNiEd"],
+    )
+    def test_denied_accepts_case_variations(self, value: str) -> None:
+        """Every case variation of 'DENIED' resolves to DecisionTypeCode.DENIED."""
+        assert DecisionTypeCode(value) == DecisionTypeCode.DENIED
+
+    @pytest.mark.parametrize("value", ["C", "c"])
+    def test_c_alias_accepts_case_variations(self, value: str) -> None:
+        """The 'C' alias in any case resolves to DecisionTypeCode.DENIED."""
+        assert DecisionTypeCode(value) == DecisionTypeCode.DENIED
+
+    @pytest.mark.parametrize(
+        "invalid_value",
+        ["", "GRANTED", "UNKNOWN", "NOT_A_REAL_CODE"],
+    )
+    def test_invalid_string_raises(self, invalid_value: str) -> None:
+        """Unknown string values raise ValueError."""
         with pytest.raises(ValueError):
-            DecisionTypeCode("not_a_real_code")
+            DecisionTypeCode(invalid_value)
+
+    @pytest.mark.parametrize("invalid_value", [123, None, 0.0])
+    def test_non_string_value_raises(self, invalid_value: Any) -> None:
+        """Non-string inputs fall through _missing_ and raise ValueError."""
+        with pytest.raises(ValueError):
+            DecisionTypeCode(invalid_value)
 
 
 class TestDocumentDirectionCategoryEnum:
     """Tests for DocumentDirectionCategory enum."""
 
-    def test_enum_values(self) -> None:
-        """Test enum has expected values."""
-        assert (
-            DocumentDirectionCategory("INCOMING") == DocumentDirectionCategory.INCOMING
-        )
-        assert (
-            DocumentDirectionCategory("OUTGOING") == DocumentDirectionCategory.OUTGOING
-        )
+    @pytest.mark.parametrize(
+        "value",
+        ["INCOMING", "incoming", "Incoming", "iNcOmInG"],
+    )
+    def test_incoming_accepts_case_variations(self, value: str) -> None:
+        """Every case variation of 'INCOMING' resolves to INCOMING."""
+        assert DocumentDirectionCategory(value) == DocumentDirectionCategory.INCOMING
 
-    def test_missing_case_insensitive(self) -> None:
-        """Test _missing_ handles case-insensitive lookup."""
-        assert (
-            DocumentDirectionCategory("incoming") == DocumentDirectionCategory.INCOMING
-        )
-        assert (
-            DocumentDirectionCategory("outgoing") == DocumentDirectionCategory.OUTGOING
-        )
+    @pytest.mark.parametrize(
+        "value",
+        ["OUTGOING", "outgoing", "Outgoing", "oUtGoInG"],
+    )
+    def test_outgoing_accepts_case_variations(self, value: str) -> None:
+        """Every case variation of 'OUTGOING' resolves to OUTGOING."""
+        assert DocumentDirectionCategory(value) == DocumentDirectionCategory.OUTGOING
+
+    @pytest.mark.parametrize(
+        "invalid_value",
+        ["", "INBOUND", "SIDEWAYS", "NOT_A_DIRECTION"],
+    )
+    def test_invalid_string_raises(self, invalid_value: str) -> None:
+        """Unknown string values raise ValueError."""
         with pytest.raises(ValueError):
-            DocumentDirectionCategory("not_a_real_category")
+            DocumentDirectionCategory(invalid_value)
+
+    @pytest.mark.parametrize("invalid_value", [123, None, 0.0])
+    def test_non_string_value_raises(self, invalid_value: Any) -> None:
+        """Non-string inputs fall through _missing_ and raise ValueError."""
+        with pytest.raises(ValueError):
+            DocumentDirectionCategory(invalid_value)

@@ -12,9 +12,7 @@ from pyUSPTO import EnrichedCitationsClient, USPTOConfig
 # --- Client Initialization ---
 api_key = os.environ.get("USPTO_API_KEY", "YOUR_API_KEY_HERE")
 if api_key == "YOUR_API_KEY_HERE":
-    raise ValueError(
-        "API key is not set. Set the USPTO_API_KEY environment variable."
-    )
+    raise ValueError("API key is not set. Set the USPTO_API_KEY environment variable.")
 config = USPTOConfig(api_key=api_key)
 client = EnrichedCitationsClient(config=config)
 
@@ -72,9 +70,7 @@ response = client.search_citations(
     examiner_cited_q=True,
     rows=5,
 )
-print(
-    f"Found {response.num_found} examiner-cited 'Y' citations in tech center 2800."
-)
+print(f"Found {response.num_found} examiner-cited 'Y' citations in tech center 2800.")
 for citation in response.docs:
     print(
         f"  App {citation.patent_application_number}: "
@@ -111,9 +107,10 @@ print("-" * 40)
 
 max_items = 30
 count = 0
-for _ in client.paginate_citations(
-    tech_center_q="2800", rows=10
-):
+for citation in client.paginate_citations(tech_center_q="2800", rows=10):
+    print(
+        f"  App {citation.patent_application_number}: {citation.cited_document_identifier}"
+    )
     count += 1
     if count >= max_items:
         print(f"  ... (stopping at {max_items} items)")
