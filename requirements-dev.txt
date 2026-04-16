@@ -65,7 +65,7 @@ pygments==2.20.0
     # via
     #   pytest
     #   sphinx
-pytest==9.0.2
+pytest==9.0.3
     # via
     #   pytest-cov
     #   pytest-mock
