@@ -98,6 +98,17 @@ config = USPTOConfig(api_key="your_api_key_here")
 > [!TIP]
 > For comprehensive examples with detailed explanations, see the [`examples/`](examples/) directory.
 
+1. [Patent Data API](#patent-data-api)
+2. [Bulk Data API](#bulk-data-api)
+3. [Final Petition Decisions API](#final-petition-decisions-api)
+4. [PTAB Trials API](#ptab-trials-api)
+5. [PTAB Appeals API](#ptab-appeals-api)
+6. [PTAB Interferences API](#ptab-interferences-api)
+7. [Enriched Citations API](#enriched-citations-api)
+8. [Office Action Text Retrieval API](#office-action-text-retrieval-api)
+9. [Office Action Rejections API](#office-action-rejections-api)
+10. [Office Action Citations API](#office-action-citations-api)
+
 ### Patent Data API
 
 ```python
