@@ -51,7 +51,7 @@ mypy-extensions==1.1.0
     # via mypy
 myst-parser==5.0.0
     # via pyuspto
-packaging==26.1
+packaging==26.2
     # via
     #   pytest
     #   sphinx
