@@ -12,7 +12,7 @@ idna==3.12
     # via requests
 requests==2.33.1
     # via pyUSPTO (pyproject.toml)
-tzdata==2026.1
+tzdata==2026.2
     # via pyUSPTO (pyproject.toml)
 urllib3==2.6.3
     # via
