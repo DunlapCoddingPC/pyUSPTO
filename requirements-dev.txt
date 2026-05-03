@@ -115,7 +115,7 @@ sphinxcontrib-qthelp==2.0.0
     # via sphinx
 sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
-types-requests==2.33.0.20260408
+types-requests==2.33.0.20260503
     # via pyuspto
 typing-extensions==4.15.0
     # via
