@@ -1,0 +1,30 @@
+{
+  "name": "pyUSPTO",
+  "build": { "dockerfile": "Dockerfile" },
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/node:1": {}
+  },
+  "mounts": [
+    "source=pyuspto-claude-home,target=/home/vscode/.claude,type=volume"
+  ],
+  "postCreateCommand": "sudo chown vscode /home/vscode/.claude && touch /home/vscode/.claude/claude.json && ln -sf /home/vscode/.claude/claude.json /home/vscode/.claude.json && pip install -e \".[dev]\"",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.mypy-type-checker",
+        "charliermarsh.ruff"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["tests", "--ignore=tests/integration"]
+      }
+    }
+  },
+  "remoteEnv": {
+    "USPTO_API_KEY": "${localEnv:USPTO_API_KEY}",
+    "ENABLE_INTEGRATION_TESTS": "${localEnv:ENABLE_INTEGRATION_TESTS}"
+  }
+}
