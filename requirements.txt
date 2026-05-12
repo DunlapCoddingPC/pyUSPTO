@@ -14,7 +14,7 @@ requests==2.33.1
     # via pyUSPTO (pyproject.toml)
 tzdata==2026.1
     # via pyUSPTO (pyproject.toml)
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   pyUSPTO (pyproject.toml)
     #   requests
