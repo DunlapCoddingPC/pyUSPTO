@@ -3,7 +3,7 @@
   "build": { "dockerfile": "Dockerfile" },
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/node:1": {}
+    "ghcr.io/devcontainers/features/node:2": {}
   },
   "mounts": [
     "source=pyuspto-claude-home,target=/home/vscode/.claude,type=volume"
