@@ -10,7 +10,7 @@ charset-normalizer==3.4.7
     # via requests
 idna==3.15
     # via requests
-requests==2.34.0
+requests==2.34.1
     # via pyUSPTO (pyproject.toml)
 tzdata==2026.2
     # via pyUSPTO (pyproject.toml)
