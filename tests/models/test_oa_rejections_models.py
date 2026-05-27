@@ -244,9 +244,7 @@ class TestOARejectionsRecordFromDict:
         assert record.submission_date.year == 2011
         assert record.submission_date.month == 10
 
-    def test_create_date_time_parsed(
-        self, sample_record_dict: dict[str, Any]
-    ) -> None:
+    def test_create_date_time_parsed(self, sample_record_dict: dict[str, Any]) -> None:
         record = OARejectionsRecord.from_dict(sample_record_dict)
         assert isinstance(record.create_date_time, datetime)
         assert record.create_date_time.year == 2025
@@ -288,9 +286,7 @@ class TestOARejectionsRecordToDict:
         assert "claimNumberArrayDocument" not in d
 
     def test_claims_joined_to_single_string(self) -> None:
-        record = OARejectionsRecord(
-            id="x", claim_number_array_document=["1", "2", "3"]
-        )
+        record = OARejectionsRecord(id="x", claim_number_array_document=["1", "2", "3"])
         d = record.to_dict()
         assert d["claimNumberArrayDocument"] == ["1,2,3"]
 

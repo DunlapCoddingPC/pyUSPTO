@@ -159,9 +159,9 @@ class TestPatentDataIntegration:
 
         assert response is not None
         assert isinstance(response, PatentDataResponse)
-        assert (
-            response.raw_data is not None
-        ), "raw_data should be populated when include_raw_data=True"
+        assert response.raw_data is not None, (
+            "raw_data should be populated when include_raw_data=True"
+        )
 
         # Parse the raw API response JSON
         import json
@@ -843,9 +843,9 @@ class TestPatentDataIntegration:
 
         try:
             metadata = patent_data_client.get_application_metadata(invalid_app_num)
-            assert (
-                metadata is None
-            ), "Expected None for invalid application number if client handles 404 by returning None"
+            assert metadata is None, (
+                "Expected None for invalid application number if client handles 404 by returning None"
+            )
         except ValueError as e:
             # Client validates application number format before API call
             assert "Invalid application number format" in str(e)

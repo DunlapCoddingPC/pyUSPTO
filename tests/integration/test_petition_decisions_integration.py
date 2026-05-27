@@ -170,9 +170,9 @@ class TestFinalPetitionDecisionsIntegration:
                     d.application_number_text == app_num
                     for d in response.petition_decision_data_bag
                 )
-                assert (
-                    found
-                ), f"Expected to find application number {app_num} in results"
+                assert found, (
+                    f"Expected to find application number {app_num} in results"
+                )
         except USPTOApiError as e:
             pytest.fail(f"Application number search failed: {e}")
 
@@ -219,9 +219,9 @@ class TestFinalPetitionDecisionsIntegration:
                     d.patent_number == patent_num
                     for d in response.petition_decision_data_bag
                 )
-                assert (
-                    found
-                ), f"Expected to find patent number {patent_num} in results but count is {response.count}"
+                assert found, (
+                    f"Expected to find patent number {patent_num} in results but count is {response.count}"
+                )
         except USPTOApiError as e:
             pytest.fail(f"Patent number search failed: {e}")
 
@@ -360,9 +360,9 @@ class TestFinalPetitionDecisionsIntegration:
                     f"No decision found for raw API comparison: {sample_petition_decision_id}"
                 )
 
-            assert (
-                response.raw_data is not None
-            ), "raw_data should be populated when include_raw_data=True"
+            assert response.raw_data is not None, (
+                "raw_data should be populated when include_raw_data=True"
+            )
 
             # Parse the raw API response JSON
             import json

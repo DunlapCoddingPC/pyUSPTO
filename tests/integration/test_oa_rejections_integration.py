@@ -57,9 +57,7 @@ class TestOARejectionsSearch:
             doc.patent_application_number == _KNOWN_APP_NUMBER for doc in response.docs
         )
 
-    def test_search_by_doc_code(
-        self, oa_rejections_client: OARejectionsClient
-    ) -> None:
+    def test_search_by_doc_code(self, oa_rejections_client: OARejectionsClient) -> None:
         response = oa_rejections_client.search(
             legacy_document_code_identifier_q="CTNF", rows=5
         )
@@ -111,9 +109,7 @@ class TestOARejectionsSearch:
         assert response.num_found == 1
         assert response.docs[0].id == _KNOWN_ID
 
-    def test_search_date_range(
-        self, oa_rejections_client: OARejectionsClient
-    ) -> None:
+    def test_search_date_range(self, oa_rejections_client: OARejectionsClient) -> None:
         response = oa_rejections_client.search(
             submission_date_from_q="2011-10-01",
             submission_date_to_q="2011-10-31",
@@ -147,9 +143,7 @@ class TestOARejectionsPaginate:
         self, oa_rejections_client: OARejectionsClient
     ) -> None:
         records = list(
-            oa_rejections_client.paginate(
-                patent_application_number_q=_KNOWN_APP_NUMBER
-            )
+            oa_rejections_client.paginate(patent_application_number_q=_KNOWN_APP_NUMBER)
         )
         assert len(records) > 0
         assert all(isinstance(r, OARejectionsRecord) for r in records)

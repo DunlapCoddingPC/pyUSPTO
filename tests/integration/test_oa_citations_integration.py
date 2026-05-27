@@ -134,9 +134,7 @@ class TestOACitationsSearch:
         for doc in response.docs:
             assert doc.examiner_cited_reference_indicator is True
 
-    def test_search_by_date_range(
-        self, oa_citations_client: OACitationsClient
-    ) -> None:
+    def test_search_by_date_range(self, oa_citations_client: OACitationsClient) -> None:
         response = oa_citations_client.search(
             create_date_time_from_q="2025-07-01",
             create_date_time_to_q="2025-07-04",
@@ -163,9 +161,7 @@ class TestOACitationsSearch:
             assert doc.tech_center == "2800"
             assert "103" in doc.legal_section_code
 
-    def test_search_with_sort(
-        self, oa_citations_client: OACitationsClient
-    ) -> None:
+    def test_search_with_sort(self, oa_citations_client: OACitationsClient) -> None:
         response = oa_citations_client.search(
             tech_center_q="2800",
             sort="createDateTime desc",
@@ -175,9 +171,7 @@ class TestOACitationsSearch:
         assert response.num_found > 0
         assert len(response.docs) <= 5
 
-    def test_search_direct_query(
-        self, oa_citations_client: OACitationsClient
-    ) -> None:
+    def test_search_direct_query(self, oa_citations_client: OACitationsClient) -> None:
         response = oa_citations_client.search(
             criteria=f"patentApplicationNumber:{_KNOWN_APP_NUMBER}"
         )
@@ -186,9 +180,7 @@ class TestOACitationsSearch:
         for doc in response.docs:
             assert doc.patent_application_number == _KNOWN_APP_NUMBER
 
-    def test_search_post_body(
-        self, oa_citations_client: OACitationsClient
-    ) -> None:
+    def test_search_post_body(self, oa_citations_client: OACitationsClient) -> None:
         response = oa_citations_client.search(
             post_body={
                 "criteria": f"patentApplicationNumber:{_KNOWN_APP_NUMBER}",

@@ -399,7 +399,9 @@ class TestOARejectionsClientPaginate:
             oa_rejections_client, "paginate_solr_results", autospec=True
         ) as mock_paginate:
             mock_paginate.return_value = iter([])
-            oa_rejections_client.paginate(legacy_document_code_identifier_q="CTNF", rows=10)
+            oa_rejections_client.paginate(
+                legacy_document_code_identifier_q="CTNF", rows=10
+            )
 
         mock_paginate.assert_called_once_with(
             method_name="search",
@@ -429,9 +431,7 @@ class TestOARejectionsClientPaginate:
         mock_record: OARejectionsRecord,
         mock_response_with_data: OARejectionsResponse,
     ) -> None:
-        with patch.object(
-            oa_rejections_client, "search", autospec=True
-        ) as mock_search:
+        with patch.object(oa_rejections_client, "search", autospec=True) as mock_search:
             mock_search.side_effect = [
                 mock_response_with_data,
                 OARejectionsResponse(num_found=0, start=0, docs=[]),

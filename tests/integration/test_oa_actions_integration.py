@@ -39,9 +39,7 @@ def oa_actions_client(config: USPTOConfig) -> OAActionsClient:
 class TestOAActionsSearch:
     """Integration tests for search."""
 
-    def test_search_returns_results(
-        self, oa_actions_client: OAActionsClient
-    ) -> None:
+    def test_search_returns_results(self, oa_actions_client: OAActionsClient) -> None:
         response = oa_actions_client.search(criteria="*:*", rows=5)
         assert isinstance(response, OAActionsResponse)
         assert response.num_found > 0
@@ -133,9 +131,7 @@ class TestOAActionsSearch:
         for doc in response.docs:
             assert "CTNF" in doc.legacy_document_code_identifier
 
-    def test_search_by_tech_center(
-        self, oa_actions_client: OAActionsClient
-    ) -> None:
+    def test_search_by_tech_center(self, oa_actions_client: OAActionsClient) -> None:
         response = oa_actions_client.search(tech_center_q="2800", rows=5)
         assert isinstance(response, OAActionsResponse)
         assert response.num_found > 0
@@ -156,9 +152,7 @@ class TestOAActionsSearch:
             assert doc.submission_date is not None
             assert doc.submission_date.year == 2010
 
-    def test_search_combined_params(
-        self, oa_actions_client: OAActionsClient
-    ) -> None:
+    def test_search_combined_params(self, oa_actions_client: OAActionsClient) -> None:
         response = oa_actions_client.search(
             tech_center_q="2800",
             legacy_document_code_identifier_q="CTNF",
@@ -220,9 +214,7 @@ class TestOAActionsGetFields:
 class TestOAActionsPaginate:
     """Integration tests for paginate."""
 
-    def test_paginate_yields_records(
-        self, oa_actions_client: OAActionsClient
-    ) -> None:
+    def test_paginate_yields_records(self, oa_actions_client: OAActionsClient) -> None:
         count = 0
         for record in oa_actions_client.paginate(
             tech_center_q="1700",

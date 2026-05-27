@@ -182,8 +182,7 @@ class TestOACitationsClientSearch:
 
         call_kwargs = mock_get_model.call_args.kwargs
         assert (
-            call_kwargs["json_data"]["criteria"]
-            == "patentApplicationNumber:17519936"
+            call_kwargs["json_data"]["criteria"] == "patentApplicationNumber:17519936"
         )
 
     def test_legal_section_code_q(
@@ -313,9 +312,7 @@ class TestOACitationsClientSearch:
         client.search(create_date_time_from_q="2025-01-01")
 
         call_kwargs = mock_get_model.call_args.kwargs
-        assert (
-            call_kwargs["json_data"]["criteria"] == "createDateTime:>=2025-01-01"
-        )
+        assert call_kwargs["json_data"]["criteria"] == "createDateTime:>=2025-01-01"
 
     def test_create_date_time_to_only(
         self,
@@ -328,9 +325,7 @@ class TestOACitationsClientSearch:
         client.search(create_date_time_to_q="2025-06-30")
 
         call_kwargs = mock_get_model.call_args.kwargs
-        assert (
-            call_kwargs["json_data"]["criteria"] == "createDateTime:<=2025-06-30"
-        )
+        assert call_kwargs["json_data"]["criteria"] == "createDateTime:<=2025-06-30"
 
     def test_combined_convenience_params(
         self,
@@ -457,9 +452,7 @@ class TestOACitationsClientPaginate:
             rows=10,
         )
 
-    def test_passes_post_body(
-        self, oa_citations_client: OACitationsClient
-    ) -> None:
+    def test_passes_post_body(self, oa_citations_client: OACitationsClient) -> None:
         with patch.object(
             oa_citations_client, "paginate_solr_results", autospec=True
         ) as mock_paginate:
@@ -479,9 +472,7 @@ class TestOACitationsClientPaginate:
         mock_record: OACitationRecord,
         mock_response_with_data: OACitationsResponse,
     ) -> None:
-        with patch.object(
-            oa_citations_client, "search", autospec=True
-        ) as mock_search:
+        with patch.object(oa_citations_client, "search", autospec=True) as mock_search:
             # Two pages: first has data, second is empty to stop pagination
             mock_search.side_effect = [
                 mock_response_with_data,

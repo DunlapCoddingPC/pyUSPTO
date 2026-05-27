@@ -280,14 +280,14 @@ class TestPTABAppealsIntegration:
             if response is None or response.count == 0:
                 pytest.fail("No decision found for raw API comparison test")
 
-            assert (
-                response.raw_data is not None
-            ), "raw_data should be populated when include_raw_data=True"
+            assert response.raw_data is not None, (
+                "raw_data should be populated when include_raw_data=True"
+            )
 
             # PTAB models store raw_data as dict (not JSON string like other models)
-            assert isinstance(
-                response.raw_data, dict
-            ), "raw_data should be a dictionary"
+            assert isinstance(response.raw_data, dict), (
+                "raw_data should be a dictionary"
+            )
 
             # Get the raw API response dict
             raw_api_dict = response.raw_data

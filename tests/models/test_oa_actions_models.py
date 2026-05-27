@@ -14,8 +14,8 @@ from pyUSPTO.models.oa_actions import (
     OAActionsSection,
 )
 
-
 # --- Fixtures ---
+
 
 @pytest.fixture
 def sample_record_dict_no_sections() -> dict[str, Any]:
@@ -113,7 +113,9 @@ def sample_record_dict_with_sections() -> dict[str, Any]:
 
 
 @pytest.fixture
-def sample_response_dict(sample_record_dict_no_sections: dict[str, Any]) -> dict[str, Any]:
+def sample_response_dict(
+    sample_record_dict_no_sections: dict[str, Any],
+) -> dict[str, Any]:
     """Sample response dict with the outer Solr envelope."""
     return {
         "response": {
@@ -150,6 +152,7 @@ def sample_fields_response_dict() -> dict[str, Any]:
 
 
 # --- OAActionsSection Tests ---
+
 
 class TestOAActionsSectionFromDict:
     def test_complete(self, sample_record_dict_with_sections: dict[str, Any]) -> None:
@@ -247,6 +250,7 @@ class TestOAActionsSectionToDict:
 
 
 # --- OAActionsRecord Tests ---
+
 
 class TestOAActionsRecordFromDict:
     def test_complete_no_sections(
@@ -381,6 +385,7 @@ class TestOAActionsRecordToDict:
 
 # --- OAActionsResponse Tests ---
 
+
 class TestOAActionsResponseFromDict:
     def test_complete(self, sample_response_dict: dict[str, Any]) -> None:
         response = OAActionsResponse.from_dict(sample_response_dict)
@@ -417,7 +422,13 @@ class TestOAActionsResponseFromDict:
 
     def test_docs_non_dict_skipped(self) -> None:
         response = OAActionsResponse.from_dict(
-            {"response": {"start": 0, "numFound": 3, "docs": [{"id": "a"}, "bad", None]}}
+            {
+                "response": {
+                    "start": 0,
+                    "numFound": 3,
+                    "docs": [{"id": "a"}, "bad", None],
+                }
+            }
         )
         assert len(response.docs) == 1
 
@@ -439,6 +450,7 @@ class TestOAActionsResponseToDict:
 
 
 # --- OAActionsFieldsResponse Tests ---
+
 
 class TestOAActionsFieldsResponseFromDict:
     def test_complete(self, sample_fields_response_dict: dict[str, Any]) -> None:

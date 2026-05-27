@@ -75,9 +75,9 @@ def test_all_exports() -> None:
     """Test that all exports in __all__ are available."""
     # Test all the symbols in __all__ are actually exported
     for symbol in pyUSPTO.__all__:
-        assert hasattr(
-            pyUSPTO, symbol
-        ), f"Symbol '{symbol}' not exported in __init__.py"
+        assert hasattr(pyUSPTO, symbol), (
+            f"Symbol '{symbol}' not exported in __init__.py"
+        )
 
         # Check that the symbol is properly imported
         imported_symbol = getattr(pyUSPTO, symbol)

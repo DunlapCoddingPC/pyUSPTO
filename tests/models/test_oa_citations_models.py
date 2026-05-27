@@ -15,7 +15,6 @@ from pyUSPTO.models.oa_citations import (
 )
 from pyUSPTO.warnings import USPTODateParseWarning
 
-
 # --- Fixtures ---
 
 
@@ -132,9 +131,7 @@ class TestOACitationRecordFromDict:
         assert record.create_date_time.month == 7
         assert record.create_date_time.day == 3
 
-    def test_minimal_record(
-        self, sample_record_dict_minimal: dict[str, Any]
-    ) -> None:
+    def test_minimal_record(self, sample_record_dict_minimal: dict[str, Any]) -> None:
         record = OACitationRecord.from_dict(sample_record_dict_minimal)
         assert record.id == "ba27780c738055eed0332b28b78ef6d6"
         assert record.patent_application_number == "16845502"
@@ -202,18 +199,14 @@ class TestOACitationRecordToDict:
 
 
 class TestOACitationsResponseFromDict:
-    def test_complete_response(
-        self, sample_response_dict: dict[str, Any]
-    ) -> None:
+    def test_complete_response(self, sample_response_dict: dict[str, Any]) -> None:
         response = OACitationsResponse.from_dict(sample_response_dict)
         assert response.num_found == 133157634
         assert response.start == 0
         assert len(response.docs) == 1
         assert response.docs[0].id == "90d4b51ab322a638b1327494a7129975"
 
-    def test_count_property(
-        self, sample_response_dict: dict[str, Any]
-    ) -> None:
+    def test_count_property(self, sample_response_dict: dict[str, Any]) -> None:
         response = OACitationsResponse.from_dict(sample_response_dict)
         assert response.count == 133157634
         assert response.count == response.num_found
@@ -227,7 +220,8 @@ class TestOACitationsResponseFromDict:
         assert response.docs == []
 
     def test_multiple_records(
-        self, sample_record_dict: dict[str, Any],
+        self,
+        sample_record_dict: dict[str, Any],
         sample_record_dict_minimal: dict[str, Any],
     ) -> None:
         data = {
@@ -242,9 +236,7 @@ class TestOACitationsResponseFromDict:
         assert response.docs[0].id == "90d4b51ab322a638b1327494a7129975"
         assert response.docs[1].id == "ba27780c738055eed0332b28b78ef6d6"
 
-    def test_raw_data_toggle(
-        self, sample_response_dict: dict[str, Any]
-    ) -> None:
+    def test_raw_data_toggle(self, sample_response_dict: dict[str, Any]) -> None:
         response_no_raw = OACitationsResponse.from_dict(
             sample_response_dict, include_raw_data=False
         )
@@ -283,9 +275,7 @@ class TestOACitationsResponseFromDict:
 
 
 class TestOACitationsResponseToDict:
-    def test_roundtrip(
-        self, sample_response_dict: dict[str, Any]
-    ) -> None:
+    def test_roundtrip(self, sample_response_dict: dict[str, Any]) -> None:
         response = OACitationsResponse.from_dict(sample_response_dict)
         result = response.to_dict()
         assert "response" in result
@@ -328,9 +318,7 @@ class TestOACitationsFieldsResponseFromDict:
 
 
 class TestOACitationsFieldsResponseToDict:
-    def test_roundtrip(
-        self, sample_fields_response_dict: dict[str, Any]
-    ) -> None:
+    def test_roundtrip(self, sample_fields_response_dict: dict[str, Any]) -> None:
         response = OACitationsFieldsResponse.from_dict(sample_fields_response_dict)
         result = response.to_dict()
         assert result["apiKey"] == "oa_citations"

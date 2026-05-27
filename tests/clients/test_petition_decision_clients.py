@@ -83,9 +83,7 @@ def client_with_mocked_request(
     petition_client: FinalPetitionDecisionsClient,
 ) -> Iterator[tuple[FinalPetitionDecisionsClient, MagicMock]]:
     """Provides a client with mocked _get_model method."""
-    with patch.object(
-        petition_client, "_get_model", autospec=True
-    ) as mock_get_model:
+    with patch.object(petition_client, "_get_model", autospec=True) as mock_get_model:
         yield petition_client, mock_get_model
 
 

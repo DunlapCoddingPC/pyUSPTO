@@ -1133,9 +1133,7 @@ class TestPaginateSolrResults:
 
         received_bodies: list[dict[str, Any]] = []
 
-        def mock_search(
-            post_body: dict[str, Any] | None = None, **kwargs: Any
-        ) -> Any:
+        def mock_search(post_body: dict[str, Any] | None = None, **kwargs: Any) -> Any:
             if post_body:
                 received_bodies.append(post_body.copy())
             start = post_body["start"] if post_body else 0
@@ -1183,9 +1181,7 @@ class TestPaginateSolrResults:
         test_client = TestClient(base_url="https://api.test.com")
         test_client.config._session = mock_session
 
-        with patch.object(
-            test_client, "search", wraps=test_client.search
-        ) as spy:
+        with patch.object(test_client, "search", wraps=test_client.search) as spy:
             results = list(
                 test_client.paginate_solr_results(
                     method_name="search",
@@ -1198,9 +1194,7 @@ class TestPaginateSolrResults:
             assert results == ["doc1"]
             spy.assert_called_once_with(query="test", start=0, rows=10)
 
-    def test_paginate_solr_results_custom_rows(
-        self, mock_session: MagicMock
-    ) -> None:
+    def test_paginate_solr_results_custom_rows(self, mock_session: MagicMock) -> None:
         """Test that rows is extracted from post_body and used as page size."""
         response = MagicMock()
         response.count = 1
@@ -1208,9 +1202,7 @@ class TestPaginateSolrResults:
 
         received_bodies: list[dict[str, Any]] = []
 
-        def mock_search(
-            post_body: dict[str, Any] | None = None, **kwargs: Any
-        ) -> Any:
+        def mock_search(post_body: dict[str, Any] | None = None, **kwargs: Any) -> Any:
             if post_body:
                 received_bodies.append(post_body.copy())
             return response
@@ -1231,9 +1223,7 @@ class TestPaginateSolrResults:
         assert received_bodies[0]["rows"] == 100
         assert received_bodies[0]["start"] == 0
 
-    def test_paginate_solr_results_default_rows(
-        self, mock_session: MagicMock
-    ) -> None:
+    def test_paginate_solr_results_default_rows(self, mock_session: MagicMock) -> None:
         """Test that rows defaults to 25 when not specified."""
         response = MagicMock()
         response.count = 1
@@ -1241,9 +1231,7 @@ class TestPaginateSolrResults:
 
         received_bodies: list[dict[str, Any]] = []
 
-        def mock_search(
-            post_body: dict[str, Any] | None = None, **kwargs: Any
-        ) -> Any:
+        def mock_search(post_body: dict[str, Any] | None = None, **kwargs: Any) -> Any:
             if post_body:
                 received_bodies.append(post_body.copy())
             return response
@@ -1271,9 +1259,7 @@ class TestPaginateSolrResults:
 
         post_body = {"criteria": "test", "start": 10, "rows": 50}
 
-        with pytest.raises(
-            ValueError, match="Cannot specify 'start' in post_body"
-        ):
+        with pytest.raises(ValueError, match="Cannot specify 'start' in post_body"):
             list(
                 client.paginate_solr_results(
                     method_name="search",
@@ -1289,9 +1275,7 @@ class TestPaginateSolrResults:
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.config._session = mock_session
 
-        with pytest.raises(
-            ValueError, match="Cannot specify 'start' in kwargs"
-        ):
+        with pytest.raises(ValueError, match="Cannot specify 'start' in kwargs"):
             list(
                 client.paginate_solr_results(
                     method_name="search",
@@ -1353,9 +1337,7 @@ class TestPaginateSolrResults:
 
         received_bodies: list[dict[str, Any]] = []
 
-        def mock_search(
-            post_body: dict[str, Any] | None = None, **kwargs: Any
-        ) -> Any:
+        def mock_search(post_body: dict[str, Any] | None = None, **kwargs: Any) -> Any:
             if post_body:
                 received_bodies.append(post_body.copy())
             return response

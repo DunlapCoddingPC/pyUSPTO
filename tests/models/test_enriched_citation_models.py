@@ -36,9 +36,7 @@ def sample_enriched_citation_dict() -> dict[str, Any]:
         "techCenter": "2800",
         "citedDocumentIdentifier": "US 20190165601 A1",
         "countryCode": "US",
-        "passageLocationText": [
-            "c. 112|figure 3|claim 9|claims 1-23|c. 103|claim 1"
-        ],
+        "passageLocationText": ["c. 112|figure 3|claim 9|claims 1-23|c. 103|claim 1"],
         "obsoleteDocumentIdentifier": "K1V5RMZ8RXEAPX0",
         "id": "d7e95803517f677b3875dc476a61a817",
         "citationCategoryCode": "Y",
@@ -362,9 +360,7 @@ class TestEnrichedCitationFieldsResponseFromDict:
         self, sample_fields_response_dict: dict[str, Any]
     ) -> None:
         """Test from_dict with complete data."""
-        response = EnrichedCitationFieldsResponse.from_dict(
-            sample_fields_response_dict
-        )
+        response = EnrichedCitationFieldsResponse.from_dict(sample_fields_response_dict)
         assert response.api_key == "enriched_cited_reference_metadata"
         assert response.api_version_number == "v3"
         assert response.api_status == "PUBLISHED"
@@ -398,9 +394,7 @@ class TestEnrichedCitationFieldsResponseToDict:
         self, sample_fields_response_dict: dict[str, Any]
     ) -> None:
         """Test to_dict with complete data."""
-        response = EnrichedCitationFieldsResponse.from_dict(
-            sample_fields_response_dict
-        )
+        response = EnrichedCitationFieldsResponse.from_dict(sample_fields_response_dict)
         result = response.to_dict()
         assert result["apiKey"] == "enriched_cited_reference_metadata"
         assert result["apiVersionNumber"] == "v3"

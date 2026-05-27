@@ -324,14 +324,14 @@ class TestPTABInterferencesIntegration:
                     "No interference decisions found for raw API comparison test"
                 )
 
-            assert (
-                response.raw_data is not None
-            ), "raw_data should be populated when include_raw_data=True"
+            assert response.raw_data is not None, (
+                "raw_data should be populated when include_raw_data=True"
+            )
 
             # PTAB models store raw_data as dict (not JSON string like other models)
-            assert isinstance(
-                response.raw_data, dict
-            ), "raw_data should be a dictionary"
+            assert isinstance(response.raw_data, dict), (
+                "raw_data should be a dictionary"
+            )
 
             # Get the raw API response dict
             raw_api_dict = response.raw_data
@@ -461,9 +461,7 @@ class TestPTABInterferencesIntegration:
     ) -> None:
         """Test downloading and extracting interference documents."""
         if not interferences_with_download_uris.patent_interference_data_bag:
-            pytest.fail(
-                "No interference decisions found for documents download test"
-            )
+            pytest.fail("No interference decisions found for documents download test")
 
         # Try multiple decisions until one downloads successfully
         last_error = None
@@ -475,10 +473,12 @@ class TestPTABInterferencesIntegration:
                 continue
 
             try:
-                extracted_path = ptab_interferences_client.download_interference_documents(
-                    decision.interference_meta_data,
-                    destination=TEST_DOWNLOAD_DIR,
-                    overwrite=True,
+                extracted_path = (
+                    ptab_interferences_client.download_interference_documents(
+                        decision.interference_meta_data,
+                        destination=TEST_DOWNLOAD_DIR,
+                        overwrite=True,
+                    )
                 )
 
                 assert extracted_path is not None
