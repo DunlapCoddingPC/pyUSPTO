@@ -480,7 +480,11 @@ class Address:
         country_name: Full name of the country (e.g., "United States").
         postal_address_category: Category of the address (e.g., "MAILING_ADDRESS").
         correspondent_name_text: Name of the correspondent at this address.
-        country_or_state_code: Country or state code.
+        country_or_state_code: Country or state code. Deprecated: USPTO ODP
+            Release 3.6 (2026-04-10) removed this field from the Patent
+            Assignment API response. Read ``geographic_region_code`` instead;
+            this attribute will be ``None`` for responses from updated
+            endpoints.
         ict_state_code: International code for the state/region (USPTO format).
         ict_country_code: International code for the country (USPTO format).
     """

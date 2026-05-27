@@ -134,7 +134,7 @@ if app.application_meta_data:
 wrapper = client.get_IFW_metadata(application_number="18/045,436")
 wrapper = client.get_IFW_metadata(patent_number="11,234,567")
 wrapper = client.get_IFW_metadata(publication_number="2023/0012345")
-wrapper = client.get_IFW_metadata(PCT_app_number="PCT/US24/12345")
+wrapper = client.get_IFW_metadata(PCT_app_number="PCT/US2024/012345")
 
 # Look up USPTO status codes
 status_codes = client.get_status_codes()

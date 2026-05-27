@@ -93,7 +93,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         Application numbers are either:
         - 8 digits (e.g., "16123456")
         - Series code format: 2 digits + "/" + 6 digits (e.g., "08/123456")
-        - PCT format: "PCT/US2024/012345" → "PCTUS2412345"
+        - PCT format: "PCT/US2024/012345" → "PCTUS2024012345"
+          (standardized 15-character form per USPTO ODP Release 3.6, 2026-04-10)
 
         This method removes common separators (commas, spaces) while preserving
         the "/" in series code format.
@@ -103,7 +104,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 spaces, or other formatting.
 
         Returns:
-            str: Sanitized application number (either "NNNNNNNN" or "NN/NNNNNN").
+            str: Sanitized application number ("NNNNNNNN", "NN/NNNNNN", or
+                "PCT" + 2-char country + 4-digit year + 6-digit serial).
 
         Raises:
             ValueError: If the format is invalid.
@@ -117,19 +119,28 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             "08/123456"
             >>> client.sanitize_application_number("08/123,456")
             "08/123456"
+            >>> client.sanitize_application_number("PCT/US2024/012345")
+            "PCTUS2024012345"
         """
         if not input_number or not input_number.strip():
             raise ValueError("Application number cannot be empty")
 
         raw = input_number.strip()
 
-        # --- NEW: Handle PCT formats ---
-        # Example: "PCT/US2024/012345" -> "PCTUS2412345"
+        # Handle PCT formats. Output is the standardized 15-char form:
+        # "PCT" + 2-char country + 4-digit year + 6-digit zero-padded serial.
+        # Example: "PCT/US2024/012345" -> "PCTUS2024012345"
         if raw.startswith("PCT"):
             parts = raw.split("/")
             if len(parts) == 1:
-                # Already sanitized (e.g. "PCTUS0812705"), return as-is
-                return raw
+                # No slashes — only accept input that is already in the 15-char form.
+                body = raw[3:]
+                if len(body) == 12 and body[:2].isalpha() and body[2:].isdigit():
+                    return raw
+                raise ValueError(
+                    f"Invalid PCT application format: {input_number}. "
+                    "Expected PCT/CCYYYY/NNNNNN or PCTCCYYYYNNNNNN."
+                )
             if len(parts) != 3:
                 raise ValueError(
                     f"Invalid PCT application format: {input_number}. "
@@ -140,6 +151,10 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
             # country_year can be "US2024" or "US24"
             country = country_year[:2]
+            if len(country) != 2 or not country.isalpha():
+                raise ValueError(
+                    f"Invalid PCT country code in: {country_year}. Expected 2 letters."
+                )
 
             year_part = country_year[2:]
             if not year_part.isdigit():
@@ -147,24 +162,28 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                     f"Invalid PCT year in: {country_year}. Must be digits."
                 )
 
-            # Normalize:
-            # "2024" -> "24"
-            # "24"   -> "24"
+            # Normalize to 4-digit year. 2-digit input uses a sliding window
+            # tied to the PCT system's start year (1978): YY>=78 -> 19YY, else 20YY.
             if len(year_part) == 4:
-                year = year_part[-2:]
-            elif len(year_part) == 2:
                 year = year_part
+            elif len(year_part) == 2:
+                yy = int(year_part)
+                year = f"19{year_part}" if yy >= 78 else f"20{year_part}"
             else:
                 raise ValueError(
                     f"Invalid PCT year length in: {country_year}. "
                     "Expected CCYYYY or CCYY."
                 )
 
-            # Serial must be digits only
+            # Serial must be digits only, and fit in 6 digits.
             if not serial.isdigit():
                 raise ValueError(f"Invalid PCT serial: {serial}. Must be numeric.")
+            if len(serial) > 6:
+                raise ValueError(
+                    f"Invalid PCT serial: {serial}. Must be at most 6 digits."
+                )
 
-            return f"PCT{country}{year}{serial.lstrip('0')}"
+            return f"PCT{country}{year}{serial.zfill(6)}"
 
         # Strip whitespace and remove commas/spaces
         cleaned = raw.replace(",", "").replace(" ", "")

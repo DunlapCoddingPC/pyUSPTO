@@ -1458,7 +1458,7 @@ class TestGetIFW:
         # Should call get_application_by_number first
         assert mock_get_model.call_args_list[0] == call(
             method="GET",
-            endpoint="api/v1/patent/applications/PCTUS2412345",
+            endpoint="api/v1/patent/applications/PCTUS2024012345",
             response_class=PatentDataResponse,
         )
         assert result is not None
@@ -1476,7 +1476,7 @@ class TestGetIFW:
         """Test PCT application number sanitization with 2-digit year format (US24 vs US2024).
 
         Verifies that PCT numbers with short year format (PCT/US24/012345) are correctly
-        sanitized to PCTUS2412345 before making API request.
+        sanitized to PCTUS2024012345 (sliding window: YY<78 -> 20YY) before making API request.
 
         Note: This will trigger a data mismatch warning because the mock_patent_file_wrapper
         has application_number_text='12345678' but we're requesting a PCT number.
@@ -1499,7 +1499,7 @@ class TestGetIFW:
         # Should call get_application_by_number first
         assert mock_get_model.call_args_list[0] == call(
             method="GET",
-            endpoint="api/v1/patent/applications/PCTUS2412345",
+            endpoint="api/v1/patent/applications/PCTUS2024012345",
             response_class=PatentDataResponse,
         )
         assert result is not None
@@ -1796,7 +1796,7 @@ class TestGetPCT:
     @pytest.fixture
     def mock_pct_file_wrapper(self) -> PatentFileWrapper:
         """Provides a mock PatentFileWrapper with a sanitized PCT application number."""
-        return PatentFileWrapper(application_number_text="PCTUS2412345")
+        return PatentFileWrapper(application_number_text="PCTUS2024012345")
 
     def test_get_pct_with_app_number(
         self,
@@ -1815,7 +1815,7 @@ class TestGetPCT:
         # Should call get_application_by_number (direct lookup)
         assert mock_get_model.call_args == call(
             method="GET",
-            endpoint="api/v1/patent/applications/PCTUS2412345",
+            endpoint="api/v1/patent/applications/PCTUS2024012345",
             response_class=PatentDataResponse,
         )
         assert result is not None
@@ -2846,11 +2846,72 @@ class TestApplicationNumberSanitization:
         with pytest.raises(ValueError, match="Expected format: NNNNNNNN or NN/NNNNNN"):
             patent_data_client.sanitize_application_number("08/123/456")
 
-        # Already-sanitized PCT number passes through unchanged
+    def test_sanitize_pct_15char_passthrough(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Already-standardized 15-char PCT input passes through unchanged."""
         assert (
-            patent_data_client.sanitize_application_number("PCTUS0812705")
-            == "PCTUS0812705"
+            patent_data_client.sanitize_application_number("PCTUS2024012345")
+            == "PCTUS2024012345"
         )
+
+    def test_sanitize_pct_pads_serial_leading_zeros(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Serial is zero-padded to 6 digits; existing leading zeros are preserved."""
+        assert (
+            patent_data_client.sanitize_application_number("PCT/US2025/000001")
+            == "PCTUS2025000001"
+        )
+        assert (
+            patent_data_client.sanitize_application_number("PCT/US2024/12345")
+            == "PCTUS2024012345"
+        )
+
+    def test_sanitize_pct_two_digit_year_sliding_window(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """2-digit year uses YY>=78 -> 19YY, else 20YY (PCT system started 1978)."""
+        # Post-2000: YY < 78 -> 20YY
+        assert (
+            patent_data_client.sanitize_application_number("PCT/US24/012345")
+            == "PCTUS2024012345"
+        )
+        # Pre-2000: YY >= 78 -> 19YY
+        assert (
+            patent_data_client.sanitize_application_number("PCT/US85/012345")
+            == "PCTUS1985012345"
+        )
+        # Boundary: YY=78 -> 1978
+        assert (
+            patent_data_client.sanitize_application_number("PCT/US78/012345")
+            == "PCTUS1978012345"
+        )
+
+    def test_sanitize_pct_legacy_12char_raises(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Legacy 12-char compact form is no longer a valid input post-Release 3.6."""
+        with pytest.raises(
+            ValueError, match="Invalid PCT application format: PCTUS0812705"
+        ):
+            patent_data_client.sanitize_application_number("PCTUS0812705")
+
+    def test_sanitize_pct_serial_too_long_raises(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Serial longer than 6 digits is rejected."""
+        with pytest.raises(
+            ValueError, match="Invalid PCT serial: 1234567. Must be at most 6 digits."
+        ):
+            patent_data_client.sanitize_application_number("PCT/US2024/1234567")
+
+    def test_sanitize_pct_invalid_country_raises(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Country code that is not 2 alphabetic chars is rejected."""
+        with pytest.raises(ValueError, match="Invalid PCT country code"):
+            patent_data_client.sanitize_application_number("PCT/1S2024/012345")
 
 
 class TestRawDataFeature:

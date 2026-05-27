@@ -5,6 +5,16 @@ All notable changes to the pyUSPTO package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Breaking**: `sanitize_application_number` now emits the standardized 15-character PCT format (`PCT` + 2-char country + 4-digit year + 6-digit zero-padded serial, e.g. `PCTUS2024012345`) per USPTO ODP Release 3.6 (2026-04-10). Previously emitted a non-standard 12-character form (e.g. `PCTUS2412345`). Affects every endpoint that takes a PCT application number, including `get_pct`, `get_application_by_number`, and `get_IFW_metadata(PCT_app_number=...)`. 2-digit year inputs are expanded via a sliding window (YY≥78 → 19YY, else 20YY). Legacy 12-character PCT strings are no longer accepted as input.
+
+### Deprecated
+
+- `Address.country_or_state_code` — USPTO ODP Release 3.6 removed `countryOrStateCode` from the Patent Assignment API response; the location data now lives in `geographicRegionCode` (already exposed as `Address.geographic_region_code`). The attribute remains for backward compatibility and will be `None` for responses from updated endpoints.
+
 ## [0.4.5] - 2026-03-11
 
 ### Changed
