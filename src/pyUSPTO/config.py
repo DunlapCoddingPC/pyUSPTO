@@ -5,7 +5,7 @@ including API keys, base URLs, and HTTP transport settings.
 """
 
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import requests
@@ -13,6 +13,36 @@ if TYPE_CHECKING:
 from pyUSPTO.http_config import HTTPConfig
 
 DEFAULT_BASE_URL = "https://api.uspto.gov"
+
+
+def _env_values() -> dict[str, Any]:
+    """Build a dict of config values from environment variables (or defaults)."""
+    return {
+        "api_key": os.environ.get("USPTO_API_KEY") or None,
+        "bulk_data_base_url": os.environ.get(
+            "USPTO_BULK_DATA_BASE_URL", DEFAULT_BASE_URL
+        ),
+        "patent_data_base_url": os.environ.get(
+            "USPTO_PATENT_DATA_BASE_URL", DEFAULT_BASE_URL
+        ),
+        "petition_decisions_base_url": os.environ.get(
+            "USPTO_PETITION_DECISIONS_BASE_URL", DEFAULT_BASE_URL
+        ),
+        "ptab_base_url": os.environ.get("USPTO_PTAB_BASE_URL", DEFAULT_BASE_URL),
+        "enriched_citations_base_url": os.environ.get(
+            "USPTO_ENRICHED_CITATIONS_BASE_URL", DEFAULT_BASE_URL
+        ),
+        "oa_actions_base_url": os.environ.get(
+            "USPTO_OA_ACTIONS_BASE_URL", DEFAULT_BASE_URL
+        ),
+        "oa_rejections_base_url": os.environ.get(
+            "USPTO_OA_REJECTIONS_BASE_URL", DEFAULT_BASE_URL
+        ),
+        "oa_citations_base_url": os.environ.get(
+            "USPTO_OA_CITATIONS_BASE_URL", DEFAULT_BASE_URL
+        ),
+        "http_config": HTTPConfig.from_env(),
+    }
 
 
 class USPTOConfig:
@@ -25,18 +55,21 @@ class USPTOConfig:
     def __init__(
         self,
         api_key: str | None = None,
-        bulk_data_base_url: str = DEFAULT_BASE_URL,
-        patent_data_base_url: str = DEFAULT_BASE_URL,
-        petition_decisions_base_url: str = DEFAULT_BASE_URL,
-        ptab_base_url: str = DEFAULT_BASE_URL,
-        enriched_citations_base_url: str = DEFAULT_BASE_URL,
-        oa_actions_base_url: str = DEFAULT_BASE_URL,
-        oa_rejections_base_url: str = DEFAULT_BASE_URL,
-        oa_citations_base_url: str = DEFAULT_BASE_URL,
+        bulk_data_base_url: str | None = None,
+        patent_data_base_url: str | None = None,
+        petition_decisions_base_url: str | None = None,
+        ptab_base_url: str | None = None,
+        enriched_citations_base_url: str | None = None,
+        oa_actions_base_url: str | None = None,
+        oa_rejections_base_url: str | None = None,
+        oa_citations_base_url: str | None = None,
         http_config: HTTPConfig | None = None,
         include_raw_data: bool = False,
     ):
         """Initialize the USPTOConfig.
+
+        Each field falls back to its environment variable (or the package
+        default) when the caller does not pass a value.
 
         Args:
             api_key: API key for authentication, defaults to USPTO_API_KEY environment variable
@@ -51,21 +84,43 @@ class USPTOConfig:
             http_config: Optional HTTPConfig for request handling (uses defaults if None)
             include_raw_data: If True, store raw JSON in response objects for debugging (default: False)
         """
-        # Use environment variable only if api_key is None, not if it's an empty string
-        self.api_key = (
-            api_key if api_key is not None else os.environ.get("USPTO_API_KEY")
-        )
-        self.bulk_data_base_url = bulk_data_base_url
-        self.patent_data_base_url = patent_data_base_url
-        self.petition_decisions_base_url = petition_decisions_base_url
-        self.ptab_base_url = ptab_base_url
-        self.enriched_citations_base_url = enriched_citations_base_url
-        self.oa_actions_base_url = oa_actions_base_url
-        self.oa_rejections_base_url = oa_rejections_base_url
-        self.oa_citations_base_url = oa_citations_base_url
+        env = _env_values()
 
-        # Use provided HTTPConfig or create default
-        self.http_config = http_config if http_config is not None else HTTPConfig()
+        self.api_key = api_key if api_key else env["api_key"]
+        self.bulk_data_base_url = (
+            bulk_data_base_url if bulk_data_base_url else env["bulk_data_base_url"]
+        )
+        self.patent_data_base_url = (
+            patent_data_base_url
+            if patent_data_base_url
+            else env["patent_data_base_url"]
+        )
+        self.petition_decisions_base_url = (
+            petition_decisions_base_url
+            if petition_decisions_base_url
+            else env["petition_decisions_base_url"]
+        )
+        self.ptab_base_url = ptab_base_url if ptab_base_url else env["ptab_base_url"]
+        self.enriched_citations_base_url = (
+            enriched_citations_base_url
+            if enriched_citations_base_url
+            else env["enriched_citations_base_url"]
+        )
+        self.oa_actions_base_url = (
+            oa_actions_base_url if oa_actions_base_url else env["oa_actions_base_url"]
+        )
+        self.oa_rejections_base_url = (
+            oa_rejections_base_url
+            if oa_rejections_base_url
+            else env["oa_rejections_base_url"]
+        )
+        self.oa_citations_base_url = (
+            oa_citations_base_url
+            if oa_citations_base_url
+            else env["oa_citations_base_url"]
+        )
+
+        self.http_config = http_config if http_config else env["http_config"]
 
         # Control whether to include raw JSON data in response objects
         self.include_raw_data = include_raw_data
@@ -80,33 +135,7 @@ class USPTOConfig:
         Returns:
             USPTOConfig instance with values from environment
         """
-        return cls(
-            api_key=os.environ.get("USPTO_API_KEY"),
-            bulk_data_base_url=os.environ.get(
-                "USPTO_BULK_DATA_BASE_URL", DEFAULT_BASE_URL
-            ),
-            patent_data_base_url=os.environ.get(
-                "USPTO_PATENT_DATA_BASE_URL", DEFAULT_BASE_URL
-            ),
-            petition_decisions_base_url=os.environ.get(
-                "USPTO_PETITION_DECISIONS_BASE_URL", DEFAULT_BASE_URL
-            ),
-            ptab_base_url=os.environ.get("USPTO_PTAB_BASE_URL", DEFAULT_BASE_URL),
-            enriched_citations_base_url=os.environ.get(
-                "USPTO_ENRICHED_CITATIONS_BASE_URL", DEFAULT_BASE_URL
-            ),
-            oa_actions_base_url=os.environ.get(
-                "USPTO_OA_ACTIONS_BASE_URL", DEFAULT_BASE_URL
-            ),
-            oa_rejections_base_url=os.environ.get(
-                "USPTO_OA_REJECTIONS_BASE_URL", DEFAULT_BASE_URL
-            ),
-            oa_citations_base_url=os.environ.get(
-                "USPTO_OA_CITATIONS_BASE_URL", DEFAULT_BASE_URL
-            ),
-            # Also read HTTP config from environment
-            http_config=HTTPConfig.from_env(),
-        )
+        return cls(**_env_values())
 
     @property
     def session(self) -> "requests.Session":

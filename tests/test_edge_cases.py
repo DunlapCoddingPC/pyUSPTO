@@ -13,7 +13,7 @@ def test_config_with_empty_api_key() -> None:
     """Test creating a config with an empty API key."""
     # Empty string API key
     config = USPTOConfig(api_key="")
-    assert config.api_key == ""
+    assert config.api_key is None
 
     # None API key should fall back to environment variable
     with patch.dict("os.environ", {"USPTO_API_KEY": "env_key"}, clear=True):
