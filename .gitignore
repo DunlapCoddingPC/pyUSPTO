@@ -23,3 +23,4 @@ run_integration_tests.py
 CLAUDE.md
 docs/build/
 .devcontainer/Dockerfile
+.claude/skills/

@@ -3,7 +3,10 @@
   "build": { "dockerfile": "Dockerfile" },
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/node:2": {}
+    "ghcr.io/devcontainers/features/node:2": {},
+    "ghcr.io/devcontainers/features/powershell:2.0.2": {
+        "version": "latest"
+    }
   },
   "mounts": [
     "source=pyuspto-claude-home,target=/home/vscode/.claude,type=volume"
