@@ -8,7 +8,7 @@ alabaster==1.0.0
     # via sphinx
 babel==2.18.0
     # via sphinx
-certifi==2026.4.22
+certifi==2026.5.20
     # via requests
 charset-normalizer==3.4.7
     # via requests
@@ -16,14 +16,14 @@ colorama==0.4.6
     # via
     #   pytest
     #   sphinx
-coverage==7.14.0
+coverage==7.14.1
     # via pytest-cov
 docutils==0.22.4
     # via
     #   myst-parser
     #   sphinx
     #   sphinx-rtd-theme
-idna==3.15
+idna==3.16
     # via requests
 imagesize==2.0.0
     # via sphinx
@@ -83,9 +83,9 @@ requests==2.34.2
     #   sphinx
 roman-numerals==4.1.0
     # via sphinx
-ruff==0.15.13
+ruff==0.15.14
     # via pyuspto
-snowballstemmer==3.0.1
+snowballstemmer==3.1.0
     # via sphinx
 sphinx==9.1.0
     # via
