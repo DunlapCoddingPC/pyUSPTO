@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `PatentDataClient.get_firm_portfolio(customer_numbers, ...)` — helper that searches a law firm's portfolio across one or more USPTO Customer Numbers. Builds a single Lucene `OR` query, applies a named field preset by default, and returns a `PatentDataResponse`. Pairs with `get_application_metadata` / `get_application_by_number` for per-application drill-down.
+- `FIELD_PRESETS` constant (exported from `pyUSPTO`) — three named field sets for `get_firm_portfolio`'s `fields` argument: `"minimal"` (8 firm-internal identifiers), `"portfolio"` (16 fields for status + deadline derivation, default), and `"full_meta"` (uses the API's `applicationMetaData` shorthand for the entire 27-key metadata object, ~7.5× payload reduction vs. the un-fielded default).
+- Multi-value `customer_number_q` and `status_code_q` on `search_applications` and `get_search_results` — accept a single value or a list; lists are OR-joined as `field:(a OR b)`.
+- New `status_date_from_q` / `status_date_to_q` on `search_applications` and `get_search_results` — date-range filters against `applicationMetaData.applicationStatusDate`, mirroring the existing `filing_date` and `grant_date` range params. Useful for bounding the deadline-coming-due horizon.
+
 ### Changed
 
 - **Breaking**: `sanitize_application_number` now emits the standardized 15-character PCT format (`PCT` + 2-char country + 4-digit year + 6-digit zero-padded serial, e.g. `PCTUS2024012345`) per USPTO ODP Release 3.6 (2026-04-10). Previously emitted a non-standard 12-character form (e.g. `PCTUS2412345`). Affects every endpoint that takes a PCT application number, including `get_pct`, `get_application_by_number`, and `get_IFW_metadata(PCT_app_number=...)`. 2-digit year inputs are expanded via a sliding window (YY≥78 → 19YY, else 20YY). Legacy 12-character PCT strings are no longer accepted as input.

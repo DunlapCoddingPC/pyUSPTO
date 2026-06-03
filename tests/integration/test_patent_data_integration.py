@@ -906,3 +906,63 @@ class TestHelperMethodsIntegration:
         assert result.application_number_text == "PCTUS2547756"
         assert result.application_meta_data is not None
         assert result.application_meta_data.pct_publication_number == "WO2026044302"
+
+
+class TestFirmPortfolioIntegration:
+    """Integration tests for get_firm_portfolio and the new q-params."""
+
+    # USPTO Customer Number 30589 had 1,571 issued patents at the time of writing.
+    # The count grows monotonically (new grants only add to it; abandonments don't
+    # remove issued patents), so a lower-bound assertion is stable.
+    KNOWN_CUSTOMER_NUMBER = 30589
+    KNOWN_CUSTOMER_NUMBER_LOWER_BOUND = 1500
+
+    def test_get_firm_portfolio_minimal_preset(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """get_firm_portfolio with the minimal preset returns the firm's apps."""
+        response = patent_data_client.get_firm_portfolio(
+            customer_numbers=[self.KNOWN_CUSTOMER_NUMBER],
+            fields="minimal",
+            limit=1,
+        )
+        assert isinstance(response, PatentDataResponse)
+        assert response.count >= self.KNOWN_CUSTOMER_NUMBER_LOWER_BOUND
+        assert len(response.patent_file_wrapper_data_bag) == 1
+        wrapper = response.patent_file_wrapper_data_bag[0]
+        meta = wrapper.application_meta_data
+        assert meta is not None
+        assert meta.customer_number == self.KNOWN_CUSTOMER_NUMBER
+
+    def test_get_firm_portfolio_multi_customer(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Multi-value customer_number_q OR-joins as expected."""
+        single = patent_data_client.get_firm_portfolio(
+            customer_numbers=[self.KNOWN_CUSTOMER_NUMBER], limit=1
+        )
+        combined = patent_data_client.get_firm_portfolio(
+            customer_numbers=[self.KNOWN_CUSTOMER_NUMBER, 174793], limit=1
+        )
+        # Combined query is always at least as broad as single-customer query.
+        assert combined.count >= single.count
+
+    def test_status_date_from_q_filters_results(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """search_applications with status_date_from_q returns only rows >= cutoff."""
+        cutoff_str = "2025-01-01"
+        cutoff_date = datetime.date(2025, 1, 1)
+
+        response = patent_data_client.search_applications(
+            customer_number_q=self.KNOWN_CUSTOMER_NUMBER,
+            status_date_from_q=cutoff_str,
+            limit=5,
+        )
+        assert isinstance(response, PatentDataResponse)
+        assert len(response.patent_file_wrapper_data_bag) > 0
+        for wrapper in response.patent_file_wrapper_data_bag:
+            meta = wrapper.application_meta_data
+            assert meta is not None
+            assert meta.application_status_date is not None
+            assert meta.application_status_date >= cutoff_date

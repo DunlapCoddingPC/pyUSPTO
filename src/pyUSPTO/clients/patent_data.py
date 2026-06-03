@@ -39,6 +39,57 @@ from pyUSPTO.models.patent_data import (
 from pyUSPTO.warnings import USPTODataMismatchWarning
 
 
+def _or_clause(field: str, value: int | str | list[int | str]) -> str:
+    """Build a Lucene clause for a single value or a list of values.
+
+    Single value → ``field:val``. List → ``field:(v1 OR v2 ...)``.
+    """
+    if isinstance(value, list):
+        return f"{field}:({' OR '.join(str(v) for v in value)})"
+    return f"{field}:{value}"
+
+
+FIELD_PRESETS: dict[str, list[str]] = {
+    "minimal": [
+        "applicationNumberText",
+        "applicationMetaData.customerNumber",
+        "applicationMetaData.applicationStatusCode",
+        "applicationMetaData.applicationStatusDate",
+        "applicationMetaData.filingDate",
+        "applicationMetaData.firstApplicantName",
+        "applicationMetaData.firstInventorName",
+        "applicationMetaData.docketNumber",
+    ],
+    "portfolio": [
+        "applicationNumberText",
+        "applicationMetaData.customerNumber",
+        "applicationMetaData.applicationStatusCode",
+        "applicationMetaData.applicationStatusDescriptionText",
+        "applicationMetaData.applicationStatusDate",
+        "applicationMetaData.filingDate",
+        "applicationMetaData.effectiveFilingDate",
+        "applicationMetaData.patentNumber",
+        "applicationMetaData.grantDate",
+        "applicationMetaData.inventionTitle",
+        "applicationMetaData.firstApplicantName",
+        "applicationMetaData.firstInventorName",
+        "applicationMetaData.docketNumber",
+        "applicationMetaData.examinerNameText",
+        "applicationMetaData.applicationTypeCode",
+        "applicationMetaData.applicationTypeLabelName",
+    ],
+    # ``full_meta`` uses the USPTO API's top-level shorthand: passing
+    # ``applicationMetaData`` returns the entire 27-key object.
+    # ``applicationNumberText`` is added explicitly because it lives at the
+    # wrapper top level (outside applicationMetaData) and would otherwise be
+    # stripped. Payload is roughly 7.5x smaller than the un-fielded default.
+    "full_meta": [
+        "applicationNumberText",
+        "applicationMetaData",
+    ],
+}
+
+
 class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     """Client for interacting with the USPTO Patent Data API."""
 
@@ -267,10 +318,14 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         inventor_name_q: str | None = None,
         applicant_name_q: str | None = None,
         assignee_name_q: str | None = None,
+        customer_number_q: int | str | list[int | str] | None = None,
+        status_code_q: int | str | list[int | str] | None = None,
         filing_date_from_q: str | None = None,
         filing_date_to_q: str | None = None,
         grant_date_from_q: str | None = None,
         grant_date_to_q: str | None = None,
+        status_date_from_q: str | None = None,
+        status_date_to_q: str | None = None,
         classification_q: str | None = None,
         earliestPublicationNumber_q: str | None = None,
         pctPublicationNumber_q: str | None = None,
@@ -279,6 +334,11 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         """Search for patent applications.
 
         Can perform a GET request based on OpenAPI query parameters or a POST request if post_body is specified.
+
+        ``customer_number_q`` and ``status_code_q`` accept a single value or a list;
+        a list builds a Lucene ``field:(a OR b)`` clause. ``status_date_from_q`` /
+        ``status_date_to_q`` follow the same date-range pattern as
+        ``filing_date_from_q`` / ``filing_date_to_q``.
         """
         endpoint = self.ENDPOINTS["search_applications"]
 
@@ -325,6 +385,18 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                         else assignee_name_q
                     )
                     q_parts.append(f"assignmentBag.assigneeBag.assigneeNameText:{v}")
+                if customer_number_q is not None:
+                    q_parts.append(
+                        _or_clause(
+                            "applicationMetaData.customerNumber", customer_number_q
+                        )
+                    )
+                if status_code_q is not None:
+                    q_parts.append(
+                        _or_clause(
+                            "applicationMetaData.applicationStatusCode", status_code_q
+                        )
+                    )
                 if classification_q:
                     v = (
                         f'"{classification_q}"'
@@ -363,6 +435,19 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                     )
                 elif grant_date_to_q:
                     q_parts.append(f"applicationMetaData.grantDate:<={grant_date_to_q}")
+
+                if status_date_from_q and status_date_to_q:
+                    q_parts.append(
+                        f"applicationMetaData.applicationStatusDate:[{status_date_from_q} TO {status_date_to_q}]"
+                    )
+                elif status_date_from_q:
+                    q_parts.append(
+                        f"applicationMetaData.applicationStatusDate:>={status_date_from_q}"
+                    )
+                elif status_date_to_q:
+                    q_parts.append(
+                        f"applicationMetaData.applicationStatusDate:<={status_date_to_q}"
+                    )
 
                 if q_parts:
                     final_q = " AND ".join(q_parts)
@@ -409,10 +494,14 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         inventor_name_q: str | None = None,
         applicant_name_q: str | None = None,
         assignee_name_q: str | None = None,
+        customer_number_q: int | str | list[int | str] | None = None,
+        status_code_q: int | str | list[int | str] | None = None,
         filing_date_from_q: str | None = None,
         filing_date_to_q: str | None = None,
         grant_date_from_q: str | None = None,
         grant_date_to_q: str | None = None,
+        status_date_from_q: str | None = None,
+        status_date_to_q: str | None = None,
         classification_q: str | None = None,
         additional_query_params: dict[str, Any] | None = None,
     ) -> list[ApplicationMetaData]:
@@ -468,6 +557,18 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                         else assignee_name_q
                     )
                     q_parts.append(f"assignmentBag.assigneeBag.assigneeNameText:{v}")
+                if customer_number_q is not None:
+                    q_parts.append(
+                        _or_clause(
+                            "applicationMetaData.customerNumber", customer_number_q
+                        )
+                    )
+                if status_code_q is not None:
+                    q_parts.append(
+                        _or_clause(
+                            "applicationMetaData.applicationStatusCode", status_code_q
+                        )
+                    )
                 if classification_q:
                     v = (
                         f'"{classification_q}"'
@@ -499,6 +600,19 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                     )
                 elif grant_date_to_q:
                     q_parts.append(f"applicationMetaData.grantDate:<={grant_date_to_q}")
+
+                if status_date_from_q and status_date_to_q:
+                    q_parts.append(
+                        f"applicationMetaData.applicationStatusDate:[{status_date_from_q} TO {status_date_to_q}]"
+                    )
+                elif status_date_from_q:
+                    q_parts.append(
+                        f"applicationMetaData.applicationStatusDate:>={status_date_from_q}"
+                    )
+                elif status_date_to_q:
+                    q_parts.append(
+                        f"applicationMetaData.applicationStatusDate:<={status_date_to_q}"
+                    )
 
                 if q_parts:
                     final_q = " AND ".join(q_parts)
@@ -922,6 +1036,91 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             response_container_attr="patent_file_wrapper_data_bag",
             post_body=post_body,
             **kwargs,
+        )
+
+    def get_firm_portfolio(
+        self,
+        customer_numbers: list[int | str],
+        status_codes: list[int | str] | None = None,
+        status_date_from: str | None = None,
+        status_date_to: str | None = None,
+        filing_date_from: str | None = None,
+        filing_date_to: str | None = None,
+        fields: str | list[str] = "portfolio",
+        sort: str | None = None,
+        offset: int | None = 0,
+        limit: int | None = 25,
+    ) -> PatentDataResponse:
+        """Search a law firm's portfolio across one or more USPTO Customer Numbers.
+
+        A USPTO Customer Number identifies a registered practitioner or firm's
+        correspondence group. Firms typically have multiple Customer Numbers
+        (small firms ~10; large firms 30+), so this helper accepts a list and
+        builds a single Lucene ``OR`` query.
+
+        For per-application drill-down, see the drill hierarchy:
+
+        1. ``get_firm_portfolio(...)`` — firm-wide list with ``minimal`` /
+           ``portfolio`` / ``full_meta`` field presets.
+        2. ``get_application_metadata(app_number)`` — one application, full
+           ``ApplicationMetaData`` (same shape as one ``full_meta`` row).
+        3. ``get_application_by_number(app_number)`` — one application, full
+           ``PatentFileWrapper`` including wrapper-level bags (assignment,
+           continuity, transactions, attorney of record, foreign priority,
+           event data).
+
+        Args:
+            customer_numbers: Non-empty list of Customer Numbers (ints or strings).
+            status_codes: Optional filter to specific application status codes
+                (single value or list). Useful for narrowing to "moving" cases
+                such as non-final / final Office Actions.
+            status_date_from: Lower bound (inclusive) on
+                ``applicationMetaData.applicationStatusDate``, e.g. ``"2025-01-01"``.
+                Pair with a sort like ``"applicationMetaData.applicationStatusDate desc"``
+                to surface cases whose deadline is coming due.
+            status_date_to: Upper bound on the status date.
+            filing_date_from: Lower bound on ``applicationMetaData.filingDate``.
+            filing_date_to: Upper bound on the filing date.
+            fields: Polymorphic. A preset name from :data:`FIELD_PRESETS`
+                (``"minimal"``, ``"portfolio"``, or ``"full_meta"``), a list of
+                dotted field paths, or a comma-joined string. Defaults to
+                ``"portfolio"``. Power users wanting bulk full metadata can pass
+                ``"applicationMetaData,applicationNumberText"`` directly — the
+                API accepts ``applicationMetaData`` as a shorthand for the
+                entire 27-key object.
+            sort: Optional Lucene sort string. No default; a common choice is
+                ``"applicationMetaData.applicationStatusDate desc"``.
+            offset: Pagination offset.
+            limit: Page size.
+
+        Returns:
+            PatentDataResponse: The same response shape as
+            :meth:`search_applications`. Pagination is the caller's responsibility.
+
+        Raises:
+            ValueError: If ``customer_numbers`` is empty.
+        """
+        if not customer_numbers:
+            raise ValueError("customer_numbers must be a non-empty list")
+
+        if isinstance(fields, str) and fields in FIELD_PRESETS:
+            resolved_fields: str = ",".join(FIELD_PRESETS[fields])
+        elif isinstance(fields, list):
+            resolved_fields = ",".join(fields)
+        else:
+            resolved_fields = fields
+
+        return self.search_applications(
+            customer_number_q=list(customer_numbers),
+            status_code_q=list(status_codes) if status_codes else None,
+            status_date_from_q=status_date_from,
+            status_date_to_q=status_date_to,
+            filing_date_from_q=filing_date_from,
+            filing_date_to_q=filing_date_to,
+            fields=resolved_fields,
+            sort=sort,
+            offset=offset,
+            limit=limit,
         )
 
     def get_status_codes(

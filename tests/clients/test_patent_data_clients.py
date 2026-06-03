@@ -434,6 +434,37 @@ class TestPatentApplicationSearch:
                 {"grant_date_from_q": "2022-01-01", "grant_date_to_q": "2022-12-31"},
                 "applicationMetaData.grantDate:[2022-01-01 TO 2022-12-31]",
             ),
+            (
+                {"customer_number_q": 30589},
+                "applicationMetaData.customerNumber:30589",
+            ),
+            (
+                {"customer_number_q": [30589, 174793]},
+                "applicationMetaData.customerNumber:(30589 OR 174793)",
+            ),
+            (
+                {"status_code_q": 71},
+                "applicationMetaData.applicationStatusCode:71",
+            ),
+            (
+                {"status_code_q": [71, 87]},
+                "applicationMetaData.applicationStatusCode:(71 OR 87)",
+            ),
+            (
+                {"status_date_from_q": "2025-01-01"},
+                "applicationMetaData.applicationStatusDate:>=2025-01-01",
+            ),
+            (
+                {"status_date_to_q": "2025-12-31"},
+                "applicationMetaData.applicationStatusDate:<=2025-12-31",
+            ),
+            (
+                {
+                    "status_date_from_q": "2025-01-01",
+                    "status_date_to_q": "2025-12-31",
+                },
+                "applicationMetaData.applicationStatusDate:[2025-01-01 TO 2025-12-31]",
+            ),
         ],
     )
     def test_search_applications_get_various_q_convenience_filters(
@@ -612,6 +643,129 @@ class TestPatentApplicationSearch:
             params=expected_api_params,
             response_class=PatentDataResponse,
         )
+
+
+class TestGetFirmPortfolio:
+    """Tests for PatentDataClient.get_firm_portfolio."""
+
+    def test_happy_path_delegates_to_search_applications(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """get_firm_portfolio should pass all filters through to search_applications."""
+        from pyUSPTO.clients.patent_data import FIELD_PRESETS
+
+        with patch.object(
+            patent_data_client, "search_applications", autospec=True
+        ) as mock_search:
+            mock_search.return_value = PatentDataResponse(
+                count=0, patent_file_wrapper_data_bag=[], request_identifier=None
+            )
+            patent_data_client.get_firm_portfolio(
+                customer_numbers=[30589, 174793],
+                status_codes=[71, 87],
+                status_date_from="2025-01-01",
+                status_date_to="2025-12-31",
+                filing_date_from="2020-01-01",
+                filing_date_to="2024-12-31",
+                fields="portfolio",
+                sort="applicationMetaData.applicationStatusDate desc",
+                offset=10,
+                limit=50,
+            )
+
+        mock_search.assert_called_once_with(
+            customer_number_q=[30589, 174793],
+            status_code_q=[71, 87],
+            status_date_from_q="2025-01-01",
+            status_date_to_q="2025-12-31",
+            filing_date_from_q="2020-01-01",
+            filing_date_to_q="2024-12-31",
+            fields=",".join(FIELD_PRESETS["portfolio"]),
+            sort="applicationMetaData.applicationStatusDate desc",
+            offset=10,
+            limit=50,
+        )
+
+    def test_empty_customer_numbers_raises_value_error(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        with pytest.raises(ValueError, match="non-empty"):
+            patent_data_client.get_firm_portfolio(customer_numbers=[])
+
+    def test_fields_preset_name_resolves(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """A preset name in fields= should resolve to the joined preset list."""
+        from pyUSPTO.clients.patent_data import FIELD_PRESETS
+
+        with patch.object(
+            patent_data_client, "search_applications", autospec=True
+        ) as mock_search:
+            mock_search.return_value = PatentDataResponse(
+                count=0, patent_file_wrapper_data_bag=[], request_identifier=None
+            )
+            patent_data_client.get_firm_portfolio(
+                customer_numbers=[30589], fields="minimal"
+            )
+
+        _, kwargs = mock_search.call_args
+        assert kwargs["fields"] == ",".join(FIELD_PRESETS["minimal"])
+
+    def test_fields_list_is_comma_joined(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """A list of paths in fields= should be comma-joined."""
+        with patch.object(
+            patent_data_client, "search_applications", autospec=True
+        ) as mock_search:
+            mock_search.return_value = PatentDataResponse(
+                count=0, patent_file_wrapper_data_bag=[], request_identifier=None
+            )
+            patent_data_client.get_firm_portfolio(
+                customer_numbers=[30589],
+                fields=["applicationNumberText", "applicationMetaData.docketNumber"],
+            )
+
+        _, kwargs = mock_search.call_args
+        assert (
+            kwargs["fields"] == "applicationNumberText,applicationMetaData.docketNumber"
+        )
+
+    def test_fields_raw_string_passes_through(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """A raw string that isn't a preset name should pass through unchanged."""
+        with patch.object(
+            patent_data_client, "search_applications", autospec=True
+        ) as mock_search:
+            mock_search.return_value = PatentDataResponse(
+                count=0, patent_file_wrapper_data_bag=[], request_identifier=None
+            )
+            patent_data_client.get_firm_portfolio(
+                customer_numbers=[30589],
+                fields="applicationMetaData,applicationNumberText",
+            )
+
+        _, kwargs = mock_search.call_args
+        assert kwargs["fields"] == "applicationMetaData,applicationNumberText"
+
+    def test_field_presets_nesting_invariant(self) -> None:
+        """minimal ⊂ portfolio ⊂ full_meta on the field-path level."""
+        from pyUSPTO.clients.patent_data import FIELD_PRESETS
+
+        minimal = set(FIELD_PRESETS["minimal"])
+        portfolio = set(FIELD_PRESETS["portfolio"])
+        assert minimal.issubset(portfolio), "minimal should be a subset of portfolio"
+        # full_meta uses the API's applicationMetaData shorthand, so the nesting
+        # check at the path level is just that applicationNumberText is in both.
+        full_meta = set(FIELD_PRESETS["full_meta"])
+        assert "applicationNumberText" in full_meta
+        assert "applicationMetaData" in full_meta
 
 
 class TestPatentApplicationDetails:
@@ -2336,6 +2490,37 @@ class TestPatentApplicationDataRetrieval:
             (
                 {"grant_date_from_q": "2022-01-01", "grant_date_to_q": "2022-12-31"},
                 "applicationMetaData.grantDate:[2022-01-01 TO 2022-12-31]",
+            ),
+            (
+                {"customer_number_q": 30589},
+                "applicationMetaData.customerNumber:30589",
+            ),
+            (
+                {"customer_number_q": [30589, 174793]},
+                "applicationMetaData.customerNumber:(30589 OR 174793)",
+            ),
+            (
+                {"status_code_q": 71},
+                "applicationMetaData.applicationStatusCode:71",
+            ),
+            (
+                {"status_code_q": [71, 87]},
+                "applicationMetaData.applicationStatusCode:(71 OR 87)",
+            ),
+            (
+                {"status_date_from_q": "2025-01-01"},
+                "applicationMetaData.applicationStatusDate:>=2025-01-01",
+            ),
+            (
+                {"status_date_to_q": "2025-12-31"},
+                "applicationMetaData.applicationStatusDate:<=2025-12-31",
+            ),
+            (
+                {
+                    "status_date_from_q": "2025-01-01",
+                    "status_date_to_q": "2025-12-31",
+                },
+                "applicationMetaData.applicationStatusDate:[2025-01-01 TO 2025-12-31]",
             ),
         ],
     )

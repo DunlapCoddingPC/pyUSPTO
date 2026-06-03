@@ -315,3 +315,31 @@ print(
 )
 for code_obj in status_code_response.status_code_bag:
     print(f"  - Code: {code_obj.code}, Description: {code_obj.description}")
+
+print("-" * 40)
+print("Example 9: Firm portfolio across multiple Customer Numbers")
+print("-" * 40)
+
+# get_firm_portfolio builds one Lucene OR query across all provided Customer
+# Numbers, applies the "portfolio" field preset by default, and returns a
+# PatentDataResponse. Combine with status_date_from to bound the deadline
+# horizon ("show me cases whose status changed since X").
+from collections import Counter
+
+portfolio_response = client.get_firm_portfolio(
+    customer_numbers=[30589, 174793],
+    status_date_from="2025-01-01",
+    sort="applicationMetaData.applicationStatusDate desc",
+    limit=25,
+)
+print(f"Total matching applications across both Customer Numbers: {portfolio_response.count}")
+
+status_counter: Counter[str] = Counter()
+for wrapper in portfolio_response.patent_file_wrapper_data_bag:
+    meta = wrapper.application_meta_data
+    if meta and meta.application_status_code is not None:
+        status_counter[str(meta.application_status_code)] += 1
+
+print("Status-code tally for the page:")
+for code, n in status_counter.most_common():
+    print(f"  {code}: {n}")
