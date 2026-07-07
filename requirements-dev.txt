@@ -117,7 +117,7 @@ sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 types-requests==2.33.0.20260518
     # via pyuspto
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   mypy
     #   pyuspto
