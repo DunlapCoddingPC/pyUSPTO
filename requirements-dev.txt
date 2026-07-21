@@ -18,7 +18,7 @@ colorama==0.4.6
     #   sphinx
 coverage==7.15.2
     # via pytest-cov
-docutils==0.22.4
+docutils==0.23
     # via
     #   myst-parser
     #   sphinx
