@@ -5,7 +5,7 @@ All notable changes to the pyUSPTO package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.5.5] - 2026-07-22
+## [0.5.5] - 2026-07-22
 
 ### Added
 
@@ -14,13 +14,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-value `customer_number_q` and `status_code_q` on `search_applications` and `get_search_results` — accept a single value or a list; lists are OR-joined as `field:(a OR b)`.
 - New `status_date_from_q` / `status_date_to_q` on `search_applications` and `get_search_results` — date-range filters against `applicationMetaData.applicationStatusDate`, mirroring the existing `filing_date` and `grant_date` range params. Useful for bounding the deadline-coming-due horizon.
 
+## [0.5.4] - 2026-05-27
+
 ### Changed
 
 - **Breaking**: `sanitize_application_number` now emits the standardized 15-character PCT format (`PCT` + 2-char country + 4-digit year + 6-digit zero-padded serial, e.g. `PCTUS2024012345`) per USPTO ODP Release 3.6 (2026-04-10). Previously emitted a non-standard 12-character form (e.g. `PCTUS2412345`). Affects every endpoint that takes a PCT application number, including `get_pct`, `get_application_by_number`, and `get_IFW_metadata(PCT_app_number=...)`. 2-digit year inputs are expanded via a sliding window (YY≥78 → 19YY, else 20YY). Legacy 12-character PCT strings are no longer accepted as input.
+- `USPTOConfig` now applies user > env > default precedence uniformly across all fields. Previously only `api_key` fell back to its environment variable; base URLs and `HTTPConfig` ignored env in the constructor. Env reading is consolidated in an internal `_env_values()` helper shared by `__init__` and `from_env`.
 
 ### Deprecated
 
 - `Address.country_or_state_code` — USPTO ODP Release 3.6 removed `countryOrStateCode` from the Patent Assignment API response; the location data now lives in `geographicRegionCode` (already exposed as `Address.geographic_region_code`). The attribute remains for backward compatibility and will be `None` for responses from updated endpoints.
+
+### Fixed
+
+- `USPTO_API_KEY=""` was stored as `""` instead of `None`, breaking `is None` checks. Empty-string constructor arguments are now treated as no-value and fall back to env.
+
+## [0.5.3] - 2026-05-13
+
+### Changed
+
+- Maintenance release: dependency updates only (including urllib3 v2.7.0 security update); no library code changes.
+
+## [0.5.2] - 2026-04-16
+
+### Added
+
+- `PatentDataClient.stream_document(document, format)` — returns a streaming `requests.Response` the caller consumes via `iter_content()` or `iter_lines()`. Accepts the same `format` argument (`DocumentMimeType` enum or MIME string) as `download_document` and raises the same `FormatNotAvailableError` on an unavailable format. The returned response is the caller's responsibility — use as a context manager or call `.close()` when finished.
+- Streaming download example in `examples/patent_data_example.py`
+- Bulk Data product identifier reference table in the documentation
+
+### Changed
+
+- `stream_document` and `download_document` now share format resolution through an internal `_resolve_document_format` helper, so both methods raise identical errors for missing formats or missing download URLs. No changes to existing `download_document` behavior.
+
+## [0.5.1] - 2026-03-30
+
+### Added
+
+- `OAActionsClient` — Office Action Text Retrieval API (v1): full-text office action documents including body text and structured section data (§101/102/103/112 rejections, citations, etc.)
+- `OARejectionsClient` — Office Action Rejections API (v2): rejection-level records with rejection type indicators (`hasRej101/102/103/112/DP`), claim arrays, and examiner classification metadata
+- `OACitationsClient` — Office Action Citations API: enriched citation records from office actions including cited document identifiers, legal section codes, and examiner-cited indicators
+- Config and environment variable support for the three new base URLs (`USPTO_OA_ACTIONS_BASE_URL`, `USPTO_OA_REJECTIONS_BASE_URL`, `USPTO_OA_CITATIONS_BASE_URL`)
+
+## [0.5.0] - 2026-03-27
+
+### Added
+
+- `EnrichedCitationsClient` for the USPTO Enriched Cited Reference Metadata API (v3) — citation data extracted from patent office actions using AI/NLP, including citation category codes (X/Y/A/etc.), passage locations in the prior art, rejected claims, and examiner vs. applicant citation indicators
+- Client methods: `search_citations()` (POST-based search with convenience parameters), `paginate_citations()` (auto-paginating iterator), and `get_fields()`
+- Models: `EnrichedCitation` (21 fields), `EnrichedCitationResponse`, `EnrichedCitationFieldsResponse`
 
 ## [0.4.5] - 2026-03-11
 
