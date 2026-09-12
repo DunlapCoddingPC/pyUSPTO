@@ -121,7 +121,7 @@ typing-extensions==4.16.0
     # via
     #   mypy
     #   pyuspto
-tzdata==2026.3
+tzdata==2026.4
     # via
     #   pyUSPTO (pyproject.toml)
     #   pyuspto
