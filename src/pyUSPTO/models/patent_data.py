@@ -15,7 +15,7 @@ import warnings
 from collections.abc import Iterator
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any
 
 # Import utility functions from models.utils module
@@ -71,7 +71,7 @@ class ActiveIndicator(Enum):
         raise ValueError(f"{value!r} is not a valid {cls.__name__}")
 
 
-class DocumentMimeType(str, Enum):  # noqa: UP042 - StrEnum changes str() output
+class DocumentMimeType(StrEnum):
     """MIME types for document downloads from USPTO."""
 
     PDF = "PDF"
