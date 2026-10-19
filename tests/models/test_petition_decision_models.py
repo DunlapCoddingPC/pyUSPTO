@@ -10,7 +10,6 @@ import pytest
 
 from pyUSPTO.models.petition_decisions import (
     DecisionTypeCode,
-    DocumentDirectionCategory,
     DocumentDownloadOption,
     PetitionDecision,
     PetitionDecisionDocument,
@@ -38,7 +37,6 @@ def sample_document_dict() -> dict[str, Any]:
         "documentIdentifier": "M98QOH0NWFYTX17",
         "documentCode": "PETDEC",
         "documentCodeDescriptionText": "Petition Decision",
-        "directionCategory": "OUTGOING",
         "downloadOptionBag": [
             {
                 "mimeTypeIdentifier": "PDF",
@@ -63,16 +61,23 @@ def sample_petition_decision_dict() -> dict[str, Any]:
         "courtActionIndicator": False,
         "customerNumber": 48980,
         "decisionDate": "2025-01-23",
-        "decisionPetitionTypeCode": 652,
-        "decisionTypeCode": "C",
-        "decisionTypeCodeDescriptionText": "DENIED",
+        "decisionPetitionTypeCode": "652",
+        "decisionPetitionTypeCodeDescriptionText": "Petition to make special-PPH",
+        "decidedPetitionTypeCode": "C",
+        "decidedPetitionTypeCodeDescriptionText": "DENIED",
+        "decisionMailDate": "2025-01-23",
+        "applicationStatusDate": "2025-05-14",
+        "applicationStatusDescriptionText": "Patented Case",
+        "finalPetitionDecisionIndicator": True,
+        "ocrSearchText": "DECISION ON PETITION",
+        "allSearchableFields": "17765301 Patented Case Petition to make special-PPH",
         "finalDecidingOfficeName": "OFFICE OF PETITIONS",
         "firstApplicantName": "SHANGSHUI SMARTECH LTD.",
         "firstInventorToFileIndicator": True,
         "groupArtUnitNumber": "1774",
         "inventionTitle": "Impeller Assembly For Dispersing Solid In Liquid",
         "inventorBag": ["Qiao Shi", "Shujuan Bai", "Tongzhu Li", "Quanxun Ou"],
-        "lastIngestionDateTime": "2025-05-05T15:31:39",
+        "lastModifiedDateTime": "2026-10-19T07:49:45",
         "petitionDecisionRecordIdentifier": "9f1a4a2b-eee1-58ec-a3aa-167c4075aed4",
         "petitionIssueConsideredTextBag": ["Make special: Patent Prosecution Highway"],
         "petitionMailDate": "2024-11-12",
@@ -170,7 +175,6 @@ class TestPetitionDecisionDocumentFromDict:
         assert doc.document_identifier == "M98QOH0NWFYTX17"
         assert doc.document_code == "PETDEC"
         assert doc.document_code_description_text == "Petition Decision"
-        assert doc.direction_category == "OUTGOING"
         assert len(doc.download_option_bag) == 2
         assert doc.download_option_bag[0].mime_type_identifier == "PDF"
         assert doc.download_option_bag[1].mime_type_identifier == "XML"
@@ -226,8 +230,18 @@ class TestPetitionDecisionFromDict:
             decision.petition_decision_record_identifier
             == "9f1a4a2b-eee1-58ec-a3aa-167c4075aed4"
         )
-        assert decision.decision_type_code == "C"
-        assert decision.decision_type_code_description_text == "DENIED"
+        assert (
+            decision.decision_petition_type_code_description_text
+            == "Petition to make special-PPH"
+        )
+        assert decision.decided_petition_type_code == "C"
+        assert decision.decided_petition_type_code_description_text == "DENIED"
+        assert decision.application_status_description_text == "Patented Case"
+        assert decision.ocr_search_text == "DECISION ON PETITION"
+        assert (
+            decision.all_searchable_fields
+            == "17765301 Patented Case Petition to make special-PPH"
+        )
         assert decision.final_deciding_office_name == "OFFICE OF PETITIONS"
         assert decision.first_applicant_name == "SHANGSHUI SMARTECH LTD."
         assert (
@@ -242,19 +256,22 @@ class TestPetitionDecisionFromDict:
 
         # Check numeric fields
         assert decision.customer_number == 48980
-        assert decision.decision_petition_type_code == 652
+        assert decision.decision_petition_type_code == "652"
 
         # Check boolean fields
         assert decision.first_inventor_to_file_indicator is True
         assert decision.court_action_indicator is False
+        assert decision.final_petition_decision_indicator is True
 
         # Check date fields
         assert decision.decision_date == date(2025, 1, 23)
         assert decision.petition_mail_date == date(2024, 11, 12)
+        assert decision.decision_mail_date == date(2025, 1, 23)
+        assert decision.application_status_date == date(2025, 5, 14)
 
         # Check datetime fields
-        assert decision.last_ingestion_datetime is not None
-        assert isinstance(decision.last_ingestion_datetime, datetime)
+        assert decision.last_modified_date_time is not None
+        assert isinstance(decision.last_modified_date_time, datetime)
 
         # Check list fields
         assert len(decision.inventor_bag) == 4
@@ -375,7 +392,23 @@ class TestPetitionDecisionToDict:
             result["petitionDecisionRecordIdentifier"]
             == "9f1a4a2b-eee1-58ec-a3aa-167c4075aed4"
         )
-        assert result["decisionTypeCode"] == "C"
+        assert result["decidedPetitionTypeCode"] == "C"
+        assert result["decidedPetitionTypeCodeDescriptionText"] == "DENIED"
+        assert result["decisionPetitionTypeCode"] == "652"
+        assert (
+            result["decisionPetitionTypeCodeDescriptionText"]
+            == "Petition to make special-PPH"
+        )
+        assert result["decisionMailDate"] == "2025-01-23"
+        assert result["applicationStatusDate"] == "2025-05-14"
+        assert result["applicationStatusDescriptionText"] == "Patented Case"
+        assert result["finalPetitionDecisionIndicator"] is True
+        assert result["ocrSearchText"] == "DECISION ON PETITION"
+        assert (
+            result["allSearchableFields"]
+            == "17765301 Patented Case Petition to make special-PPH"
+        )
+        assert result["lastModifiedDateTime"] == "2026-10-19T07:49:45"
         assert result["decisionDate"] == "2025-01-23"
         assert result["petitionMailDate"] == "2024-11-12"
         assert result["inventorBag"] == [
@@ -500,6 +533,34 @@ class TestDecisionTypeCodeEnum:
         assert DecisionTypeCode.C is DecisionTypeCode.DENIED
 
     @pytest.mark.parametrize(
+        ("code", "member"),
+        [
+            ("A", DecisionTypeCode.GRANTED),
+            ("B", DecisionTypeCode.GRANTED_IN_PART),
+            ("C", DecisionTypeCode.DENIED),
+            ("D", DecisionTypeCode.DISMISSED),
+        ],
+    )
+    def test_letter_code_aliases(self, code: str, member: DecisionTypeCode) -> None:
+        """Each decidedPetitionTypeCode letter resolves to its member."""
+        assert DecisionTypeCode(code) is member
+        assert DecisionTypeCode(code.lower()) is member
+
+    @pytest.mark.parametrize(
+        ("description", "member"),
+        [
+            ("GRANTED", DecisionTypeCode.GRANTED),
+            ("granted-in-part", DecisionTypeCode.GRANTED_IN_PART),
+            ("Dismissed", DecisionTypeCode.DISMISSED),
+        ],
+    )
+    def test_description_lookup(
+        self, description: str, member: DecisionTypeCode
+    ) -> None:
+        """decidedPetitionTypeCodeDescriptionText values resolve in any case."""
+        assert DecisionTypeCode(description) is member
+
+    @pytest.mark.parametrize(
         "value",
         ["DENIED", "denied", "Denied", "DeNiEd"],
     )
@@ -514,7 +575,7 @@ class TestDecisionTypeCodeEnum:
 
     @pytest.mark.parametrize(
         "invalid_value",
-        ["", "GRANTED", "UNKNOWN", "NOT_A_REAL_CODE"],
+        ["", "E", "UNKNOWN", "NOT_A_REAL_CODE"],
     )
     def test_invalid_string_raises(self, invalid_value: str) -> None:
         """Unknown string values raise ValueError."""
@@ -526,38 +587,3 @@ class TestDecisionTypeCodeEnum:
         """Non-string inputs fall through _missing_ and raise ValueError."""
         with pytest.raises(ValueError):
             DecisionTypeCode(invalid_value)
-
-
-class TestDocumentDirectionCategoryEnum:
-    """Tests for DocumentDirectionCategory enum."""
-
-    @pytest.mark.parametrize(
-        "value",
-        ["INCOMING", "incoming", "Incoming", "iNcOmInG"],
-    )
-    def test_incoming_accepts_case_variations(self, value: str) -> None:
-        """Every case variation of 'INCOMING' resolves to INCOMING."""
-        assert DocumentDirectionCategory(value) == DocumentDirectionCategory.INCOMING
-
-    @pytest.mark.parametrize(
-        "value",
-        ["OUTGOING", "outgoing", "Outgoing", "oUtGoInG"],
-    )
-    def test_outgoing_accepts_case_variations(self, value: str) -> None:
-        """Every case variation of 'OUTGOING' resolves to OUTGOING."""
-        assert DocumentDirectionCategory(value) == DocumentDirectionCategory.OUTGOING
-
-    @pytest.mark.parametrize(
-        "invalid_value",
-        ["", "INBOUND", "SIDEWAYS", "NOT_A_DIRECTION"],
-    )
-    def test_invalid_string_raises(self, invalid_value: str) -> None:
-        """Unknown string values raise ValueError."""
-        with pytest.raises(ValueError):
-            DocumentDirectionCategory(invalid_value)
-
-    @pytest.mark.parametrize("invalid_value", [123, None, 0.0])
-    def test_non_string_value_raises(self, invalid_value: Any) -> None:
-        """Non-string inputs fall through _missing_ and raise ValueError."""
-        with pytest.raises(ValueError):
-            DocumentDirectionCategory(invalid_value)

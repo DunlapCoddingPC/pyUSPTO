@@ -117,7 +117,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         inventor_name_q: str | None = None,
         applicant_name_q: str | None = None,
         invention_title_q: str | None = None,
-        decision_type_code_q: str | None = None,
+        decided_petition_type_code_q: str | None = None,
         decision_date_from_q: str | None = None,
         decision_date_to_q: str | None = None,
         petition_mail_date_from_q: str | None = None,
@@ -148,7 +148,8 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             inventor_name_q: Filter by inventor name.
             applicant_name_q: Filter by applicant name.
             invention_title_q: Filter by invention title.
-            decision_type_code_q: Filter by decision type code.
+            decided_petition_type_code_q: Filter by decided type code ("A" GRANTED,
+                "B" GRANTED-IN-PART, "C" DENIED, "D" DISMISSED).
             decision_date_from_q: Filter decisions from this date (YYYY-MM-DD).
             decision_date_to_q: Filter decisions to this date (YYYY-MM-DD).
             petition_mail_date_from_q: Filter petition mail dates from (YYYY-MM-DD).
@@ -220,8 +221,10 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
                         else invention_title_q
                     )
                     q_parts.append(f"inventionTitle:{v}")
-                if decision_type_code_q:
-                    q_parts.append(f"decisionTypeCode:{decision_type_code_q}")
+                if decided_petition_type_code_q:
+                    q_parts.append(
+                        f"decidedPetitionTypeCode:{decided_petition_type_code_q}"
+                    )
                 if technology_center_q:
                     q_parts.append(f"technologyCenter:{technology_center_q}")
                 if final_deciding_office_name_q:
@@ -520,7 +523,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         Examples:
             # GET pagination through all decisions for a technology center
             >>> for decision in client.paginate_decisions(technology_center_q="1700"):
-            ...     print(f"{decision.application_number_text}: {decision.decision_type_code}")
+            ...     print(f"{decision.application_number_text}: {decision.decided_petition_type_code}")
 
             # POST pagination with date range
             >>> for decision in client.paginate_decisions(

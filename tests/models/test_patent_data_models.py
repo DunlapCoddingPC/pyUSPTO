@@ -413,7 +413,7 @@ def sample_document_data(
         "documentIdentifier": "OFFICE_ACTION_NON_FINAL",
         "documentCode": "CTNF",
         "documentCodeDescriptionText": "Non-Final Rejection",
-        "documentDirectionCategory": "OUTGOING",
+        "directionCategory": "OUTGOING",
         "downloadOptionBag": [
             sample_document_download_format_data_for_doc_fixture,
             {
@@ -511,6 +511,7 @@ class TestDirectionCategory:
     def test_direction_category_enum(self) -> None:
         assert DirectionCategory("INCOMING") == DirectionCategory.INCOMING
         assert DirectionCategory("OUTGOING") == DirectionCategory.OUTGOING
+        assert DirectionCategory("INTERNAL") == DirectionCategory.INTERNAL
         with pytest.raises(ValueError):
             DirectionCategory("INVALID")
 
@@ -601,7 +602,7 @@ class TestDocument:
             "documentIdentifier": "doc123",
             "documentCode": "CODE_X",
             "officialDate": "2024-12-10T00:00:00.000-0500",
-            "documentDirectionCategory": "INCOMING",
+            "directionCategory": "INTERNAL",
             "downloadOptionBag": [
                 {
                     "mimeTypeIdentifier": "application/pdf",
@@ -615,7 +616,7 @@ class TestDocument:
         assert doc.document_identifier == "doc123"
         assert doc.document_code == "CODE_X"
         assert doc.official_date == datetime(2024, 12, 10, 5, 0, 0, tzinfo=UTC)
-        assert doc.direction_category == DirectionCategory.INCOMING
+        assert doc.direction_category == DirectionCategory.INTERNAL
         assert len(doc.document_formats) == 1
         assert doc.document_formats[0].mime_type_identifier == "application/pdf"
 
@@ -632,14 +633,14 @@ class TestDocument:
         data = doc.to_dict()
         assert data["documentIdentifier"] == "doc123"
         assert data["officialDate"] == "2024-12-10T00:00:00.000-0500"
-        assert data["documentDirectionCategory"] == "OUTGOING"
+        assert data["directionCategory"] == "OUTGOING"
         assert len(data["downloadOptionBag"]) == 1
         assert data["downloadOptionBag"][0]["mimeTypeIdentifier"] == "image/tiff"
         assert data["downloadOptionBag"][0]["pageTotalQuantity"] == 5
 
     def test_document_from_dict_unknown_enum(self) -> None:
         """Test Document.from_dict with an unknown direction category."""
-        data = {"documentDirectionCategory": "UNKNOWN_DIRECTION"}
+        data = {"directionCategory": "UNKNOWN_DIRECTION"}
 
         with pytest.warns(USPTOEnumParseWarning, match="Unknown document direction"):
             doc = Document.from_dict(data)

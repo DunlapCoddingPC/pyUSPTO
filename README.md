@@ -183,7 +183,7 @@ response = client.search_decisions(limit=1)
 if response.count > 0:
     decision_id = response.petition_decision_data_bag[0].petition_decision_record_identifier
     decision = client.get_decision_by_id(decision_id)
-    print(f"Decision Type: {decision.decision_type_code}")
+    print(f"Decision Type: {decision.decided_petition_type_code_description_text}")
 ```
 
 See [`examples/petition_decisions_example.py`](examples/petition_decisions_example.py) for detailed examples including downloading decision documents.

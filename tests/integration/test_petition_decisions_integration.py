@@ -7,6 +7,7 @@ environment variable is set to 'true'.
 """
 
 import os
+from datetime import date
 
 import pytest
 
@@ -15,7 +16,6 @@ from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import USPTOApiError, USPTOApiNotFoundError
 from pyUSPTO.models.petition_decisions import (
     DecisionTypeCode,
-    DocumentDirectionCategory,
     PetitionDecision,
     PetitionDecisionDocument,
     PetitionDecisionDownloadResponse,
@@ -273,7 +273,7 @@ class TestFinalPetitionDecisionsIntegration:
                 decision.petition_decision_record_identifier
                 == sample_petition_decision_id
             )
-            assert decision.decision_type_code is not None
+            assert decision.decided_petition_type_code in {"A", "B", "C", "D"}
         except USPTOApiNotFoundError:
             pytest.fail(
                 f"Decision not found (404) for ID {sample_petition_decision_id}"
@@ -309,7 +309,14 @@ class TestFinalPetitionDecisionsIntegration:
                 reconstructed.petition_decision_record_identifier
                 == original.petition_decision_record_identifier
             )
-            assert reconstructed.decision_type_code == original.decision_type_code
+            assert (
+                reconstructed.decided_petition_type_code
+                == original.decided_petition_type_code
+            )
+            assert (
+                reconstructed.last_modified_date_time
+                == original.last_modified_date_time
+            )
 
             if original.decision_date:
                 assert reconstructed.decision_date == original.decision_date
@@ -613,69 +620,37 @@ class TestFinalPetitionDecisionsIntegration:
         if response.count is not None and response.count > 0:
             assert len(response.petition_decision_data_bag) <= 10
 
-    def test_decision_type_code_enum(
+    def test_decided_petition_type_code(
         self, petition_decisions_client: FinalPetitionDecisionsClient
     ) -> None:
-        """Test that decision type codes are properly parsed into enums."""
-        try:
-            response = petition_decisions_client.search_decisions(limit=10)
+        """Test that the decided type fields parse and map to DecisionTypeCode."""
+        response = petition_decisions_client.search_decisions(
+            application_number_q="17765301", limit=1
+        )
 
-            if response.count == 0:
-                pytest.fail("No decisions available to test decision type codes")
+        assert response.count == 1
+        decision = response.petition_decision_data_bag[0]
+        assert decision.decided_petition_type_code == "C"
+        assert decision.decided_petition_type_code_description_text == "DENIED"
+        assert (
+            DecisionTypeCode(decision.decided_petition_type_code)
+            is DecisionTypeCode.DENIED
+        )
+        assert decision.final_petition_decision_indicator is True
+        assert decision.decision_mail_date == date(2025, 1, 23)
 
-            # Find a decision with a decision_type_code
-            found = False
-            for decision in response.petition_decision_data_bag:
-                if decision.decision_type_code:
-                    # Should be a valid DecisionTypeCode enum or string
-                    assert isinstance(
-                        decision.decision_type_code, (DecisionTypeCode, str)
-                    )
-                    found = True
-                    break
-
-            if not found:
-                pytest.fail("No decisions with decision_type_code found in 10 results")
-
-        except USPTOApiError as e:
-            pytest.fail(f"Decision type code test failed with API error: {e}")
-
-    def test_document_direction_category_enum(
-        self,
-        petition_decisions_client: FinalPetitionDecisionsClient,
-        sample_petition_decision_id: str,
+    def test_search_by_decided_petition_type_code(
+        self, petition_decisions_client: FinalPetitionDecisionsClient
     ) -> None:
-        """Test that document direction categories are properly parsed into enums."""
-        try:
-            # Get decision with documents - same pattern as test_decision_with_documents_and_download
-            response = petition_decisions_client.get_decision_by_id(
-                petition_decision_record_identifier=sample_petition_decision_id,
-                include_documents=True,
+        """Test that decided_petition_type_code_q filters on decidedPetitionTypeCode."""
+        response = petition_decisions_client.search_decisions(
+            decided_petition_type_code_q="B", limit=5
+        )
+
+        assert len(response.petition_decision_data_bag) == 5
+        for decision in response.petition_decision_data_bag:
+            assert decision.decided_petition_type_code == "B"
+            assert (
+                decision.decided_petition_type_code_description_text
+                == "GRANTED-IN-PART"
             )
-
-            assert response is not None
-            assert isinstance(response, PetitionDecision)
-
-            # Find a document with a direction category
-            found = False
-            if response and response.document_bag and len(response.document_bag) > 0:
-                for doc in response.document_bag:
-                    if doc.direction_category:
-                        # Should be a valid DocumentDirectionCategory enum or string
-                        assert isinstance(
-                            doc.direction_category,
-                            (DocumentDirectionCategory, str),
-                        )
-                        found = True
-                        break
-            else:
-                pytest.fail(
-                    f"No documents found to test in decision: {sample_petition_decision_id}"
-                )
-            if not found:
-                pytest.fail(
-                    f"No documents with direction categories found to test in decision: {sample_petition_decision_id}"
-                )
-
-        except USPTOApiError as e:
-            pytest.fail(f"Document direction category test failed with API error: {e}")

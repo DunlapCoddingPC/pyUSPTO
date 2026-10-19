@@ -8,6 +8,7 @@ environment variable is set to 'true'.
 
 import datetime
 import os
+from collections import Counter
 
 import pytest
 
@@ -18,6 +19,7 @@ from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
     ApplicationMetaData,
     Assignment,
+    DirectionCategory,
     Document,
     DocumentBag,
     DocumentMimeType,
@@ -535,6 +537,15 @@ class TestPatentDataIntegration:
             assert first_doc.document_code is not None
             assert first_doc.official_date is not None
             assert isinstance(first_doc.official_date, datetime.datetime)
+
+            directions = Counter(
+                doc.direction_category for doc in documents_bag.documents
+            )
+            assert directions == {
+                DirectionCategory.INCOMING: 91,
+                DirectionCategory.OUTGOING: 58,
+                DirectionCategory.INTERNAL: 35,
+            }
 
         except USPTOApiNotFoundError:
             pytest.fail(f"Documents not found (404) for {self.KNOWN_APP_NUM_WITH_DOCS}")
