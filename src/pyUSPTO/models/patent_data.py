@@ -34,10 +34,11 @@ from pyUSPTO.warnings import USPTOEnumParseWarning
 
 # --- Enums for Categorical Data ---
 class DirectionCategory(Enum):
-    """Represents the direction of a document relative to the USPTO (e.g., INCOMING, OUTGOING)."""
+    """Represents the direction of a document relative to the USPTO (INCOMING, OUTGOING, or INTERNAL)."""
 
     INCOMING = "INCOMING"
     OUTGOING = "OUTGOING"
+    INTERNAL = "INTERNAL"
 
 
 class ActiveIndicator(Enum):
@@ -159,7 +160,7 @@ class Document:
     """Represent a single document associated with a patent application.
 
     This includes metadata such as its identifier, official date, code, description,
-    direction (incoming/outgoing), and available download formats.
+    direction (incoming/outgoing/internal), and available download formats.
 
     Attributes:
         application_number_text: The application number this document belongs to.
@@ -167,7 +168,7 @@ class Document:
         document_identifier: A unique identifier for this document.
         document_code: A code representing the type of document.
         document_code_description_text: A textual description of the document code.
-        direction_category: The direction of the document (e.g., INCOMING, OUTGOING).
+        direction_category: The direction of the document (INCOMING, OUTGOING, or INTERNAL).
         document_formats: A list of available download formats for this document.
     """
 
@@ -217,7 +218,7 @@ class Document:
             for f in data.get("downloadOptionBag", [])
             if isinstance(f, dict)
         ]
-        dir_val = data.get("documentDirectionCategory")
+        dir_val = data.get("directionCategory")
         dir_cat = None
         if dir_val:
             try:
@@ -257,7 +258,7 @@ class Document:
             "documentIdentifier": self.document_identifier,
             "documentCode": self.document_code,
             "documentCodeDescriptionText": self.document_code_description_text,
-            "documentDirectionCategory": (
+            "directionCategory": (
                 self.direction_category.value if self.direction_category else None
             ),
             "downloadOptionBag": [df.to_dict() for df in self.document_formats],

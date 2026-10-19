@@ -10,18 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Python 3.15 support.
+- `PetitionDecision` fields from USPTO ODP Release 5.0: `decided_petition_type_code`, `decided_petition_type_code_description_text`, `decision_mail_date`, `application_status_date`, `application_status_description_text`, `final_petition_decision_indicator`, `ocr_search_text`, `all_searchable_fields`, and `last_modified_date_time`. Also `decision_petition_type_code_description_text`, which the API returned but the model never read.
+- `FinalPetitionDecisionsClient.search_decisions(decided_petition_type_code_q=...)` filters on `decidedPetitionTypeCode`.
 
 ### Changed
 
+- `DecisionTypeCode` now covers all four decided types: `GRANTED` (`A`), `GRANTED_IN_PART` (`B`), `DENIED` (`C`), and `DISMISSED` (`D`).
+- **Breaking:** `PetitionDecision.decision_petition_type_code` is now a `str`, matching the API.
 - `DocumentMimeType` is now a `StrEnum`. `str()` and f-strings return the value (`"PDF"`) instead of `"DocumentMimeType.PDF"`. Equality with plain strings and `.value` are unchanged.
 
 ### Removed
 
 - **Breaking:** Dropped support for Python 3.10, which has reached end of life. The minimum supported version is now Python 3.11.
 - `typing-extensions` is no longer a dependency; `Self` is imported from `typing` directly.
+- **Breaking:** `PetitionDecision.decision_type_code`, `decision_type_code_description_text`, and `last_ingestion_datetime`, and `search_decisions(decision_type_code_q=...)`. USPTO ODP Release 5.0 replaced `decisionTypeCode` with `decidedPetitionTypeCode`, and the API sends `lastModifiedDateTime` instead of `lastIngestionDateTime`, so these were always `None` and the filter never matched. Use the new fields under Added.
+- **Breaking:** `PetitionDecisionDocument.direction_category` and the `DocumentDirectionCategory` enum. Petition decision documents have no `directionCategory` (0 of 1,116,161 decisions), so the attribute was always `None`.
 
 ### Fixed
 
+- `Document.direction_category` (patent application documents) was always `None`. The model read `documentDirectionCategory`, but the API sends `directionCategory`. `to_dict()` now emits `directionCategory`, and `DirectionCategory` gains `INTERNAL`, which the API uses for about a fifth of documents.
 - `earliestPublicationNumber_q` (used by `search_applications`, `get_publication`, and `get_IFW_metadata(publication_number=...)`) is now reduced to its digits and searched with wildcards, so bare digits (`20210138233`), `US`-prefixed forms, kind codes, and separators (`US 2021/0138233 A1`) all match the stored `USyyyyNNNNNNNAn` value. Previously the value was sent verbatim and bare digits never matched. Values already containing `*` pass through unchanged.
 - `get_patent`, `get_publication`, `get_pct` (publication form), and the search-based branches of `get_IFW_metadata` now return `None` on no match, as documented. The search endpoint answers no-match with HTTP 404, which previously surfaced as `USPTOApiNotFoundError`.
 - Unit tests that expect no API key now clear `USPTO_API_KEY` themselves, so they no longer fail when the variable is set in the developer's shell.

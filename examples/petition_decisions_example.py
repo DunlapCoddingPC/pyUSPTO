@@ -31,7 +31,7 @@ print(f"Displaying first {len(response.petition_decision_data_bag)} decisions:")
 for decision in response.petition_decision_data_bag:
     print(f"\n  Decision ID: {decision.petition_decision_record_identifier}")
     print(f"  Application Number: {decision.application_number_text}")
-    print(f"  Decision Type: {decision.decision_type_code}")
+    print(f"  Decision Type: {decision.decided_petition_type_code_description_text}")
     print(f"  Decision Date: {decision.decision_date}")
     print(f"  Technology Center: {decision.technology_center}")
 
@@ -53,13 +53,13 @@ print("-" * 40)
 print("Example 2: Search with custom query")
 print("-" * 40)
 
-response = client.search_decisions(query="decisionTypeCode:C", limit=3)
-print(f"Found {response.count} decisions with C type.")
+response = client.search_decisions(query="decidedPetitionTypeCode:C", limit=3)
+print(f"Found {response.count} DENIED decisions.")
 print(f"Showing {len(response.petition_decision_data_bag)} results:")
 
 for decision in response.petition_decision_data_bag:
     print(
-        f"  - {decision.petition_decision_record_identifier}: {decision.decision_type_code}"
+        f"  - {decision.petition_decision_record_identifier}: {decision.decided_petition_type_code}"
     )
 
 print("-" * 40)
@@ -96,7 +96,9 @@ if response.count > 0:
             print(f"  ID: {decision.petition_decision_record_identifier}")
             print(f"  Application: {decision.application_number_text}")
             print(f"  Patent: {decision.patent_number}")
-            print(f"  Decision Type: {decision.decision_type_code}")
+            print(
+                f"  Decision Type: {decision.decided_petition_type_code_description_text}"
+            )
             print(f"  Decision Date: {decision.decision_date}")
             print(f"  Technology Center: {decision.technology_center}")
             print(f"  Group Art Unit: {decision.group_art_unit_number}")
@@ -117,7 +119,6 @@ if response.count > 0:
                     print(f"    - Doc ID: {doc.document_identifier}")
                     print(f"      Date: {doc.official_date}")
                     print(f"      Doc. Code: {doc.document_code_description_text}")
-                    print(f"      Direction: {doc.direction_category}")
                     if doc.download_option_bag:
                         print(
                             f"      Download Options: {len(doc.download_option_bag)}"

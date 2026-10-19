@@ -22,40 +22,31 @@ from pyUSPTO.models.utils import (
 
 # --- Enums for Categorical Data ---
 class DecisionTypeCode(Enum):
-    """Represents the type of decision made on a petition.
+    """Represents the decided type of a petition decision.
 
-    The only current value possible is "c" which indicates DENIED.
-    Hopefully the USPTO will give access to others in the future.
+    Values match ``decidedPetitionTypeCodeDescriptionText``; the single-letter
+    aliases match ``decidedPetitionTypeCode``.
     """
 
+    GRANTED = "GRANTED"
+    GRANTED_IN_PART = "GRANTED-IN-PART"
     DENIED = "DENIED"
+    DISMISSED = "DISMISSED"
+    A = GRANTED
+    B = GRANTED_IN_PART
     C = DENIED
+    D = DISMISSED
 
     @classmethod
     def _missing_(cls, value: Any) -> "DecisionTypeCode":
-        """Handle case-insensitive lookup and common aliases."""
+        """Handle case-insensitive lookup by description or letter code."""
         if isinstance(value, str):
             val_upper = value.upper()
-            if val_upper in ("DENIED", "C"):
-                return cls.DENIED
-        raise ValueError(f"{value!r} is not a valid {cls.__name__}")
-
-
-class DocumentDirectionCategory(Enum):
-    """Represents the direction of a document relative to the USPTO."""
-
-    INCOMING = "INCOMING"
-    OUTGOING = "OUTGOING"
-
-    @classmethod
-    def _missing_(cls, value: Any) -> "DocumentDirectionCategory":
-        """Handle case-insensitive lookup."""
-        if isinstance(value, str):
-            val_upper = value.upper()
-            if val_upper == "INCOMING":
-                return cls.INCOMING
-            if val_upper == "OUTGOING":
-                return cls.OUTGOING
+            for member in cls:
+                if member.value == val_upper:
+                    return member
+            if val_upper in cls.__members__:
+                return cls.__members__[val_upper]
         raise ValueError(f"{value!r} is not a valid {cls.__name__}")
 
 
@@ -114,7 +105,6 @@ class PetitionDecisionDocument:
         document_identifier: A unique identifier for the document.
         document_code: The code identifying the document type.
         document_code_description_text: Description of the document code.
-        direction_category: Whether the document is INCOMING or OUTGOING.
         download_option_bag: List of available download options for the document.
     """
 
@@ -123,7 +113,6 @@ class PetitionDecisionDocument:
     document_identifier: str | None = None
     document_code: str | None = None
     document_code_description_text: str | None = None
-    direction_category: str | None = None
     download_option_bag: list[DocumentDownloadOption] = field(default_factory=list)
 
     @classmethod
@@ -154,7 +143,6 @@ class PetitionDecisionDocument:
             document_identifier=data.get("documentIdentifier"),
             document_code=data.get("documentCode"),
             document_code_description_text=data.get("documentCodeDescriptionText"),
-            direction_category=data.get("directionCategory"),
             download_option_bag=download_options,
         )
 
@@ -174,7 +162,6 @@ class PetitionDecisionDocument:
             "documentIdentifier": self.document_identifier,
             "documentCode": self.document_code,
             "documentCodeDescriptionText": self.document_code_description_text,
-            "directionCategory": self.direction_category,
             "downloadOptionBag": [opt.to_dict() for opt in self.download_option_bag],
         }
         return {
@@ -198,10 +185,14 @@ class PetitionDecision:
         application_number_text: The USPTO application number.
         patent_number: The patent number if the application has been granted.
         decision_date: The date the decision was submitted for issuance or mailing.
+        decision_mail_date: The date the decision was mailed.
         petition_mail_date: The date the decision was issued or mailed.
         decision_petition_type_code: Three-digit code for the petition type.
-        decision_type_code: Code indicating the decision type (e.g., "C" for DENIED).
-        decision_type_code_description_text: Description of the decision type.
+        decision_petition_type_code_description_text: Description of the petition type.
+        decided_petition_type_code: Code for the decided type ("A" GRANTED,
+            "B" GRANTED-IN-PART, "C" DENIED, "D" DISMISSED).
+        decided_petition_type_code_description_text: Description of the decided type.
+        final_petition_decision_indicator: Whether this is a final petition decision.
         final_deciding_office_name: The USPTO office that decided the petition.
         first_applicant_name: Name of the first applicant.
         first_inventor_name: Name of the first inventor (computed from inventor_bag).
@@ -211,6 +202,9 @@ class PetitionDecision:
         customer_number: Customer number for correspondence.
         group_art_unit_number: The art unit number.
         technology_center: The technology center code.
+        application_status_date: The date of the application's current status.
+        application_status_description_text: Description of the application's
+            current status.
         prosecution_status_code: Code for the disposition of the petition.
         prosecution_status_code_description_text: Description of the prosecution status.
         action_taken_by_court_name: Name of court if court action was taken.
@@ -220,17 +214,23 @@ class PetitionDecision:
         statute_bag: Applicable laws under United States Code Title 35.
         rule_bag: Applicable rules under Title 37 CFR.
         document_bag: Associated documents for this petition decision.
-        last_ingestion_datetime: The last time the record was ingested/updated.
+        ocr_search_text: OCR text of the decision document (may be truncated).
+        all_searchable_fields: The record's searchable text fields concatenated
+            into one string, as returned by the API.
+        last_modified_date_time: The last time the record was modified.
     """
 
     petition_decision_record_identifier: str
     application_number_text: str | None = None
     patent_number: str | None = None
     decision_date: date | None = None
+    decision_mail_date: date | None = None
     petition_mail_date: date | None = None
-    decision_petition_type_code: int | None = None
-    decision_type_code: str | None = None
-    decision_type_code_description_text: str | None = None
+    decision_petition_type_code: str | None = None
+    decision_petition_type_code_description_text: str | None = None
+    decided_petition_type_code: str | None = None
+    decided_petition_type_code_description_text: str | None = None
+    final_petition_decision_indicator: bool | None = None
     final_deciding_office_name: str | None = None
     first_applicant_name: str | None = None
     first_inventor_name: str | None = None
@@ -240,6 +240,8 @@ class PetitionDecision:
     customer_number: int | None = None
     group_art_unit_number: str | None = None
     technology_center: str | None = None
+    application_status_date: date | None = None
+    application_status_description_text: str | None = None
     prosecution_status_code: str | None = None
     prosecution_status_code_description_text: str | None = None
     action_taken_by_court_name: str | None = None
@@ -249,7 +251,9 @@ class PetitionDecision:
     statute_bag: list[str] = field(default_factory=list)
     rule_bag: list[str] = field(default_factory=list)
     document_bag: list[PetitionDecisionDocument] = field(default_factory=list)
-    last_ingestion_datetime: datetime | None = None
+    ocr_search_text: str | None = None
+    all_searchable_fields: str | None = None
+    last_modified_date_time: datetime | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "PetitionDecision":
@@ -300,11 +304,18 @@ class PetitionDecision:
             application_number_text=data.get("applicationNumberText"),
             patent_number=data.get("patentNumber"),
             decision_date=parse_to_date(data.get("decisionDate")),
+            decision_mail_date=parse_to_date(data.get("decisionMailDate")),
             petition_mail_date=parse_to_date(data.get("petitionMailDate")),
             decision_petition_type_code=data.get("decisionPetitionTypeCode"),
-            decision_type_code=data.get("decisionTypeCode"),
-            decision_type_code_description_text=data.get(
-                "decisionTypeCodeDescriptionText"
+            decision_petition_type_code_description_text=data.get(
+                "decisionPetitionTypeCodeDescriptionText"
+            ),
+            decided_petition_type_code=data.get("decidedPetitionTypeCode"),
+            decided_petition_type_code_description_text=data.get(
+                "decidedPetitionTypeCodeDescriptionText"
+            ),
+            final_petition_decision_indicator=data.get(
+                "finalPetitionDecisionIndicator"
             ),
             final_deciding_office_name=data.get("finalDecidingOfficeName"),
             first_applicant_name=data.get("firstApplicantName"),
@@ -315,6 +326,10 @@ class PetitionDecision:
             customer_number=data.get("customerNumber"),
             group_art_unit_number=data.get("groupArtUnitNumber"),
             technology_center=data.get("technologyCenter"),
+            application_status_date=parse_to_date(data.get("applicationStatusDate")),
+            application_status_description_text=data.get(
+                "applicationStatusDescriptionText"
+            ),
             prosecution_status_code=data.get("prosecutionStatusCode"),
             prosecution_status_code_description_text=data.get(
                 "prosecutionStatusCodeDescriptionText"
@@ -326,8 +341,10 @@ class PetitionDecision:
             statute_bag=statute_bag,
             rule_bag=rule_bag,
             document_bag=documents,
-            last_ingestion_datetime=parse_to_datetime_utc(
-                data.get("lastIngestionDateTime")
+            ocr_search_text=data.get("ocrSearchText"),
+            all_searchable_fields=data.get("allSearchableFields"),
+            last_modified_date_time=parse_to_datetime_utc(
+                data.get("lastModifiedDateTime")
             ),
         )
 
@@ -342,10 +359,13 @@ class PetitionDecision:
             "applicationNumberText": self.application_number_text,
             "patentNumber": self.patent_number,
             "decisionDate": serialize_date(self.decision_date),
+            "decisionMailDate": serialize_date(self.decision_mail_date),
             "petitionMailDate": serialize_date(self.petition_mail_date),
             "decisionPetitionTypeCode": self.decision_petition_type_code,
-            "decisionTypeCode": self.decision_type_code,
-            "decisionTypeCodeDescriptionText": self.decision_type_code_description_text,
+            "decisionPetitionTypeCodeDescriptionText": self.decision_petition_type_code_description_text,
+            "decidedPetitionTypeCode": self.decided_petition_type_code,
+            "decidedPetitionTypeCodeDescriptionText": self.decided_petition_type_code_description_text,
+            "finalPetitionDecisionIndicator": self.final_petition_decision_indicator,
             "finalDecidingOfficeName": self.final_deciding_office_name,
             "firstApplicantName": self.first_applicant_name,
             "inventionTitle": self.invention_title,
@@ -354,6 +374,8 @@ class PetitionDecision:
             "customerNumber": self.customer_number,
             "groupArtUnitNumber": self.group_art_unit_number,
             "technologyCenter": self.technology_center,
+            "applicationStatusDate": serialize_date(self.application_status_date),
+            "applicationStatusDescriptionText": self.application_status_description_text,
             "prosecutionStatusCode": self.prosecution_status_code,
             "prosecutionStatusCodeDescriptionText": self.prosecution_status_code_description_text,
             "actionTakenByCourtName": self.action_taken_by_court_name,
@@ -363,9 +385,11 @@ class PetitionDecision:
             "statuteBag": self.statute_bag,
             "ruleBag": self.rule_bag,
             "documentBag": [doc.to_dict() for doc in self.document_bag],
-            "lastIngestionDateTime": (
-                serialize_datetime_as_naive(self.last_ingestion_datetime)
-                if self.last_ingestion_datetime
+            "ocrSearchText": self.ocr_search_text,
+            "allSearchableFields": self.all_searchable_fields,
+            "lastModifiedDateTime": (
+                serialize_datetime_as_naive(self.last_modified_date_time)
+                if self.last_modified_date_time
                 else None
             ),
         }
