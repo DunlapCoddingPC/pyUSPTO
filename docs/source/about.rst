@@ -55,5 +55,5 @@ pyUSPTO provides the following clients:
 Requirements
 ------------
 
-- Python 3.10 or higher
+- Python 3.11 or higher
 - A USPTO Open Data Portal API key

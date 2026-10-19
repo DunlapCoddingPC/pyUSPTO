@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/pyUSPTO.svg)](https://badge.fury.io/py/pyUSPTO)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Read the Docs](https://img.shields.io/readthedocs/pyuspto)](https://pyuspto.readthedocs.io/en/latest/)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/pyuspto?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLUE&right_color=GREY&left_text=downloads)](https://pepy.tech/projects/pyuspto)
 
@@ -15,7 +15,7 @@ This package provides clients for interacting with the USPTO Bulk Data API, Pate
 
 ## Quick Start
 
-**Requirements**: Python ≥3.10
+**Requirements**: Python ≥3.11
 
 ```bash
 pip install pyUSPTO

@@ -5,7 +5,7 @@ This module contains tests for the BulkDataClient class, including core function
 model handling, edge cases, and response handling.
 """
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -350,7 +350,7 @@ class TestBulkDataClientCore:
             file_data_from_date=date(2023, 1, 1),
             file_data_to_date=date(2023, 12, 31),
             file_type_text="TAR",
-            file_release_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            file_release_date=datetime(2024, 1, 1, tzinfo=UTC),
         )
         destination = "./downloads"
 
@@ -384,7 +384,7 @@ class TestBulkDataClientCore:
             file_data_from_date=date(2023, 1, 1),
             file_data_to_date=date(2023, 12, 31),
             file_type_text="ZIP",
-            file_release_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            file_release_date=datetime(2024, 1, 1, tzinfo=UTC),
         )
         destination = "./downloads"
 
@@ -518,7 +518,7 @@ class TestBulkDataClientEdgeCases:
             file_data_from_date=date(2023, 1, 1),
             file_data_to_date=date(2023, 12, 31),
             file_type_text="ZIP",
-            file_release_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            file_release_date=datetime(2024, 1, 1, tzinfo=UTC),
         )
         destination = "./downloads"
 
@@ -557,7 +557,7 @@ class TestBulkDataClientEdgeCases:
             file_data_from_date=date(2023, 1, 1),
             file_data_to_date=date(2023, 12, 31),
             file_type_text="ZIP",
-            file_release_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
+            file_release_date=datetime(2024, 1, 1, tzinfo=UTC),
             file_download_uri="https://example.com/direct/test.zip",
         )
 

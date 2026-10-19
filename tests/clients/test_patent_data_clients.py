@@ -9,7 +9,7 @@ import csv
 import io
 import os
 from collections.abc import Iterator
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, call, mock_open, patch
@@ -152,7 +152,7 @@ def mock_event_data() -> EventData:
 @pytest.fixture
 def mock_pgpub_document_meta_data() -> PrintedMetaData:
     """Provides a mock pgpub DocumentMetaData instance."""
-    dt = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    dt = datetime(2023, 1, 1, 12, 0, 0, tzinfo=UTC)
     return PrintedMetaData(
         zip_file_name="pgpub.zip",
         product_identifier="PGPUB",
@@ -163,7 +163,7 @@ def mock_pgpub_document_meta_data() -> PrintedMetaData:
 @pytest.fixture
 def mock_grant_document_meta_data() -> PrintedMetaData:
     """Provides a mock grant DocumentMetaData instance."""
-    dt = datetime(2023, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
+    dt = datetime(2023, 2, 1, 12, 0, 0, tzinfo=UTC)
     return PrintedMetaData(
         zip_file_name="grant.zip",
         product_identifier="GRANT",
@@ -886,7 +886,7 @@ class TestPatentApplicationDocumentListing:
                 Document(
                     document_identifier="DOC1",
                     document_code="IDS",
-                    official_date=datetime(2023, 1, 1, tzinfo=timezone.utc),
+                    official_date=datetime(2023, 1, 1, tzinfo=UTC),
                     document_formats=[
                         DocumentFormat(
                             mime_type_identifier="PDF", download_url="/doc1.pdf"
@@ -919,7 +919,7 @@ class TestPatentApplicationDocumentListing:
                 Document(
                     document_identifier="DOC2",
                     document_code="ABST",
-                    official_date=datetime(2023, 2, 15, tzinfo=timezone.utc),
+                    official_date=datetime(2023, 2, 15, tzinfo=UTC),
                     document_formats=[
                         DocumentFormat(
                             mime_type_identifier="PDF", download_url="/doc2.pdf"
@@ -954,7 +954,7 @@ class TestPatentApplicationDocumentListing:
                 Document(
                     document_identifier="DOC3",
                     document_code="SPEC",
-                    official_date=datetime(2023, 3, 20, tzinfo=timezone.utc),
+                    official_date=datetime(2023, 3, 20, tzinfo=UTC),
                     document_formats=[
                         DocumentFormat(
                             mime_type_identifier="PDF", download_url="/doc3.pdf"
@@ -3227,7 +3227,7 @@ class TestDocumentModels:
     """Tests for Document, DocumentBag, and DocumentDownloadFormat models."""
 
     def test_document_model(self) -> None:
-        dt = datetime(2023, 1, 1, 10, 30, 0, tzinfo=timezone.utc)
+        dt = datetime(2023, 1, 1, 10, 30, 0, tzinfo=UTC)
         doc = Document(
             application_number_text="12345678",
             document_identifier="DOC123",
@@ -3253,12 +3253,12 @@ class TestDocumentModels:
     def test_document_bag_model(self) -> None:
         doc1 = Document(
             document_identifier="D1",
-            official_date=datetime.now(timezone.utc),
+            official_date=datetime.now(UTC),
             document_code="C1",
         )
         doc2 = Document(
             document_identifier="D2",
-            official_date=datetime.now(timezone.utc),
+            official_date=datetime.now(UTC),
             document_code="C2",
         )
         bag = DocumentBag(documents=[doc1, doc2])

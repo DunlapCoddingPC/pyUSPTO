@@ -6,7 +6,7 @@ conversions, boolean string representations, and string transformations.
 """
 
 import warnings
-from datetime import date, datetime, timezone, tzinfo
+from datetime import UTC, date, datetime, tzinfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pyUSPTO.warnings import (
@@ -26,7 +26,7 @@ except ZoneInfoNotFoundError:
         category=USPTOTimezoneWarning,
         stacklevel=1,
     )
-    ASSUMED_NAIVE_TIMEZONE = timezone.utc
+    ASSUMED_NAIVE_TIMEZONE = UTC
 
 
 def parse_to_date(date_str: str | None, fmt: str = "%Y-%m-%d") -> date | None:
@@ -114,18 +114,18 @@ def parse_to_datetime_utc(datetime_str: str | None) -> datetime | None:
         if ASSUMED_NAIVE_TIMEZONE:
             try:
                 aware_dt = dt_obj.replace(tzinfo=ASSUMED_NAIVE_TIMEZONE)
-                return aware_dt.astimezone(timezone.utc)
+                return aware_dt.astimezone(UTC)
             except Exception as e:
                 warnings.warn(
                     f"Error localizing naive datetime '{datetime_str}': {e}",
                     category=USPTOTimezoneWarning,
                     stacklevel=2,
                 )
-                if ASSUMED_NAIVE_TIMEZONE == timezone.utc:
-                    return dt_obj.replace(tzinfo=timezone.utc)
+                if ASSUMED_NAIVE_TIMEZONE == UTC:
+                    return dt_obj.replace(tzinfo=UTC)
         return None
     else:
-        return dt_obj.astimezone(timezone.utc)
+        return dt_obj.astimezone(UTC)
 
 
 def serialize_date(d: date | None) -> str | None:

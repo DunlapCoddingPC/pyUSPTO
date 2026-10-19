@@ -101,39 +101,6 @@ class TestResponseClass:
         return instance
 
 
-class TestImportFallback:
-    """Tests for typing import fallback logic."""
-
-    def test_import_fallback_logic(self) -> None:
-        """Tests that the module falls back to typing_extensions.Self if typing.Self fails."""
-        import builtins
-        import importlib
-        import sys
-
-        import typing_extensions
-
-        module_name = "pyUSPTO.clients.base"
-
-        if module_name in sys.modules:
-            del sys.modules[module_name]
-
-        original_import = builtins.__import__
-
-        def mock_import(name, globals=None, locals=None, fromlist=(), level=0):
-            if name == "typing" and "Self" in fromlist:
-                raise ImportError("Simulated missing Self in typing")
-            return original_import(name, globals, locals, fromlist, level)
-
-        with patch("builtins.__import__", side_effect=mock_import):
-            base_module = importlib.import_module(module_name)
-
-        assert base_module.Self is typing_extensions.Self
-
-        if module_name in sys.modules:
-            del sys.modules[module_name]
-        importlib.import_module(module_name)
-
-
 class TestBaseUSPTOClient:
     """Tests for the BaseUSPTOClient class."""
 

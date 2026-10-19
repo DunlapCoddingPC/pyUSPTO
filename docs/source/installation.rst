@@ -1,7 +1,7 @@
 Installation
 ============
 
-pyUSPTO requires Python 3.10 or higher. Install the latest release from
+pyUSPTO requires Python 3.11 or higher. Install the latest release from
 `PyPI <https://pypi.org/project/pyUSPTO/>`_:
 
 .. code-block:: bash
@@ -31,12 +31,6 @@ mode with the development dependencies:
    git clone https://github.com/DunlapCoddingPC/pyUSPTO.git
    cd pyUSPTO
    pip install -e ".[dev]"
-
-.. note::
-
-   Python 3.11+ is required for the development environment. Some development
-   dependencies (e.g. ``myst-parser``) do not support Python 3.10. The package
-   itself supports Python 3.10+.
 
 See the :doc:`contributing guidelines <development>` for the full development
 workflow, including running tests and linting.
