@@ -20,7 +20,11 @@ import requests
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.clients.patent_data import PatentDataClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.exceptions import FormatNotAvailableError, USPTOApiBadRequestError
+from pyUSPTO.exceptions import (
+    FormatNotAvailableError,
+    USPTOApiBadRequestError,
+    USPTOApiNotFoundError,
+)
 from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
     ApplicationMetaData,
@@ -405,6 +409,26 @@ class TestPatentApplicationSearch:
             (
                 {"earliestPublicationNumber_q": "*12345678*"},
                 "applicationMetaData.earliestPublicationNumber:*12345678*",
+            ),
+            (
+                {"earliestPublicationNumber_q": "20210138233"},
+                "applicationMetaData.earliestPublicationNumber:*20210138233*",
+            ),
+            (
+                {"earliestPublicationNumber_q": "US20210138233A1"},
+                "applicationMetaData.earliestPublicationNumber:*20210138233*",
+            ),
+            (
+                {"earliestPublicationNumber_q": "US 2021/0138233 A1"},
+                "applicationMetaData.earliestPublicationNumber:*20210138233*",
+            ),
+            (
+                {"earliestPublicationNumber_q": "2021/0138233"},
+                "applicationMetaData.earliestPublicationNumber:*20210138233*",
+            ),
+            (
+                {"earliestPublicationNumber_q": "not-a-pub-number"},
+                "applicationMetaData.earliestPublicationNumber:not-a-pub-number",
             ),
             (
                 {"pctPublicationNumber_q": "PCTUS202501234567"},
@@ -1566,12 +1590,13 @@ class TestGetIFW:
         pub_num = "US20240123456A1"
         result = client.get_IFW_metadata(publication_number=pub_num)
 
-        # Should call search_applications with earliestPublicationNumber_q first
+        # Should call search_applications with earliestPublicationNumber_q first,
+        # reduced to digits and wildcarded
         assert mock_get_model.call_args_list[0] == call(
             method="GET",
             endpoint="api/v1/patent/applications/search",
             params={
-                "q": f"applicationMetaData.earliestPublicationNumber:{pub_num}",
+                "q": "applicationMetaData.earliestPublicationNumber:*20240123456*",
                 "limit": 1,
                 "offset": 0,
             },
@@ -1918,7 +1943,7 @@ class TestGetPublication:
             method="GET",
             endpoint="api/v1/patent/applications/search",
             params={
-                "q": f"applicationMetaData.earliestPublicationNumber:{pub_num}",
+                "q": f"applicationMetaData.earliestPublicationNumber:*{pub_num}*",
                 "limit": 1,
                 "offset": 0,
             },
@@ -1942,6 +1967,45 @@ class TestGetPublication:
 
         result = client.get_publication("nonexistent")
         assert result is None
+
+    def test_get_publication_api_404_returns_none(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """The search endpoint answers no-match with 404; that becomes None."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.side_effect = USPTOApiNotFoundError(
+            "API request failed", status_code=404
+        )
+
+        result = client.get_publication("20990000000")
+        assert result is None
+
+
+class TestGetIFWMetadataNotFound:
+    """get_IFW_metadata search branches return None on an API 404."""
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"patent_number": "99999999"},
+            {"publication_number": "20990000000"},
+            {"PCT_pub_number": "WO2099000000"},
+        ],
+    )
+    def test_search_branch_api_404_returns_none(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        kwargs: dict[str, str],
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.side_effect = USPTOApiNotFoundError(
+            "API request failed", status_code=404
+        )
+
+        result = client.get_IFW_metadata(**kwargs)
+        assert result is None
+        mock_get_model.assert_called_once()
 
 
 class TestGetPCT:
