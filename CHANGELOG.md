@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `get_patent`, `get_publication`, `get_pct` (publication form), and the search-based branches of `get_IFW_metadata` now return `None` on no match, as documented. The search endpoint answers no-match with HTTP 404, which previously surfaced as `USPTOApiNotFoundError`.
 - Unit tests that expect no API key now clear `USPTO_API_KEY` themselves, so they no longer fail when the variable is set in the developer's shell.
 - `petition_decisions_example.py` no longer fails when rerun (its document download now passes `overwrite=True`), and its pagination example prints each decision under a page header.
+- Pagination (`paginate_*` on every client) requested one page past the end, and failed with a 404, when the total number of results was an exact multiple of the page size.
 
 ## [0.5.5] - 2026-07-22
 

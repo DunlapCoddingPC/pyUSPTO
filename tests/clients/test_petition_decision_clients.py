@@ -727,9 +727,9 @@ class TestFinalPetitionDecisionsClientPagination:
         self, petition_client: FinalPetitionDecisionsClient
     ) -> None:
         """Test pagination through decisions."""
-        # Mock multiple pages of results
+        # Mock multiple pages of results (count is the total across all pages)
         page1 = PetitionDecisionResponse(
-            count=2,
+            count=3,
             petition_decision_data_bag=[
                 PetitionDecision(
                     application_number_text="111",
@@ -742,7 +742,7 @@ class TestFinalPetitionDecisionsClientPagination:
             ],
         )
         page2 = PetitionDecisionResponse(
-            count=1,
+            count=3,
             petition_decision_data_bag=[
                 PetitionDecision(
                     application_number_text="333",
