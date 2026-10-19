@@ -864,6 +864,9 @@ class TestHelperMethodsIntegration:
 
     KNOWN_PATENT_NUMBER = "12565253"
     KNOWN_PUBLICATION_NUMBER = "US20260054762A1"
+    KNOWN_PUBLICATION_NUMBER_BARE = "20260054762"
+    # Year 2099 cannot exist in the index; guarantees a no-match response.
+    NONEXISTENT_PUBLICATION_NUMBER = "20990000000"
     KNOWN_PCT_APP_NUMBER = "PCT/US2025/047756"
     KNOWN_PCT_PUB_NUMBER = "WO 2026/044302"
 
@@ -884,6 +887,56 @@ class TestHelperMethodsIntegration:
         assert result.application_number_text == "19378371"
         assert result.application_meta_data is not None
         assert isinstance(result.application_meta_data, ApplicationMetaData)
+
+    def test_get_publication_bare_digits(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """Bare digits (no US prefix, no kind code) resolve to the same application."""
+        result = patent_data_client.get_publication(self.KNOWN_PUBLICATION_NUMBER_BARE)
+
+        assert isinstance(result, PatentFileWrapper)
+        assert result.application_number_text == "19378371"
+        assert result.application_meta_data is not None
+        assert (
+            result.application_meta_data.earliest_publication_number
+            == self.KNOWN_PUBLICATION_NUMBER
+        )
+
+    def test_get_publication_not_found_returns_none(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """A publication number with no match returns None, not an exception."""
+        result = patent_data_client.get_publication(self.NONEXISTENT_PUBLICATION_NUMBER)
+
+        assert result is None
+
+    def test_get_IFW_metadata_by_bare_publication_number(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """get_IFW_metadata resolves a bare-digit publication number and attaches documents."""
+        result = patent_data_client.get_IFW_metadata(
+            publication_number=self.KNOWN_PUBLICATION_NUMBER_BARE
+        )
+
+        assert isinstance(result, PatentFileWrapper)
+        assert result.application_number_text == "19378371"
+        assert result.application_meta_data is not None
+        assert (
+            result.application_meta_data.earliest_publication_number
+            == self.KNOWN_PUBLICATION_NUMBER
+        )
+        assert isinstance(result.document_bag, DocumentBag)
+        assert len(result.document_bag) > 0
+
+    def test_get_IFW_metadata_publication_not_found_returns_none(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """get_IFW_metadata returns None for a publication number with no match."""
+        result = patent_data_client.get_IFW_metadata(
+            publication_number=self.NONEXISTENT_PUBLICATION_NUMBER
+        )
+
+        assert result is None
 
     def test_get_pct_with_app_number(
         self, patent_data_client: PatentDataClient

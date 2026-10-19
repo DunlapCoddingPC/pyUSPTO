@@ -6,6 +6,7 @@ It allows you to search for and retrieve patent application data.
 
 import dataclasses
 import os
+import re
 import tempfile
 import warnings
 import zipfile
@@ -16,7 +17,7 @@ import requests
 
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.config import USPTOConfig
-from pyUSPTO.exceptions import FormatNotAvailableError
+from pyUSPTO.exceptions import FormatNotAvailableError, USPTOApiNotFoundError
 from pyUSPTO.models.patent_data import (
     ApplicationContinuityData,
     ApplicationMetaData,
@@ -47,6 +48,31 @@ def _or_clause(field: str, value: int | str | list[int | str]) -> str:
     if isinstance(value, list):
         return f"{field}:({' OR '.join(str(v) for v in value)})"
     return f"{field}:{value}"
+
+
+_PUBLICATION_NUMBER_RE = re.compile(
+    r"^(?:US)?[\s/\-,]*(\d{4})[\s/\-,]*(\d{7})[\s/\-,]*(?:[A-Z]\d)?$"
+)
+
+
+def _publication_number_query(value: str) -> str:
+    """Build the search value for ``applicationMetaData.earliestPublicationNumber``.
+
+    The API stores publication numbers as ``USyyyyNNNNNNNAn`` (e.g.
+    ``US20210138233A1``). Callers typically supply bare digits, or forms with
+    separators such as ``2021/0138233`` or ``US 2021/0138233 A1``. This reduces
+    the input to its 11 digits (year + 7-digit serial) and wraps them in
+    wildcards so any prefix or kind code matches.
+
+    Values that already contain a wildcard, or that do not look like a US
+    publication number, are returned unchanged.
+    """
+    if "*" in value:
+        return value
+    match = _PUBLICATION_NUMBER_RE.match(value.strip().upper())
+    if match is None:
+        return value
+    return f"*{match.group(1)}{match.group(2)}*"
 
 
 FIELD_PRESETS: dict[str, list[str]] = {
@@ -339,6 +365,11 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         a list builds a Lucene ``field:(a OR b)`` clause. ``status_date_from_q`` /
         ``status_date_to_q`` follow the same date-range pattern as
         ``filing_date_from_q`` / ``filing_date_to_q``.
+
+        ``earliestPublicationNumber_q`` is reduced to its digits and searched
+        with wildcards (``*20210138233*``), so bare digits, ``US`` prefixes,
+        kind codes, and separators all match the stored ``USyyyyNNNNNNNAn``
+        form. A value that already contains ``*`` is passed through unchanged.
         """
         endpoint = self.ENDPOINTS["search_applications"]
 
@@ -406,7 +437,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                     q_parts.append(f"applicationMetaData.cpcClassificationBag:{v}")
                 if earliestPublicationNumber_q:
                     q_parts.append(
-                        f"applicationMetaData.earliestPublicationNumber:{earliestPublicationNumber_q}"
+                        "applicationMetaData.earliestPublicationNumber:"
+                        f"{_publication_number_query(earliestPublicationNumber_q)}"
                     )
                 if pctPublicationNumber_q:
                     q_parts.append(
@@ -1314,13 +1346,19 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         This is a shared helper for convenience methods that resolve
         non-application-number identifiers to a PatentFileWrapper.
 
+        The search endpoint answers a query with no matches with HTTP 404.
+        That case is caught here and reported as None.
+
         Args:
             **search_kwargs: Keyword arguments passed to search_applications().
 
         Returns:
             Optional[PatentFileWrapper]: The first matching wrapper, or None.
         """
-        pdr = self.search_applications(**search_kwargs, limit=1)
+        try:
+            pdr = self.search_applications(**search_kwargs, limit=1)
+        except USPTOApiNotFoundError:
+            return None
         if pdr.patent_file_wrapper_data_bag:
             return pdr.patent_file_wrapper_data_bag[0]
         return None
@@ -1350,7 +1388,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         Args:
             publication_number (str): The USPTO publication number
-                (e.g., "20230123456").
+                (e.g., "20230123456"). A "US" prefix, kind code, and
+                separators are optional.
 
         Returns:
             Optional[PatentFileWrapper]: The matching patent file wrapper,
@@ -1404,7 +1443,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             patent_number (Optional[str], optional): USPTO patent number
                 (e.g., "11000000"). Checked second (uses search).
             publication_number (Optional[str], optional): USPTO pre-grant
-                publication number (e.g., "20230123456"). Checked third (uses search).
+                publication number (e.g., "20230123456"). A "US" prefix, kind
+                code, and separators are optional. Checked third (uses search).
             PCT_app_number (Optional[str], optional): PCT application number.
                 Checked fourth (direct lookup, treated as USPTO app#).
             PCT_pub_number (Optional[str], optional): PCT publication number
@@ -1421,23 +1461,15 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 application_number=application_number
             )
         elif patent_number:
-            pdr = self.search_applications(patent_number_q=patent_number, limit=1)
-            if pdr.patent_file_wrapper_data_bag:
-                wrapper = pdr.patent_file_wrapper_data_bag[0]
+            wrapper = self._resolve_by_search(patent_number_q=patent_number)
         elif publication_number:
-            pdr = self.search_applications(
-                earliestPublicationNumber_q=publication_number, limit=1
+            wrapper = self._resolve_by_search(
+                earliestPublicationNumber_q=publication_number
             )
-            if pdr.patent_file_wrapper_data_bag:
-                wrapper = pdr.patent_file_wrapper_data_bag[0]
         elif PCT_app_number:
             wrapper = self.get_application_by_number(application_number=PCT_app_number)
         elif PCT_pub_number:
-            pdr = self.search_applications(
-                pctPublicationNumber_q=PCT_pub_number, limit=1
-            )
-            if pdr.patent_file_wrapper_data_bag:
-                wrapper = pdr.patent_file_wrapper_data_bag[0]
+            wrapper = self._resolve_by_search(pctPublicationNumber_q=PCT_pub_number)
         if wrapper is None:
             return None
         doc_bag = self.get_application_documents(wrapper.application_number_text)
