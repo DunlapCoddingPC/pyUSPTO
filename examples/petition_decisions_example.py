@@ -158,11 +158,19 @@ print("Example 6: Paginate through results")
 print("-" * 40)
 
 max_items = 30
+page_size = 10
 count = 0
 for decision in client.paginate_decisions(
-    limit=10, query="decisionDate:[2023-01-01 TO 2023-12-31]"
+    limit=page_size, query="decisionDate:[2023-01-01 TO 2023-12-31]"
 ):
+    if count % page_size == 0:
+        print(f"  Page {count // page_size + 1} (offset {count}):")
     count += 1
+    print(
+        f"    {count}. {decision.application_number_text} - "
+        f"{decision.decided_petition_type_code_description_text}"
+    )
+
     if count >= max_items:
         print(f"  ... (stopping at {max_items} items)")
         break
@@ -199,6 +207,7 @@ for decision in response.petition_decision_data_bag:
                 file_path = client.download_petition_document(
                     download_option=download_option,
                     destination=DEST_PATH,
+                    overwrite=True,
                 )
                 print(f"Downloaded to: {file_path}")
 
