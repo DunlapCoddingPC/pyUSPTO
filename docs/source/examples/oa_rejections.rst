@@ -1,6 +1,6 @@
-Office Action Rejections Examples
-==================================
+OA Rejections Example
+=====================
 
-.. automodule:: examples.oa_rejections_example
-   :members:
-   :undoc-members:
+.. literalinclude:: ../../../examples/oa_rejections_example.py
+   :language: python
+   :linenos:

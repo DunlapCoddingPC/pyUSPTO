@@ -16,8 +16,9 @@ grants, bulk data downloads, PTAB proceedings, Office Actions, and more.
 
 .. note::
 
-   An API key is required to use the ODP APIs. You can register for one at the
-   `USPTO Open Data Portal <https://data.uspto.gov/myodp/landing>`_.
+   An API key is required to use the ODP APIs. You can register for one on the
+   `Manage API Key <https://data.uspto.gov/apikey>`_ page of the
+   `USPTO Open Data Portal <https://data.uspto.gov/home>`_.
 
 Available Clients
 -----------------

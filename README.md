@@ -6,12 +6,12 @@
 [![Read the Docs](https://img.shields.io/readthedocs/pyuspto)](https://pyuspto.readthedocs.io/en/latest/)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/pyuspto?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLUE&right_color=GREY&left_text=downloads)](https://pepy.tech/projects/pyuspto)
 
-A Python client library for interacting with the United Stated Patent and Trademark Office (USPTO) [Open Data Portal](https://data.uspto.gov/home) APIs.
+A Python client library for interacting with the United States Patent and Trademark Office (USPTO) [Open Data Portal](https://data.uspto.gov/home) APIs.
 
 This package provides clients for interacting with the USPTO Bulk Data API, Patent Data API, Final Petition Decisions API, PTAB (Patent Trial and Appeal Board) APIs, Enriched Citations API, Office Action Text Retrieval API, Office Action Rejections API, and Office Action Citations API.
 
 > [!IMPORTANT]
-> The USPTO is in the process of moving their Developer API. This package is only concerned with the new API. The [old API](https://developer.uspto.gov/) was officially retired at the end of 2025; however, some products have not yet been fully transitioned to the Open Data Portal API. The USPTO expects the remaining products to be transitioned to the Open Data Portal in early 2026.
+> The USPTO has moved the Developer API to the Open Data Portal. This package is only concerned with the USPTO Open Data Portal API. The old API (`https://developer.uspto.gov/`) was formally decommissioned on June 5, 2026.
 
 ## Quick Start
 
@@ -22,7 +22,7 @@ pip install pyUSPTO
 ```
 
 > [!IMPORTANT]
-> You must have an API key for the [USPTO Open Data Portal API](https://data.uspto.gov/myodp/landing).
+> You must have an API key for the [USPTO Open Data Portal](https://data.uspto.gov/home) APIs. You can get one from the [Manage API Key](https://data.uspto.gov/apikey) page.
 
 ```python
 from pyUSPTO import PatentDataClient, USPTOConfig
