@@ -529,7 +529,7 @@ class BaseUSPTOClient(Generic[T]):
 
             yield from container
 
-            if response.count < limit + offset:
+            if response.count <= limit + offset:
                 break
 
             offset += limit

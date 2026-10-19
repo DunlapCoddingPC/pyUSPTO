@@ -411,10 +411,10 @@ class TestPTABInterferencesClientPaginate:
         self, mock_ptab_interferences_client: PTABInterferencesClient
     ) -> None:
         """Test paginate_decisions method."""
-        # Setup mock responses
+        # Setup mock responses (count is the total across all pages)
         first_response = PTABInterferenceResponse.from_dict(
             {
-                "count": 2,
+                "count": 3,
                 "requestIdentifier": "req-1",
                 "patentInterferenceDataBag": [
                     {"interferenceNumber": "106123"},
@@ -425,7 +425,7 @@ class TestPTABInterferencesClientPaginate:
 
         second_response = PTABInterferenceResponse.from_dict(
             {
-                "count": 1,
+                "count": 3,
                 "requestIdentifier": "req-2",
                 "patentInterferenceDataBag": [
                     {"interferenceNumber": "106125"},
@@ -459,7 +459,7 @@ class TestPTABInterferencesClientPaginate:
             assert results[0].interference_number == "106123"
             assert results[1].interference_number == "106124"
             assert results[2].interference_number == "106125"
-            assert mock_search.call_count == 2  # Stops when count < limit
+            assert mock_search.call_count == 2  # Stops once offset + limit >= count
 
     def test_paginate_decisions_rejects_offset_in_kwargs(
         self, mock_ptab_interferences_client: PTABInterferencesClient

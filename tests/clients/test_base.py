@@ -570,12 +570,13 @@ class TestBaseUSPTOClient:
         client.config._session = mock_session
 
         # Create mock responses
+        # response.count is the TOTAL count across all pages
         first_response = MagicMock()
-        first_response.count = 2
+        first_response.count = 3
         first_response.items = ["item1", "item2"]
 
         second_response = MagicMock()
-        second_response.count = 1
+        second_response.count = 3
         second_response.items = ["item3"]
 
         third_response = MagicMock()
@@ -669,6 +670,48 @@ class TestBaseUSPTOClient:
             # Verify empty results works
             assert results == []
 
+    def test_paginate_results_stops_when_total_is_multiple_of_limit(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test pagination makes no extra request when total is a multiple of limit."""
+        # response.count is the TOTAL count: 4 results fill exactly 2 pages of 2
+        first_response = MagicMock()
+        first_response.count = 4
+        first_response.items = ["item1", "item2"]
+
+        second_response = MagicMock()
+        second_response.count = 4
+        second_response.items = ["item3", "item4"]
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def test_method(self, **kwargs: Any) -> Any:
+                offset = kwargs["offset"]
+                if offset == 0:
+                    return first_response
+                if offset == 2:
+                    return second_response
+                # The API answers a page past the end with HTTP 404
+                raise USPTOApiNotFoundError("Page past the end", status_code=404)
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.config._session = mock_session
+
+        with patch.object(
+            test_client, "test_method", wraps=test_client.test_method
+        ) as spy_method:
+            results = list(
+                test_client.paginate_results(
+                    method_name="test_method",
+                    response_container_attr="items",
+                    limit=2,
+                )
+            )
+
+            assert results == ["item1", "item2", "item3", "item4"]
+            assert spy_method.call_count == 2
+            spy_method.assert_any_call(offset=0, limit=2)
+            spy_method.assert_any_call(offset=2, limit=2)
+
     def test_paginate_results_with_nested_pagination(
         self, mock_session: MagicMock
     ) -> None:
@@ -679,13 +722,13 @@ class TestBaseUSPTOClient:
 
         # Create mock responses
         # response.count is the TOTAL count across all pages
-        # Break condition: response.count < limit + offset
+        # Break condition: response.count <= limit + offset
         first_response = MagicMock()
         first_response.count = 3  # Total: 3 items across all pages
         first_response.items = ["item1", "item2"]
 
         second_response = MagicMock()
-        second_response.count = 3  # Total still 3, triggers break: 3 < 2 + 2 is False, but we yield then break
+        second_response.count = 3  # Total still 3; 3 <= 2 + 2, so we yield then break
         second_response.items = ["item3"]
 
         # Track what post_body was actually sent
@@ -769,7 +812,7 @@ class TestBaseUSPTOClient:
         # Create mock responses
         # First page: 2 items, total count shows there's only 1 item total (less than limit)
         first_response = MagicMock()
-        first_response.count = 1  # Total count (triggers break since 1 < 2 + 0)
+        first_response.count = 1  # Total count (triggers break since 1 <= 2 + 0)
         first_response.items = ["item1"]
 
         received_bodies: list[dict[str, Any]] = []

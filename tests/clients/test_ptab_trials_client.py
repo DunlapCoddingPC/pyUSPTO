@@ -808,10 +808,10 @@ class TestPTABTrialsClientPaginate:
         self, mock_ptab_trials_client: PTABTrialsClient
     ) -> None:
         """Test paginate_proceedings method."""
-        # Setup mock responses
+        # Setup mock responses (count is the total across all pages)
         first_response = PTABTrialProceedingResponse.from_dict(
             {
-                "count": 2,
+                "count": 3,
                 "requestIdentifier": "req-1",
                 "patentTrialProceedingDataBag": [
                     {"trialNumber": "IPR2023-00001"},
@@ -822,7 +822,7 @@ class TestPTABTrialsClientPaginate:
 
         second_response = PTABTrialProceedingResponse.from_dict(
             {
-                "count": 1,
+                "count": 3,
                 "requestIdentifier": "req-2",
                 "patentTrialProceedingDataBag": [
                     {"trialNumber": "IPR2023-00003"},
@@ -854,7 +854,7 @@ class TestPTABTrialsClientPaginate:
             assert results[0].trial_number == "IPR2023-00001"
             assert results[1].trial_number == "IPR2023-00002"
             assert results[2].trial_number == "IPR2023-00003"
-            assert mock_search.call_count == 2  # Stops when count < limit
+            assert mock_search.call_count == 2  # Stops once offset + limit >= count
 
     def test_paginate_proceedings_rejects_offset_in_kwargs(
         self, mock_ptab_trials_client: PTABTrialsClient
