@@ -57,7 +57,7 @@ packaging==26.3
     #   sphinx
 pathspec==1.1.1
     # via mypy
-pluggy==1.6.0
+pluggy==1.7.0
     # via
     #   pytest
     #   pytest-cov
