@@ -10,12 +10,7 @@ representing responses from the USPTO PTAB APIs. These models cover:
 
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
-from typing import Any
-
-try:
-    from typing import Self
-except ImportError:
-    from typing_extensions import Self
+from typing import Any, Self
 
 # Import parsing utilities from models utils module
 from pyUSPTO.models.utils import (

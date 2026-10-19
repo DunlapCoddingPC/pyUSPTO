@@ -10,19 +10,11 @@ from typing import (
     Any,
     Generic,
     Protocol,
+    Self,
     TypeVar,
     runtime_checkable,
 )
 
-from pyUSPTO.models.enriched_citations import EnrichedCitationResponse
-from pyUSPTO.models.oa_actions import OAActionsResponse
-from pyUSPTO.models.oa_citations import OACitationsResponse
-from pyUSPTO.models.oa_rejections import OARejectionsResponse
-
-try:
-    from typing import Self
-except ImportError:
-    from typing_extensions import Self
 import requests
 
 from pyUSPTO.config import USPTOConfig
@@ -33,6 +25,10 @@ from pyUSPTO.exceptions import (
     USPTOTimeout,
     get_api_exception,
 )
+from pyUSPTO.models.enriched_citations import EnrichedCitationResponse
+from pyUSPTO.models.oa_actions import OAActionsResponse
+from pyUSPTO.models.oa_citations import OACitationsResponse
+from pyUSPTO.models.oa_rejections import OARejectionsResponse
 
 
 @runtime_checkable

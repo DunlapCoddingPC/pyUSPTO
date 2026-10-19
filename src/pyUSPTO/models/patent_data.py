@@ -71,7 +71,7 @@ class ActiveIndicator(Enum):
         raise ValueError(f"{value!r} is not a valid {cls.__name__}")
 
 
-class DocumentMimeType(str, Enum):
+class DocumentMimeType(str, Enum):  # noqa: UP042 - StrEnum changes str() output
     """MIME types for document downloads from USPTO."""
 
     PDF = "PDF"

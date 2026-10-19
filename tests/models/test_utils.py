@@ -2,7 +2,7 @@
 
 import importlib
 import warnings
-from datetime import date, datetime, timedelta, timezone, tzinfo
+from datetime import UTC, date, datetime, timedelta, timezone, tzinfo
 from unittest.mock import patch
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -35,12 +35,12 @@ class TestUtilityFunctions:
         dt_utc_z = parse_to_datetime_utc("2023-01-01T10:00:00Z")
         assert isinstance(dt_utc_z, datetime)
         assert dt_utc_z.replace(tzinfo=None) == datetime(2023, 1, 1, 10, 0, 0)
-        assert dt_utc_z.tzinfo == timezone.utc
+        assert dt_utc_z.tzinfo == UTC
 
         dt_offset = parse_to_datetime_utc("2023-01-01T05:00:00-05:00")
         assert isinstance(dt_offset, datetime)
         assert dt_offset.replace(tzinfo=None) == datetime(2023, 1, 1, 10, 0, 0)
-        assert dt_offset.tzinfo == timezone.utc
+        assert dt_offset.tzinfo == UTC
 
         dt_naive_str = "2023-01-01T10:00:00"
         dt_naive = parse_to_datetime_utc(dt_naive_str)
@@ -50,18 +50,16 @@ class TestUtilityFunctions:
             aware_datetime_instance = naive_datetime_instance.replace(
                 tzinfo=ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR)
             )
-            expected_naive_utc_hour = aware_datetime_instance.astimezone(
-                timezone.utc
-            ).hour
+            expected_naive_utc_hour = aware_datetime_instance.astimezone(UTC).hour
             assert dt_naive.hour == expected_naive_utc_hour
         except ZoneInfoNotFoundError:
             assert dt_naive.hour == 10
-        assert dt_naive.tzinfo == timezone.utc
+        assert dt_naive.tzinfo == UTC
 
         dt_ms = parse_to_datetime_utc("2023-01-01T10:00:00.123Z")
         assert isinstance(dt_ms, datetime)
         assert dt_ms.replace(tzinfo=None) == datetime(2023, 1, 1, 10, 0, 0, 123000)
-        assert dt_ms.tzinfo == timezone.utc
+        assert dt_ms.tzinfo == UTC
 
         dt_space = parse_to_datetime_utc("2023-01-01 10:00:00")
         assert isinstance(dt_space, datetime)
@@ -70,11 +68,11 @@ class TestUtilityFunctions:
             aware_dt_for_space = naive_dt_for_space.replace(
                 tzinfo=ZoneInfo(ASSUMED_NAIVE_TIMEZONE_STR)
             )
-            expected_space_utc_hour = aware_dt_for_space.astimezone(timezone.utc).hour
+            expected_space_utc_hour = aware_dt_for_space.astimezone(UTC).hour
             assert dt_space.hour == expected_space_utc_hour
         except ZoneInfoNotFoundError:
             assert dt_space.hour == 10
-        assert dt_space.tzinfo == timezone.utc
+        assert dt_space.tzinfo == UTC
 
         with pytest.warns(USPTODateParseWarning, match="Could not parse datetime"):
             assert parse_to_datetime_utc("invalid-datetime") is None
@@ -89,7 +87,7 @@ class TestUtilityFunctions:
 
     def test_serialize_datetime_as_iso(self) -> None:
         """Test serialize_datetime_as_iso utility function."""
-        dt_utc = datetime(2023, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        dt_utc = datetime(2023, 1, 1, 10, 0, 0, tzinfo=UTC)
         assert serialize_datetime_as_iso(dt_utc) == "2023-01-01T05:00:00.000-0500"
 
         dt_naive = datetime(2023, 1, 2, 17, 0, 0)
@@ -104,7 +102,7 @@ class TestUtilityFunctions:
     def test_serialize_datetime_as_naive(self) -> None:
         """Test serialize_datetime_as_naive utility function with both aware and naive datetimes."""
         # Test with timezone-aware datetime (hits if branch, line 163-164)
-        dt_utc = datetime(2023, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        dt_utc = datetime(2023, 1, 1, 10, 0, 0, tzinfo=UTC)
         result_aware = serialize_datetime_as_naive(dt_utc)
         assert isinstance(result_aware, str)
         # Should convert to ASSUMED_NAIVE_TIMEZONE and serialize as ISO
@@ -158,7 +156,7 @@ class TestUtilityFunctions:
                 return None
 
             def __eq__(self, other: object) -> bool:
-                return other is timezone.utc
+                return other is UTC
 
         dt_str = "2023-01-01T10:00:00"
 
@@ -169,7 +167,7 @@ class TestUtilityFunctions:
                 result = parse_to_datetime_utc(dt_str)
 
         assert isinstance(result, datetime)
-        assert result.tzinfo == timezone.utc
+        assert result.tzinfo == UTC
 
     def test_parse_yn_to_bool(self) -> None:
         """Test parse_yn_to_bool utility function."""
@@ -243,4 +241,4 @@ class TestUtilsTimezone:
             importlib.reload(utils)
 
         assert any(issubclass(msg.category, utils.USPTOTimezoneWarning) for msg in w)
-        assert utils.ASSUMED_NAIVE_TIMEZONE is utils.timezone.utc
+        assert utils.ASSUMED_NAIVE_TIMEZONE is utils.UTC

@@ -22,8 +22,6 @@ cd pyUSPTO
 
 ### Set Up Development Environment
 
-> **Note:** Python 3.11+ is required for the development environment. Some dev dependencies (e.g. `myst-parser`) do not support Python 3.10. The package itself supports Python 3.10+.
-
 ```bash
 # Create and activate a virtual environment
 python -m venv venv
@@ -110,7 +108,7 @@ Types include:
 
 1. Update the README.md or documentation with details of changes if appropriate
 2. Update the CHANGELOG.md with details of changes
-3. The PR should work for Python 3.10 and above
+3. The PR should work for Python 3.11 and above
 4. PRs require approval from at least one maintainer
 5. Once approved, a maintainer will merge your PR
 

@@ -4,8 +4,7 @@ Tests for PTAB models.
 This module contains unit tests for the PTAB model classes with full coverage.
 """
 
-import importlib
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any
 
 import pytest
@@ -471,56 +470,14 @@ def interference_decision_api_sample() -> dict[str, Any]:
 
 
 class TestSelfImport:
-    """Tests for Self type import compatibility across Python versions."""
+    """Tests for the Self type import."""
 
     def test_self_import_works(self) -> None:
         """Test that Self type can be imported from ptab module."""
-        # This test verifies the try/except import pattern works
-        # by importing the module (which happens at test module import time)
-        # and using a from_dict method that relies on Self type hints
-
         # Verify the import succeeded (module is already imported)
         import pyUSPTO.models.ptab as ptab_module
 
         assert hasattr(ptab_module, "PartyData")
-
-    def test_import_fallback_logic(self) -> None:
-        """
-        Tests that the module falls back to typing_extensions.Self if typing.Self fails.
-        Uses builtins.__import__ patching to avoid corrupting the global typing module.
-        """
-        import builtins
-        import sys
-        from unittest.mock import patch
-
-        import typing_extensions
-
-        module_name = "pyUSPTO.models.ptab"
-
-        # 1. Ensure the module is unloaded so we can force a fresh import
-        if module_name in sys.modules:
-            del sys.modules[module_name]
-
-        # 2. Define a side_effect that simulates ImportError ONLY when importing Self from typing
-        # This intercepts 'from typing import Self'
-        original_import = builtins.__import__
-
-        def mock_import(name, globals=None, locals=None, fromlist=(), level=0):
-            if name == "typing" and "Self" in fromlist:
-                raise ImportError("Simulated missing Self in typing")
-            return original_import(name, globals, locals, fromlist, level)
-
-        # 3. Apply the patch and import
-        with patch("builtins.__import__", side_effect=mock_import):
-            ptab_module = importlib.import_module(module_name)
-
-        # 4. Verify the fallback works (it should be the typing_extensions version)
-        assert ptab_module.Self is typing_extensions.Self
-
-        # 5. Cleanup: Restore the module to its normal state for other tests
-        if module_name in sys.modules:
-            del sys.modules[module_name]
-        importlib.import_module(module_name)
 
     def test_self_type_in_from_dict_methods(self) -> None:
         """Test that from_dict methods work correctly with Self return type."""
@@ -623,7 +580,7 @@ class TestPTABTrialModels:
         assert result.petition_filing_date == date(2023, 1, 15)
         assert result.accorded_filing_date == date(2023, 1, 16)
         assert result.trial_last_modified_date_time == datetime(
-            2023, 6, 1, 10, 30, 0, tzinfo=timezone.utc
+            2023, 6, 1, 10, 30, 0, tzinfo=UTC
         )
         assert result.trial_last_modified_date == date(2023, 6, 1)
         assert result.trial_status_category == "Instituted"
@@ -988,7 +945,7 @@ class TestPTABAppealModels:
         assert result.appeal_filing_date == date(2023, 1, 15)
         assert result.appeal_last_modified_date == date(2023, 6, 1)
         assert result.appeal_last_modified_date_time == datetime(
-            2023, 6, 1, 16, 0, 1, tzinfo=timezone.utc
+            2023, 6, 1, 16, 0, 1, tzinfo=UTC
         )
         assert result.application_type_category == "Utility"
         assert result.docket_notice_mailed_date == date(2023, 2, 1)
@@ -1159,7 +1116,7 @@ class TestPTABAppealModels:
         result = PTABAppealDecision.from_dict(data)
         assert result.appeal_number == "2023-001234"
         assert result.last_modified_date_time == datetime(
-            2023, 6, 15, 10, 30, 0, tzinfo=timezone.utc
+            2023, 6, 15, 10, 30, 0, tzinfo=UTC
         )
         assert result.appeal_document_category == "Decision"
         assert result.appeal_meta_data is not None
@@ -1431,7 +1388,7 @@ class TestPTABInterferenceModels:
         result = PTABInterferenceDecision.from_dict(data)
         assert result.interference_number == "106123"
         assert result.last_modified_date_time == datetime(
-            2023, 3, 15, 10, 30, 0, tzinfo=timezone.utc
+            2023, 3, 15, 10, 30, 0, tzinfo=UTC
         )
         assert result.interference_meta_data is not None
         assert (

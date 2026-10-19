@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Breaking:** Dropped support for Python 3.10, which has reached end of life. The minimum supported version is now Python 3.11.
+- `typing-extensions` is no longer a dependency; `Self` is imported from `typing` directly.
+
 ### Fixed
 
 - `earliestPublicationNumber_q` (used by `search_applications`, `get_publication`, and `get_IFW_metadata(publication_number=...)`) is now reduced to its digits and searched with wildcards, so bare digits (`20210138233`), `US`-prefixed forms, kind codes, and separators (`US 2021/0138233 A1`) all match the stored `USyyyyNNNNNNNAn` value. Previously the value was sent verbatim and bare digits never matched. Values already containing `*` pass through unchanged.
