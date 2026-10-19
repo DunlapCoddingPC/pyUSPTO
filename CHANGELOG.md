@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Python 3.15 support.
+
 ### Changed
 
 - `DocumentMimeType` is now a `StrEnum`. `str()` and f-strings return the value (`"PDF"`) instead of `"DocumentMimeType.PDF"`. Equality with plain strings and `.value` are unchanged.
