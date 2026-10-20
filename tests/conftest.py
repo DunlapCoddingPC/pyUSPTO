@@ -5,6 +5,7 @@ This module provides pytest fixtures for testing the USPTO API clients.
 """
 
 from collections.abc import Generator
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -12,6 +13,44 @@ import pytest
 
 from pyUSPTO.clients import BulkDataClient, PatentDataClient
 from pyUSPTO.config import USPTOConfig
+
+_INTEGRATION_DIR = Path(__file__).parent / "integration"
+_USPTO_ENV_VARS = (
+    "USPTO_API_KEY",
+    "USPTO_BULK_DATA_BASE_URL",
+    "USPTO_PATENT_DATA_BASE_URL",
+    "USPTO_PETITION_DECISIONS_BASE_URL",
+    "USPTO_PTAB_BASE_URL",
+    "USPTO_ENRICHED_CITATIONS_BASE_URL",
+    "USPTO_OA_ACTIONS_BASE_URL",
+    "USPTO_OA_REJECTIONS_BASE_URL",
+    "USPTO_OA_CITATIONS_BASE_URL",
+    "USPTO_REQUEST_TIMEOUT",
+    "USPTO_CONNECT_TIMEOUT",
+    "USPTO_MAX_RETRIES",
+    "USPTO_BACKOFF_FACTOR",
+    "USPTO_POOL_CONNECTIONS",
+    "USPTO_POOL_MAXSIZE",
+    "USPTO_DOWNLOAD_CHUNK_SIZE",
+    "USPTO_MAX_EXTRACT_SIZE",
+)
+
+
+@pytest.fixture(autouse=True)
+def _clear_uspto_env(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Clear the USPTO_* variables USPTOConfig reads before each unit test.
+
+    USPTOConfig falls back to USPTO_API_KEY, the base-URL variables, and the
+    HTTP-setting variables, so values exported in the developer's shell would
+    replace the defaults that unit tests expect. Integration tests keep their
+    environment because they need the real USPTO_API_KEY.
+    """
+    if request.node.path.is_relative_to(_INTEGRATION_DIR):
+        return
+    for name in _USPTO_ENV_VARS:
+        monkeypatch.delenv(name, raising=False)
 
 
 @pytest.fixture
