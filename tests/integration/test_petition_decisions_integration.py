@@ -1,17 +1,18 @@
 """
-Integration tests for the USPTO Final Petition Decisions API client.
+Integration tests for the USPTO Petition Decisions API clients.
 
-This module contains integration tests that make real API calls to the USPTO Final Petition Decisions API.
+This module contains integration tests that make real API calls to the USPTO Petition Decisions API.
 These tests are optional and are skipped by default unless the ENABLE_INTEGRATION_TESTS
 environment variable is set to 'true'.
 """
 
 import os
+from collections.abc import Iterable
 from datetime import date
 
 import pytest
 
-from pyUSPTO.clients import FinalPetitionDecisionsClient
+from pyUSPTO.clients import FinalPetitionDecisionsClient, PetitionDecisionsClient
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import USPTOApiError, USPTOApiNotFoundError
 from pyUSPTO.models.petition_decisions import (
@@ -33,7 +34,26 @@ pytestmark = pytest.mark.skipif(
 
 
 @pytest.fixture(scope="module")
-def petition_decisions_client(config: USPTOConfig) -> FinalPetitionDecisionsClient:
+def petition_decisions_client(config: USPTOConfig) -> PetitionDecisionsClient:
+    """
+    Create a PetitionDecisionsClient instance for integration tests.
+
+    Uses module scope to reuse the same client for all tests in the module,
+    reducing overhead from creating multiple client instances.
+
+    Args:
+        config: The configuration instance
+
+    Returns:
+        PetitionDecisionsClient: A client instance
+    """
+    return PetitionDecisionsClient(config=config)
+
+
+@pytest.fixture(scope="module")
+def final_petition_decisions_client(
+    config: USPTOConfig,
+) -> FinalPetitionDecisionsClient:
     """
     Create a FinalPetitionDecisionsClient instance for integration tests.
 
@@ -51,7 +71,7 @@ def petition_decisions_client(config: USPTOConfig) -> FinalPetitionDecisionsClie
 
 @pytest.fixture(scope="module")
 def sample_petition_decision(
-    petition_decisions_client: FinalPetitionDecisionsClient,
+    petition_decisions_client: PetitionDecisionsClient,
 ) -> PetitionDecision:
     """Provides a sample petition decision for tests.
 
@@ -94,14 +114,14 @@ def sample_petition_decision_id(sample_petition_decision: PetitionDecision) -> s
     return ""
 
 
-class TestFinalPetitionDecisionsIntegration:
-    """Integration tests for the FinalPetitionDecisionsClient."""
+class TestPetitionDecisionsIntegration:
+    """Integration tests for the PetitionDecisionsClient."""
 
     # Known decision ID for consistent testing (update with a stable ID from the API)
     KNOWN_DECISION_ID = None  # TODO: Add a known stable decision ID when available
 
     def test_search_decisions_basic(
-        self, petition_decisions_client: FinalPetitionDecisionsClient
+        self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test basic search for petition decisions."""
         response = petition_decisions_client.search_decisions(limit=5)
@@ -121,7 +141,7 @@ class TestFinalPetitionDecisionsIntegration:
             assert decision.petition_decision_record_identifier is not None
 
     def test_search_decisions_with_query(
-        self, petition_decisions_client: FinalPetitionDecisionsClient
+        self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test searching with a custom query."""
         try:
@@ -144,7 +164,7 @@ class TestFinalPetitionDecisionsIntegration:
 
     def test_search_decisions_with_application_number(
         self,
-        petition_decisions_client: FinalPetitionDecisionsClient,
+        petition_decisions_client: PetitionDecisionsClient,
         sample_petition_decision: PetitionDecision,
     ) -> None:
         """Test searching using convenience application_number_q parameter."""
@@ -178,7 +198,7 @@ class TestFinalPetitionDecisionsIntegration:
 
     def test_search_decisions_with_patent_number(
         self,
-        petition_decisions_client: FinalPetitionDecisionsClient,
+        petition_decisions_client: PetitionDecisionsClient,
         sample_petition_decision: PetitionDecision,
     ) -> None:
         """Test searching using convenience patent_number_q parameter."""
@@ -226,7 +246,7 @@ class TestFinalPetitionDecisionsIntegration:
             pytest.fail(f"Patent number search failed: {e}")
 
     def test_search_decisions_with_technology_center(
-        self, petition_decisions_client: FinalPetitionDecisionsClient
+        self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test searching using convenience technology_center_q parameter."""
         # Technology centers are typically 2600, 2800, etc.
@@ -240,7 +260,7 @@ class TestFinalPetitionDecisionsIntegration:
         assert response.count is not None and response.count >= 0
 
     def test_search_decisions_with_date_range(
-        self, petition_decisions_client: FinalPetitionDecisionsClient
+        self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test searching using date range parameters."""
         # Search for decisions from 2020-01-01 onwards
@@ -258,7 +278,7 @@ class TestFinalPetitionDecisionsIntegration:
 
     def test_get_decision_by_id(
         self,
-        petition_decisions_client: FinalPetitionDecisionsClient,
+        petition_decisions_client: PetitionDecisionsClient,
         sample_petition_decision_id: str,
     ) -> None:
         """Test getting a specific decision by ID."""
@@ -283,7 +303,7 @@ class TestFinalPetitionDecisionsIntegration:
 
     def test_round_trip_data_integrity(
         self,
-        petition_decisions_client: FinalPetitionDecisionsClient,
+        petition_decisions_client: PetitionDecisionsClient,
         sample_petition_decision_id: str,
     ) -> None:
         """Test that parsing and serialization preserves data (round-trip test)."""
@@ -353,7 +373,7 @@ class TestFinalPetitionDecisionsIntegration:
 
         # Create a config with include_raw_data=True to preserve original API JSON
         config_with_raw = USPTOConfig(api_key=api_key, include_raw_data=True)
-        client_with_raw = FinalPetitionDecisionsClient(config=config_with_raw)
+        client_with_raw = PetitionDecisionsClient(config=config_with_raw)
 
         try:
             # Get decision with raw data
@@ -470,7 +490,7 @@ class TestFinalPetitionDecisionsIntegration:
             pytest.fail(f"Raw API comparison failed due to API error: {e}")
 
     def test_get_decision_by_invalid_id(
-        self, petition_decisions_client: FinalPetitionDecisionsClient
+        self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test proper error handling with an invalid decision ID."""
         invalid_id = "INVALID_ID_12345"
@@ -486,7 +506,7 @@ class TestFinalPetitionDecisionsIntegration:
             pass
 
     def test_download_decisions_json(
-        self, petition_decisions_client: FinalPetitionDecisionsClient
+        self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test downloading petition decisions in JSON format."""
         try:
@@ -507,7 +527,7 @@ class TestFinalPetitionDecisionsIntegration:
             pytest.fail(f"Download endpoint failed: {e}")
 
     def test_download_decisions_csv(
-        self, petition_decisions_client: FinalPetitionDecisionsClient
+        self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test downloading petition decisions in CSV format to file."""
         try:
@@ -538,7 +558,7 @@ class TestFinalPetitionDecisionsIntegration:
             pytest.fail(f"CSV download endpoint failed: {e}")
 
     def test_paginate_decisions(
-        self, petition_decisions_client: FinalPetitionDecisionsClient
+        self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test pagination through petition decisions."""
         page_size = 5
@@ -565,7 +585,7 @@ class TestFinalPetitionDecisionsIntegration:
 
     def test_decision_with_documents_and_download(
         self,
-        petition_decisions_client: FinalPetitionDecisionsClient,
+        petition_decisions_client: PetitionDecisionsClient,
         sample_petition_decision_id: str,
     ) -> None:
         """Test retrieving a decision with documents and downloading them."""
@@ -604,7 +624,7 @@ class TestFinalPetitionDecisionsIntegration:
             pytest.fail(f"Document retrieval test failed with API error: {e}")
 
     def test_search_decisions_with_multiple_params(
-        self, petition_decisions_client: FinalPetitionDecisionsClient
+        self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test searching with multiple convenience parameters."""
         response = petition_decisions_client.search_decisions(
@@ -621,7 +641,7 @@ class TestFinalPetitionDecisionsIntegration:
             assert len(response.petition_decision_data_bag) <= 10
 
     def test_decided_petition_type_code(
-        self, petition_decisions_client: FinalPetitionDecisionsClient
+        self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test that the decided type fields parse and map to DecisionTypeCode."""
         response = petition_decisions_client.search_decisions(
@@ -640,7 +660,7 @@ class TestFinalPetitionDecisionsIntegration:
         assert decision.decision_mail_date == date(2025, 1, 23)
 
     def test_search_by_decided_petition_type_code(
-        self, petition_decisions_client: FinalPetitionDecisionsClient
+        self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test that decided_petition_type_code_q filters on decidedPetitionTypeCode."""
         response = petition_decisions_client.search_decisions(
@@ -654,3 +674,156 @@ class TestFinalPetitionDecisionsIntegration:
                 decision.decided_petition_type_code_description_text
                 == "GRANTED-IN-PART"
             )
+
+
+def _sorted_record_ids(decisions: Iterable[PetitionDecision]) -> list[str]:
+    """Return the record identifiers of the given decisions, sorted."""
+    return sorted(d.petition_decision_record_identifier for d in decisions)
+
+
+class TestFinalPetitionDecisionsClientIntegration:
+    """Integration tests for the FinalPetitionDecisionsClient.
+
+    Application 16591555 has four petition decisions, exactly one of them final.
+    Tests that also query PetitionDecisionsClient use it as the control, which
+    sees all four.
+    """
+
+    APPLICATION_NUMBER = "16591555"
+    FINAL_DECISION_ID = "f2137ac1-0bde-5b84-8299-6faf96a5fb9f"
+    ALL_DECISION_IDS = sorted(
+        [
+            FINAL_DECISION_ID,
+            "ea57f096-cea9-53a2-9a5d-6bbb9aca0260",
+            "5f1f2752-9680-5fd6-aada-0d9b198540d3",
+            "0332e5e1-f6f7-5efa-a478-405e3d479e29",
+        ]
+    )
+    # Non-final decision on application 16947346.
+    NON_FINAL_DECISION_ID = "0b9ea48d-43c9-5197-8bf1-126d965816a7"
+    # Final decision on application 17765301.
+    OTHER_FINAL_DECISION_ID = "1a552446-1d2b-570a-9bb6-b4fef39b0a91"
+
+    def test_search_decisions_returns_only_final(
+        self,
+        petition_decisions_client: PetitionDecisionsClient,
+        final_petition_decisions_client: FinalPetitionDecisionsClient,
+    ) -> None:
+        """Test that a GET search returns only the application's final decision."""
+        all_response = petition_decisions_client.search_decisions(
+            application_number_q=self.APPLICATION_NUMBER
+        )
+        assert all_response.count == 4
+        assert (
+            _sorted_record_ids(all_response.petition_decision_data_bag)
+            == self.ALL_DECISION_IDS
+        )
+
+        final_response = final_petition_decisions_client.search_decisions(
+            application_number_q=self.APPLICATION_NUMBER
+        )
+        assert final_response.count == 1
+        assert _sorted_record_ids(final_response.petition_decision_data_bag) == [
+            self.FINAL_DECISION_ID
+        ]
+
+    def test_search_decisions_post_returns_only_final(
+        self,
+        petition_decisions_client: PetitionDecisionsClient,
+        final_petition_decisions_client: FinalPetitionDecisionsClient,
+    ) -> None:
+        """Test that a POST search returns only the application's final decision."""
+        post_body = {"q": f"applicationNumberText:{self.APPLICATION_NUMBER}"}
+
+        all_response = petition_decisions_client.search_decisions(post_body=post_body)
+        assert all_response.count == 4
+        assert (
+            _sorted_record_ids(all_response.petition_decision_data_bag)
+            == self.ALL_DECISION_IDS
+        )
+
+        final_response = final_petition_decisions_client.search_decisions(
+            post_body=post_body
+        )
+        assert final_response.count == 1
+        assert _sorted_record_ids(final_response.petition_decision_data_bag) == [
+            self.FINAL_DECISION_ID
+        ]
+
+    def test_get_decision_by_id_returns_none_for_non_final(
+        self,
+        petition_decisions_client: PetitionDecisionsClient,
+        final_petition_decisions_client: FinalPetitionDecisionsClient,
+    ) -> None:
+        """Test that the final client returns None for a non-final decision."""
+        decision = petition_decisions_client.get_decision_by_id(
+            self.NON_FINAL_DECISION_ID
+        )
+        assert isinstance(decision, PetitionDecision)
+        assert (
+            decision.petition_decision_record_identifier == self.NON_FINAL_DECISION_ID
+        )
+        assert decision.application_number_text == "16947346"
+        assert decision.final_petition_decision_indicator is False
+
+        assert (
+            final_petition_decisions_client.get_decision_by_id(
+                self.NON_FINAL_DECISION_ID
+            )
+            is None
+        )
+
+    def test_get_decision_by_id_returns_final_decision(
+        self, final_petition_decisions_client: FinalPetitionDecisionsClient
+    ) -> None:
+        """Test that the final client returns a final decision looked up by ID."""
+        decision = final_petition_decisions_client.get_decision_by_id(
+            self.OTHER_FINAL_DECISION_ID
+        )
+        assert isinstance(decision, PetitionDecision)
+        assert (
+            decision.petition_decision_record_identifier == self.OTHER_FINAL_DECISION_ID
+        )
+        assert decision.application_number_text == "17765301"
+        assert decision.final_petition_decision_indicator is True
+
+    def test_download_decisions_json_returns_only_final(
+        self,
+        petition_decisions_client: PetitionDecisionsClient,
+        final_petition_decisions_client: FinalPetitionDecisionsClient,
+    ) -> None:
+        """Test that a JSON download contains only the application's final decision."""
+        all_download = petition_decisions_client.download_decisions(
+            format="json", application_number_q=self.APPLICATION_NUMBER
+        )
+        assert isinstance(all_download, PetitionDecisionDownloadResponse)
+        assert (
+            _sorted_record_ids(all_download.petition_decision_data)
+            == self.ALL_DECISION_IDS
+        )
+
+        final_download = final_petition_decisions_client.download_decisions(
+            format="json", application_number_q=self.APPLICATION_NUMBER
+        )
+        assert isinstance(final_download, PetitionDecisionDownloadResponse)
+        assert _sorted_record_ids(final_download.petition_decision_data) == [
+            self.FINAL_DECISION_ID
+        ]
+
+    def test_paginate_decisions_yields_all_decisions(
+        self, petition_decisions_client: PetitionDecisionsClient
+    ) -> None:
+        """Test that the base client pages through all four decisions."""
+        decisions = petition_decisions_client.paginate_decisions(
+            application_number_q=self.APPLICATION_NUMBER, limit=2
+        )
+        assert _sorted_record_ids(decisions) == self.ALL_DECISION_IDS
+
+    def test_paginate_decisions_yields_only_final(
+        self, final_petition_decisions_client: FinalPetitionDecisionsClient
+    ) -> None:
+        """Test that the final client pages through only the final decision."""
+        decisions = final_petition_decisions_client.paginate_decisions(
+            application_number_q=self.APPLICATION_NUMBER, limit=2
+        )
+        assert _sorted_record_ids(decisions) == [self.FINAL_DECISION_ID]

@@ -35,8 +35,10 @@ pyUSPTO provides the following clients:
      - Search patent applications and grants, retrieve file wrappers and Image File Wrapper (IFW) documents, and download individual documents and publications.
    * - :class:`~pyUSPTO.BulkDataClient`
      - Search and download bulk data products from the ODP Bulk Dataset Directory, including patent grants, applications, assignments, and research datasets.
+   * - :class:`~pyUSPTO.PetitionDecisionsClient`
+     - Search and retrieve petition decisions issued by the USPTO.
    * - :class:`~pyUSPTO.FinalPetitionDecisionsClient`
-     - Search and retrieve Final Petition Decisions issued by the USPTO Director.
+     - Same as PetitionDecisionsClient, limited to final petition decisions.
    * - :class:`~pyUSPTO.PTABTrialsClient`
      - Search PTAB trial proceedings (IPR, PGR, CBM, and derivation), documents, and decisions.
    * - :class:`~pyUSPTO.PTABAppealsClient`

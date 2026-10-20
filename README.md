@@ -8,7 +8,7 @@
 
 A Python client library for interacting with the United States Patent and Trademark Office (USPTO) [Open Data Portal](https://data.uspto.gov/home) APIs.
 
-This package provides clients for interacting with the USPTO Bulk Data API, Patent Data API, Final Petition Decisions API, PTAB (Patent Trial and Appeal Board) APIs, Enriched Citations API, Office Action Text Retrieval API, Office Action Rejections API, and Office Action Citations API.
+This package provides clients for interacting with the USPTO Bulk Data API, Patent Data API, Petition Decisions API, PTAB (Patent Trial and Appeal Board) APIs, Enriched Citations API, Office Action Text Retrieval API, Office Action Rejections API, and Office Action Citations API.
 
 > [!IMPORTANT]
 > The USPTO has moved the Developer API to the Open Data Portal. This package is only concerned with the USPTO Open Data Portal API. The old API (`https://developer.uspto.gov/`) was formally decommissioned on June 5, 2026.
@@ -61,7 +61,7 @@ from pyUSPTO import (
     OACitationsClient,
     OARejectionsClient,
     PatentDataClient,
-    FinalPetitionDecisionsClient,
+    PetitionDecisionsClient,
     PTABTrialsClient,
     PTABAppealsClient,
     PTABInterferencesClient,
@@ -73,7 +73,7 @@ config = USPTOConfig.from_env()
 
 patent_client = PatentDataClient(config=config)
 bulk_client = BulkDataClient(config=config)
-petition_client = FinalPetitionDecisionsClient(config=config)
+petition_client = PetitionDecisionsClient(config=config)
 trials_client = PTABTrialsClient(config=config)
 appeals_client = PTABAppealsClient(config=config)
 interferences_client = PTABInterferencesClient(config=config)
@@ -100,7 +100,7 @@ config = USPTOConfig(api_key="your_api_key_here")
 
 1. [Patent Data API](#patent-data-api)
 2. [Bulk Data API](#bulk-data-api)
-3. [Final Petition Decisions API](#final-petition-decisions-api)
+3. [Petition Decisions API](#petition-decisions-api)
 4. [PTAB Trials API](#ptab-trials-api)
 5. [PTAB Appeals API](#ptab-appeals-api)
 6. [PTAB Interferences API](#ptab-interferences-api)
@@ -164,13 +164,13 @@ print(f"Product: {product.product_title_text}")
 
 See [`examples/bulk_data_example.py`](examples/bulk_data_example.py) for detailed examples including file downloads and archive extraction.
 
-### Final Petition Decisions API
+### Petition Decisions API
 
 ```python
-from pyUSPTO import FinalPetitionDecisionsClient, USPTOConfig
+from pyUSPTO import PetitionDecisionsClient, USPTOConfig
 
 config = USPTOConfig(api_key="your_api_key_here")
-client = FinalPetitionDecisionsClient(config=config)
+client = PetitionDecisionsClient(config=config)
 
 # Search for petition decisions
 response = client.search_decisions(
@@ -184,6 +184,18 @@ if response.count > 0:
     decision_id = response.petition_decision_data_bag[0].petition_decision_record_identifier
     decision = client.get_decision_by_id(decision_id)
     print(f"Decision Type: {decision.decided_petition_type_code_description_text}")
+```
+
+`PetitionDecisionsClient` returns final and non-final decisions. For final decisions only, use `FinalPetitionDecisionsClient`, which restricts every search, pagination, and `download_decisions` call to final decisions and returns `None` from `get_decision_by_id` for a non-final decision:
+
+```python
+from pyUSPTO import FinalPetitionDecisionsClient
+
+final_client = FinalPetitionDecisionsClient(config=config)
+response = final_client.search_decisions(
+    decision_date_from_q="2023-01-01", decision_date_to_q="2023-12-31", limit=5
+)
+print(f"Found {response.count} final decisions from 2023.")
 ```
 
 See [`examples/petition_decisions_example.py`](examples/petition_decisions_example.py) for detailed examples including downloading decision documents.

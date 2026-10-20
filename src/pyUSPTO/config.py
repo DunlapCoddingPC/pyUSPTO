@@ -75,7 +75,7 @@ class USPTOConfig:
             api_key: API key for authentication, defaults to USPTO_API_KEY environment variable
             bulk_data_base_url: Base URL for the Bulk Data API
             patent_data_base_url: Base URL for the Patent Data API
-            petition_decisions_base_url: Base URL for the Final Petition Decisions API
+            petition_decisions_base_url: Base URL for the Petition Decisions API
             ptab_base_url: Base URL for the PTAB (Patent Trial and Appeal Board) API
             enriched_citations_base_url: Base URL for the Enriched Citations API
             oa_actions_base_url: Base URL for the Office Action Text Retrieval API
