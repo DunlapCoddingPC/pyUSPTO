@@ -31,10 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Document.direction_category` (patent application documents) was always `None`. The model read `documentDirectionCategory`, but the API sends `directionCategory`. `to_dict()` now emits `directionCategory`, and `DirectionCategory` gains `INTERNAL`, which the API uses for about a fifth of documents.
 - `earliestPublicationNumber_q` (used by `search_applications`, `get_publication`, and `get_IFW_metadata(publication_number=...)`) is now reduced to its digits and searched with wildcards, so bare digits (`20210138233`), `US`-prefixed forms, kind codes, and separators (`US 2021/0138233 A1`) all match the stored `USyyyyNNNNNNNAn` value. Previously the value was sent verbatim and bare digits never matched. Values already containing `*` pass through unchanged.
 - `get_patent`, `get_publication`, `get_pct` (publication form), and the search-based branches of `get_IFW_metadata` now return `None` on no match, as documented. The search endpoint answers no-match with HTTP 404, which previously surfaced as `USPTOApiNotFoundError`.
-- Unit tests that expect no API key now clear `USPTO_API_KEY` themselves, so they no longer fail when the variable is set in the developer's shell.
+- Unit tests no longer depend on `USPTO_*` variables set in the developer's shell. An autouse fixture in `tests/conftest.py` clears every variable `USPTOConfig` reads (`USPTO_API_KEY`, the `USPTO_*_BASE_URL` variables, and the HTTP-setting variables such as `USPTO_REQUEST_TIMEOUT`) before each unit test.
 - `petition_decisions_example.py` no longer fails when rerun (its document download now passes `overwrite=True`), and its pagination example prints each decision under a page header.
 - Pagination (`paginate_*` on every client) requested one page past the end, and failed with a 404, when the total number of results was an exact multiple of the page size.
-- The petition client init test now clears `USPTO_PETITION_DECISIONS_BASE_URL` itself, so it no longer fails when the variable is set in the developer's shell.
 
 ## [0.5.5] - 2026-07-22
 

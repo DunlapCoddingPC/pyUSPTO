@@ -103,14 +103,12 @@ def mock_download_option() -> DocumentDownloadOption:
 class TestFinalPetitionDecisionsClientInit:
     """Tests for initialization of FinalPetitionDecisionsClient."""
 
-    def test_init_with_api_key(self, api_key_fixture: str, monkeypatch: Any) -> None:
+    def test_init_with_api_key(
+        self, petition_client: FinalPetitionDecisionsClient, uspto_config: USPTOConfig
+    ) -> None:
         """Test initialization with API key."""
-        # Build the config here, after clearing the override; the uspto_config
-        # fixture reads USPTO_PETITION_DECISIONS_BASE_URL before this body runs.
-        monkeypatch.delenv("USPTO_PETITION_DECISIONS_BASE_URL", raising=False)
-        config = USPTOConfig(api_key=api_key_fixture)
-        client = FinalPetitionDecisionsClient(config=config)
-        assert client._api_key == config.api_key
+        client = petition_client
+        assert client._api_key == uspto_config.api_key
         assert client.base_url == "https://api.uspto.gov"
 
     def test_init_with_custom_base_url(self, uspto_config: USPTOConfig) -> None:

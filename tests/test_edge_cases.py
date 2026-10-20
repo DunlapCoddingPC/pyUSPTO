@@ -6,15 +6,11 @@ This module contains tests for edge cases and error handling in USPTOConfig.
 
 from unittest.mock import patch
 
-import pytest
-
 from pyUSPTO.config import USPTOConfig
 
 
-def test_config_with_empty_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_config_with_empty_api_key() -> None:
     """Test creating a config with an empty API key."""
-    monkeypatch.delenv("USPTO_API_KEY", raising=False)
-
     # Empty string API key
     config = USPTOConfig(api_key="")
     assert config.api_key is None

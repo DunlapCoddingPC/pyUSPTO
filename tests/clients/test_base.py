@@ -104,10 +104,8 @@ class TestResponseClass:
 class TestBaseUSPTOClient:
     """Tests for the BaseUSPTOClient class."""
 
-    def test_init(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_init(self) -> None:
         """Test initialization of the BaseUSPTOClient."""
-        monkeypatch.delenv("USPTO_API_KEY", raising=False)
-
         # Test with API key
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(
             config=USPTOConfig(api_key="test_key"), base_url="https://api.test.com"
