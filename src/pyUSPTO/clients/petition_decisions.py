@@ -1,13 +1,13 @@
-"""clients.petition_decisions - Client for USPTO Final Petition Decisions API.
+"""clients.petition_decisions - Clients for the USPTO Petition Decisions API.
 
-This module provides a client for interacting with the USPTO Final Petition
-Decisions API. It allows you to search for and retrieve final agency petition
-decisions in publicly available patent applications and patents filed in 2001 or later.
+This module provides clients for interacting with the USPTO Petition Decisions
+API. It allows you to search for and retrieve petition decisions in publicly
+available patent applications and patents filed in 2001 or later.
 """
 
 import warnings
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, ClassVar
 
 import requests
 
@@ -22,14 +22,14 @@ from pyUSPTO.models.petition_decisions import (
 from pyUSPTO.warnings import USPTODataMismatchWarning
 
 
-class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
-    """Client for interacting with the USPTO Final Petition Decisions API.
+class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
+    """Client for interacting with the USPTO Petition Decisions API.
 
     This client provides methods to search for petition decisions, retrieve specific
     decisions by ID, download decision data, and download associated documents.
 
-    Final petition decisions data are incrementally added to the USPTO Open Data Portal
-    on a monthly basis starting with data from 2022 and later.
+    Since USPTO ODP Release 5.0 the API returns all petition decisions, final and
+    non-final. Use ``FinalPetitionDecisionsClient`` for final decisions only.
     """
 
     ENDPOINTS = {
@@ -38,17 +38,21 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         "download_decisions": "api/v1/petition/decisions/search/download",
     }
 
+    # Filters added to every search and download request, as {field: value}.
+    # Subclasses set this to scope the client to a subset of decisions.
+    FIXED_FILTERS: ClassVar[dict[str, str]] = {}
+
     def __init__(
         self,
         config: USPTOConfig | None = None,
         base_url: str | None = None,
     ):
-        """Initialize the FinalPetitionDecisionsClient.
+        """Initialize the PetitionDecisionsClient.
 
         Args:
             config: USPTOConfig instance containing API key and settings. If not provided,
                 creates config from environment variables (requires USPTO_API_KEY).
-            base_url: Optional base URL override for the USPTO Final Petition Decisions API.
+            base_url: Optional base URL override for the USPTO Petition Decisions API.
                 If not provided, uses config.petition_decisions_base_url or default.
         """
         # Use provided config or create from environment
@@ -100,6 +104,40 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             )
         return decision
 
+    def _add_fixed_filters(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Add FIXED_FILTERS to GET params as repeated ``filters`` values.
+
+        The API ANDs repeated ``filters`` parameters, so these combine with any
+        filters the caller passed.
+        """
+        if not self.FIXED_FILTERS:
+            return params
+        existing = params.get("filters")
+        if existing is None:
+            values: list[str] = []
+        elif isinstance(existing, str):
+            values = [existing]
+        else:
+            values = list(existing)
+        values.extend(f"{name} {value}" for name, value in self.FIXED_FILTERS.items())
+        return {**params, "filters": values}
+
+    def _add_fixed_filters_to_body(self, post_body: dict[str, Any]) -> dict[str, Any]:
+        """Return a copy of a POST body with FIXED_FILTERS added to its ``filters`` list.
+
+        Builds new containers so the caller's body, which pagination reuses for
+        every page, is never modified.
+        """
+        if not self.FIXED_FILTERS:
+            return post_body
+        fixed = [
+            {"name": name, "value": [value]}
+            for name, value in self.FIXED_FILTERS.items()
+        ]
+        existing = post_body.get("filters")
+        caller_filters = [] if existing is None else existing
+        return {**post_body, "filters": [*caller_filters, *fixed]}
+
     def search_decisions(
         self,
         query: str | None = None,
@@ -126,7 +164,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         final_deciding_office_name_q: str | None = None,
         additional_query_params: dict[str, Any] | None = None,
     ) -> PetitionDecisionResponse:
-        """Return final petition decisions matching the given criteria.
+        """Return petition decisions matching the given criteria.
 
         This method can perform either a GET request using query parameters or a POST
         request if post_body is specified. When using GET, you can provide either a
@@ -185,7 +223,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
                 method="POST",
                 endpoint=endpoint,
                 response_class=PetitionDecisionResponse,
-                json_data=post_body,
+                json_data=self._add_fixed_filters_to_body(post_body),
                 params=additional_query_params,
             )
         else:
@@ -283,7 +321,7 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
                 method="GET",
                 endpoint=endpoint,
                 response_class=PetitionDecisionResponse,
-                params=params,
+                params=self._add_fixed_filters(params),
             )
         return result
 
@@ -474,6 +512,8 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         if additional_query_params:
             params.update(additional_query_params)
 
+        params = self._add_fixed_filters(params)
+
         if format.lower() == "json":
             # For JSON, parse the response
             return self._get_model(
@@ -595,3 +635,37 @@ class FinalPetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             file_name=file_name,
             overwrite=overwrite,
         )
+
+
+class FinalPetitionDecisionsClient(PetitionDecisionsClient):
+    """Client for final petition decisions only.
+
+    Works like ``PetitionDecisionsClient``, but every search, pagination, and
+    ``download_decisions`` call is restricted to decisions whose
+    ``finalPetitionDecisionIndicator`` is true. The API can't filter lookups by
+    ID, so ``get_decision_by_id`` returns None for a decision that isn't final.
+    """
+
+    FIXED_FILTERS = {"finalPetitionDecisionIndicator": "true"}
+
+    def get_decision_by_id(
+        self,
+        petition_decision_record_identifier: str,
+        include_documents: bool | None = None,
+    ) -> PetitionDecision | None:
+        """Retrieve a final petition decision by its record identifier.
+
+        Args:
+            petition_decision_record_identifier: The unique identifier for the petition
+                decision record (UUID format).
+            include_documents: Whether to include associated documents in the response.
+
+        Returns:
+            Optional[PetitionDecision]: The decision if found and final, None otherwise.
+        """
+        decision = super().get_decision_by_id(
+            petition_decision_record_identifier, include_documents=include_documents
+        )
+        if decision is None or decision.final_petition_decision_indicator is not True:
+            return None
+        return decision

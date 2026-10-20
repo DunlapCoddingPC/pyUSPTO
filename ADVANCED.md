@@ -80,7 +80,7 @@ patent_config = USPTOConfig(api_key="key1", http_config=http_config)
 petition_config = USPTOConfig(api_key="key2", http_config=http_config)
 
 patent_client = PatentDataClient(config=patent_config)
-petition_client = FinalPetitionDecisionsClient(config=petition_config)
+petition_client = PetitionDecisionsClient(config=petition_config)
 ```
 
 ## Environment Variables Reference

@@ -1,13 +1,17 @@
-"""Example usage of pyUSPTO for Final Petition Decisions.
+"""Example usage of pyUSPTO for Petition Decisions.
 
-Demonstrates the FinalPetitionDecisionsClient for searching decisions,
+Demonstrates the PetitionDecisionsClient for searching decisions,
 downloading decision data, and paginating results.
 """
 
 import json
 import os
 
-from pyUSPTO import FinalPetitionDecisionsClient, PetitionDecisionDownloadResponse, USPTOConfig
+from pyUSPTO import (
+    PetitionDecisionDownloadResponse,
+    PetitionDecisionsClient,
+    USPTOConfig,
+)
 
 DEST_PATH = "./notes/download-example"
 
@@ -18,7 +22,7 @@ if api_key == "YOUR_API_KEY_HERE":
         "API key is not set. Set the USPTO_API_KEY environment variable."
     )
 config = USPTOConfig(api_key=api_key)
-client = FinalPetitionDecisionsClient(config=config)
+client = PetitionDecisionsClient(config=config)
 
 print("-" * 40)
 print("Example 1: Basic search")

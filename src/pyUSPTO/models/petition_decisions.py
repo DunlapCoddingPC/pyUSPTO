@@ -1,7 +1,7 @@
-"""models.petition_decisions - Data models for USPTO Final Petition Decisions API.
+"""models.petition_decisions - Data models for the USPTO Petition Decisions API.
 
 This module provides data models, primarily using frozen dataclasses, for
-representing responses from the USPTO Final Petition Decisions API. These models
+representing responses from the USPTO Petition Decisions API. These models
 cover petition decision records, associated documents, and download options.
 """
 
@@ -173,10 +173,10 @@ class PetitionDecisionDocument:
 
 @dataclass(frozen=True)
 class PetitionDecision:
-    """Represent a final petition decision record.
+    """Represent a petition decision record.
 
     This is the main data model representing a single petition decision from the
-    USPTO Final Petition Decisions API. It contains comprehensive information about
+    USPTO Petition Decisions API. It contains comprehensive information about
     the decision, including application details, decision metadata, parties involved,
     and associated documents.
 
@@ -402,7 +402,7 @@ class PetitionDecision:
 
 @dataclass(frozen=True)
 class PetitionDecisionResponse:
-    """Response from the Final Petition Decisions API search endpoint.
+    """Response from the Petition Decisions API search endpoint.
 
     This is the standard response format for search queries to the
     /api/v1/petition/decisions/search endpoint and the get-by-ID endpoint.
@@ -473,7 +473,7 @@ class PetitionDecisionResponse:
 
 @dataclass(frozen=True)
 class PetitionDecisionDownloadResponse:
-    """Response from the Final Petition Decisions API download endpoint.
+    """Response from the Petition Decisions API download endpoint.
 
     This is the response format for download queries to the
     /api/v1/petition/decisions/search/download endpoint when format=json.

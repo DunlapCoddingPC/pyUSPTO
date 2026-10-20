@@ -11,10 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Python 3.15 support.
 - `PetitionDecision` fields from USPTO ODP Release 5.0: `decided_petition_type_code`, `decided_petition_type_code_description_text`, `decision_mail_date`, `application_status_date`, `application_status_description_text`, `final_petition_decision_indicator`, `ocr_search_text`, `all_searchable_fields`, and `last_modified_date_time`. Also `decision_petition_type_code_description_text`, which the API returned but the model never read.
-- `FinalPetitionDecisionsClient.search_decisions(decided_petition_type_code_q=...)` filters on `decidedPetitionTypeCode`.
+- `PetitionDecisionsClient.search_decisions(decided_petition_type_code_q=...)` filters on `decidedPetitionTypeCode`.
 
 ### Changed
 
+- **Breaking:** `FinalPetitionDecisionsClient` is renamed `PetitionDecisionsClient`. Since USPTO ODP Release 5.0 the Petition Decisions API returns final and non-final decisions, so the old name no longer fit. `FinalPetitionDecisionsClient` is now a subclass that restricts every search, pagination, and `download_decisions` call to final decisions (`finalPetitionDecisionIndicator` true) and returns `None` from `get_decision_by_id` for a non-final decision. Code that used `FinalPetitionDecisionsClient` for all decisions must switch to `PetitionDecisionsClient`.
 - `DecisionTypeCode` now covers all four decided types: `GRANTED` (`A`), `GRANTED_IN_PART` (`B`), `DENIED` (`C`), and `DISMISSED` (`D`).
 - **Breaking:** `PetitionDecision.decision_petition_type_code` is now a `str`, matching the API.
 - `DocumentMimeType` is now a `StrEnum`. `str()` and f-strings return the value (`"PDF"`) instead of `"DocumentMimeType.PDF"`. Equality with plain strings and `.value` are unchanged.

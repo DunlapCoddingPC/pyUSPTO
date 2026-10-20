@@ -9,7 +9,10 @@ from pyUSPTO.clients.oa_actions import OAActionsClient
 from pyUSPTO.clients.oa_citations import OACitationsClient
 from pyUSPTO.clients.oa_rejections import OARejectionsClient
 from pyUSPTO.clients.patent_data import PatentDataClient
-from pyUSPTO.clients.petition_decisions import FinalPetitionDecisionsClient
+from pyUSPTO.clients.petition_decisions import (
+    FinalPetitionDecisionsClient,
+    PetitionDecisionsClient,
+)
 from pyUSPTO.clients.ptab_appeals import PTABAppealsClient
 from pyUSPTO.clients.ptab_interferences import PTABInterferencesClient
 from pyUSPTO.clients.ptab_trials import PTABTrialsClient
@@ -21,6 +24,7 @@ __all__ = [
     "OACitationsClient",
     "OARejectionsClient",
     "PatentDataClient",
+    "PetitionDecisionsClient",
     "FinalPetitionDecisionsClient",
     "PTABTrialsClient",
     "PTABAppealsClient",
