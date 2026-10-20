@@ -1,7 +1,5 @@
 """Tests for HTTPConfig"""
 
-import os
-
 from pyUSPTO.http_config import HTTPConfig
 
 
@@ -62,17 +60,6 @@ class TestHTTPConfig:
 
     def test_from_env_with_defaults(self):
         """Test HTTPConfig.from_env() uses defaults when env vars not set"""
-        # Clear any existing env vars
-        for key in [
-            "USPTO_REQUEST_TIMEOUT",
-            "USPTO_CONNECT_TIMEOUT",
-            "USPTO_MAX_RETRIES",
-            "USPTO_BACKOFF_FACTOR",
-            "USPTO_POOL_CONNECTIONS",
-            "USPTO_POOL_MAXSIZE",
-        ]:
-            os.environ.pop(key, None)
-
         config = HTTPConfig.from_env()
         assert config.timeout == 30.0
         assert config.connect_timeout == 10.0
