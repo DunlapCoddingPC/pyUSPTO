@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `PetitionDecision.decision_type_code`, `decision_type_code_description_text`, and `last_ingestion_datetime`, and `search_decisions(decision_type_code_q=...)`. USPTO ODP Release 5.0 replaced `decisionTypeCode` with `decidedPetitionTypeCode`, and the API sends `lastModifiedDateTime` instead of `lastIngestionDateTime`, so these were always `None` and the filter never matched. Use the new fields under Added.
 - **Breaking:** `PetitionDecisionDocument.direction_category` and the `DocumentDirectionCategory` enum. Petition decision documents have no `directionCategory` (0 of 1,116,161 decisions), so the attribute was always `None`.
 - **Breaking:** the `include_documents` parameter of `get_decision_by_id` on both petition clients. The API returns a decision's documents without it.
+- **Breaking:** `PetitionDecisionDocument.application_number_text`. The API never returns it: none of the 1,115,817 decisions has a document with `applicationNumberText`. `PetitionDecision.application_number_text` is unchanged.
 
 ### Fixed
 

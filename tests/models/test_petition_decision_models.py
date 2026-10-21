@@ -32,7 +32,6 @@ def sample_download_option_dict() -> dict[str, Any]:
 def sample_document_dict() -> dict[str, Any]:
     """Provide a sample petition decision document dictionary."""
     return {
-        "applicationNumberText": "13815942",
         "officialDate": "2025-03-20T11:41:54+00:00",
         "documentIdentifier": "M98QOH0NWFYTX17",
         "documentCode": "PETDEC",
@@ -171,7 +170,6 @@ class TestPetitionDecisionDocumentFromDict:
     def test_from_dict_complete(self, sample_document_dict: dict[str, Any]) -> None:
         """Test from_dict with complete data."""
         doc = PetitionDecisionDocument.from_dict(sample_document_dict)
-        assert doc.application_number_text == "13815942"
         assert doc.document_identifier == "M98QOH0NWFYTX17"
         assert doc.document_code == "PETDEC"
         assert doc.document_code_description_text == "Petition Decision"
@@ -186,17 +184,15 @@ class TestPetitionDecisionDocumentFromDict:
     def test_from_dict_empty_download_options(self) -> None:
         """Test from_dict with empty download options."""
         data = {
-            "applicationNumberText": "12345678",
             "documentCode": "TEST",
             "downloadOptionBag": [],
         }
         doc = PetitionDecisionDocument.from_dict(data)
-        assert doc.application_number_text == "12345678"
         assert len(doc.download_option_bag) == 0
 
     def test_from_dict_missing_download_options(self) -> None:
         """Test from_dict without downloadOptionBag key."""
-        data = {"applicationNumberText": "12345678", "documentCode": "TEST"}
+        data = {"documentCode": "TEST"}
         doc = PetitionDecisionDocument.from_dict(data)
         assert len(doc.download_option_bag) == 0
 
@@ -208,7 +204,6 @@ class TestPetitionDecisionDocumentToDict:
         """Test to_dict with complete data."""
         doc = PetitionDecisionDocument.from_dict(sample_document_dict)
         result = doc.to_dict()
-        assert result["applicationNumberText"] == "13815942"
         assert result["documentIdentifier"] == "M98QOH0NWFYTX17"
         assert result["documentCode"] == "PETDEC"
         assert "downloadOptionBag" in result

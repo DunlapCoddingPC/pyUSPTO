@@ -100,7 +100,6 @@ class PetitionDecisionDocument:
     """Represent a document associated with a petition decision.
 
     Attributes:
-        application_number_text: The application number associated with the document.
         official_date: The official date of the document.
         document_identifier: A unique identifier for the document.
         document_code: The code identifying the document type.
@@ -108,7 +107,6 @@ class PetitionDecisionDocument:
         download_option_bag: List of available download options for the document.
     """
 
-    application_number_text: str | None = None
     official_date: datetime | None = None
     document_identifier: str | None = None
     document_code: str | None = None
@@ -138,7 +136,6 @@ class PetitionDecisionDocument:
         )
 
         return cls(
-            application_number_text=data.get("applicationNumberText"),
             official_date=parse_to_datetime_utc(data.get("officialDate")),
             document_identifier=data.get("documentIdentifier"),
             document_code=data.get("documentCode"),
@@ -153,7 +150,6 @@ class PetitionDecisionDocument:
             Dict[str, Any]: Dictionary representation with camelCase keys.
         """
         d = {
-            "applicationNumberText": self.application_number_text,
             "officialDate": (
                 serialize_datetime_as_naive(self.official_date)
                 if self.official_date
