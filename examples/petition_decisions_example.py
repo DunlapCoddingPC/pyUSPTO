@@ -190,9 +190,7 @@ response = client.search_decisions(limit=20)
 
 document_found = False
 for decision in response.petition_decision_data_bag:
-    d = client.get_decision_by_id(
-        decision.petition_decision_record_identifier, include_documents=True
-    )
+    d = client.get_decision_by_id(decision.petition_decision_record_identifier)
     print(
         f"Getting docs for patent: {d.invention_title} with id: {d.petition_decision_record_identifier}"
     )  # type: ignore

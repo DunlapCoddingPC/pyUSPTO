@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `typing-extensions` is no longer a dependency; `Self` is imported from `typing` directly.
 - **Breaking:** `PetitionDecision.decision_type_code`, `decision_type_code_description_text`, and `last_ingestion_datetime`, and `search_decisions(decision_type_code_q=...)`. USPTO ODP Release 5.0 replaced `decisionTypeCode` with `decidedPetitionTypeCode`, and the API sends `lastModifiedDateTime` instead of `lastIngestionDateTime`, so these were always `None` and the filter never matched. Use the new fields under Added.
 - **Breaking:** `PetitionDecisionDocument.direction_category` and the `DocumentDirectionCategory` enum. Petition decision documents have no `directionCategory` (0 of 1,116,161 decisions), so the attribute was always `None`.
+- **Breaking:** the `include_documents` parameter of `get_decision_by_id` on both petition clients. The API returns a decision's documents without it.
 
 ### Fixed
 
@@ -40,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `paginate_decisions` repeated and skipped decisions (about 1 in 5) because the API orders tied records differently on each request. It now appends `petitionDecisionRecordIdentifier asc` to the sort.
 - Docstring examples that failed against the API: a top-level `limit` in POST bodies (petitions, PTAB appeals, PTAB interferences), an unknown `download_decisions` argument, dead decision IDs, a string `fields` in the `paginate_applications` POST body, and PTAB queries on field names the API doesn't have.
 - Documented the `filters` syntax for petition and PTAB searches: `"field value"` with a space, not a colon (the API rejects the colon form), and PTAB field names are nested (e.g. `decisionData.decisionTypeCategory`). Unit tests now use valid filter strings.
+- `get_decision_by_id(..., include_documents=...)` returned an unrelated decision, with only a `USPTODataMismatchWarning`: any query parameter on that endpoint, including the documented `includeDocuments`, makes the API ignore the ID.
 
 ## [0.5.5] - 2026-07-22
 
