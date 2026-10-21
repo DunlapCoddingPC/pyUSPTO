@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DecisionTypeCode` now covers all four decided types: `GRANTED` (`A`), `GRANTED_IN_PART` (`B`), `DENIED` (`C`), and `DISMISSED` (`D`).
 - **Breaking:** `PetitionDecision.decision_petition_type_code` is now a `str`, matching the API.
 - `DocumentMimeType` is now a `StrEnum`. `str()` and f-strings return the value (`"PDF"`) instead of `"DocumentMimeType.PDF"`. Equality with plain strings and `.value` are unchanged.
+- `PetitionDecisionsClient.search_decisions(sort=...)` accepts a list of sort keys, sent as repeated `sort` parameters (the API rejects comma-joined keys).
 
 ### Removed
 
@@ -36,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `petition_decisions_example.py` no longer fails when rerun (its document download now passes `overwrite=True`), and its pagination example prints each decision under a page header.
 - Pagination (`paginate_*` on every client) requested one page past the end, and failed with a 404, when the total number of results was an exact multiple of the page size.
 - POST pagination in `paginate_applications`, `paginate_decisions` (petitions, PTAB appeals, PTAB interferences), and `paginate_proceedings` failed with a 400 unless `post_body` already had a `pagination` dict, because the API rejects top-level `offset`/`limit`. Offset and limit now always go in `post_body["pagination"]`, and a top-level `limit` raises `ValueError`.
+- `paginate_decisions` repeated and skipped decisions (about 1 in 5) because the API orders tied records differently on each request. It now appends `petitionDecisionRecordIdentifier asc` to the sort.
 
 ## [0.5.5] - 2026-07-22
 

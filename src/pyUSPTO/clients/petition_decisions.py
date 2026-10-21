@@ -42,6 +42,10 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
     # Subclasses set this to scope the client to a subset of decisions.
     FIXED_FILTERS: ClassVar[dict[str, str]] = {}
 
+    # Paginated sorts end on this unique field: the API orders tied records
+    # differently on each request, so offset pages would repeat and skip decisions.
+    TIEBREAK_SORT_FIELD: ClassVar[str] = "petitionDecisionRecordIdentifier"
+
     def __init__(
         self,
         config: USPTOConfig | None = None,
@@ -141,7 +145,7 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
     def search_decisions(
         self,
         query: str | None = None,
-        sort: str | None = None,
+        sort: str | list[str] | None = None,
         offset: int | None = 0,
         limit: int | None = 25,
         facets: str | None = None,
@@ -173,7 +177,8 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
 
         Args:
             query: Direct query string in USPTO search syntax.
-            sort: Sort order for results.
+            sort: Sort as "field order", e.g. "decisionDate desc". A list sends one
+                sort parameter per key; the API rejects comma-joined keys.
             offset: Number of records to skip (pagination).
             limit: Maximum number of records to return.
             facets: Facet configuration string.
@@ -548,8 +553,13 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         This method simplifies fetching all petition decisions matching a search query
         by automatically handling pagination. Supports both GET and POST requests.
 
-        The offset and limit parameters are managed by the pagination logic;
-        setting them directly in kwargs or post_body might lead to unexpected behavior.
+        The offset is managed by the pagination logic. Set the page size with
+        ``limit`` (GET) or ``post_body["pagination"]["limit"]`` (POST).
+
+        Results are sorted on ``petitionDecisionRecordIdentifier`` last, ascending
+        unless your sort already includes it. The API orders tied records
+        differently on each request, so pages would otherwise repeat and skip
+        decisions.
 
         Args:
             post_body: Optional POST body for complex search queries
@@ -565,15 +575,30 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             >>> for decision in client.paginate_decisions(technology_center_q="1700"):
             ...     print(f"{decision.application_number_text}: {decision.decided_petition_type_code}")
 
-            # POST pagination with date range
+            # POST pagination with a date range
             >>> for decision in client.paginate_decisions(
-            ...     post_body={
-            ...         "decision_date_from_q": "2023-01-01",
-            ...         "decision_date_to_q": "2023-12-31"
-            ...     }
+            ...     post_body={"q": "decisionDate:[2023-01-01 TO 2023-12-31]"}
             ... ):
             ...     process_decision(decision)
         """
+        field = self.TIEBREAK_SORT_FIELD
+        if post_body is not None:
+            body_sort = post_body.get("sort") or []
+            if not any(key.get("field") == field for key in body_sort):
+                post_body = {
+                    **post_body,
+                    "sort": [*body_sort, {"field": field, "order": "asc"}],
+                }
+        else:
+            caller_sort = kwargs.get("sort")
+            sort_keys = (
+                [caller_sort]
+                if isinstance(caller_sort, str)
+                else list(caller_sort or [])
+            )
+            if not any(key.split(" ", 1)[0] == field for key in sort_keys):
+                sort_keys.append(f"{field} asc")
+            kwargs["sort"] = sort_keys
         return self.paginate_results(
             method_name="search_decisions",
             response_container_attr="petition_decision_data_bag",
