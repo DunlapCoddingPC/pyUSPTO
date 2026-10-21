@@ -128,7 +128,10 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
 
             # Search with POST body
             >>> response = client.search_decisions(
-            ...     post_body={"q": "decisionTypeCategory:Final Decision", "limit": 100}
+            ...     post_body={
+            ...         "q": 'documentData.interferenceOutcomeCategory:"Final Decision"',
+            ...         "pagination": {"limit": 100},
+            ...     }
             ... )
         """
         endpoint = self.ENDPOINTS["search_decisions"]
