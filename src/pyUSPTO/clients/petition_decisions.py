@@ -217,7 +217,7 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
 
             # Search with POST body
             >>> response = client.search_decisions(
-            ...     post_body={"q": "technologyCenter:1700", "limit": 100}
+            ...     post_body={"q": "technologyCenter:1700", "pagination": {"limit": 100}}
             ... )
         """
         endpoint = self.ENDPOINTS["search_decisions"]
@@ -349,12 +349,12 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         Examples:
             # Get decision without documents
             >>> decision = client.get_decision_by_id(
-            ...     "9f1a4a2b-eee1-58ec-a3aa-167c4075aed4"
+            ...     "1a552446-1d2b-570a-9bb6-b4fef39b0a91"
             ... )
 
             # Get decision with documents
             >>> decision = client.get_decision_by_id(
-            ...     "34044333-4b40-515f-a684-2515325c57c5",
+            ...     "1a552446-1d2b-570a-9bb6-b4fef39b0a91",
             ...     include_documents=True
             ... )
         """
@@ -438,7 +438,7 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             # Download as JSON
             >>> download = client.download_decisions(
             ...     format="json",
-            ...     technology_center_q="1700",
+            ...     query="technologyCenter:1700",
             ...     limit=1000
             ... )
             >>> for decision in download.petition_decision_data:
@@ -634,7 +634,7 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         Examples:
             # Download first document from a decision
             >>> decision = client.get_decision_by_id(
-            ...     "34044333-4b40-515f-a684-2515325c57c5",
+            ...     "1a552446-1d2b-570a-9bb6-b4fef39b0a91",
             ...     include_documents=True
             ... )
             >>> if decision.document_bag:

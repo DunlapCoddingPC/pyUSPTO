@@ -124,7 +124,10 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
 
             # Search with POST body
             >>> response = client.search_decisions(
-            ...     post_body={"q": "decisionTypeCategory:Affirmed", "limit": 100}
+            ...     post_body={
+            ...         "q": "decisionData.appealOutcomeCategory:Affirmed",
+            ...         "pagination": {"limit": 100},
+            ...     }
             ... )
         """
         endpoint = self.ENDPOINTS["search_decisions"]
@@ -253,7 +256,10 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
 
             # POST-based pagination
             >>> for decision in client.paginate_decisions(
-            ...     post_body={"q": "decisionTypeCategory:Affirmed", "limit": 100}
+            ...     post_body={
+            ...         "q": "decisionData.appealOutcomeCategory:Affirmed",
+            ...         "pagination": {"limit": 100},
+            ...     }
             ... ):
             ...     process_decision(decision)
         """

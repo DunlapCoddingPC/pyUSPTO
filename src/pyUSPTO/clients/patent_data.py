@@ -1057,8 +1057,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             for wrapper in client.paginate_applications(
                 post_body={
                     "q": "applicationNumberText:16*",
-                    "facets": "true",
-                    "fields": "applicationNumberText,applicationMetaData"
+                    "fields": ["applicationNumberText", "applicationMetaData"]
                 }
             ):
                 print(wrapper.application_number_text)
