@@ -335,44 +335,35 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
     def get_decision_by_id(
         self,
         petition_decision_record_identifier: str,
-        include_documents: bool | None = None,
     ) -> PetitionDecision | None:
         """Retrieve a specific petition decision by its record identifier.
+
+        The decision's documents are included. The request sends no query
+        parameters: with any present, including the documented
+        ``includeDocuments``, the API ignores the identifier and returns
+        unrelated decisions.
 
         Args:
             petition_decision_record_identifier: The unique identifier for the petition
                 decision record (UUID format).
-            include_documents: Whether to include associated documents in the response.
-                If True, adds includeDocuments=true query parameter.
 
         Returns:
             Optional[PetitionDecision]: The petition decision if found, None otherwise.
 
         Examples:
-            # Get decision without documents
             >>> decision = client.get_decision_by_id(
             ...     "1a552446-1d2b-570a-9bb6-b4fef39b0a91"
-            ... )
-
-            # Get decision with documents
-            >>> decision = client.get_decision_by_id(
-            ...     "1a552446-1d2b-570a-9bb6-b4fef39b0a91",
-            ...     include_documents=True
             ... )
         """
         endpoint = self.ENDPOINTS["get_decision_by_id"].format(
             petitionDecisionRecordIdentifier=petition_decision_record_identifier
         )
 
-        params = {}
-        if include_documents is not None:
-            params["includeDocuments"] = str(include_documents).lower()
-
         response_data = self._get_model(
             method="GET",
             endpoint=endpoint,
             response_class=PetitionDecisionResponse,
-            params=params if params else None,
+            params=None,
         )
         return self._get_decision_from_response(
             response_data=response_data,
@@ -638,8 +629,7 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         Examples:
             # Download first document from a decision
             >>> decision = client.get_decision_by_id(
-            ...     "1a552446-1d2b-570a-9bb6-b4fef39b0a91",
-            ...     include_documents=True
+            ...     "1a552446-1d2b-570a-9bb6-b4fef39b0a91"
             ... )
             >>> if decision.document_bag:
             ...     doc = decision.document_bag[0]
@@ -680,21 +670,17 @@ class FinalPetitionDecisionsClient(PetitionDecisionsClient):
     def get_decision_by_id(
         self,
         petition_decision_record_identifier: str,
-        include_documents: bool | None = None,
     ) -> PetitionDecision | None:
         """Retrieve a final petition decision by its record identifier.
 
         Args:
             petition_decision_record_identifier: The unique identifier for the petition
                 decision record (UUID format).
-            include_documents: Whether to include associated documents in the response.
 
         Returns:
             Optional[PetitionDecision]: The decision if found and final, None otherwise.
         """
-        decision = super().get_decision_by_id(
-            petition_decision_record_identifier, include_documents=include_documents
-        )
+        decision = super().get_decision_by_id(petition_decision_record_identifier)
         if decision is None or decision.final_petition_decision_indicator is not True:
             return None
         return decision

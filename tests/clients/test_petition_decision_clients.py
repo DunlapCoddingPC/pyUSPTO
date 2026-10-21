@@ -523,26 +523,6 @@ class TestPetitionDecisionsClientGetById:
         assert result is not None
         assert result.petition_decision_record_identifier == record_id
 
-    def test_get_decision_by_id_with_documents(
-        self,
-        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
-        mock_petition_response_with_data: PetitionDecisionResponse,
-    ) -> None:
-        """Test retrieving decision by ID with includeDocuments parameter."""
-        client, mock_get_model = client_with_mocked_request
-        mock_get_model.return_value = mock_petition_response_with_data
-
-        record_id = "9f1a4a2b-eee1-58ec-a3aa-167c4075aed4"
-        result = client.get_decision_by_id(record_id, include_documents=True)
-
-        mock_get_model.assert_called_once_with(
-            method="GET",
-            endpoint=f"api/v1/petition/decisions/{record_id}",
-            params={"includeDocuments": "true"},
-            response_class=PetitionDecisionResponse,
-        )
-        assert result is not None
-
     def test_get_decision_by_id_not_found(
         self,
         client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
@@ -1596,19 +1576,19 @@ class TestFinalPetitionDecisionsClient:
         ],
         mock_final_petition_decision: PetitionDecision,
     ) -> None:
-        """Test a final decision is returned and include_documents is forwarded."""
+        """Test a final decision looked up by ID is returned."""
         client, mock_get_model = final_client_with_mocked_request
         mock_get_model.return_value = PetitionDecisionResponse(
             count=1, petition_decision_data_bag=[mock_final_petition_decision]
         )
         record_id = "1a552446-1d2b-570a-9bb6-b4fef39b0a91"
 
-        result = client.get_decision_by_id(record_id, include_documents=True)
+        result = client.get_decision_by_id(record_id)
 
         mock_get_model.assert_called_once_with(
             method="GET",
             endpoint=f"api/v1/petition/decisions/{record_id}",
-            params={"includeDocuments": "true"},
+            params=None,
             response_class=PetitionDecisionResponse,
         )
         assert result is mock_final_petition_decision

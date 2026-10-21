@@ -18,7 +18,6 @@ from pyUSPTO.exceptions import USPTOApiError, USPTOApiNotFoundError
 from pyUSPTO.models.petition_decisions import (
     DecisionTypeCode,
     PetitionDecision,
-    PetitionDecisionDocument,
     PetitionDecisionDownloadResponse,
     PetitionDecisionResponse,
 )
@@ -617,44 +616,34 @@ class TestPetitionDecisionsIntegration:
         assert len(set(ids)) == 246
 
     def test_decision_with_documents_and_download(
-        self,
-        petition_decisions_client: PetitionDecisionsClient,
-        sample_petition_decision_id: str,
+        self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
-        """Test retrieving a decision with documents and downloading them."""
-        try:
-            # Get decision with documents
-            response = petition_decisions_client.get_decision_by_id(
-                petition_decision_record_identifier=sample_petition_decision_id,
-                include_documents=True,
-            )
+        """Test a lookup by ID returns the decision's documents and the PDF downloads."""
+        decision_id = "1a552446-1d2b-570a-9bb6-b4fef39b0a91"
+        decision = petition_decisions_client.get_decision_by_id(decision_id)
 
-            assert response is not None
-            assert isinstance(response, PetitionDecision)
+        assert isinstance(decision, PetitionDecision)
+        assert decision.petition_decision_record_identifier == decision_id
+        assert decision.application_number_text == "17765301"
+        assert [
+            (doc.document_identifier, doc.document_code)
+            for doc in decision.document_bag
+        ] == [("M6ATX5A7WFYBX90", "PPH.DECISION")]
+        options = decision.document_bag[0].download_option_bag
+        assert [opt.mime_type_identifier for opt in options] == [
+            "PDF",
+            "PNG",
+            "XML",
+            "MS_WORD",
+        ]
+        assert options[0].page_total_quantity == 3
 
-            if response and response.document_bag and len(response.document_bag) > 0:
-                doc = response.document_bag[0]
-                assert isinstance(doc, PetitionDecisionDocument)
-                assert doc.document_identifier is not None
+        file_path = petition_decisions_client.download_petition_document(
+            options[0], destination=TEST_DOWNLOAD_DIR, overwrite=True
+        )
 
-                # If document has download options, test downloading
-                if doc.download_option_bag and len(doc.download_option_bag) > 0:
-                    download_option = doc.download_option_bag[0]
-                    if download_option.download_url:
-                        file_path = (
-                            petition_decisions_client.download_petition_document(
-                                download_option, destination=TEST_DOWNLOAD_DIR
-                            )
-                        )
-
-                        assert file_path is not None
-                        assert os.path.exists(file_path)
-                        assert os.path.getsize(file_path) > 0
-            else:
-                pytest.fail("No decisions with documents found")
-
-        except USPTOApiError as e:
-            pytest.fail(f"Document retrieval test failed with API error: {e}")
+        assert os.path.basename(file_path) == "M6ATX5A7WFYBX90.pdf"
+        assert os.path.getsize(file_path) == 98682
 
     def test_search_decisions_with_multiple_params(
         self, petition_decisions_client: PetitionDecisionsClient
