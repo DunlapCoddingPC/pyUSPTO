@@ -299,7 +299,7 @@ class TestPTABTrialsClientSearchProceedings:
             limit=50,
             facets="trialTypeCode",
             fields="trialNumber,petitionFilingDate",
-            filters="trialStatusCategory:Instituted",
+            filters="trialMetaData.trialStatusCategory Pending",
             range_filters="petitionFilingDate:[2023-01-01 TO 2023-12-31]",
             additional_query_params={"customParam": "value"},
         )
@@ -313,7 +313,7 @@ class TestPTABTrialsClientSearchProceedings:
         assert params["limit"] == 50
         assert params["facets"] == "trialTypeCode"
         assert params["fields"] == "trialNumber,petitionFilingDate"
-        assert params["filters"] == "trialStatusCategory:Instituted"
+        assert params["filters"] == "trialMetaData.trialStatusCategory Pending"
         assert params["rangeFilters"] == "petitionFilingDate:[2023-01-01 TO 2023-12-31]"
         assert params["customParam"] == "value"
 
@@ -539,7 +539,7 @@ class TestPTABTrialsClientSearchDocuments:
             limit=50,
             facets="documentCategory",
             fields="trialNumber,filingDate",
-            filters="documentCategory:Paper",
+            filters="documentData.documentCategory Paper",
             range_filters="filingDate:[2023-01-01 TO 2023-12-31]",
             additional_query_params={"customParam": "value"},
         )
@@ -553,7 +553,7 @@ class TestPTABTrialsClientSearchDocuments:
         assert params["limit"] == 50
         assert params["facets"] == "documentCategory"
         assert params["fields"] == "trialNumber,filingDate"
-        assert params["filters"] == "documentCategory:Paper"
+        assert params["filters"] == "documentData.documentCategory Paper"
         assert params["rangeFilters"] == "filingDate:[2023-01-01 TO 2023-12-31]"
         assert params["customParam"] == "value"
 
@@ -782,7 +782,7 @@ class TestPTABTrialsClientSearchDecisions:
             limit=50,
             facets="decisionTypeCategory",
             fields="trialNumber,decisionDate",
-            filters="decisionTypeCategory:Final Written Decision",
+            filters="decisionData.decisionTypeCategory Decision",
             range_filters="decisionDate:[2023-01-01 TO 2023-12-31]",
             additional_query_params={"customParam": "value"},
         )
@@ -796,7 +796,7 @@ class TestPTABTrialsClientSearchDecisions:
         assert params["limit"] == 50
         assert params["facets"] == "decisionTypeCategory"
         assert params["fields"] == "trialNumber,decisionDate"
-        assert params["filters"] == "decisionTypeCategory:Final Written Decision"
+        assert params["filters"] == "decisionData.decisionTypeCategory Decision"
         assert params["rangeFilters"] == "decisionDate:[2023-01-01 TO 2023-12-31]"
         assert params["customParam"] == "value"
 

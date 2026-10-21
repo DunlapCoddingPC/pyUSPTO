@@ -469,7 +469,7 @@ class TestPetitionDecisionsClientSearch:
             sort="decisionDate desc",
             facets="technologyCenter",
             fields="applicationNumberText,patentNumber",
-            filters="decidedPetitionTypeCode:A",
+            filters="decidedPetitionTypeCode A",
             range_filters="decisionDate:[2020 TO 2024]",
         )
 
@@ -478,7 +478,7 @@ class TestPetitionDecisionsClientSearch:
         assert params["sort"] == "decisionDate desc"
         assert params["facets"] == "technologyCenter"
         assert params["fields"] == "applicationNumberText,patentNumber"
-        assert params["filters"] == "decidedPetitionTypeCode:A"
+        assert params["filters"] == "decidedPetitionTypeCode A"
         assert params["rangeFilters"] == "decisionDate:[2020 TO 2024]"
 
     def test_search_with_additional_query_params(
@@ -736,7 +736,7 @@ class TestPetitionDecisionsClientDownload:
             query="test",
             sort="decisionDate desc",
             fields="applicationNumberText",
-            filters="decidedPetitionTypeCode:A",
+            filters="decidedPetitionTypeCode A",
             range_filters="decisionDate:[2020 TO 2024]",
         )
 
@@ -744,7 +744,7 @@ class TestPetitionDecisionsClientDownload:
         params = call_args[1]["params"]
         assert params["sort"] == "decisionDate desc"
         assert params["fields"] == "applicationNumberText"
-        assert params["filters"] == "decidedPetitionTypeCode:A"
+        assert params["filters"] == "decidedPetitionTypeCode A"
         assert params["rangeFilters"] == "decisionDate:[2020 TO 2024]"
 
     def test_download_with_offset_and_limit(

@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - POST pagination in `paginate_applications`, `paginate_decisions` (petitions, PTAB appeals, PTAB interferences), and `paginate_proceedings` failed with a 400 unless `post_body` already had a `pagination` dict, because the API rejects top-level `offset`/`limit`. Offset and limit now always go in `post_body["pagination"]`, and a top-level `limit` raises `ValueError`.
 - `paginate_decisions` repeated and skipped decisions (about 1 in 5) because the API orders tied records differently on each request. It now appends `petitionDecisionRecordIdentifier asc` to the sort.
 - Docstring examples that failed against the API: a top-level `limit` in POST bodies (petitions, PTAB appeals, PTAB interferences), an unknown `download_decisions` argument, dead decision IDs, a string `fields` in the `paginate_applications` POST body, and PTAB queries on field names the API doesn't have.
+- Documented the `filters` syntax for petition and PTAB searches: `"field value"` with a space, not a colon (the API rejects the colon form), and PTAB field names are nested (e.g. `decisionData.decisionTypeCategory`). Unit tests now use valid filter strings.
 
 ## [0.5.5] - 2026-07-22
 

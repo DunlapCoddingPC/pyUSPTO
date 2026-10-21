@@ -288,7 +288,7 @@ class TestPTABAppealsClientSearchDecisions:
             limit=50,
             facets="technologyCenterNumber",
             fields="appealNumber,decisionDate",
-            filters="decisionTypeCategory:Affirmed",
+            filters="decisionData.decisionTypeCategory Decision",
             range_filters="decisionData.decisionIssueDate:[2023-01-01 TO 2023-12-31]",
         )
 
@@ -301,7 +301,7 @@ class TestPTABAppealsClientSearchDecisions:
         assert params["limit"] == 50
         assert params["facets"] == "technologyCenterNumber"
         assert params["fields"] == "appealNumber,decisionDate"
-        assert params["filters"] == "decisionTypeCategory:Affirmed"
+        assert params["filters"] == "decisionData.decisionTypeCategory Decision"
         assert (
             params["rangeFilters"]
             == "decisionData.decisionIssueDate:[2023-01-01 TO 2023-12-31]"
