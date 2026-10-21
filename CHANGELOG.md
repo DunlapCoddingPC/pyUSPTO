@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit tests no longer depend on `USPTO_*` variables set in the developer's shell. An autouse fixture in `tests/conftest.py` clears every variable `USPTOConfig` reads (`USPTO_API_KEY`, the `USPTO_*_BASE_URL` variables, and the HTTP-setting variables such as `USPTO_REQUEST_TIMEOUT`) before each unit test.
 - `petition_decisions_example.py` no longer fails when rerun (its document download now passes `overwrite=True`), and its pagination example prints each decision under a page header.
 - Pagination (`paginate_*` on every client) requested one page past the end, and failed with a 404, when the total number of results was an exact multiple of the page size.
+- POST pagination in `paginate_applications`, `paginate_decisions` (petitions, PTAB appeals, PTAB interferences), and `paginate_proceedings` failed with a 400 unless `post_body` already had a `pagination` dict, because the API rejects top-level `offset`/`limit`. Offset and limit now always go in `post_body["pagination"]`, and a top-level `limit` raises `ValueError`.
 
 ## [0.5.5] - 2026-07-22
 

@@ -1424,7 +1424,7 @@ class TestFinalPetitionDecisionsClient:
         caller_filters = [{"name": "technologyCenter", "value": ["1700"]}]
         post_body: dict[str, Any] = {
             "q": "decidedPetitionTypeCode:C",
-            "limit": 2,
+            "pagination": {"limit": 2},
             "filters": caller_filters,
         }
 
@@ -1442,8 +1442,7 @@ class TestFinalPetitionDecisionsClient:
                 response_class=PetitionDecisionResponse,
                 json_data={
                     "q": "decidedPetitionTypeCode:C",
-                    "limit": 2,
-                    "offset": offset,
+                    "pagination": {"limit": 2, "offset": offset},
                     "filters": [
                         {"name": "technologyCenter", "value": ["1700"]},
                         {"name": "finalPetitionDecisionIndicator", "value": ["true"]},
@@ -1455,7 +1454,7 @@ class TestFinalPetitionDecisionsClient:
         ]
         assert post_body == {
             "q": "decidedPetitionTypeCode:C",
-            "limit": 2,
+            "pagination": {"limit": 2},
             "filters": [{"name": "technologyCenter", "value": ["1700"]}],
         }
         assert post_body["filters"] is caller_filters
