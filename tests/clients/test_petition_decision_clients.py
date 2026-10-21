@@ -917,6 +917,32 @@ class TestPetitionDecisionsClientPagination:
         }
         assert post_body["sort"] is caller_sort
 
+    def test_paginate_post_keeps_caller_record_id_sort(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_final_decision_pages: list[PetitionDecisionResponse],
+    ) -> None:
+        """Test a POST sort already on the record ID gets no duplicate key."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.side_effect = mock_final_decision_pages
+        post_body: dict[str, Any] = {
+            "q": "q",
+            "sort": [{"field": "petitionDecisionRecordIdentifier", "order": "desc"}],
+            "pagination": {"limit": 2},
+        }
+
+        list(client.paginate_decisions(post_body=post_body))
+
+        expected_sort = [{"field": "petitionDecisionRecordIdentifier", "order": "desc"}]
+        assert [
+            c.kwargs["json_data"]["sort"] for c in mock_get_model.call_args_list
+        ] == [expected_sort, expected_sort]
+        assert post_body == {
+            "q": "q",
+            "sort": [{"field": "petitionDecisionRecordIdentifier", "order": "desc"}],
+            "pagination": {"limit": 2},
+        }
+
     def test_search_decisions_sends_sort_list(
         self,
         client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
