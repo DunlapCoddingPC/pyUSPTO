@@ -419,7 +419,7 @@ class BaseUSPTOClient(Generic[T]):
         *,
         offset_key: str,
         limit_key: str,
-        supports_nested_pagination: bool = True,
+        nested_pagination: bool,
         **kwargs: Any,
     ) -> Generator[Any, None, None]:
         """Core pagination loop parameterized on key names.
@@ -430,37 +430,35 @@ class BaseUSPTOClient(Generic[T]):
             post_body: Optional POST body for POST-based pagination
             offset_key: Key name for the position parameter (e.g. "offset" or "start")
             limit_key: Key name for the page-size parameter (e.g. "limit" or "rows")
-            supports_nested_pagination: Whether to check for a nested
-                ``post_body["pagination"]`` dict. Set to False for Solr-style APIs.
+            nested_pagination: Whether POST pagination keys go in a nested
+                ``post_body["pagination"]`` dict (offset/limit APIs, which reject
+                top-level keys with 400) or at the top level (Solr-style APIs).
             **kwargs: Keyword arguments to pass to the method (for GET pagination)
 
         Yields:
             Items from the response container
         """
-        # Determine if POST body uses nested pagination structure
-        uses_nested_pagination = False
-        if supports_nested_pagination and post_body is not None:
-            uses_nested_pagination = "pagination" in post_body and isinstance(
-                post_body["pagination"], dict
-            )
-
         # Validate that the position key is not provided by the user
         if post_body is not None:
-            if uses_nested_pagination:
-                # Check nested pagination object
-                if offset_key in post_body["pagination"]:
+            if offset_key in post_body:
+                raise ValueError(
+                    f"Cannot specify '{offset_key}' in post_body. "
+                    f"Pagination manages {offset_key} automatically."
+                )
+            if nested_pagination:
+                if limit_key in post_body:
+                    raise ValueError(
+                        f"Set '{limit_key}' in post_body['pagination']; "
+                        "the API rejects top-level pagination keys."
+                    )
+                pagination = post_body.get("pagination") or {}
+                if offset_key in pagination:
                     raise ValueError(
                         f"Cannot specify '{offset_key}' in post_body['pagination']. "
                         f"Pagination manages {offset_key} automatically."
                     )
-                limit = post_body["pagination"].get(limit_key, 25)
+                limit = pagination.get(limit_key, 25)
             else:
-                # Check top-level
-                if offset_key in post_body:
-                    raise ValueError(
-                        f"Cannot specify '{offset_key}' in post_body. "
-                        f"Pagination manages {offset_key} automatically."
-                    )
                 limit = post_body.get(limit_key, 25)
         else:
             if offset_key in kwargs:
@@ -478,11 +476,13 @@ class BaseUSPTOClient(Generic[T]):
                 # POST request: update body with pagination params
                 current_body = post_body.copy()
 
-                if uses_nested_pagination:
-                    # Update nested pagination object
-                    current_body["pagination"] = current_body["pagination"].copy()
-                    current_body["pagination"][offset_key] = offset
-                    current_body["pagination"][limit_key] = limit
+                if nested_pagination:
+                    # Build a new nested pagination object, creating it if absent
+                    current_body["pagination"] = {
+                        **(current_body.get("pagination") or {}),
+                        offset_key: offset,
+                        limit_key: limit,
+                    }
                 else:
                     # Update top-level pagination params
                     current_body[offset_key] = offset
@@ -549,8 +549,10 @@ class BaseUSPTOClient(Generic[T]):
         Args:
             method_name: Name of the method to call
             response_container_attr: Attribute name of the container in the response
-            post_body: Optional POST body for POST-based pagination. If provided,
-                pagination parameters (offset, limit) will be injected into this body.
+            post_body: Optional POST body for POST-based pagination. Pagination
+                parameters (offset, limit) are sent in ``post_body["pagination"]``,
+                which is created if absent. Set the page size there, as
+                ``{"pagination": {"limit": 50}}``; the API rejects top-level keys.
             **kwargs: Keyword arguments to pass to the method (for GET pagination)
 
         Yields:
@@ -558,7 +560,8 @@ class BaseUSPTOClient(Generic[T]):
 
         Raises:
             ValueError: If offset is provided in kwargs or post_body (offset is managed
-                automatically by pagination)
+                automatically by pagination), or limit is set at the top level of
+                post_body
 
         Examples:
             # GET pagination
@@ -573,7 +576,7 @@ class BaseUSPTOClient(Generic[T]):
             for app in client.paginate_results(
                 "search_applications",
                 "patent_file_wrapper_data_bag",
-                post_body={"q": "test", "limit": 50}
+                post_body={"q": "test", "pagination": {"limit": 50}}
             ):
                 print(app)
         """
@@ -583,7 +586,7 @@ class BaseUSPTOClient(Generic[T]):
             post_body=post_body,
             offset_key="offset",
             limit_key="limit",
-            supports_nested_pagination=True,
+            nested_pagination=True,
             **kwargs,
         )
 
@@ -629,7 +632,7 @@ class BaseUSPTOClient(Generic[T]):
             post_body=post_body,
             offset_key="start",
             limit_key="rows",
-            supports_nested_pagination=False,
+            nested_pagination=False,
             **kwargs,
         )
 

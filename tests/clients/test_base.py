@@ -799,38 +799,30 @@ class TestBaseUSPTOClient:
         assert "offset" not in second_body
         assert "limit" not in second_body
 
-    def test_paginate_results_with_flat_pagination(
+    def test_paginate_results_nests_pagination_for_body_without_pagination(
         self, mock_session: MagicMock
     ) -> None:
-        """Test paginate_results still works with flat (top-level) pagination structure."""
-        # Setup client
+        """Test paginate_results adds a nested pagination dict when post_body has none."""
         client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
         client.config._session = mock_session
 
-        # Create mock responses
-        # First page: 2 items, total count shows there's only 1 item total (less than limit)
-        first_response = MagicMock()
-        first_response.count = 1  # Total count (triggers break since 1 <= 2 + 0)
-        first_response.items = ["item1"]
+        response = MagicMock()
+        response.count = 1  # Total count (1 <= 25 + 0, so a single page)
+        response.items = ["item1"]
 
         received_bodies: list[dict[str, Any]] = []
 
         def mock_test_method(
             post_body: dict[str, Any] | None = None, **kwargs: Any
         ) -> Any:
-            """Mock method that tracks POST body and returns appropriate response."""
+            """Mock method that records each POST body it receives."""
             if post_body:
-                received_bodies.append(post_body.copy())
-            return first_response
+                received_bodies.append(post_body)
+            return response
 
-        # Add the mock method to the client
         client.test_method = mock_test_method  # type: ignore[attr-defined]
 
-        # Test with flat (top-level) pagination structure
-        post_body = {
-            "q": "test query",
-            "limit": 2,  # Flat structure
-        }
+        post_body = {"q": "test query"}
 
         results = list(
             client.paginate_results(
@@ -840,16 +832,30 @@ class TestBaseUSPTOClient:
             )
         )
 
-        # Verify results
         assert results == ["item1"]
+        assert received_bodies == [
+            {"q": "test query", "pagination": {"offset": 0, "limit": 25}}
+        ]
+        # The caller's body is reused for every page, so it must not change
+        assert post_body == {"q": "test query"}
 
-        # Verify that pagination params were added at top-level
-        assert len(received_bodies) == 1
-        first_body = received_bodies[0]
-        assert first_body["offset"] == 0
-        assert first_body["limit"] == 2
-        # Should NOT have nested pagination
-        assert "pagination" not in first_body
+    def test_paginate_results_rejects_top_level_limit_in_post_body(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test that a top-level limit in post_body is rejected (the API returns 400)."""
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(base_url="https://api.test.com")
+        client.config._session = mock_session
+
+        post_body = {"q": "test", "limit": 50}
+
+        with pytest.raises(ValueError, match=r"post_body\['pagination'\]"):
+            list(
+                client.paginate_results(
+                    method_name="test_method",
+                    response_container_attr="items",
+                    post_body=post_body,
+                )
+            )
 
     def test_paginate_results_rejects_offset_in_nested_pagination(
         self, mock_session: MagicMock
