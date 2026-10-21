@@ -387,7 +387,7 @@ class TestPTABInterferencesClientSearchDecisions:
             limit=50,
             facets="interferenceOutcomeCategory",
             fields="interferenceNumber,decisionDate",
-            filters="decisionTypeCategory:Final Decision",
+            filters="documentData.decisionTypeCategory Decision",
             range_filters="decisionDate:[2023-01-01 TO 2023-12-31]",
         )
 
@@ -400,7 +400,7 @@ class TestPTABInterferencesClientSearchDecisions:
         assert params["limit"] == 50
         assert params["facets"] == "interferenceOutcomeCategory"
         assert params["fields"] == "interferenceNumber,decisionDate"
-        assert params["filters"] == "decisionTypeCategory:Final Decision"
+        assert params["filters"] == "documentData.decisionTypeCategory Decision"
         assert params["rangeFilters"] == "decisionDate:[2023-01-01 TO 2023-12-31]"
 
 
