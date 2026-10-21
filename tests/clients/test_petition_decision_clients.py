@@ -831,6 +831,131 @@ class TestPetitionDecisionsClientPagination:
         with pytest.raises(ValueError, match="Cannot specify 'offset'"):
             list(petition_client.paginate_decisions(query="test", offset=10))
 
+    def test_paginate_get_sorts_by_record_id_without_caller_sort(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_final_decision_pages: list[PetitionDecisionResponse],
+    ) -> None:
+        """Test GET pagination sorts by the unique record ID when no sort is given."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.side_effect = mock_final_decision_pages
+
+        list(client.paginate_decisions(query="decisionDate:2024-03-05", limit=2))
+
+        assert [c.kwargs["params"]["sort"] for c in mock_get_model.call_args_list] == [
+            ["petitionDecisionRecordIdentifier asc"],
+            ["petitionDecisionRecordIdentifier asc"],
+        ]
+
+    @pytest.mark.parametrize(
+        ("caller_sort", "expected_sort"),
+        [
+            (
+                "decisionDate desc",
+                ["decisionDate desc", "petitionDecisionRecordIdentifier asc"],
+            ),
+            (
+                ["decisionDate desc", "applicationNumberText asc"],
+                [
+                    "decisionDate desc",
+                    "applicationNumberText asc",
+                    "petitionDecisionRecordIdentifier asc",
+                ],
+            ),
+        ],
+    )
+    def test_paginate_get_appends_record_id_to_caller_sort(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_final_decision_pages: list[PetitionDecisionResponse],
+        caller_sort: str | list[str],
+        expected_sort: list[str],
+    ) -> None:
+        """Test GET pagination appends the record ID tiebreaker to the caller's sort."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.side_effect = mock_final_decision_pages
+        caller_sort_before = (
+            list(caller_sort) if isinstance(caller_sort, list) else caller_sort
+        )
+
+        list(client.paginate_decisions(query="q", sort=caller_sort, limit=2))
+
+        assert [c.kwargs["params"]["sort"] for c in mock_get_model.call_args_list] == [
+            expected_sort,
+            expected_sort,
+        ]
+        assert caller_sort == caller_sort_before
+
+    def test_paginate_get_keeps_caller_record_id_sort(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_final_decision_pages: list[PetitionDecisionResponse],
+    ) -> None:
+        """Test a caller sort already on the record ID gets no duplicate key."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.side_effect = mock_final_decision_pages
+
+        list(
+            client.paginate_decisions(
+                query="q", sort="petitionDecisionRecordIdentifier desc", limit=2
+            )
+        )
+
+        assert [c.kwargs["params"]["sort"] for c in mock_get_model.call_args_list] == [
+            ["petitionDecisionRecordIdentifier desc"],
+            ["petitionDecisionRecordIdentifier desc"],
+        ]
+
+    def test_paginate_post_appends_record_id_sort(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_final_decision_pages: list[PetitionDecisionResponse],
+    ) -> None:
+        """Test POST pagination appends the tiebreaker without changing the caller's body."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.side_effect = mock_final_decision_pages
+        caller_sort = [{"field": "decisionDate", "order": "desc"}]
+        post_body: dict[str, Any] = {
+            "q": "q",
+            "sort": caller_sort,
+            "pagination": {"limit": 2},
+        }
+
+        list(client.paginate_decisions(post_body=post_body))
+
+        expected_sort = [
+            {"field": "decisionDate", "order": "desc"},
+            {"field": "petitionDecisionRecordIdentifier", "order": "asc"},
+        ]
+        assert [
+            c.kwargs["json_data"]["sort"] for c in mock_get_model.call_args_list
+        ] == [expected_sort, expected_sort]
+        assert post_body == {
+            "q": "q",
+            "sort": [{"field": "decisionDate", "order": "desc"}],
+            "pagination": {"limit": 2},
+        }
+        assert post_body["sort"] is caller_sort
+
+    def test_search_decisions_sends_sort_list(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_petition_response_with_data: PetitionDecisionResponse,
+    ) -> None:
+        """Test a sort list is passed through for requests to repeat the sort param."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
+
+        client.search_decisions(
+            query="q",
+            sort=["decisionDate desc", "petitionDecisionRecordIdentifier asc"],
+        )
+
+        assert mock_get_model.call_args.kwargs["params"]["sort"] == [
+            "decisionDate desc",
+            "petitionDecisionRecordIdentifier asc",
+        ]
+
 
 class TestPetitionDecisionsClientDocumentDownload:
     """Tests for download_petition_document method."""
@@ -1363,6 +1488,7 @@ class TestFinalPetitionDecisionsClient:
                 response_class=PetitionDecisionResponse,
                 params={
                     "q": "technologyCenter:1700",
+                    "sort": ["petitionDecisionRecordIdentifier asc"],
                     "offset": offset,
                     "limit": 2,
                     "filters": ["finalPetitionDecisionIndicator true"],
@@ -1399,6 +1525,7 @@ class TestFinalPetitionDecisionsClient:
                 response_class=PetitionDecisionResponse,
                 params={
                     "q": "decidedPetitionTypeCode:C",
+                    "sort": ["petitionDecisionRecordIdentifier asc"],
                     "offset": offset,
                     "limit": 2,
                     "filters": [
@@ -1443,6 +1570,9 @@ class TestFinalPetitionDecisionsClient:
                 json_data={
                     "q": "decidedPetitionTypeCode:C",
                     "pagination": {"limit": 2, "offset": offset},
+                    "sort": [
+                        {"field": "petitionDecisionRecordIdentifier", "order": "asc"}
+                    ],
                     "filters": [
                         {"name": "technologyCenter", "value": ["1700"]},
                         {"name": "finalPetitionDecisionIndicator", "value": ["true"]},

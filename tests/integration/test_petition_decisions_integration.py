@@ -583,6 +583,39 @@ class TestPetitionDecisionsIntegration:
         except USPTOApiError as e:
             pytest.fail(f"Pagination test failed: {e}")
 
+    def test_paginate_decisions_get_yields_each_decision_once(
+        self, petition_decisions_client: PetitionDecisionsClient
+    ) -> None:
+        """Test GET pagination returns every decision exactly once."""
+        ids = [
+            d.petition_decision_record_identifier
+            for d in petition_decisions_client.paginate_decisions(
+                query="decisionDate:2024-03-05",
+                limit=50,
+                fields="petitionDecisionRecordIdentifier",
+            )
+        ]
+
+        assert len(ids) == 246
+        assert len(set(ids)) == 246
+
+    def test_paginate_decisions_post_yields_each_decision_once(
+        self, petition_decisions_client: PetitionDecisionsClient
+    ) -> None:
+        """Test POST pagination returns every decision exactly once."""
+        ids = [
+            d.petition_decision_record_identifier
+            for d in petition_decisions_client.paginate_decisions(
+                post_body={
+                    "q": "decisionDate:2024-03-05",
+                    "fields": ["petitionDecisionRecordIdentifier"],
+                }
+            )
+        ]
+
+        assert len(ids) == 246
+        assert len(set(ids)) == 246
+
     def test_decision_with_documents_and_download(
         self,
         petition_decisions_client: PetitionDecisionsClient,
