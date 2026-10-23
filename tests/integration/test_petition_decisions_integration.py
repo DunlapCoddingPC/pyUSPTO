@@ -586,34 +586,44 @@ class TestPetitionDecisionsIntegration:
         self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test GET pagination returns every decision exactly once."""
+        query = "decisionDate:2024-03-05"
+        # USPTO adds and removes decisions over time, so compare against the
+        # API's own total rather than a fixed number
+        total = petition_decisions_client.search_decisions(query=query, limit=1).count
+
         ids = [
             d.petition_decision_record_identifier
             for d in petition_decisions_client.paginate_decisions(
-                query="decisionDate:2024-03-05",
+                query=query,
                 limit=50,
                 fields="petitionDecisionRecordIdentifier",
             )
         ]
 
-        assert len(ids) == 246
-        assert len(set(ids)) == 246
+        assert len(ids) == total
+        assert len(set(ids)) == total
 
     def test_paginate_decisions_post_yields_each_decision_once(
         self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test POST pagination returns every decision exactly once."""
+        query = "decisionDate:2024-03-05"
+        # USPTO adds and removes decisions over time, so compare against the
+        # API's own total rather than a fixed number
+        total = petition_decisions_client.search_decisions(query=query, limit=1).count
+
         ids = [
             d.petition_decision_record_identifier
             for d in petition_decisions_client.paginate_decisions(
                 post_body={
-                    "q": "decisionDate:2024-03-05",
+                    "q": query,
                     "fields": ["petitionDecisionRecordIdentifier"],
                 }
             )
         ]
 
-        assert len(ids) == 246
-        assert len(set(ids)) == 246
+        assert len(ids) == total
+        assert len(set(ids)) == total
 
     def test_decision_with_documents_and_download(
         self, petition_decisions_client: PetitionDecisionsClient
