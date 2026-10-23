@@ -956,7 +956,7 @@ class TestHelperMethodsIntegration:
         result = patent_data_client.get_pct(self.KNOWN_PCT_APP_NUMBER)
 
         assert isinstance(result, PatentFileWrapper)
-        assert result.application_number_text == "PCTUS2547756"
+        assert result.application_number_text == "PCTUS2025047756"
         assert result.application_meta_data is not None
         assert result.application_meta_data.pct_publication_number == "WO2026044302"
 
@@ -967,7 +967,7 @@ class TestHelperMethodsIntegration:
         result = patent_data_client.get_pct(self.KNOWN_PCT_PUB_NUMBER)
 
         assert isinstance(result, PatentFileWrapper)
-        assert result.application_number_text == "PCTUS2547756"
+        assert result.application_number_text == "PCTUS2025047756"
         assert result.application_meta_data is not None
         assert result.application_meta_data.pct_publication_number == "WO2026044302"
 
