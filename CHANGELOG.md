@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docstring examples that failed against the API: a top-level `limit` in POST bodies (petitions, PTAB appeals, PTAB interferences), an unknown `download_decisions` argument, dead decision IDs, a string `fields` in the `paginate_applications` POST body, and PTAB queries on field names the API doesn't have.
 - Documented the `filters` syntax for petition and PTAB searches: `"field value"` with a space, not a colon (the API rejects the colon form), and PTAB field names are nested (e.g. `decisionData.decisionTypeCategory`). Unit tests now use valid filter strings.
 - `get_decision_by_id(..., include_documents=...)` returned an unrelated decision, with only a `USPTODataMismatchWarning`: any query parameter on that endpoint, including the documented `includeDocuments`, makes the API ignore the ID.
+- The contributor docs implied the development environment runs on Python 3.11, but its documentation tools (Sphinx 9.1) need 3.12+. `CONTRIBUTING.md` and the installation page now state 3.12+ as the development minimum.
 
 ## [0.5.5] - 2026-07-22
 
