@@ -217,6 +217,12 @@ class APIErrorArgs:
 
         try:
             error_data = http_error.response.json()
+        except ValueError:  # If response.json() fails (e.g., not JSON)
+            error_data = None  # Values remain None
+
+        # Only a JSON object carries the error fields; a list, string, or number
+        # falls through to the reason and text fallbacks below
+        if isinstance(error_data, dict):
             if status_code == 413:
                 api_short_error_from_response = error_data.get("message")
                 error_details_from_response = error_data.get("detailedMessage")
@@ -224,8 +230,6 @@ class APIErrorArgs:
                 api_short_error_from_response = error_data.get("error")
                 error_details_from_response = error_data.get("errorDetails")
             request_identifier_from_response = error_data.get("requestIdentifier")
-        except ValueError:  # If response.json() fails (e.g., not JSON)
-            pass  # Values remain None
 
         # Fallback for api_short_error if not found in JSON response
         if not api_short_error_from_response and http_error.response.reason:

@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documented the `filters` syntax for petition and PTAB searches: `"field value"` with a space, not a colon (the API rejects the colon form), and PTAB field names are nested (e.g. `decisionData.decisionTypeCategory`). Unit tests now use valid filter strings.
 - `get_decision_by_id(..., include_documents=...)` returned an unrelated decision, with only a `USPTODataMismatchWarning`: any query parameter on that endpoint, including the documented `includeDocuments`, makes the API ignore the ID.
 - The contributor docs implied the development environment runs on Python 3.11, but its documentation tools (Sphinx 9.1) need 3.12+. `CONTRIBUTING.md` and the installation page now state 3.12+ as the development minimum.
+- An API error whose JSON body isn't an object (a list, string, or number) raised `AttributeError` while the exception was being built. It now falls back to the HTTP reason and the response text, like any other body without error fields.
 
 ## [0.5.5] - 2026-07-22
 
