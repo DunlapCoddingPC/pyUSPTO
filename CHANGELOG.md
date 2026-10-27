@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Python 3.15 support.
 - `PetitionDecision` fields from USPTO ODP Release 5.0: `decided_petition_type_code`, `decided_petition_type_code_description_text`, `decision_mail_date`, `application_status_date`, `application_status_description_text`, `final_petition_decision_indicator`, `ocr_search_text`, `all_searchable_fields`, and `last_modified_date_time`. Also `decision_petition_type_code_description_text`, which the API returned but the model never read.
 - `PetitionDecisionsClient.search_decisions(decided_petition_type_code_q=...)` filters on `decidedPetitionTypeCode`.
+- `BaseUSPTOClient.paginate_results(count_is_total=False)` paginates APIs whose `count` is the size of the current page rather than the total.
 
 ### Changed
 
@@ -37,7 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `get_patent`, `get_publication`, `get_pct` (publication form), and the search-based branches of `get_IFW_metadata` now return `None` on no match, as documented. The search endpoint answers no-match with HTTP 404, which previously surfaced as `USPTOApiNotFoundError`.
 - Unit tests no longer depend on `USPTO_*` variables set in the developer's shell. An autouse fixture in `tests/conftest.py` clears every variable `USPTOConfig` reads (`USPTO_API_KEY`, the `USPTO_*_BASE_URL` variables, and the HTTP-setting variables such as `USPTO_REQUEST_TIMEOUT`) before each unit test.
 - `petition_decisions_example.py` no longer fails when rerun (its document download now passes `overwrite=True`), and its pagination example prints each decision under a page header.
-- Pagination (`paginate_*` on every client) requested one page past the end, and failed with a 404, when the total number of results was an exact multiple of the page size.
+- Pagination on clients whose `count` is the total (every client except bulk data) requested one page past the end when the total number of results was an exact multiple of the page size. The petition API answers that request with a 404.
+- `BulkDataClient.paginate_products` returned at most two pages of products (for example 20 of 47 with `limit=10`). The bulk data API's `count` is the size of the current page, not the total, so pagination now stops on a short page, or on the 404 the API returns past the last product.
 - POST pagination in `paginate_applications`, `paginate_decisions` (petitions, PTAB appeals, PTAB interferences), and `paginate_proceedings` failed with a 400 unless `post_body` already had a `pagination` dict, because the API rejects top-level `offset`/`limit`. Offset and limit now always go in `post_body["pagination"]`, and a top-level `limit` raises `ValueError`.
 - `paginate_decisions` repeated and skipped decisions (about 1 in 5) because the API orders tied records differently on each request. It now appends `petitionDecisionRecordIdentifier asc` to the sort.
 - Docstring examples that failed against the API: a top-level `limit` in POST bodies (petitions, PTAB appeals, PTAB interferences), an unknown `download_decisions` argument, dead decision IDs, a string `fields` in the `paginate_applications` POST body, and PTAB queries on field names the API doesn't have.

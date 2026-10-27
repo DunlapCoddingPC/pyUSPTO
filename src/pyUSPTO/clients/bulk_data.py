@@ -195,6 +195,10 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
     def paginate_products(self, **kwargs: Any) -> Iterator[BulkDataProduct]:
         """Paginate through all products matching the search criteria.
 
+        The bulk data API's ``count`` is the number of products in the current
+        page, not the total, so pagination stops on a short page, or on the 404
+        the API returns for a page past the last product.
+
         Args:
             **kwargs: Keyword arguments passed to search_products
 
@@ -204,6 +208,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         return self.paginate_results(
             method_name="search_products",
             response_container_attr="bulk_data_product_bag",
+            count_is_total=False,
             **kwargs,
         )
 
