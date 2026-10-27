@@ -39,7 +39,7 @@ if pat_no_ifw and pat_no_ifw.application_meta_data:
     print(f"  IFW found via patent number: {patent_number}")
 
 # Publication number
-publication_number = "*20150157873*"
+publication_number = "20150157873"
 pub_no_ifw = client.get_IFW_metadata(publication_number=publication_number)
 if pub_no_ifw and pub_no_ifw.application_meta_data:
     print(f"Title: {pub_no_ifw.application_meta_data.invention_title}")
