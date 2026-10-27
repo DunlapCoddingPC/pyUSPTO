@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `PetitionDecision.decision_petition_type_code` is now a `str`, matching the API.
 - `DocumentMimeType` is now a `StrEnum`. `str()` and f-strings return the value (`"PDF"`) instead of `"DocumentMimeType.PDF"`. Equality with plain strings and `.value` are unchanged.
 - `PetitionDecisionsClient.search_decisions(sort=...)` accepts a list of sort keys, sent as repeated `sort` parameters (the API rejects comma-joined keys).
+- **Breaking:** `paginate_*` methods yield nothing for a search with no matches instead of raising `USPTOApiNotFoundError` (the search endpoints answer no-match with HTTP 404), matching `get_patent` and the other single lookups. Code that caught that exception around a pagination loop can drop the `try`.
 
 ### Removed
 
