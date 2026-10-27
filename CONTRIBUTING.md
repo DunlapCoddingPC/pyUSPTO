@@ -31,6 +31,8 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e ".[dev]"
 ```
 
+> **Note:** The development environment requires Python 3.12+, because the documentation tools in the `dev` extra (Sphinx 9.1) don't support Python 3.11. The package itself supports Python 3.11+.
+
 ### Create a Branch
 
 ```bash

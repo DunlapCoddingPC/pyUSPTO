@@ -32,5 +32,11 @@ mode with the development dependencies:
    cd pyUSPTO
    pip install -e ".[dev]"
 
+.. note::
+
+   The development environment requires Python 3.12+, because the
+   documentation tools in the ``dev`` extra (Sphinx 9.1) don't support
+   Python 3.11. The package itself supports Python 3.11+.
+
 See the :doc:`contributing guidelines <development>` for the full development
 workflow, including running tests and linting.
