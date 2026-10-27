@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `get_decision_by_id(..., include_documents=...)` returned an unrelated decision, with only a `USPTODataMismatchWarning`: any query parameter on that endpoint, including the documented `includeDocuments`, makes the API ignore the ID.
 - The contributor docs implied the development environment runs on Python 3.11, but its documentation tools (Sphinx 9.1) need 3.12+. `CONTRIBUTING.md` and the installation page now state 3.12+ as the development minimum.
 - An API error whose JSON body isn't an object (a list, string, or number) raised `AttributeError` while the exception was being built. It now falls back to the HTTP reason and the response text, like any other body without error fields.
+- Archive downloads now extract only regular files from a TAR. Named pipes and device files are skipped, and the archive's permission bits and ownership are no longer applied, so a setuid flag is dropped and files get default permissions. Previously Python 3.11–3.13 recreated these entries as stored, and Python 3.14 stopped partway with `tarfile.SpecialFileError`.
 
 ## [0.5.5] - 2026-07-22
 

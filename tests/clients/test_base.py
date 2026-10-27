@@ -2323,6 +2323,64 @@ class TestExtractArchiveSymlinks:
         assert not (extract_to / "evil_link").exists()
 
 
+class TestExtractArchiveSpecialMembers:
+    """Tests for tar special files and permission bits in _extract_archive."""
+
+    def test_tar_fifo_skipped(self, tmp_path: Any) -> None:
+        """Test that named pipes in tar archives are skipped."""
+        import io
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        tar_path = tmp_path / "test.tar"
+        with tarfile.open(tar_path, "w") as tar:
+            fifo_info = tarfile.TarInfo(name="pipe")
+            fifo_info.type = tarfile.FIFOTYPE
+            tar.addfile(fifo_info)
+
+            data = b"real content"
+            info = tarfile.TarInfo(name="real.txt")
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+
+        extract_to = tmp_path / "extracted"
+        result = client._extract_archive(tar_path, extract_to=extract_to)
+
+        assert result == str(extract_to / "real.txt")
+        assert not (extract_to / "pipe").exists()
+
+    def test_tar_member_mode_not_applied(self, tmp_path: Any) -> None:
+        """Test extracted files get default permissions, not the archive's (setuid)."""
+        import io
+        import stat
+        import tarfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        tar_path = tmp_path / "test.tar"
+        with tarfile.open(tar_path, "w") as tar:
+            data = b"#!/bin/sh\n"
+            info = tarfile.TarInfo(name="run.sh")
+            info.size = len(data)
+            info.mode = 0o4777
+            tar.addfile(info, io.BytesIO(data))
+
+        extract_to = tmp_path / "extracted"
+        client._extract_archive(tar_path, extract_to=extract_to)
+
+        # A file created normally in the same place shows the default permissions
+        reference = tmp_path / "reference"
+        reference.write_bytes(data)
+        assert stat.S_IMODE((extract_to / "run.sh").stat().st_mode) == stat.S_IMODE(
+            reference.stat().st_mode
+        )
+
+
 class TestDownloadAndExtract:
     """Tests for _download_and_extract method."""
 
