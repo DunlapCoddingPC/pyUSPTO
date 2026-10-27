@@ -843,7 +843,9 @@ class BaseUSPTOClient(Generic[T]):
         """Extract TAR or ZIP archive with security protections.
 
         Protects against path traversal attacks. Optional protection against
-        zip bombs via max_size parameter.
+        zip bombs via max_size parameter. Only regular files are extracted:
+        links and special files such as named pipes are skipped, and the
+        archive's permission bits and ownership are not applied.
 
         Args:
             archive_path: Path to archive file
@@ -860,6 +862,7 @@ class BaseUSPTOClient(Generic[T]):
                 contains paths that would extract outside the target directory,
                 or if max_size is set and extraction would exceed it
         """
+        import shutil
         import tarfile
         import zipfile
 
@@ -875,10 +878,9 @@ class BaseUSPTOClient(Generic[T]):
             with tarfile.open(archive_path, "r:*") as tar:
                 # Extract members one by one with validation
                 for member in tar.getmembers():
-                    # Skip directories and symlinks
-                    if member.isdir():
-                        continue
-                    if member.issym() or member.islnk():
+                    # Skip everything but regular files: directories, links,
+                    # and special files such as named pipes and devices
+                    if not member.isfile():
                         continue
 
                     # Path traversal check
@@ -897,8 +899,13 @@ class BaseUSPTOClient(Generic[T]):
                                 f"exceeds maximum allowed ({max_size} bytes)"
                             )
 
-                    # Extract individual member
-                    tar.extract(member, path=extract_to)
+                    # Copy the bytes rather than tar.extract(), which applies the
+                    # archive's permission bits (e.g. setuid) and ownership
+                    source = tar.extractfile(member)
+                    assert source is not None  # regular files always have data
+                    member_path.parent.mkdir(parents=True, exist_ok=True)
+                    with source, open(member_path, "wb") as f:
+                        shutil.copyfileobj(source, f)
                     extracted_items.append(member.name)
 
         elif zipfile.is_zipfile(archive_path):
