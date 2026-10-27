@@ -5,6 +5,8 @@ This module contains tests for exception classes, helper structures,
 and functions defined in pyUSPTO.exceptions.
 """
 
+import json
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -111,6 +113,28 @@ class TestAPIErrorArgs:
         assert (
             args.error_details == '{"unexpected_field": "some_value"}'
         )  # Fallback to full text if JSON but no specific detail fields
+        assert args.request_identifier is None
+
+    @pytest.mark.parametrize(
+        "body", [["unexpected", "list"], "bare string", 42], ids=["list", "str", "int"]
+    )
+    def test_from_http_error_json_body_not_an_object(self, body: Any) -> None:
+        """Test from_http_error falls back to reason and text for a non-object JSON body."""
+        mock_http_error = MagicMock(spec=requests.exceptions.HTTPError)
+        mock_http_error.response = MagicMock(spec=requests.Response)
+        mock_http_error.response.status_code = 502
+        mock_http_error.response.reason = "Bad Gateway"
+        mock_http_error.response.headers = {"content-type": "application/json"}
+        mock_http_error.response.json.return_value = body
+        mock_http_error.response.text = json.dumps(body)
+
+        args = APIErrorArgs.from_http_error(
+            http_error=mock_http_error, client_operation_message="Client op failed"
+        )
+
+        assert args.status_code == 502
+        assert args.api_short_error == "Bad Gateway"
+        assert args.error_details == json.dumps(body)
         assert args.request_identifier is None
 
     def test_from_request_exception(self) -> None:
