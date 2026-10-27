@@ -871,7 +871,7 @@ class BaseUSPTOClient(Generic[T]):
 
         extract_to.mkdir(parents=True, exist_ok=True)
 
-        extracted_items = []
+        extracted_items: list[Path] = []
         total_size = 0
 
         if tarfile.is_tarfile(archive_path):
@@ -906,7 +906,7 @@ class BaseUSPTOClient(Generic[T]):
                     member_path.parent.mkdir(parents=True, exist_ok=True)
                     with source, open(member_path, "wb") as f:
                         shutil.copyfileobj(source, f)
-                    extracted_items.append(member.name)
+                    extracted_items.append(member_path)
 
         elif zipfile.is_zipfile(archive_path):
             with zipfile.ZipFile(archive_path, "r") as zip_ref:
@@ -934,9 +934,10 @@ class BaseUSPTOClient(Generic[T]):
                                 f"exceeds maximum allowed ({max_size} bytes)"
                             )
 
-                    # Extract individual member
-                    zip_ref.extract(zip_info, path=extract_to)
-                    extracted_items.append(zip_info.filename)
+                    # Extract individual member. Record the path zipfile wrote,
+                    # which drops "." and ".." parts of the stored name.
+                    written = zip_ref.extract(zip_info, path=extract_to)
+                    extracted_items.append(Path(written))
 
         else:
             raise ValueError(f"Not a valid TAR/ZIP archive: {archive_path}")
@@ -945,7 +946,7 @@ class BaseUSPTOClient(Generic[T]):
             archive_path.unlink()
 
         if len(extracted_items) == 1:
-            return str(extract_to / extracted_items[0])
+            return str(extracted_items[0])
         else:
             return str(extract_to)
 

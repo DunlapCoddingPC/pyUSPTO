@@ -2212,6 +2212,25 @@ class TestExtractArchive:
         # Directory entries are skipped, but files are extracted
         assert (extract_to / "testdir" / "file.txt").exists()
 
+    def test_zip_single_file_returns_written_path(self, tmp_path: Any) -> None:
+        """Test a single-file zip returns the path zipfile wrote, not the stored name."""
+        import zipfile
+
+        client: BaseUSPTOClient[Any] = BaseUSPTOClient(
+            config=USPTOConfig(api_key="test"), base_url="https://test.com"
+        )
+
+        zip_path = tmp_path / "test.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            # zipfile drops ".." parts on extraction, writing a/b.txt
+            zf.writestr("a/../b.txt", "content")
+
+        extract_to = tmp_path / "extracted"
+        result = client._extract_archive(zip_path, extract_to=extract_to)
+
+        assert result == str(extract_to / "a" / "b.txt")
+        assert (extract_to / "a" / "b.txt").read_text() == "content"
+
 
 class TestExtractArchiveSymlinks:
     """Tests for symlink skipping in _extract_archive."""
