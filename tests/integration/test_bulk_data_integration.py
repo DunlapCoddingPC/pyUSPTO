@@ -40,6 +40,24 @@ def bulk_data_client(config: USPTOConfig) -> BulkDataClient:
 class TestBulkDataIntegration:
     """Integration tests for the BulkDataClient."""
 
+    def test_paginate_products_yields_every_product(
+        self, bulk_data_client: BulkDataClient
+    ) -> None:
+        """Test pagination returns every product exactly once."""
+        # The API's count is the size of each page, not a total, so the full
+        # catalog comes from one page at the maximum page size
+        catalog = bulk_data_client.search_products(limit=100).bulk_data_product_bag
+        expected = sorted(p.product_identifier for p in catalog)
+
+        # limit=10 ends on a short page; limit=len(catalog) ends on a full page,
+        # after which the API answers the next request with 404
+        for limit in (10, len(catalog)):
+            ids = sorted(
+                p.product_identifier
+                for p in bulk_data_client.paginate_products(limit=limit)
+            )
+            assert ids == expected
+
     def test_search_products_no_query(self, bulk_data_client: BulkDataClient) -> None:
         """Test getting products from the API without a query (returns default results)."""
         response = bulk_data_client.search_products()

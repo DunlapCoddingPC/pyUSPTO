@@ -20,6 +20,7 @@ import requests
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import (
     APIErrorArgs,
+    USPTOApiNotFoundError,
     USPTOApiResponseParseError,
     USPTOConnectionError,
     USPTOTimeout,
@@ -420,6 +421,7 @@ class BaseUSPTOClient(Generic[T]):
         offset_key: str,
         limit_key: str,
         nested_pagination: bool,
+        count_is_total: bool,
         **kwargs: Any,
     ) -> Generator[Any, None, None]:
         """Core pagination loop parameterized on key names.
@@ -433,6 +435,10 @@ class BaseUSPTOClient(Generic[T]):
             nested_pagination: Whether POST pagination keys go in a nested
                 ``post_body["pagination"]`` dict (offset/limit APIs, which reject
                 top-level keys with 400) or at the top level (Solr-style APIs).
+            count_is_total: Whether ``response.count`` is the total number of
+                results (most APIs) or the size of the current page (bulk data).
+                With a per-page count, pagination stops on a short page, or on
+                the 404 the API returns for a page past the end.
             **kwargs: Keyword arguments to pass to the method (for GET pagination)
 
         Yields:
@@ -488,15 +494,23 @@ class BaseUSPTOClient(Generic[T]):
                     current_body[offset_key] = offset
                     current_body[limit_key] = limit
 
-                method = getattr(self, method_name)
-                response = method(post_body=current_body, **kwargs)
+                call_kwargs = {"post_body": current_body, **kwargs}
             else:
                 # GET request: update kwargs with pagination params
                 kwargs[offset_key] = offset
                 kwargs[limit_key] = limit
 
-                method = getattr(self, method_name)
-                response = method(**kwargs)
+                call_kwargs = kwargs
+
+            method = getattr(self, method_name)
+            try:
+                response = method(**call_kwargs)
+            except USPTOApiNotFoundError:
+                # Without a total, a full last page is only detectable by
+                # requesting the next one, which the API answers with 404
+                if count_is_total or offset == 0:
+                    raise
+                break
 
             # Validate response has required pagination attributes
             if not hasattr(response, "count"):
@@ -529,7 +543,10 @@ class BaseUSPTOClient(Generic[T]):
 
             yield from container
 
-            if response.count <= limit + offset:
+            if count_is_total:
+                if response.count <= limit + offset:
+                    break
+            elif len(container) < limit:
                 break
 
             offset += limit
@@ -539,6 +556,8 @@ class BaseUSPTOClient(Generic[T]):
         method_name: str,
         response_container_attr: str,
         post_body: dict[str, Any] | None = None,
+        *,
+        count_is_total: bool = True,
         **kwargs: Any,
     ) -> Generator[Any, None, None]:
         """Paginate through all results using offset/limit style.
@@ -553,6 +572,8 @@ class BaseUSPTOClient(Generic[T]):
                 parameters (offset, limit) are sent in ``post_body["pagination"]``,
                 which is created if absent. Set the page size there, as
                 ``{"pagination": {"limit": 50}}``; the API rejects top-level keys.
+            count_is_total: Whether the response's ``count`` is the total number of
+                results (the default) or the size of the current page.
             **kwargs: Keyword arguments to pass to the method (for GET pagination)
 
         Yields:
@@ -587,6 +608,7 @@ class BaseUSPTOClient(Generic[T]):
             offset_key="offset",
             limit_key="limit",
             nested_pagination=True,
+            count_is_total=count_is_total,
             **kwargs,
         )
 
@@ -633,6 +655,7 @@ class BaseUSPTOClient(Generic[T]):
             offset_key="start",
             limit_key="rows",
             nested_pagination=False,
+            count_is_total=True,
             **kwargs,
         )
 

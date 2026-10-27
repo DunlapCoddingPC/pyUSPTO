@@ -710,6 +710,105 @@ class TestBaseUSPTOClient:
             spy_method.assert_any_call(offset=0, limit=2)
             spy_method.assert_any_call(offset=2, limit=2)
 
+    def test_paginate_results_per_page_count_stops_on_short_page(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test per-page count mode reads past full pages and stops on a short one."""
+        # response.count is the size of each page (as in the bulk data API)
+        pages = {0: ["item1", "item2"], 2: ["item3", "item4"], 4: ["item5"]}
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def test_method(self, **kwargs: Any) -> Any:
+                items = pages[kwargs["offset"]]
+                return MagicMock(count=len(items), items=items)
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.config._session = mock_session
+
+        results = list(
+            test_client.paginate_results(
+                method_name="test_method",
+                response_container_attr="items",
+                count_is_total=False,
+                limit=2,
+            )
+        )
+
+        assert results == ["item1", "item2", "item3", "item4", "item5"]
+
+    def test_paginate_results_per_page_count_stops_on_404_after_full_page(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test per-page count mode treats a 404 past a full last page as the end."""
+        pages = {0: ["item1", "item2"], 2: ["item3", "item4"]}
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def test_method(self, **kwargs: Any) -> Any:
+                offset = kwargs["offset"]
+                if offset not in pages:
+                    # The bulk data API answers a page past the end with HTTP 404
+                    raise USPTOApiNotFoundError("Page past the end", status_code=404)
+                return MagicMock(count=len(pages[offset]), items=pages[offset])
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.config._session = mock_session
+
+        results = list(
+            test_client.paginate_results(
+                method_name="test_method",
+                response_container_attr="items",
+                count_is_total=False,
+                limit=2,
+            )
+        )
+
+        assert results == ["item1", "item2", "item3", "item4"]
+
+    def test_paginate_results_per_page_count_raises_404_on_first_page(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test per-page count mode still raises a 404 on the first page (no matches)."""
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def test_method(self, **kwargs: Any) -> Any:
+                raise USPTOApiNotFoundError("No matching records", status_code=404)
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.config._session = mock_session
+
+        with pytest.raises(USPTOApiNotFoundError):
+            list(
+                test_client.paginate_results(
+                    method_name="test_method",
+                    response_container_attr="items",
+                    count_is_total=False,
+                    limit=2,
+                )
+            )
+
+    def test_paginate_results_total_count_raises_404_after_first_page(
+        self, mock_session: MagicMock
+    ) -> None:
+        """Test total count mode does not treat a 404 on a later page as the end."""
+
+        class TestClient(BaseUSPTOClient[Any]):
+            def test_method(self, **kwargs: Any) -> Any:
+                if kwargs["offset"] == 0:
+                    return MagicMock(count=5, items=["item1", "item2"])
+                raise USPTOApiNotFoundError("Unexpected 404", status_code=404)
+
+        test_client = TestClient(base_url="https://api.test.com")
+        test_client.config._session = mock_session
+
+        with pytest.raises(USPTOApiNotFoundError):
+            list(
+                test_client.paginate_results(
+                    method_name="test_method",
+                    response_container_attr="items",
+                    limit=2,
+                )
+            )
+
     def test_paginate_results_with_nested_pagination(
         self, mock_session: MagicMock
     ) -> None:
