@@ -764,10 +764,13 @@ class TestBaseUSPTOClient:
 
         assert results == ["item1", "item2", "item3", "item4"]
 
-    def test_paginate_results_per_page_count_raises_404_on_first_page(
-        self, mock_session: MagicMock
+    @pytest.mark.parametrize(
+        "count_is_total", [True, False], ids=["total_count", "per_page_count"]
+    )
+    def test_paginate_results_yields_nothing_when_first_page_is_404(
+        self, mock_session: MagicMock, count_is_total: bool
     ) -> None:
-        """Test per-page count mode still raises a 404 on the first page (no matches)."""
+        """Test a search with no matches (the API answers 404) yields nothing."""
 
         class TestClient(BaseUSPTOClient[Any]):
             def test_method(self, **kwargs: Any) -> Any:
@@ -776,15 +779,16 @@ class TestBaseUSPTOClient:
         test_client = TestClient(base_url="https://api.test.com")
         test_client.config._session = mock_session
 
-        with pytest.raises(USPTOApiNotFoundError):
-            list(
-                test_client.paginate_results(
-                    method_name="test_method",
-                    response_container_attr="items",
-                    count_is_total=False,
-                    limit=2,
-                )
+        results = list(
+            test_client.paginate_results(
+                method_name="test_method",
+                response_container_attr="items",
+                count_is_total=count_is_total,
+                limit=2,
             )
+        )
+
+        assert results == []
 
     def test_paginate_results_total_count_raises_404_after_first_page(
         self, mock_session: MagicMock

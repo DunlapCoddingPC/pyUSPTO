@@ -506,11 +506,12 @@ class BaseUSPTOClient(Generic[T]):
             try:
                 response = method(**call_kwargs)
             except USPTOApiNotFoundError:
+                # The search endpoints answer a query with no matches with 404.
                 # Without a total, a full last page is only detectable by
-                # requesting the next one, which the API answers with 404
-                if count_is_total or offset == 0:
-                    raise
-                break
+                # requesting the next one, which the API also answers with 404.
+                if offset == 0 or not count_is_total:
+                    break
+                raise
 
             # Validate response has required pagination attributes
             if not hasattr(response, "count"):
@@ -577,7 +578,8 @@ class BaseUSPTOClient(Generic[T]):
             **kwargs: Keyword arguments to pass to the method (for GET pagination)
 
         Yields:
-            Items from the response container
+            Items from the response container. A search with no matches, which
+            the API answers with 404, yields nothing.
 
         Raises:
             ValueError: If offset is provided in kwargs or post_body (offset is managed

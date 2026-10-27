@@ -6,7 +6,9 @@ These tests are optional and are skipped by default unless the ENABLE_INTEGRATIO
 environment variable is set to 'true'.
 """
 
+import hashlib
 import os
+import re
 from collections.abc import Iterable
 from datetime import date
 
@@ -196,53 +198,22 @@ class TestPetitionDecisionsIntegration:
             pytest.fail(f"Application number search failed: {e}")
 
     def test_search_decisions_with_patent_number(
-        self,
-        petition_decisions_client: PetitionDecisionsClient,
-        sample_petition_decision: PetitionDecision,
+        self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
         """Test searching using convenience patent_number_q parameter."""
-        try:
-            # Try to use patent number from sample decision first
-            patent_num = sample_petition_decision.patent_number
+        response = petition_decisions_client.search_decisions(
+            patent_number_q="12311325", limit=5
+        )
 
-            # If sample doesn't have a patent number, search for one
-            if not patent_num:
-                response = petition_decisions_client.search_decisions(limit=20)
-                if response.count == 0:
-                    pytest.fail("No decisions available to test patent number search")
-
-                # Find a decision with a patent number
-                for decision in response.petition_decision_data_bag:
-                    if decision.patent_number:
-                        patent_num = decision.patent_number
-                        break
-
-                if not patent_num:
-                    pytest.fail(
-                        "No decisions with patent numbers found in first 20 results"
-                    )
-
-            # Search for that specific patent number
-            response = petition_decisions_client.search_decisions(
-                patent_number_q=patent_num, limit=5
+        assert response.count == 1
+        assert [
+            (
+                d.petition_decision_record_identifier,
+                d.application_number_text,
+                d.patent_number,
             )
-
-            assert response is not None
-            if (
-                response.count is not None
-                and response.count > 0
-                and response.petition_decision_data_bag
-            ):
-                # At least one should match
-                found = any(
-                    d.patent_number == patent_num
-                    for d in response.petition_decision_data_bag
-                )
-                assert found, (
-                    f"Expected to find patent number {patent_num} in results but count is {response.count}"
-                )
-        except USPTOApiError as e:
-            pytest.fail(f"Patent number search failed: {e}")
+            for d in response.petition_decision_data_bag
+        ] == [("1a552446-1d2b-570a-9bb6-b4fef39b0a91", "17765301", "12311325")]
 
     def test_search_decisions_with_technology_center(
         self, petition_decisions_client: PetitionDecisionsClient
@@ -603,6 +574,18 @@ class TestPetitionDecisionsIntegration:
         assert len(ids) == total
         assert len(set(ids)) == total
 
+    def test_paginate_decisions_yields_nothing_for_no_match(
+        self, petition_decisions_client: PetitionDecisionsClient
+    ) -> None:
+        """Test pagination over a search with no matches yields nothing."""
+        decisions = list(
+            petition_decisions_client.paginate_decisions(
+                query="applicationNumberText:00000001"
+            )
+        )
+
+        assert decisions == []
+
     def test_paginate_decisions_post_yields_each_decision_once(
         self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:
@@ -653,7 +636,15 @@ class TestPetitionDecisionsIntegration:
         )
 
         assert os.path.basename(file_path) == "M6ATX5A7WFYBX90.pdf"
-        assert os.path.getsize(file_path) == 98682
+        with open(file_path, "rb") as f:
+            pdf = f.read()
+        assert pdf[:8] == b"%PDF-1.2"
+        # USPTO renders the PDF on each request and stamps /CreationDate with the
+        # current time, so compare everything except that value
+        content = re.sub(rb"/CreationDate \([^)]*\)", b"", pdf)
+        assert hashlib.sha256(content).hexdigest() == (
+            "26193251783ff4dabd4d75fea5b3614ffaa32936140e5910f5c18a2d25a1a98a"
+        )
 
     def test_search_decisions_with_multiple_params(
         self, petition_decisions_client: PetitionDecisionsClient
