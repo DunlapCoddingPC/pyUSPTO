@@ -47,7 +47,7 @@ mdit-py-plugins==0.6.1
     # via myst-parser
 mdurl==0.1.2
     # via markdown-it-py
-mypy==2.4.0
+mypy==2.4.1
     # via pyUSPTO (pyproject.toml)
 mypy-extensions==1.1.0
     # via mypy
