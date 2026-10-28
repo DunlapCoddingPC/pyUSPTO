@@ -120,7 +120,7 @@ types-requests==2.33.0.20261006
     # via pyUSPTO (pyproject.toml)
 typing-extensions==4.16.0
     # via mypy
-tzdata==2026.5
+tzdata==2026.6
     # via pyUSPTO (pyproject.toml)
 urllib3==2.8.0
     # via
