@@ -49,7 +49,7 @@ mdurl==0.1.2
     # via markdown-it-py
 mypy==2.4.1
     # via pyUSPTO (pyproject.toml)
-mypy-extensions==1.1.0
+mypy-extensions==1.2.0
     # via mypy
 myst-parser==5.1.0
     # via pyUSPTO (pyproject.toml)
