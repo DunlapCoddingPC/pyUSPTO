@@ -14,6 +14,14 @@ if TYPE_CHECKING:
     from pyUSPTO.models.patent_data import Document
 
 
+# The API gateway answers a request for a URL path that does not exist with
+# HTTP 403 and this body, so the 403 alone does not prove an auth problem.
+_MISSING_AUTH_TOKEN_HINT = (
+    "USPTO also returns 'Missing Authentication Token' "
+    "when the requested URL path does not exist"
+)
+
+
 # --- Exception Classes  ---
 class USPTOApiError(Exception):
     """Base exception for USPTO API errors.
@@ -252,8 +260,16 @@ class APIErrorArgs:
             ):  # If it might have been JSON but parsing failed
                 error_details_from_response = http_error.response.text
 
+        message = client_operation_message
+        if (
+            status_code == 403
+            and isinstance(error_data, dict)
+            and error_data.get("message") == "Missing Authentication Token"
+        ):
+            message = f"{client_operation_message} ({_MISSING_AUTH_TOKEN_HINT})"
+
         return cls(
-            message=client_operation_message,
+            message=message,
             status_code=status_code,
             api_short_error=api_short_error_from_response,
             error_details=error_details_from_response,

@@ -115,6 +115,48 @@ class TestAPIErrorArgs:
         )  # Fallback to full text if JSON but no specific detail fields
         assert args.request_identifier is None
 
+    def test_from_http_error_403_missing_auth_token_adds_hint(self) -> None:
+        """Test a 403 'Missing Authentication Token' body adds the bad-path hint."""
+        mock_http_error = MagicMock(spec=requests.exceptions.HTTPError)
+        mock_http_error.response = MagicMock(spec=requests.Response)
+        mock_http_error.response.status_code = 403
+        mock_http_error.response.reason = "Forbidden"
+        mock_http_error.response.headers = {"content-type": "application/json"}
+        mock_http_error.response.json.return_value = {
+            "message": "Missing Authentication Token"
+        }
+        mock_http_error.response.text = '{"message":"Missing Authentication Token"}'
+
+        args = APIErrorArgs.from_http_error(
+            http_error=mock_http_error, client_operation_message="Client op failed"
+        )
+        assert args.message == (
+            "Client op failed (USPTO also returns 'Missing Authentication Token' "
+            "when the requested URL path does not exist)"
+        )
+        assert args.api_short_error == "Forbidden"
+        assert args.error_details == '{"message":"Missing Authentication Token"}'
+
+    def test_from_http_error_403_other_body_keeps_message(self) -> None:
+        """Test a 403 with a normal USPTO error body keeps the original message."""
+        mock_http_error = MagicMock(spec=requests.exceptions.HTTPError)
+        mock_http_error.response = MagicMock(spec=requests.Response)
+        mock_http_error.response.status_code = 403
+        mock_http_error.response.reason = "Forbidden"
+        mock_http_error.response.headers = {"content-type": "application/json"}
+        mock_http_error.response.json.return_value = {
+            "error": "Forbidden",
+            "errorDetails": "Invalid API key",
+        }
+        mock_http_error.response.text = (
+            '{"error": "Forbidden", "errorDetails": "Invalid API key"}'
+        )
+
+        args = APIErrorArgs.from_http_error(
+            http_error=mock_http_error, client_operation_message="Client op failed"
+        )
+        assert args.message == "Client op failed"
+
     @pytest.mark.parametrize(
         "body", [["unexpected", "list"], "bare string", 42], ids=["list", "str", "int"]
     )
