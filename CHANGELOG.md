@@ -5,6 +5,12 @@ All notable changes to the pyUSPTO package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- `sanitize_application_number` now returns series-code input as 8 digits (`18/511,739` → `18511739`). Previously it kept the slash, so `get_application_by_number` and the other per-application methods requested `.../applications/18/511739`, which the API rejects with HTTP 403. This fixes every method that takes an application number, including `get_IFW_metadata(application_number=...)` and `get_IFW(application_number=...)`.
+
 ## [0.6.1] - 2026-10-27
 
 ### Changed

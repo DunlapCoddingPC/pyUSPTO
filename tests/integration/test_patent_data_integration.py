@@ -136,6 +136,15 @@ class TestPatentDataIntegration:
         assert isinstance(patent_wrapper.application_meta_data, ApplicationMetaData)
         assert patent_wrapper.application_meta_data.invention_title is not None
 
+    def test_get_application_by_number_series_code_input(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test a series-code application number (NN/NNN,NNN) resolves live."""
+        patent_wrapper = patent_data_client.get_application_by_number("14/412,875")
+
+        assert patent_wrapper.application_number_text == "14412875"
+
     def test_to_dict_matches_raw_api_response(self, api_key: str | None) -> None:
         """Test that to_dict() output matches the original API response stored in raw_data.
 
