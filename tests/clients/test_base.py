@@ -104,6 +104,16 @@ class TestResponseClass:
 class TestBaseUSPTOClient:
     """Tests for the BaseUSPTOClient class."""
 
+    def test_quote_path_value(self) -> None:
+        """Test URL path values are percent-encoded, plain IDs unchanged."""
+        assert BaseUSPTOClient._quote_path_value("abc?x/y z#1") == (
+            "abc%3Fx%2Fy%20z%231"
+        )
+        assert BaseUSPTOClient._quote_path_value(
+            "9f1a4a2b-eee1-58ec-a3aa-167c4075aed4"
+        ) == ("9f1a4a2b-eee1-58ec-a3aa-167c4075aed4")
+        assert BaseUSPTOClient._quote_path_value("ipa250102.zip") == "ipa250102.zip"
+
     def test_init(self) -> None:
         """Test initialization of the BaseUSPTOClient."""
         # Test with API key

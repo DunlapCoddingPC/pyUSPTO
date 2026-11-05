@@ -14,6 +14,7 @@ from typing import (
     TypeVar,
     runtime_checkable,
 )
+from urllib.parse import quote
 
 import requests
 
@@ -195,6 +196,22 @@ class BaseUSPTOClient(Generic[T]):
             return custom_url
         base = custom_base_url if custom_base_url else self.base_url
         return f"{base}/{endpoint.lstrip('/')}"
+
+    @staticmethod
+    def _quote_path_value(value: str) -> str:
+        """Percent-encode a caller value for use as one URL path segment.
+
+        Every reserved character is encoded, including ``/``, ``?``, and
+        ``#``, so the value cannot add path segments, a query string, or a
+        fragment to the request.
+
+        Args:
+            value: The raw value, such as a record ID or file name.
+
+        Returns:
+            The encoded value.
+        """
+        return quote(value, safe="")
 
     def _execute_request(
         self,
