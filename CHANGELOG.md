@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `sanitize_application_number` now returns series-code input as 8 digits (`18/511,739` → `18511739`). Previously it kept the slash, so `get_application_by_number` and the other per-application methods requested `.../applications/18/511739`, which the API rejects with HTTP 403. This fixes every method that takes an application number, including `get_IFW_metadata(application_number=...)` and `get_IFW(application_number=...)`.
 
+### Fixed
+
+- `application_number_q` (used by `search_applications` and `get_search_results`) now goes through `sanitize_application_number`, so `14/412875`, `14/412,875`, and `14412875` all match. Previously the value was sent verbatim and `14/412875` matched nothing. Values containing `*`, and values the sanitizer rejects (such as range or `OR` expressions), pass through unchanged.
+
 ## [0.6.1] - 2026-10-27
 
 ### Changed

@@ -303,6 +303,21 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         return cleaned
 
+    def _application_number_query(self, value: str) -> str:
+        """Build the search value for ``applicationNumberText``.
+
+        Values that look like an application number are sanitized, so
+        ``14/412,875`` and ``14412875`` search the same way. Values that
+        contain a wildcard, or that the sanitizer rejects (such as range or
+        ``OR`` expressions), are returned unchanged.
+        """
+        if "*" in value:
+            return value
+        try:
+            return self.sanitize_application_number(value)
+        except ValueError:
+            return value
+
     def _get_wrapper_from_response(
         self,
         response_data: PatentDataResponse,
@@ -388,7 +403,10 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             if final_q is None:
                 q_parts = []
                 if application_number_q:
-                    q_parts.append(f"applicationNumberText:{application_number_q}")
+                    q_parts.append(
+                        "applicationNumberText:"
+                        f"{self._application_number_query(application_number_q)}"
+                    )
                 if patent_number_q:
                     q_parts.append(
                         f"applicationMetaData.patentNumber:{patent_number_q}"
@@ -561,7 +579,10 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             if final_q is None:
                 q_parts = []
                 if application_number_q:
-                    q_parts.append(f"applicationNumberText:{application_number_q}")
+                    q_parts.append(
+                        "applicationNumberText:"
+                        f"{self._application_number_query(application_number_q)}"
+                    )
                 if patent_number_q:
                     q_parts.append(
                         f"applicationMetaData.patentNumber:{patent_number_q}"
