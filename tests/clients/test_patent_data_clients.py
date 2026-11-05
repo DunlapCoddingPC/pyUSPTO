@@ -8,6 +8,7 @@ PatentDataClient.
 import csv
 import io
 import os
+import warnings
 from collections.abc import Iterator
 from datetime import UTC, date, datetime
 from typing import Any
@@ -819,6 +820,27 @@ class TestPatentApplicationDetails:
         assert result.application_number_text == app_num
         assert result.application_meta_data is not None
         assert result.application_meta_data.invention_title == "Test Invention"
+
+    def test_get_application_by_number_series_code_input(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_data_response_with_data: PatentDataResponse,
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        """Test a series-code number requests the 8-digit path without a mismatch warning."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_patent_data_response_with_data
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", USPTODataMismatchWarning)
+            result = client.get_application_by_number(application_number="12/345,678")
+
+        mock_get_model.assert_called_once_with(
+            method="GET",
+            endpoint="api/v1/patent/applications/12345678",
+            response_class=PatentDataResponse,
+        )
+        assert result is mock_patent_file_wrapper
 
     def test_get_application_by_number_empty_bag_returns_none(
         self,
@@ -3024,21 +3046,19 @@ class TestApplicationNumberSanitization:
     def test_sanitize_series_code_format(
         self, patent_data_client: PatentDataClient
     ) -> None:
-        """Test series code format (NN/NNNNNN)."""
-        assert (
-            patent_data_client.sanitize_application_number("08/123456") == "08/123456"
-        )
+        """Test series code format (NN/NNNNNN) is joined into 8 digits."""
+        assert patent_data_client.sanitize_application_number("08/123456") == "08123456"
 
     def test_sanitize_series_code_with_separators(
         self, patent_data_client: PatentDataClient
     ) -> None:
         """Test series code format with commas and spaces."""
         assert (
-            patent_data_client.sanitize_application_number("08/123,456") == "08/123456"
+            patent_data_client.sanitize_application_number("08/123,456") == "08123456"
         )
         assert (
             patent_data_client.sanitize_application_number(" 08 / 123 456 ")
-            == "08/123456"
+            == "08123456"
         )
 
     def test_sanitize_empty_string_raises(

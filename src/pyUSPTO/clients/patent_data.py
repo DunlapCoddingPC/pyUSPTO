@@ -173,16 +173,16 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         - PCT format: "PCT/US2024/012345" → "PCTUS2024012345"
           (standardized 15-character form per USPTO ODP Release 3.6, 2026-04-10)
 
-        This method removes common separators (commas, spaces) while preserving
-        the "/" in series code format.
+        This method removes common separators (commas, spaces) and joins
+        series-code input into 8 digits.
 
         Args:
             input_number: Raw application number input. May include commas,
                 spaces, or other formatting.
 
         Returns:
-            str: Sanitized application number ("NNNNNNNN", "NN/NNNNNN", or
-                "PCT" + 2-char country + 4-digit year + 6-digit serial).
+            str: Sanitized application number ("NNNNNNNN", or "PCT" + 2-char
+                country + 4-digit year + 6-digit serial).
 
         Raises:
             ValueError: If the format is invalid.
@@ -193,9 +193,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             >>> client.sanitize_application_number("16,123,456")
             "16123456"
             >>> client.sanitize_application_number("08/123456")
-            "08/123456"
+            "08123456"
             >>> client.sanitize_application_number("08/123,456")
-            "08/123456"
+            "08123456"
             >>> client.sanitize_application_number("PCT/US2024/012345")
             "PCTUS2024012345"
         """
@@ -287,7 +287,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                     "Expected series code format: NN/NNNNNN (2 digits / 6 digits)"
                 )
 
-            return cleaned
+            return series + serial
 
         # Standard 8-digit format
         if not cleaned.isdigit():
