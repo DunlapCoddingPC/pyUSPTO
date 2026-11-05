@@ -356,7 +356,9 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             ... )
         """
         endpoint = self.ENDPOINTS["get_decision_by_id"].format(
-            petitionDecisionRecordIdentifier=petition_decision_record_identifier
+            petitionDecisionRecordIdentifier=self._quote_path_value(
+                petition_decision_record_identifier
+            )
         )
 
         response_data = self._get_model(

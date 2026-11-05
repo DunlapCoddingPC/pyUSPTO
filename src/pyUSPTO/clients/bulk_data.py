@@ -92,7 +92,9 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
             ...     latest=True
             ... )
         """
-        endpoint = self.ENDPOINTS["product_by_id"].format(product_id=product_id)
+        endpoint = self.ENDPOINTS["product_by_id"].format(
+            product_id=self._quote_path_value(product_id)
+        )
 
         params = {}
         if file_data_from_date:
@@ -171,8 +173,8 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
             download_url = file_data.file_download_uri
         else:
             endpoint = self.ENDPOINTS["download_file"].format(
-                productIdentifier=file_data.product_identifier,
-                fileName=default_file_name,
+                productIdentifier=self._quote_path_value(file_data.product_identifier),
+                fileName=self._quote_path_value(default_file_name),
             )
             download_url = f"{self.base_url}/{endpoint}"
 

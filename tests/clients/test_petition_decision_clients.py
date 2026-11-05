@@ -6,6 +6,7 @@ downloads, and for FinalPetitionDecisionsClient and the fixed-filter hook
 that restricts it to final decisions.
 """
 
+import warnings
 from collections.abc import Iterator
 from typing import Any
 from unittest.mock import MagicMock, Mock, call, patch
@@ -522,6 +523,27 @@ class TestPetitionDecisionsClientGetById:
         )
         assert result is not None
         assert result.petition_decision_record_identifier == record_id
+
+    def test_get_decision_by_id_escapes_reserved_characters(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_petition_response_with_data: PetitionDecisionResponse,
+    ) -> None:
+        """Test '?' and '/' in a decision ID are percent-encoded in the path."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
+
+        # The fixture's decision has a different ID, so a mismatch warning fires.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", USPTODataMismatchWarning)
+            client.get_decision_by_id("abc?x/y")
+
+        mock_get_model.assert_called_once_with(
+            method="GET",
+            endpoint="api/v1/petition/decisions/abc%3Fx%2Fy",
+            params=None,
+            response_class=PetitionDecisionResponse,
+        )
 
     def test_get_decision_by_id_not_found(
         self,
