@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- `application_number_q` (used by `search_applications` and `get_search_results`) now goes through `sanitize_application_number`, so `14/412875`, `14/412,875`, and `14412875` all match. Previously the value was sent verbatim and `14/412875` matched nothing. Values containing `*`, and values the sanitizer rejects (such as range or `OR` expressions), pass through unchanged.
+- `application_number_q` (used by `search_applications` and `get_search_results`) now goes through `sanitize_application_number`, so `14/412875`, `14/412,875`, and `14412875` all match, and `PCT/US2025/047756` is sent as `PCTUS2025047756`. Previously the value was sent verbatim and `14/412875` matched nothing. Values containing `*`, and values the sanitizer rejects (such as range or `OR` expressions), pass through unchanged.
 - `PetitionDecisionsClient.get_decision_by_id`, `BulkDataClient.get_product_by_id`, and `BulkDataClient.download_file` (when the file has no download URI) now percent-encode the ID or file name in the URL path. Previously a `?` or `/` in the value changed the request; `get_decision_by_id("abc?x")` requested decision `abc`.
 
 ## [0.6.1] - 2026-10-27

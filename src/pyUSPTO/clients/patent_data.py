@@ -381,6 +381,12 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         ``status_date_to_q`` follow the same date-range pattern as
         ``filing_date_from_q`` / ``filing_date_to_q``.
 
+        ``application_number_q`` is cleaned with ``sanitize_application_number``,
+        so ``14/412,875``, ``14/412875``, and ``14412875`` all search for
+        ``14412875``, and ``PCT/US2025/047756`` searches for ``PCTUS2025047756``.
+        A value that contains ``*``, or that is not a single application number
+        (such as an ``OR`` or range expression), is sent unchanged.
+
         ``earliestPublicationNumber_q`` is reduced to its digits and searched
         with wildcards (``*20210138233*``), so bare digits, ``US`` prefixes,
         kind codes, and separators all match the stored ``USyyyyNNNNNNNAn``
@@ -559,6 +565,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         For GET, parameters align with OpenAPI for /api/v1/patent/applications/search/download.
         For POST, post_body should conform to PatentDownloadRequest schema.
+
+        ``application_number_q`` is cleaned the same way as in
+        ``search_applications``.
         """
         endpoint = self.ENDPOINTS["get_search_results"]
 
@@ -711,8 +720,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         Args:
             application_number (str): The USPTO application number for the patent
-                application (e.g., "16123456" or "18/915,708"). The application
-                number will be automatically sanitized to remove commas and spaces.
+                application (e.g., "16123456" or "18/915,708"). The number is
+                cleaned with ``sanitize_application_number``, so "18/915,708"
+                is requested as "18915708".
 
         Returns:
             Optional[PatentFileWrapper]: A `PatentFileWrapper` object representing
