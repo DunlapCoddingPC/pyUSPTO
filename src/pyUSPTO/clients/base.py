@@ -18,7 +18,6 @@ from urllib.parse import quote
 
 import requests
 
-from pyUSPTO.clients import query
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import (
     APIErrorArgs,
@@ -213,16 +212,6 @@ class BaseUSPTOClient(Generic[T]):
             The encoded value.
         """
         return quote(value, safe="")
-
-    @staticmethod
-    def _sanitize_application_number(input_number: str) -> str:
-        """Delegate to ``query.sanitize_application_number``."""
-        return query.sanitize_application_number(input_number)
-
-    @staticmethod
-    def _application_number_query(value: str) -> str:
-        """Delegate to ``query._application_number_value``."""
-        return query._application_number_value(value)
 
     def _execute_request(
         self,
