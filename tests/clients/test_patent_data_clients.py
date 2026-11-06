@@ -385,7 +385,7 @@ class TestPatentApplicationSearch:
     @pytest.mark.parametrize(
         "search_q_params, expected_q_part",
         [
-            ({"application_number_q": "app123"}, "applicationNumberText:app123"),
+            ({"application_number_q": "app123"}, "applicationNumberText:(app123)"),
             (
                 {"application_number_q": "14/412,875"},
                 "applicationNumberText:14412875",
@@ -394,14 +394,14 @@ class TestPatentApplicationSearch:
                 {"application_number_q": "14/412875"},
                 "applicationNumberText:14412875",
             ),
-            ({"application_number_q": "16*"}, "applicationNumberText:16*"),
+            ({"application_number_q": "16*"}, "applicationNumberText:(16*)"),
             (
                 {"application_number_q": "14412875 OR 14412876"},
-                "applicationNumberText:14412875 OR 14412876",
+                "applicationNumberText:(14412875 OR 14412876)",
             ),
             (
                 {"application_number_q": "[16000000 TO 16999999]"},
-                "applicationNumberText:[16000000 TO 16999999]",
+                "applicationNumberText:([16000000 TO 16999999])",
             ),
             (
                 {"application_number_q": "PCT/US2024/012345"},
@@ -2552,7 +2552,7 @@ class TestPatentApplicationDataRetrieval:
     @pytest.mark.parametrize(
         "search_q_params, expected_q_part",
         [
-            ({"application_number_q": "app123"}, "applicationNumberText:app123"),
+            ({"application_number_q": "app123"}, "applicationNumberText:(app123)"),
             (
                 {"application_number_q": "14/412,875"},
                 "applicationNumberText:14412875",
@@ -2561,14 +2561,14 @@ class TestPatentApplicationDataRetrieval:
                 {"application_number_q": "14/412875"},
                 "applicationNumberText:14412875",
             ),
-            ({"application_number_q": "16*"}, "applicationNumberText:16*"),
+            ({"application_number_q": "16*"}, "applicationNumberText:(16*)"),
             (
                 {"application_number_q": "14412875 OR 14412876"},
-                "applicationNumberText:14412875 OR 14412876",
+                "applicationNumberText:(14412875 OR 14412876)",
             ),
             (
                 {"application_number_q": "[16000000 TO 16999999]"},
-                "applicationNumberText:[16000000 TO 16999999]",
+                "applicationNumberText:([16000000 TO 16999999])",
             ),
             (
                 {"application_number_q": "PCT/US2024/012345"},

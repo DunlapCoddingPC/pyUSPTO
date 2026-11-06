@@ -309,14 +309,15 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         Values that look like an application number are sanitized, so
         ``14/412,875`` and ``14412875`` search the same way. Values that
         contain a wildcard, or that the sanitizer rejects (such as range or
-        ``OR`` expressions), are returned unchanged.
+        ``OR`` expressions), are returned inside parentheses, so the field
+        applies to every term of the expression.
         """
-        if "*" in value:
-            return value
-        try:
-            return self.sanitize_application_number(value)
-        except ValueError:
-            return value
+        if "*" not in value:
+            try:
+                return self.sanitize_application_number(value)
+            except ValueError:
+                pass
+        return f"({value})"
 
     def _get_wrapper_from_response(
         self,
@@ -385,7 +386,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         so ``14/412,875``, ``14/412875``, and ``14412875`` all search for
         ``14412875``, and ``PCT/US2025/047756`` searches for ``PCTUS2025047756``.
         A value that contains ``*``, or that is not a single application number
-        (such as an ``OR`` or range expression), is sent unchanged.
+        (such as an ``OR`` or range expression), is sent inside parentheses, so
+        the field applies to every term. In an ``OR`` or range expression, write
+        each number as 8 digits.
 
         ``earliestPublicationNumber_q`` is reduced to its digits and searched
         with wildcards (``*20210138233*``), so bare digits, ``US`` prefixes,
