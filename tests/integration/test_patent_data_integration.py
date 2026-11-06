@@ -173,6 +173,38 @@ class TestPatentDataIntegration:
             w.application_number_text for w in response.patent_file_wrapper_data_bag
         ] == ["14412875"]
 
+    def test_search_applications_inventor_name_with_quote(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test a double quote inside inventor_name_q is escaped live."""
+        response = patent_data_client.search_applications(
+            inventor_name_q='Smith "John',
+            filing_date_from_q="2000-01-01",
+            filing_date_to_q="2020-12-31",
+            limit=10,
+        )
+
+        assert response.count == 1
+        assert [
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ] == ["09890205"]
+
+    def test_search_applications_patent_number_or_expression(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test patent_number_q applies the field to every term of an OR live."""
+        response = patent_data_client.search_applications(
+            patent_number_q="10000000 OR 10000001", limit=10
+        )
+
+        assert response.count == 2
+        assert sorted(
+            w.application_meta_data.patent_number
+            for w in response.patent_file_wrapper_data_bag
+        ) == ["10000000", "10000001"]
+
     def test_search_applications_pct_application_number_q(
         self,
         patent_data_client: PatentDataClient,
