@@ -112,6 +112,20 @@ class TestPTABInterferencesIntegration:
                 f"PTAB Interferences API error during search_decisions with convenience params: {e}"
             )
 
+    def test_search_decisions_with_series_code_application_number(
+        self, ptab_interferences_client: PTABInterferencesClient
+    ) -> None:
+        """Test a series-code senior party application number matches live."""
+        response = ptab_interferences_client.search_decisions(
+            senior_party_application_number_q="14/443829", limit=10
+        )
+
+        assert response.count == 2
+        assert [
+            d.senior_party_data.application_number_text
+            for d in response.patent_interference_data_bag
+        ] == ["14443829", "14443829"]
+
     def test_search_decisions_post(
         self, ptab_interferences_client: PTABInterferencesClient
     ) -> None:

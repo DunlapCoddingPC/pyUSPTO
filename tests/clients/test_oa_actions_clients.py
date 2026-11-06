@@ -179,6 +179,21 @@ class TestOAActionsClientSearch:
             call_kwargs["json_data"]["criteria"] == "patentApplicationNumber:14485382"
         )
 
+    def test_patent_application_number_q_series_code(
+        self,
+        client_with_mocked_request: tuple[OAActionsClient, MagicMock],
+        mock_response_with_data: OAActionsResponse,
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_response_with_data
+
+        client.search(patent_application_number_q="14/485,382")
+
+        call_kwargs = mock_get_model.call_args.kwargs
+        assert (
+            call_kwargs["json_data"]["criteria"] == "patentApplicationNumber:14485382"
+        )
+
     def test_legacy_document_code_identifier_q(
         self,
         client_with_mocked_request: tuple[OAActionsClient, MagicMock],

@@ -133,6 +133,20 @@ class TestPTABTrialsIntegration:
         except USPTOApiError as e:
             pytest.fail(f"PTAB Trials API error during search_proceedings POST: {e}")
 
+    def test_search_decisions_with_series_code_application_number(
+        self, ptab_trials_client: PTABTrialsClient
+    ) -> None:
+        """Test a series-code application_number_q (NN/NNNNNN) matches live."""
+        response = ptab_trials_client.search_decisions(
+            application_number_q="15/217538", limit=10
+        )
+
+        assert response.count == 4
+        assert [
+            d.patent_owner_data.application_number_text
+            for d in response.patent_trial_document_data_bag
+        ] == ["15217538"] * 4
+
     def test_search_documents_get(self, ptab_trials_client: PTABTrialsClient) -> None:
         """Test searching PTAB trial documents using GET method."""
         try:

@@ -302,8 +302,8 @@ class TestPTABInterferencesClientSearchDecisions:
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert "interferenceNumber:106123" in params["q"]
-        assert "seniorPartyData.applicationNumberText:12/345678" in params["q"]
-        assert "juniorPartyData.applicationNumberText:13/987654" in params["q"]
+        assert "seniorPartyData.applicationNumberText:12345678" in params["q"]
+        assert "juniorPartyData.applicationNumberText:13987654" in params["q"]
         assert 'seniorPartyData.patentOwnerName:"Senior Party Inc."' in params["q"]
         assert 'juniorPartyData.patentOwnerName:"Junior Party LLC"' in params["q"]
         assert (

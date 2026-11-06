@@ -649,7 +649,7 @@ class TestPTABTrialsClientSearchDecisions:
         )
         assert "trialTypeCode:IPR" in params["q"]
         assert "patentOwnerData.patentNumber:US1234567" in params["q"]
-        assert "patentOwnerData.applicationNumberText:15/123456" in params["q"]
+        assert "patentOwnerData.applicationNumberText:15123456" in params["q"]
         assert 'patentOwnerData.patentOwnerName:"Test Owner"' in params["q"]
         assert 'trialMetaData.trialStatusCategory:"Instituted"' in params["q"]
         assert (

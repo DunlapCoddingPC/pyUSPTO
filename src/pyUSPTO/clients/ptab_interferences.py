@@ -104,7 +104,11 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
             post_body: Optional POST body for complex queries.
             interference_number_q: Filter by interference number.
             senior_party_application_number_q: Filter by senior party application number.
+                Any common form matches (``17/765,301``, ``17765301``). Write
+                each number in an ``OR`` or range expression as 8 digits.
             junior_party_application_number_q: Filter by junior party application number.
+                Any common form matches (``17/765,301``, ``17765301``). Write
+                each number in an ``OR`` or range expression as 8 digits.
             senior_party_name_q: Filter by senior party name.
             junior_party_name_q: Filter by junior party name.
             real_party_in_interest_q: Filter by Real Party in Interest.
@@ -159,11 +163,13 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
                     q_parts.append(f"interferenceNumber:{interference_number_q}")
                 if senior_party_application_number_q:
                     q_parts.append(
-                        f"seniorPartyData.applicationNumberText:{senior_party_application_number_q}"
+                        "seniorPartyData.applicationNumberText:"
+                        f"{self._application_number_query(senior_party_application_number_q)}"
                     )
                 if junior_party_application_number_q:
                     q_parts.append(
-                        f"juniorPartyData.applicationNumberText:{junior_party_application_number_q}"
+                        "juniorPartyData.applicationNumberText:"
+                        f"{self._application_number_query(junior_party_application_number_q)}"
                     )
                 if senior_party_name_q:
                     q_parts.append(

@@ -102,6 +102,8 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
             post_body: Optional POST body for complex queries.
             appeal_number_q: Filter by appeal number.
             application_number_text_q: Filter by application number.
+                Any common form matches (``17/765,301``, ``17765301``). Write
+                each number in an ``OR`` or range expression as 8 digits.
             appellant_name_q: Filter by appellant name.
             requestor_name_q: Filter by requestor name.
             decision_type_category_q: Filter by decision type category.
@@ -155,7 +157,8 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
                     q_parts.append(f"appealNumber:{appeal_number_q}")
                 if application_number_text_q:
                     q_parts.append(
-                        f"appellantData.applicationNumberText:{application_number_text_q}"
+                        "appellantData.applicationNumberText:"
+                        f"{self._application_number_query(application_number_text_q)}"
                     )
                 if appellant_name_q:
                     q_parts.append(

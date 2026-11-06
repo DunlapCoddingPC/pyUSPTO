@@ -244,6 +244,20 @@ class TestPetitionDecisionsClientSearch:
         )
         assert result is mock_petition_response_with_data
 
+    def test_search_with_series_code_application_number(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_petition_response_with_data: PetitionDecisionResponse,
+    ) -> None:
+        """Test a series-code application_number_q is sent as 8 digits."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
+
+        client.search_decisions(application_number_q="17/765,301", limit=25)
+
+        params = mock_get_model.call_args[1]["params"]
+        assert params["q"] == "applicationNumberText:17765301"
+
     def test_search_with_date_range(
         self,
         client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
@@ -674,6 +688,21 @@ class TestPetitionDecisionsClientDownload:
         call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert "applicationNumberText:17765301" in params["q"]
+
+    def test_download_with_series_code_application_number(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+    ) -> None:
+        """Test a series-code application_number_q is sent as 8 digits."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = PetitionDecisionDownloadResponse(
+            petition_decision_data=[]
+        )
+
+        client.download_decisions(format="json", application_number_q="17/765301")
+
+        params = mock_get_model.call_args[1]["params"]
+        assert params["q"] == "applicationNumberText:17765301"
 
     def test_download_with_inventor_name(
         self,
