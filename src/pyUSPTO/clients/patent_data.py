@@ -312,6 +312,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         ``OR`` expressions), are returned inside parentheses, so the field
         applies to every term of the expression.
         """
+        value = str(value)
         if "*" not in value:
             try:
                 return self.sanitize_application_number(value)

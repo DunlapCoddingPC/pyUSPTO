@@ -394,6 +394,10 @@ class TestPatentApplicationSearch:
                 {"application_number_q": "14/412875"},
                 "applicationNumberText:14412875",
             ),
+            (
+                {"application_number_q": 14412875},
+                "applicationNumberText:14412875",
+            ),
             ({"application_number_q": "16*"}, "applicationNumberText:(16*)"),
             (
                 {"application_number_q": "14412875 OR 14412876"},
@@ -2559,6 +2563,10 @@ class TestPatentApplicationDataRetrieval:
             ),
             (
                 {"application_number_q": "14/412875"},
+                "applicationNumberText:14412875",
+            ),
+            (
+                {"application_number_q": 14412875},
                 "applicationNumberText:14412875",
             ),
             ({"application_number_q": "16*"}, "applicationNumberText:(16*)"),
