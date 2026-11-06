@@ -94,7 +94,7 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
 
         Text filters (categories, identifiers) are quoted when they contain
         spaces or special characters, with inner quotes escaped. Code filters
-        (document codes, tech centers, art units) that contain spaces are
+        (citation category codes, tech centers, art units) that contain spaces are
         wrapped in parentheses, so the field applies to every term.
 
         Args:

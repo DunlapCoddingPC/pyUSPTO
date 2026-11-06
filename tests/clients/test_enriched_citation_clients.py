@@ -205,6 +205,20 @@ class TestEnrichedCitationsClientSearch:
         json_data = call_args[1]["json_data"]
         assert "patentApplicationNumber:15739603" in json_data["criteria"]
 
+    def test_search_with_multiword_office_action_category(
+        self,
+        client_with_mocked_request: tuple[EnrichedCitationsClient, MagicMock],
+        mock_enriched_response_with_data: EnrichedCitationResponse,
+    ) -> None:
+        """Test a multi-word office_action_category_q is quoted."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_enriched_response_with_data
+
+        client.search_citations(office_action_category_q="Final Rejection")
+
+        json_data = mock_get_model.call_args[1]["json_data"]
+        assert json_data["criteria"] == 'officeActionCategory:"Final Rejection"'
+
     def test_search_with_series_code_application_number(
         self,
         client_with_mocked_request: tuple[EnrichedCitationsClient, MagicMock],
