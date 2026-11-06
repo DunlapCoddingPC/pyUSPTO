@@ -275,6 +275,23 @@ class TestOAActionsClientSearch:
         call_kwargs = mock_get_model.call_args.kwargs
         assert call_kwargs["json_data"]["criteria"] == "applicationTypeCategory:REGULAR"
 
+    def test_application_type_category_q_multiword(
+        self,
+        client_with_mocked_request: tuple[OAActionsClient, MagicMock],
+        mock_response_with_data: OAActionsResponse,
+    ) -> None:
+        """Test a multi-word application_type_category_q is quoted."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_response_with_data
+
+        client.search(application_type_category_q="National Stage")
+
+        call_kwargs = mock_get_model.call_args.kwargs
+        assert (
+            call_kwargs["json_data"]["criteria"]
+            == 'applicationTypeCategory:"National Stage"'
+        )
+
     def test_submission_date_range(
         self,
         client_with_mocked_request: tuple[OAActionsClient, MagicMock],

@@ -14,7 +14,6 @@ from typing import Any
 
 import requests
 
-from pyUSPTO.clients import query
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.clients.query import (
     all_of,
@@ -23,6 +22,7 @@ from pyUSPTO.clients.query import (
     date_range,
     phrase,
     publication_number,
+    sanitize_application_number,
     term,
 )
 from pyUSPTO.config import USPTOConfig
@@ -172,7 +172,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             >>> client.sanitize_application_number("PCT/US2024/012345")
             "PCTUS2024012345"
         """
-        return query.sanitize_application_number(input_number)
+        return sanitize_application_number(input_number)
 
     def _get_wrapper_from_response(
         self,

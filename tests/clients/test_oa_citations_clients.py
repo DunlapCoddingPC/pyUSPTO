@@ -226,6 +226,23 @@ class TestOACitationsClientSearch:
         call_kwargs = mock_get_model.call_args.kwargs
         assert call_kwargs["json_data"]["criteria"] == "actionTypeCategory:rejected"
 
+    def test_action_type_category_q_multiword(
+        self,
+        client_with_mocked_request: tuple[OACitationsClient, MagicMock],
+        mock_response_with_data: OACitationsResponse,
+    ) -> None:
+        """Test a multi-word action_type_category_q is quoted."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_response_with_data
+
+        client.search(action_type_category_q="Non-Final Rejection")
+
+        call_kwargs = mock_get_model.call_args.kwargs
+        assert (
+            call_kwargs["json_data"]["criteria"]
+            == 'actionTypeCategory:"Non-Final Rejection"'
+        )
+
     def test_tech_center_q(
         self,
         client_with_mocked_request: tuple[OACitationsClient, MagicMock],
