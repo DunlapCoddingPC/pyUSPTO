@@ -213,6 +213,151 @@ class BaseUSPTOClient(Generic[T]):
         """
         return quote(value, safe="")
 
+    @staticmethod
+    def _sanitize_application_number(input_number: str) -> str:
+        """Return an application number in the form the USPTO APIs store.
+
+        See ``PatentDataClient.sanitize_application_number`` for the accepted
+        formats and examples.
+
+        Args:
+            input_number: Raw application number input.
+
+        Returns:
+            str: "NNNNNNNN", or "PCT" + 2-char country + 4-digit year +
+                6-digit serial.
+
+        Raises:
+            ValueError: If the format is invalid.
+        """
+        if not input_number or not input_number.strip():
+            raise ValueError("Application number cannot be empty")
+
+        raw = input_number.strip()
+
+        # Handle PCT formats. Output is the standardized 15-char form:
+        # "PCT" + 2-char country + 4-digit year + 6-digit zero-padded serial.
+        # Example: "PCT/US2024/012345" -> "PCTUS2024012345"
+        if raw.startswith("PCT"):
+            parts = raw.split("/")
+            if len(parts) == 1:
+                # No slashes — only accept input that is already in the 15-char form.
+                body = raw[3:]
+                if len(body) == 12 and body[:2].isalpha() and body[2:].isdigit():
+                    return raw
+                raise ValueError(
+                    f"Invalid PCT application format: {input_number}. "
+                    "Expected PCT/CCYYYY/NNNNNN or PCTCCYYYYNNNNNN."
+                )
+            if len(parts) != 3:
+                raise ValueError(
+                    f"Invalid PCT application format: {input_number}. "
+                    "Expected PCT/CCYYYY/NNNNNN"
+                )
+
+            _, country_year, serial = parts
+
+            # country_year can be "US2024" or "US24"
+            country = country_year[:2]
+            if len(country) != 2 or not country.isalpha():
+                raise ValueError(
+                    f"Invalid PCT country code in: {country_year}. Expected 2 letters."
+                )
+
+            year_part = country_year[2:]
+            if not year_part.isdigit():
+                raise ValueError(
+                    f"Invalid PCT year in: {country_year}. Must be digits."
+                )
+
+            # Normalize to 4-digit year. 2-digit input uses a sliding window
+            # tied to the PCT system's start year (1978): YY>=78 -> 19YY, else 20YY.
+            if len(year_part) == 4:
+                year = year_part
+            elif len(year_part) == 2:
+                yy = int(year_part)
+                year = f"19{year_part}" if yy >= 78 else f"20{year_part}"
+            else:
+                raise ValueError(
+                    f"Invalid PCT year length in: {country_year}. "
+                    "Expected CCYYYY or CCYY."
+                )
+
+            # Serial must be digits only, and fit in 6 digits.
+            if not serial.isdigit():
+                raise ValueError(f"Invalid PCT serial: {serial}. Must be numeric.")
+            if len(serial) > 6:
+                raise ValueError(
+                    f"Invalid PCT serial: {serial}. Must be at most 6 digits."
+                )
+
+            return f"PCT{country}{year}{serial.zfill(6)}"
+
+        # Strip whitespace and remove commas/spaces
+        cleaned = raw.replace(",", "").replace(" ", "")
+
+        # Check if this is series code format (NN/NNNNNN)
+        if "/" in cleaned:
+            parts = cleaned.split("/")
+            if len(parts) != 2:
+                raise ValueError(
+                    f"Invalid application number format: {input_number}. "
+                    "Expected format: NNNNNNNN or NN/NNNNNN"
+                )
+
+            series, serial = parts
+            if not series.isdigit() or not serial.isdigit():
+                raise ValueError(
+                    f"Invalid application number format: {input_number}. "
+                    "Series and serial must be numeric."
+                )
+
+            if len(series) != 2 or len(serial) != 6:
+                raise ValueError(
+                    f"Invalid application number format: {input_number}. "
+                    "Expected series code format: NN/NNNNNN (2 digits / 6 digits)"
+                )
+
+            return series + serial
+
+        # Standard 8-digit format
+        if not cleaned.isdigit():
+            raise ValueError(
+                f"Invalid application number format: {input_number}. "
+                "Must contain only digits."
+            )
+
+        if len(cleaned) != 8:
+            raise ValueError(
+                f"Invalid application number format: {input_number}. Expected 8 digits."
+            )
+
+        return cleaned
+
+    @staticmethod
+    def _application_number_query(value: str) -> str:
+        """Build the search value for an application-number field.
+
+        Values that look like an application number are sanitized, so
+        ``14/412,875`` and ``14412875`` search the same way. Values that
+        contain a wildcard, or that the sanitizer rejects (such as range or
+        ``OR`` expressions), are returned inside parentheses, so the field
+        applies to every term of the expression.
+
+        Args:
+            value: The caller's application number or expression.
+
+        Returns:
+            The value to put after ``field:`` in the query.
+        """
+        value = str(value)
+        if "*" not in value:
+            try:
+                return BaseUSPTOClient._sanitize_application_number(value)
+            except ValueError:
+                pass
+        return f"({value})"
+
     def _execute_request(
         self,
         method: str,

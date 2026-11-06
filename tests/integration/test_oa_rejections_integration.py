@@ -57,6 +57,19 @@ class TestOARejectionsSearch:
             doc.patent_application_number == _KNOWN_APP_NUMBER for doc in response.docs
         )
 
+    def test_search_by_series_code_application_number(
+        self, oa_rejections_client: OARejectionsClient
+    ) -> None:
+        """Test a series-code patent_application_number_q (NN/NNNNNN) matches live."""
+        response = oa_rejections_client.search(
+            patent_application_number_q="12/190351", rows=50
+        )
+
+        assert response.num_found == 31
+        assert [doc.patent_application_number for doc in response.docs] == [
+            "12190351"
+        ] * 31
+
     def test_search_by_doc_code(self, oa_rejections_client: OARejectionsClient) -> None:
         response = oa_rejections_client.search(
             legacy_document_code_identifier_q="CTNF", rows=5

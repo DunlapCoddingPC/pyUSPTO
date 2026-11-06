@@ -85,6 +85,8 @@ class OAActionsClient(BaseUSPTOClient[OAActionsResponse]):
             post_body: Optional POST body dict for complex queries. When provided,
                 all other parameters are ignored.
             patent_application_number_q: Filter by patent application number.
+                Any common form matches (``17/765,301``, ``17765301``). Write
+                each number in an ``OR`` or range expression as 8 digits.
             legacy_document_code_identifier_q: Filter by document code (e.g., ``"CTNF"``, ``"NOA"``).
             group_art_unit_number_q: Filter by group art unit number.
             tech_center_q: Filter by technology center code.
@@ -134,7 +136,10 @@ class OAActionsClient(BaseUSPTOClient[OAActionsResponse]):
         if final_criteria is None:
             q_parts = []
             if patent_application_number_q:
-                q_parts.append(f"patentApplicationNumber:{patent_application_number_q}")
+                q_parts.append(
+                    "patentApplicationNumber:"
+                    f"{self._application_number_query(patent_application_number_q)}"
+                )
             if legacy_document_code_identifier_q:
                 q_parts.append(
                     f"legacyDocumentCodeIdentifier:{legacy_document_code_identifier_q}"

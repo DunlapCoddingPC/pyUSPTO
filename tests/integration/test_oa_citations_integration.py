@@ -58,6 +58,19 @@ class TestOACitationsSearch:
         for doc in response.docs:
             assert doc.patent_application_number == _KNOWN_APP_NUMBER
 
+    def test_search_by_series_code_application_number(
+        self, oa_citations_client: OACitationsClient
+    ) -> None:
+        """Test a series-code patent_application_number_q (NN/NNNNNN) matches live."""
+        response = oa_citations_client.search(
+            patent_application_number_q="17/519936", rows=20
+        )
+
+        assert response.num_found == 15
+        assert [doc.patent_application_number for doc in response.docs] == [
+            "17519936"
+        ] * 15
+
     def test_search_by_id_exact_values(
         self, oa_citations_client: OACitationsClient
     ) -> None:

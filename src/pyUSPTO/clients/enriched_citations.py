@@ -92,6 +92,8 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
             post_body: Optional POST body for complex queries. When provided,
                 all other parameters are ignored.
             patent_application_number_q: Filter by patent application number.
+                Any common form matches (``17/765,301``, ``17765301``). Write
+                each number in an ``OR`` or range expression as 8 digits.
             cited_document_identifier_q: Filter by cited document identifier.
             office_action_category_q: Filter by office action category (e.g., "CTNF").
             citation_category_code_q: Filter by citation category code (e.g., "X", "Y").
@@ -143,7 +145,10 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
         if final_q is None:
             q_parts = []
             if patent_application_number_q:
-                q_parts.append(f"patentApplicationNumber:{patent_application_number_q}")
+                q_parts.append(
+                    "patentApplicationNumber:"
+                    f"{self._application_number_query(patent_application_number_q)}"
+                )
             if cited_document_identifier_q:
                 v = (
                     f'"{cited_document_identifier_q}"'

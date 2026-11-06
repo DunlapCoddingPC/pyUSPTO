@@ -47,6 +47,19 @@ class TestEnrichedCitationsSearch:
         for doc in response.docs:
             assert doc.patent_application_number == "15061308"
 
+    def test_search_by_series_code_application_number(
+        self, enriched_citations_client: EnrichedCitationsClient
+    ) -> None:
+        """Test a series-code patent_application_number_q (NN/NNNNNN) matches live."""
+        response = enriched_citations_client.search_citations(
+            patent_application_number_q="15/061308", rows=50
+        )
+
+        assert response.num_found == 25
+        assert [doc.patent_application_number for doc in response.docs] == [
+            "15061308"
+        ] * 25
+
     def test_search_by_citation_category_code(
         self, enriched_citations_client: EnrichedCitationsClient
     ) -> None:

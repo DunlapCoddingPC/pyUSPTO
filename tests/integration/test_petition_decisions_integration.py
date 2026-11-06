@@ -195,6 +195,19 @@ class TestPetitionDecisionsIntegration:
         except USPTOApiError as e:
             pytest.fail(f"Application number search failed: {e}")
 
+    def test_search_decisions_with_series_code_application_number(
+        self, petition_decisions_client: PetitionDecisionsClient
+    ) -> None:
+        """Test a series-code application_number_q (NN/NNNNNN) matches live."""
+        response = petition_decisions_client.search_decisions(
+            application_number_q="17/765301", limit=10
+        )
+
+        assert response.count == 1
+        assert [
+            d.application_number_text for d in response.petition_decision_data_bag
+        ] == ["17765301"]
+
     def test_search_decisions_with_patent_number(
         self, petition_decisions_client: PetitionDecisionsClient
     ) -> None:

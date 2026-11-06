@@ -189,6 +189,8 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             range_filters: Range filter configuration string.
             post_body: Optional POST body for complex queries.
             application_number_q: Filter by application number.
+                Any common form matches (``17/765,301``, ``17765301``). Write
+                each number in an ``OR`` or range expression as 8 digits.
             patent_number_q: Filter by patent number.
             inventor_name_q: Filter by inventor name.
             applicant_name_q: Filter by applicant name.
@@ -242,7 +244,10 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             if final_q is None:
                 q_parts = []
                 if application_number_q:
-                    q_parts.append(f"applicationNumberText:{application_number_q}")
+                    q_parts.append(
+                        "applicationNumberText:"
+                        f"{self._application_number_query(application_number_q)}"
+                    )
                 if patent_number_q:
                     q_parts.append(f"patentNumber:{patent_number_q}")
                 if inventor_name_q:
@@ -412,6 +417,8 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
                 A value containing a space only works in post_body filters.
             range_filters: Range filter configuration string.
             application_number_q: Filter by application number.
+                Any common form matches (``17/765,301``, ``17765301``). Write
+                each number in an ``OR`` or range expression as 8 digits.
             patent_number_q: Filter by patent number.
             inventor_name_q: Filter by inventor name.
             applicant_name_q: Filter by applicant name.
@@ -464,7 +471,10 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         if final_q is None:
             q_parts = []
             if application_number_q:
-                q_parts.append(f"applicationNumberText:{application_number_q}")
+                q_parts.append(
+                    "applicationNumberText:"
+                    f"{self._application_number_query(application_number_q)}"
+                )
             if patent_number_q:
                 q_parts.append(f"patentNumber:{patent_number_q}")
             if inventor_name_q:

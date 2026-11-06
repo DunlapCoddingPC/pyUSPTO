@@ -118,6 +118,20 @@ class TestPTABAppealsIntegration:
                 f"PTAB Appeals API error during search_decisions with convenience params: {e}"
             )
 
+    def test_search_decisions_with_series_code_application_number(
+        self, ptab_appeals_client: PTABAppealsClient
+    ) -> None:
+        """Test a series-code application_number_text_q (NN/NNNNNN) matches live."""
+        response = ptab_appeals_client.search_decisions(
+            application_number_text_q="18/136874", limit=10
+        )
+
+        assert response.count == 1
+        assert [
+            d.appellant_data.application_number_text
+            for d in response.patent_appeal_data_bag
+        ] == ["18136874"]
+
     def test_search_decisions_post(
         self, ptab_appeals_client: PTABAppealsClient
     ) -> None:

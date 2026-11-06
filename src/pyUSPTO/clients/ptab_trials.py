@@ -416,6 +416,8 @@ class PTABTrialsClient(
             trial_type_code_q: Filter by trial type code (e.g., "IPR", "PGR", "CBM", "DER").
             patent_number_q: Filter by patent number.
             application_number_q: Filter by application number.
+                Any common form matches (``17/765,301``, ``17765301``). Write
+                each number in an ``OR`` or range expression as 8 digits.
             patent_owner_name_q: Filter by patent owner name.
             trial_status_category_q: Filter by trial status category.
             real_party_in_interest_name_q: Filter by real party in interest name.
@@ -453,7 +455,8 @@ class PTABTrialsClient(
             q_parts.append(f"patentOwnerData.patentNumber:{patent_number_q}")
         if application_number_q:
             q_parts.append(
-                f"patentOwnerData.applicationNumberText:{application_number_q}"
+                "patentOwnerData.applicationNumberText:"
+                f"{self._application_number_query(application_number_q)}"
             )
         if patent_owner_name_q:
             q_parts.append(f'patentOwnerData.patentOwnerName:"{patent_owner_name_q}"')
