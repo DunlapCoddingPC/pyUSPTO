@@ -159,6 +159,20 @@ class TestPatentDataIntegration:
             w.application_number_text for w in response.patent_file_wrapper_data_bag
         ] == ["14412875"]
 
+    def test_search_applications_or_expression_application_number_q(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test application_number_q applies the field to every term of an OR."""
+        response = patent_data_client.search_applications(
+            application_number_q="14412875 OR 10000000", limit=10
+        )
+
+        assert response.count == 1
+        assert [
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ] == ["14412875"]
+
     def test_search_applications_pct_application_number_q(
         self,
         patent_data_client: PatentDataClient,
