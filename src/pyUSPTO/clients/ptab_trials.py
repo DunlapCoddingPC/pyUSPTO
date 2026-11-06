@@ -9,6 +9,14 @@ from collections.abc import Iterator
 from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient, M
+from pyUSPTO.clients.query import (
+    all_of,
+    application_number,
+    contains,
+    date_range,
+    phrase,
+    term,
+)
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.ptab import (
     PTABTrialDocumentResponse,
@@ -70,7 +78,7 @@ class PTABTrialsClient(
         endpoint_key: str,
         response_class: type[M],
         query: str | None,
-        query_parts: list[str],
+        built_query: str | None,
         post_body: dict[str, Any] | None,
         sort: str | None,
         offset: int | None,
@@ -102,9 +110,9 @@ class PTABTrialsClient(
         params: dict[str, Any] = {}
         final_q = query
 
-        # Combine specific convenience query parts if no direct query is provided
-        if final_q is None and query_parts:
-            final_q = " AND ".join(query_parts)
+        # Use the convenience filters if no direct query is provided
+        if final_q is None:
+            final_q = built_query
 
         if final_q:
             params["q"] = final_q
@@ -162,6 +170,11 @@ class PTABTrialsClient(
         direct query string or use convenience parameters that will be automatically
         combined into a query.
 
+        Text filters (names, categories, descriptions) are quoted when they
+        contain spaces or special characters, with inner quotes escaped. Code
+        filters (trial number, trial type, patent number) that contain spaces
+        are wrapped in parentheses, so the field applies to every term.
+
         Args:
             query: Direct query string in USPTO search syntax.
             sort: Sort order for results.
@@ -198,42 +211,28 @@ class PTABTrialsClient(
             ...     limit=50
             ... )
         """
-        q_parts = []
-        if trial_number_q:
-            q_parts.append(f"trialNumber:{trial_number_q}")
-        if patent_owner_name_q:
-            q_parts.append(f'patentOwnerData.patentOwnerName:"{patent_owner_name_q}"')
-        if petitioner_real_party_in_interest_name_q:
-            q_parts.append(
-                f'regularPetitionerData.realPartyInInterestName:"{petitioner_real_party_in_interest_name_q}"'
-            )
-        if respondent_name_q:
-            q_parts.append(f'respondentData.patentOwnerName:"{respondent_name_q}"')
-        if trial_type_code_q:
-            q_parts.append(f"trialMetaData.trialTypeCode:{trial_type_code_q}")
-        if trial_status_category_q:
-            q_parts.append(
-                f'trialMetaData.trialStatusCategory:"{trial_status_category_q}"'
-            )
-
-        if petition_filing_date_from_q and petition_filing_date_to_q:
-            q_parts.append(
-                f"trialMetaData.petitionFilingDate:[{petition_filing_date_from_q} TO {petition_filing_date_to_q}]"
-            )
-        elif petition_filing_date_from_q:
-            q_parts.append(
-                f"trialMetaData.petitionFilingDate:>={petition_filing_date_from_q}"
-            )
-        elif petition_filing_date_to_q:
-            q_parts.append(
-                f"trialMetaData.petitionFilingDate:<={petition_filing_date_to_q}"
-            )
+        built_query = all_of(
+            term("trialNumber", trial_number_q),
+            phrase("patentOwnerData.patentOwnerName", patent_owner_name_q),
+            phrase(
+                "regularPetitionerData.realPartyInInterestName",
+                petitioner_real_party_in_interest_name_q,
+            ),
+            phrase("respondentData.patentOwnerName", respondent_name_q),
+            term("trialMetaData.trialTypeCode", trial_type_code_q),
+            phrase("trialMetaData.trialStatusCategory", trial_status_category_q),
+            date_range(
+                "trialMetaData.petitionFilingDate",
+                petition_filing_date_from_q,
+                petition_filing_date_to_q,
+            ),
+        )
 
         return self._perform_search(
             endpoint_key="search_proceedings",
             response_class=PTABTrialProceedingResponse,
             query=query,
-            query_parts=q_parts,
+            built_query=built_query,
             post_body=post_body,
             sort=sort,
             offset=offset,
@@ -276,6 +275,11 @@ class PTABTrialsClient(
         direct query string or use convenience parameters that will be automatically
         combined into a query.
 
+        Text filters (names, categories, descriptions) are quoted when they
+        contain spaces or special characters, with inner quotes escaped. Code
+        filters (trial number, trial type, patent number) that contain spaces
+        are wrapped in parentheses, so the field applies to every term.
+
         Args:
             query: Direct query string in USPTO search syntax.
             sort: Sort order for results.
@@ -314,44 +318,31 @@ class PTABTrialsClient(
             ...     limit=50
             ... )
         """
-        q_parts = []
-        if trial_number_q:
-            q_parts.append(f"trialNumber:{trial_number_q}")
-        if document_category_q:
-            q_parts.append(f'documentData.documentCategory:"{document_category_q}"')
-        if document_type_name_q:
-            q_parts.append(
-                f'documentData.documentTypeDescriptionText:"{document_type_name_q}"'
-            )
-        if petitioner_real_party_in_interest_name_q:
-            q_parts.append(
-                f'regularPetitionerData.realPartyInInterestName:"{petitioner_real_party_in_interest_name_q}"'
-            )
-        if inventor_name_q:
-            q_parts.append(f'patentOwnerData.inventorName:"{inventor_name_q}"')
-        if real_party_in_interest_name_q:
-            q_parts.append(
-                f'regularPetitionerData.realPartyInInterestName:"{real_party_in_interest_name_q}"'
-            )
-        if patent_number_q:
-            q_parts.append(f"patentOwnerData.patentNumber:{patent_number_q}")
-        if patent_owner_name_q:
-            q_parts.append(f'patentOwnerData.patentOwnerName:"{patent_owner_name_q}"')
-
-        if filing_date_from_q and filing_date_to_q:
-            q_parts.append(
-                f"documentData.documentFilingDate:[{filing_date_from_q} TO {filing_date_to_q}]"
-            )
-        elif filing_date_from_q:
-            q_parts.append(f"documentData.documentFilingDate:>={filing_date_from_q}")
-        elif filing_date_to_q:
-            q_parts.append(f"documentData.documentFilingDate:<={filing_date_to_q}")
+        built_query = all_of(
+            term("trialNumber", trial_number_q),
+            phrase("documentData.documentCategory", document_category_q),
+            phrase("documentData.documentTypeDescriptionText", document_type_name_q),
+            phrase(
+                "regularPetitionerData.realPartyInInterestName",
+                petitioner_real_party_in_interest_name_q,
+            ),
+            phrase("patentOwnerData.inventorName", inventor_name_q),
+            phrase(
+                "regularPetitionerData.realPartyInInterestName",
+                real_party_in_interest_name_q,
+            ),
+            term("patentOwnerData.patentNumber", patent_number_q),
+            phrase("patentOwnerData.patentOwnerName", patent_owner_name_q),
+            date_range(
+                "documentData.documentFilingDate", filing_date_from_q, filing_date_to_q
+            ),
+        )
 
         return self._perform_search(
             endpoint_key="search_documents",
             response_class=PTABTrialDocumentResponse,
             query=query,
-            query_parts=q_parts,
+            built_query=built_query,
             post_body=post_body,
             sort=sort,
             offset=offset,
@@ -396,6 +387,11 @@ class PTABTrialsClient(
         direct query string or use convenience parameters that will be automatically
         combined into a query.
 
+        Text filters (names, categories, descriptions) are quoted when they
+        contain spaces or special characters, with inner quotes escaped. Code
+        filters (trial number, trial type, patent number) that contain spaces
+        are wrapped in parentheses, so the field applies to every term.
+
         Args:
             query: Direct query string in USPTO search syntax.
             sort: Sort order for results.
@@ -416,6 +412,8 @@ class PTABTrialsClient(
             trial_type_code_q: Filter by trial type code (e.g., "IPR", "PGR", "CBM", "DER").
             patent_number_q: Filter by patent number.
             application_number_q: Filter by application number.
+                Any common form matches (``17/765,301``, ``17765301``). Write
+                each number in an ``OR`` or range expression as 8 digits.
             patent_owner_name_q: Filter by patent owner name.
             trial_status_category_q: Filter by trial status category.
             real_party_in_interest_name_q: Filter by real party in interest name.
@@ -436,52 +434,38 @@ class PTABTrialsClient(
             ...     limit=50
             ... )
         """
-        q_parts = []
-        if trial_number_q:
-            q_parts.append(f"trialNumber:{trial_number_q}")
-        if decision_type_category_q:
-            q_parts.append(
-                f'decisionData.decisionTypeCategory:"{decision_type_category_q}"'
-            )
-        if document_type_description_q:
-            q_parts.append(
-                f'documentData.documentTypeDescriptionText:"*{document_type_description_q}*"'
-            )
-        if trial_type_code_q:
-            q_parts.append(f"trialMetaData.trialTypeCode:{trial_type_code_q}")
-        if patent_number_q:
-            q_parts.append(f"patentOwnerData.patentNumber:{patent_number_q}")
-        if application_number_q:
-            q_parts.append(
-                f"patentOwnerData.applicationNumberText:{application_number_q}"
-            )
-        if patent_owner_name_q:
-            q_parts.append(f'patentOwnerData.patentOwnerName:"{patent_owner_name_q}"')
-        if trial_status_category_q:
-            q_parts.append(
-                f'trialMetaData.trialStatusCategory:"{trial_status_category_q}"'
-            )
-        if real_party_in_interest_name_q:
-            q_parts.append(
-                f'regularPetitionerData.realPartyInInterestName:"{real_party_in_interest_name_q}"'
-            )
-        if document_category_q:
-            q_parts.append(f'documentData.documentCategory:"{document_category_q}"')
-
-        if decision_date_from_q and decision_date_to_q:
-            q_parts.append(
-                f"decisionData.decisionIssueDate:[{decision_date_from_q} TO {decision_date_to_q}]"
-            )
-        elif decision_date_from_q:
-            q_parts.append(f"decisionData.decisionIssueDate:>={decision_date_from_q}")
-        elif decision_date_to_q:
-            q_parts.append(f"decisionData.decisionIssueDate:<={decision_date_to_q}")
+        built_query = all_of(
+            term("trialNumber", trial_number_q),
+            phrase("decisionData.decisionTypeCategory", decision_type_category_q),
+            contains(
+                "documentData.documentTypeDescriptionText",
+                document_type_description_q,
+                quoted=True,
+            ),
+            term("trialMetaData.trialTypeCode", trial_type_code_q),
+            term("patentOwnerData.patentNumber", patent_number_q),
+            application_number(
+                "patentOwnerData.applicationNumberText", application_number_q
+            ),
+            phrase("patentOwnerData.patentOwnerName", patent_owner_name_q),
+            phrase("trialMetaData.trialStatusCategory", trial_status_category_q),
+            phrase(
+                "regularPetitionerData.realPartyInInterestName",
+                real_party_in_interest_name_q,
+            ),
+            phrase("documentData.documentCategory", document_category_q),
+            date_range(
+                "decisionData.decisionIssueDate",
+                decision_date_from_q,
+                decision_date_to_q,
+            ),
+        )
 
         return self._perform_search(
             endpoint_key="search_decisions",
             response_class=PTABTrialDocumentResponse,
             query=query,
-            query_parts=q_parts,
+            built_query=built_query,
             post_body=post_body,
             sort=sort,
             offset=offset,

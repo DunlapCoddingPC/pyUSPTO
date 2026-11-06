@@ -6,7 +6,6 @@ It allows you to search for and retrieve patent application data.
 
 import dataclasses
 import os
-import re
 import tempfile
 import warnings
 import zipfile
@@ -16,6 +15,16 @@ from typing import Any
 import requests
 
 from pyUSPTO.clients.base import BaseUSPTOClient
+from pyUSPTO.clients.query import (
+    all_of,
+    any_of,
+    application_number,
+    date_range,
+    phrase,
+    publication_number,
+    sanitize_application_number,
+    term,
+)
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import FormatNotAvailableError, USPTOApiNotFoundError
 from pyUSPTO.models.patent_data import (
@@ -38,42 +47,6 @@ from pyUSPTO.models.patent_data import (
     StatusCodeSearchResponse,
 )
 from pyUSPTO.warnings import USPTODataMismatchWarning
-
-
-def _or_clause(field: str, value: int | str | list[int | str]) -> str:
-    """Build a Lucene clause for a single value or a list of values.
-
-    Single value → ``field:val``. List → ``field:(v1 OR v2 ...)``.
-    """
-    if isinstance(value, list):
-        return f"{field}:({' OR '.join(str(v) for v in value)})"
-    return f"{field}:{value}"
-
-
-_PUBLICATION_NUMBER_RE = re.compile(
-    r"^(?:US)?[\s/\-,]*(\d{4})[\s/\-,]*(\d{7})[\s/\-,]*(?:[A-Z]\d)?$"
-)
-
-
-def _publication_number_query(value: str) -> str:
-    """Build the search value for ``applicationMetaData.earliestPublicationNumber``.
-
-    The API stores publication numbers as ``USyyyyNNNNNNNAn`` (e.g.
-    ``US20210138233A1``). Callers typically supply bare digits, or forms with
-    separators such as ``2021/0138233`` or ``US 2021/0138233 A1``. This reduces
-    the input to its 11 digits (year + 7-digit serial) and wraps them in
-    wildcards so any prefix or kind code matches.
-
-    Values that already contain a wildcard, or that do not look like a US
-    publication number, are returned unchanged.
-    """
-    if "*" in value:
-        return value
-    match = _PUBLICATION_NUMBER_RE.match(value.strip().upper())
-    if match is None:
-        return value
-    return f"*{match.group(1)}{match.group(2)}*"
-
 
 FIELD_PRESETS: dict[str, list[str]] = {
     "minimal": [
@@ -173,16 +146,16 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         - PCT format: "PCT/US2024/012345" → "PCTUS2024012345"
           (standardized 15-character form per USPTO ODP Release 3.6, 2026-04-10)
 
-        This method removes common separators (commas, spaces) while preserving
-        the "/" in series code format.
+        This method removes common separators (commas, spaces) and joins
+        series-code input into 8 digits.
 
         Args:
             input_number: Raw application number input. May include commas,
                 spaces, or other formatting.
 
         Returns:
-            str: Sanitized application number ("NNNNNNNN", "NN/NNNNNN", or
-                "PCT" + 2-char country + 4-digit year + 6-digit serial).
+            str: Sanitized application number ("NNNNNNNN", or "PCT" + 2-char
+                country + 4-digit year + 6-digit serial).
 
         Raises:
             ValueError: If the format is invalid.
@@ -193,115 +166,13 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             >>> client.sanitize_application_number("16,123,456")
             "16123456"
             >>> client.sanitize_application_number("08/123456")
-            "08/123456"
+            "08123456"
             >>> client.sanitize_application_number("08/123,456")
-            "08/123456"
+            "08123456"
             >>> client.sanitize_application_number("PCT/US2024/012345")
             "PCTUS2024012345"
         """
-        if not input_number or not input_number.strip():
-            raise ValueError("Application number cannot be empty")
-
-        raw = input_number.strip()
-
-        # Handle PCT formats. Output is the standardized 15-char form:
-        # "PCT" + 2-char country + 4-digit year + 6-digit zero-padded serial.
-        # Example: "PCT/US2024/012345" -> "PCTUS2024012345"
-        if raw.startswith("PCT"):
-            parts = raw.split("/")
-            if len(parts) == 1:
-                # No slashes — only accept input that is already in the 15-char form.
-                body = raw[3:]
-                if len(body) == 12 and body[:2].isalpha() and body[2:].isdigit():
-                    return raw
-                raise ValueError(
-                    f"Invalid PCT application format: {input_number}. "
-                    "Expected PCT/CCYYYY/NNNNNN or PCTCCYYYYNNNNNN."
-                )
-            if len(parts) != 3:
-                raise ValueError(
-                    f"Invalid PCT application format: {input_number}. "
-                    "Expected PCT/CCYYYY/NNNNNN"
-                )
-
-            _, country_year, serial = parts
-
-            # country_year can be "US2024" or "US24"
-            country = country_year[:2]
-            if len(country) != 2 or not country.isalpha():
-                raise ValueError(
-                    f"Invalid PCT country code in: {country_year}. Expected 2 letters."
-                )
-
-            year_part = country_year[2:]
-            if not year_part.isdigit():
-                raise ValueError(
-                    f"Invalid PCT year in: {country_year}. Must be digits."
-                )
-
-            # Normalize to 4-digit year. 2-digit input uses a sliding window
-            # tied to the PCT system's start year (1978): YY>=78 -> 19YY, else 20YY.
-            if len(year_part) == 4:
-                year = year_part
-            elif len(year_part) == 2:
-                yy = int(year_part)
-                year = f"19{year_part}" if yy >= 78 else f"20{year_part}"
-            else:
-                raise ValueError(
-                    f"Invalid PCT year length in: {country_year}. "
-                    "Expected CCYYYY or CCYY."
-                )
-
-            # Serial must be digits only, and fit in 6 digits.
-            if not serial.isdigit():
-                raise ValueError(f"Invalid PCT serial: {serial}. Must be numeric.")
-            if len(serial) > 6:
-                raise ValueError(
-                    f"Invalid PCT serial: {serial}. Must be at most 6 digits."
-                )
-
-            return f"PCT{country}{year}{serial.zfill(6)}"
-
-        # Strip whitespace and remove commas/spaces
-        cleaned = raw.replace(",", "").replace(" ", "")
-
-        # Check if this is series code format (NN/NNNNNN)
-        if "/" in cleaned:
-            parts = cleaned.split("/")
-            if len(parts) != 2:
-                raise ValueError(
-                    f"Invalid application number format: {input_number}. "
-                    "Expected format: NNNNNNNN or NN/NNNNNN"
-                )
-
-            series, serial = parts
-            if not series.isdigit() or not serial.isdigit():
-                raise ValueError(
-                    f"Invalid application number format: {input_number}. "
-                    "Series and serial must be numeric."
-                )
-
-            if len(series) != 2 or len(serial) != 6:
-                raise ValueError(
-                    f"Invalid application number format: {input_number}. "
-                    "Expected series code format: NN/NNNNNN (2 digits / 6 digits)"
-                )
-
-            return cleaned
-
-        # Standard 8-digit format
-        if not cleaned.isdigit():
-            raise ValueError(
-                f"Invalid application number format: {input_number}. "
-                "Must contain only digits."
-            )
-
-        if len(cleaned) != 8:
-            raise ValueError(
-                f"Invalid application number format: {input_number}. Expected 8 digits."
-            )
-
-        return cleaned
+        return sanitize_application_number(input_number)
 
     def _get_wrapper_from_response(
         self,
@@ -327,6 +198,54 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 stacklevel=2,
             )
         return wrapper
+
+    def _search_query(
+        self,
+        *,
+        application_number_q: str | None,
+        patent_number_q: str | None,
+        inventor_name_q: str | None,
+        applicant_name_q: str | None,
+        assignee_name_q: str | None,
+        customer_number_q: int | str | list[int | str] | None,
+        status_code_q: int | str | list[int | str] | None,
+        filing_date_from_q: str | None,
+        filing_date_to_q: str | None,
+        grant_date_from_q: str | None,
+        grant_date_to_q: str | None,
+        status_date_from_q: str | None,
+        status_date_to_q: str | None,
+        classification_q: str | None,
+        earliestPublicationNumber_q: str | None = None,
+        pctPublicationNumber_q: str | None = None,
+    ) -> str | None:
+        """Build the ``q`` value for the application search convenience filters."""
+        return all_of(
+            application_number("applicationNumberText", application_number_q),
+            term("applicationMetaData.patentNumber", patent_number_q),
+            phrase("applicationMetaData.inventorBag.inventorNameText", inventor_name_q),
+            phrase("applicationMetaData.firstApplicantName", applicant_name_q),
+            phrase("assignmentBag.assigneeBag.assigneeNameText", assignee_name_q),
+            any_of("applicationMetaData.customerNumber", customer_number_q),
+            any_of("applicationMetaData.applicationStatusCode", status_code_q),
+            phrase("applicationMetaData.cpcClassificationBag", classification_q),
+            publication_number(
+                "applicationMetaData.earliestPublicationNumber",
+                earliestPublicationNumber_q,
+            ),
+            term("applicationMetaData.pctPublicationNumber", pctPublicationNumber_q),
+            date_range(
+                "applicationMetaData.filingDate", filing_date_from_q, filing_date_to_q
+            ),
+            date_range(
+                "applicationMetaData.grantDate", grant_date_from_q, grant_date_to_q
+            ),
+            date_range(
+                "applicationMetaData.applicationStatusDate",
+                status_date_from_q,
+                status_date_to_q,
+            ),
+        )
 
     def search_applications(
         self,
@@ -366,6 +285,19 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         ``status_date_to_q`` follow the same date-range pattern as
         ``filing_date_from_q`` / ``filing_date_to_q``.
 
+        Text filters (names, classification) are quoted when they contain spaces
+        or special characters, with inner quotes escaped. Code filters (such as
+        ``patent_number_q``) that contain spaces are wrapped in parentheses, so
+        the field applies to every term.
+
+        ``application_number_q`` is cleaned with ``sanitize_application_number``,
+        so ``14/412,875``, ``14/412875``, and ``14412875`` all search for
+        ``14412875``, and ``PCT/US2025/047756`` searches for ``PCTUS2025047756``.
+        A value that contains ``*``, or that is not a single application number
+        (such as an ``OR`` or range expression), is sent inside parentheses, so
+        the field applies to every term. In an ``OR`` or range expression, write
+        each number as 8 digits.
+
         ``earliestPublicationNumber_q`` is reduced to its digits and searched
         with wildcards (``*20210138233*``), so bare digits, ``US`` prefixes,
         kind codes, and separators all match the stored ``USyyyyNNNNNNNAn``
@@ -386,103 +318,24 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             final_q = query
 
             if final_q is None:
-                q_parts = []
-                if application_number_q:
-                    q_parts.append(f"applicationNumberText:{application_number_q}")
-                if patent_number_q:
-                    q_parts.append(
-                        f"applicationMetaData.patentNumber:{patent_number_q}"
-                    )
-                if inventor_name_q:
-                    v = (
-                        f'"{inventor_name_q}"'
-                        if " " in inventor_name_q
-                        else inventor_name_q
-                    )
-                    q_parts.append(
-                        f"applicationMetaData.inventorBag.inventorNameText:{v}"
-                    )
-                if applicant_name_q:
-                    v = (
-                        f'"{applicant_name_q}"'
-                        if " " in applicant_name_q
-                        else applicant_name_q
-                    )
-                    q_parts.append(f"applicationMetaData.firstApplicantName:{v}")
-                if assignee_name_q:
-                    v = (
-                        f'"{assignee_name_q}"'
-                        if " " in assignee_name_q
-                        else assignee_name_q
-                    )
-                    q_parts.append(f"assignmentBag.assigneeBag.assigneeNameText:{v}")
-                if customer_number_q is not None:
-                    q_parts.append(
-                        _or_clause(
-                            "applicationMetaData.customerNumber", customer_number_q
-                        )
-                    )
-                if status_code_q is not None:
-                    q_parts.append(
-                        _or_clause(
-                            "applicationMetaData.applicationStatusCode", status_code_q
-                        )
-                    )
-                if classification_q:
-                    v = (
-                        f'"{classification_q}"'
-                        if any(c in classification_q for c in [" ", "/"])
-                        else classification_q
-                    )
-                    q_parts.append(f"applicationMetaData.cpcClassificationBag:{v}")
-                if earliestPublicationNumber_q:
-                    q_parts.append(
-                        "applicationMetaData.earliestPublicationNumber:"
-                        f"{_publication_number_query(earliestPublicationNumber_q)}"
-                    )
-                if pctPublicationNumber_q:
-                    q_parts.append(
-                        f"applicationMetaData.pctPublicationNumber:{pctPublicationNumber_q}"
-                    )
-                if filing_date_from_q and filing_date_to_q:
-                    q_parts.append(
-                        f"applicationMetaData.filingDate:[{filing_date_from_q} TO {filing_date_to_q}]"
-                    )
-                elif filing_date_from_q:
-                    q_parts.append(
-                        f"applicationMetaData.filingDate:>={filing_date_from_q}"
-                    )
-                elif filing_date_to_q:
-                    q_parts.append(
-                        f"applicationMetaData.filingDate:<={filing_date_to_q}"
-                    )
-
-                if grant_date_from_q and grant_date_to_q:
-                    q_parts.append(
-                        f"applicationMetaData.grantDate:[{grant_date_from_q} TO {grant_date_to_q}]"
-                    )
-                elif grant_date_from_q:
-                    q_parts.append(
-                        f"applicationMetaData.grantDate:>={grant_date_from_q}"
-                    )
-                elif grant_date_to_q:
-                    q_parts.append(f"applicationMetaData.grantDate:<={grant_date_to_q}")
-
-                if status_date_from_q and status_date_to_q:
-                    q_parts.append(
-                        f"applicationMetaData.applicationStatusDate:[{status_date_from_q} TO {status_date_to_q}]"
-                    )
-                elif status_date_from_q:
-                    q_parts.append(
-                        f"applicationMetaData.applicationStatusDate:>={status_date_from_q}"
-                    )
-                elif status_date_to_q:
-                    q_parts.append(
-                        f"applicationMetaData.applicationStatusDate:<={status_date_to_q}"
-                    )
-
-                if q_parts:
-                    final_q = " AND ".join(q_parts)
+                final_q = self._search_query(
+                    application_number_q=application_number_q,
+                    patent_number_q=patent_number_q,
+                    inventor_name_q=inventor_name_q,
+                    applicant_name_q=applicant_name_q,
+                    assignee_name_q=assignee_name_q,
+                    customer_number_q=customer_number_q,
+                    status_code_q=status_code_q,
+                    filing_date_from_q=filing_date_from_q,
+                    filing_date_to_q=filing_date_to_q,
+                    grant_date_from_q=grant_date_from_q,
+                    grant_date_to_q=grant_date_to_q,
+                    status_date_from_q=status_date_from_q,
+                    status_date_to_q=status_date_to_q,
+                    classification_q=classification_q,
+                    earliestPublicationNumber_q=earliestPublicationNumber_q,
+                    pctPublicationNumber_q=pctPublicationNumber_q,
+                )
 
             if final_q is not None:
                 params["q"] = final_q
@@ -541,6 +394,10 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         For GET, parameters align with OpenAPI for /api/v1/patent/applications/search/download.
         For POST, post_body should conform to PatentDownloadRequest schema.
+
+        The convenience filters (``application_number_q`` through
+        ``classification_q``) are built the same way as in
+        ``search_applications``.
         """
         endpoint = self.ENDPOINTS["get_search_results"]
 
@@ -559,95 +416,22 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             final_q = query
 
             if final_q is None:
-                q_parts = []
-                if application_number_q:
-                    q_parts.append(f"applicationNumberText:{application_number_q}")
-                if patent_number_q:
-                    q_parts.append(
-                        f"applicationMetaData.patentNumber:{patent_number_q}"
-                    )
-                if inventor_name_q:
-                    v = (
-                        f'"{inventor_name_q}"'
-                        if " " in inventor_name_q
-                        else inventor_name_q
-                    )
-                    q_parts.append(
-                        f"applicationMetaData.inventorBag.inventorNameText:{v}"
-                    )
-                if applicant_name_q:
-                    v = (
-                        f'"{applicant_name_q}"'
-                        if " " in applicant_name_q
-                        else applicant_name_q
-                    )
-                    q_parts.append(f"applicationMetaData.firstApplicantName:{v}")
-                if assignee_name_q:
-                    v = (
-                        f'"{assignee_name_q}"'
-                        if " " in assignee_name_q
-                        else assignee_name_q
-                    )
-                    q_parts.append(f"assignmentBag.assigneeBag.assigneeNameText:{v}")
-                if customer_number_q is not None:
-                    q_parts.append(
-                        _or_clause(
-                            "applicationMetaData.customerNumber", customer_number_q
-                        )
-                    )
-                if status_code_q is not None:
-                    q_parts.append(
-                        _or_clause(
-                            "applicationMetaData.applicationStatusCode", status_code_q
-                        )
-                    )
-                if classification_q:
-                    v = (
-                        f'"{classification_q}"'
-                        if any(c in classification_q for c in [" ", "/"])
-                        else classification_q
-                    )
-                    q_parts.append(f"applicationMetaData.cpcClassificationBag:{v}")
-
-                if filing_date_from_q and filing_date_to_q:
-                    q_parts.append(
-                        f"applicationMetaData.filingDate:[{filing_date_from_q} TO {filing_date_to_q}]"
-                    )
-                elif filing_date_from_q:
-                    q_parts.append(
-                        f"applicationMetaData.filingDate:>={filing_date_from_q}"
-                    )
-                elif filing_date_to_q:
-                    q_parts.append(
-                        f"applicationMetaData.filingDate:<={filing_date_to_q}"
-                    )
-
-                if grant_date_from_q and grant_date_to_q:
-                    q_parts.append(
-                        f"applicationMetaData.grantDate:[{grant_date_from_q} TO {grant_date_to_q}]"
-                    )
-                elif grant_date_from_q:
-                    q_parts.append(
-                        f"applicationMetaData.grantDate:>={grant_date_from_q}"
-                    )
-                elif grant_date_to_q:
-                    q_parts.append(f"applicationMetaData.grantDate:<={grant_date_to_q}")
-
-                if status_date_from_q and status_date_to_q:
-                    q_parts.append(
-                        f"applicationMetaData.applicationStatusDate:[{status_date_from_q} TO {status_date_to_q}]"
-                    )
-                elif status_date_from_q:
-                    q_parts.append(
-                        f"applicationMetaData.applicationStatusDate:>={status_date_from_q}"
-                    )
-                elif status_date_to_q:
-                    q_parts.append(
-                        f"applicationMetaData.applicationStatusDate:<={status_date_to_q}"
-                    )
-
-                if q_parts:
-                    final_q = " AND ".join(q_parts)
+                final_q = self._search_query(
+                    application_number_q=application_number_q,
+                    patent_number_q=patent_number_q,
+                    inventor_name_q=inventor_name_q,
+                    applicant_name_q=applicant_name_q,
+                    assignee_name_q=assignee_name_q,
+                    customer_number_q=customer_number_q,
+                    status_code_q=status_code_q,
+                    filing_date_from_q=filing_date_from_q,
+                    filing_date_to_q=filing_date_to_q,
+                    grant_date_from_q=grant_date_from_q,
+                    grant_date_to_q=grant_date_to_q,
+                    status_date_from_q=status_date_from_q,
+                    status_date_to_q=status_date_to_q,
+                    classification_q=classification_q,
+                )
 
             if final_q is not None:
                 params["q"] = final_q
@@ -690,8 +474,9 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         Args:
             application_number (str): The USPTO application number for the patent
-                application (e.g., "16123456" or "18/915,708"). The application
-                number will be automatically sanitized to remove commas and spaces.
+                application (e.g., "16123456" or "18/915,708"). The number is
+                cleaned with ``sanitize_application_number``, so "18/915,708"
+                is requested as "18915708".
 
         Returns:
             Optional[PatentFileWrapper]: A `PatentFileWrapper` object representing

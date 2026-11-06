@@ -10,6 +10,15 @@ from collections.abc import Iterator
 from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
+from pyUSPTO.clients.query import (
+    all_of,
+    application_number,
+    boolean,
+    contains,
+    date_range,
+    phrase,
+    term,
+)
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.oa_citations import (
     OACitationRecord,
@@ -79,6 +88,11 @@ class OACitationsClient(BaseUSPTOClient[OACitationsResponse]):
         Office Action citation records. You can provide either a direct post_body,
         a criteria string, or use convenience parameters.
 
+        Text filters (categories, identifiers) are quoted when they contain
+        spaces or special characters, with inner quotes escaped. Code filters
+        (document codes, tech centers, art units) that contain spaces are
+        wrapped in parentheses, so the field applies to every term.
+
         Args:
             criteria: Direct Solr query string (e.g., ``"patentApplicationNumber:16845502"``).
             sort: Sort order for results (e.g., ``"createDateTime desc"``).
@@ -87,6 +101,8 @@ class OACitationsClient(BaseUSPTOClient[OACitationsResponse]):
             post_body: Optional POST body dict for complex queries. When provided,
                 all other parameters are ignored.
             patent_application_number_q: Filter by patent application number.
+                Any common form matches (``17/765,301``, ``17765301``). Write
+                each number in an ``OR`` or range expression as 8 digits.
             legal_section_code_q: Filter by legal section code (e.g., ``"101"``, ``"103"``).
             action_type_category_q: Filter by action type (e.g., ``"rejected"``).
             tech_center_q: Filter by technology center code.
@@ -137,37 +153,27 @@ class OACitationsClient(BaseUSPTOClient[OACitationsResponse]):
         # Build criteria from convenience parameters
         final_criteria = criteria
         if final_criteria is None:
-            q_parts = []
-            if patent_application_number_q:
-                q_parts.append(f"patentApplicationNumber:{patent_application_number_q}")
-            if legal_section_code_q:
-                q_parts.append(f"legalSectionCode:*{legal_section_code_q}*")
-            if action_type_category_q:
-                q_parts.append(f"actionTypeCategory:{action_type_category_q}")
-            if tech_center_q:
-                q_parts.append(f"techCenter:{tech_center_q}")
-            if work_group_q:
-                q_parts.append(f"workGroup:{work_group_q}")
-            if group_art_unit_number_q:
-                q_parts.append(f"groupArtUnitNumber:{group_art_unit_number_q}")
-            if examiner_cited_reference_indicator_q is not None:
-                val = str(examiner_cited_reference_indicator_q).lower()
-                q_parts.append(f"examinerCitedReferenceIndicator:{val}")
-            if applicant_cited_examiner_reference_indicator_q is not None:
-                val = str(applicant_cited_examiner_reference_indicator_q).lower()
-                q_parts.append(f"applicantCitedExaminerReferenceIndicator:{val}")
-
-            if create_date_time_from_q and create_date_time_to_q:
-                q_parts.append(
-                    f"createDateTime:[{create_date_time_from_q} TO {create_date_time_to_q}]"
-                )
-            elif create_date_time_from_q:
-                q_parts.append(f"createDateTime:>={create_date_time_from_q}")
-            elif create_date_time_to_q:
-                q_parts.append(f"createDateTime:<={create_date_time_to_q}")
-
-            if q_parts:
-                final_criteria = " AND ".join(q_parts)
+            final_criteria = all_of(
+                application_number(
+                    "patentApplicationNumber", patent_application_number_q
+                ),
+                contains("legalSectionCode", legal_section_code_q),
+                phrase("actionTypeCategory", action_type_category_q),
+                term("techCenter", tech_center_q),
+                term("workGroup", work_group_q),
+                term("groupArtUnitNumber", group_art_unit_number_q),
+                boolean(
+                    "examinerCitedReferenceIndicator",
+                    examiner_cited_reference_indicator_q,
+                ),
+                boolean(
+                    "applicantCitedExaminerReferenceIndicator",
+                    applicant_cited_examiner_reference_indicator_q,
+                ),
+                date_range(
+                    "createDateTime", create_date_time_from_q, create_date_time_to_q
+                ),
+            )
 
         if final_criteria is not None:
             body["criteria"] = final_criteria

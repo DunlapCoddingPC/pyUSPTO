@@ -10,6 +10,13 @@ from collections.abc import Iterator
 from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
+from pyUSPTO.clients.query import (
+    all_of,
+    application_number,
+    date_range,
+    phrase,
+    term,
+)
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.oa_rejections import (
     OARejectionsFieldsResponse,
@@ -76,6 +83,11 @@ class OARejectionsClient(BaseUSPTOClient[OARejectionsResponse]):
         office action rejection records. You can provide either a direct
         post_body, a criteria string, or use convenience parameters.
 
+        Text filters (categories, identifiers) are quoted when they contain
+        spaces or special characters, with inner quotes escaped. Code filters
+        (document codes, tech centers, art units) that contain spaces are
+        wrapped in parentheses, so the field applies to every term.
+
         Args:
             criteria: Direct Solr query string (e.g., ``"patentApplicationNumber:12190351"``).
             sort: Sort order for results (e.g., ``"submissionDate desc"``).
@@ -84,6 +96,8 @@ class OARejectionsClient(BaseUSPTOClient[OARejectionsResponse]):
             post_body: Optional POST body dict for complex queries. When provided,
                 all other parameters are ignored.
             patent_application_number_q: Filter by patent application number.
+                Any common form matches (``17/765,301``, ``17765301``). Write
+                each number in an ``OR`` or range expression as 8 digits.
             legacy_document_code_identifier_q: Filter by document code (e.g., ``"CTNF"``).
             group_art_unit_number_q: Filter by group art unit number.
             legal_section_code_q: Filter by legal section code.
@@ -130,31 +144,18 @@ class OARejectionsClient(BaseUSPTOClient[OARejectionsResponse]):
         # Build criteria from convenience parameters
         final_criteria = criteria
         if final_criteria is None:
-            q_parts = []
-            if patent_application_number_q:
-                q_parts.append(f"patentApplicationNumber:{patent_application_number_q}")
-            if legacy_document_code_identifier_q:
-                q_parts.append(
-                    f"legacyDocumentCodeIdentifier:{legacy_document_code_identifier_q}"
-                )
-            if group_art_unit_number_q:
-                q_parts.append(f"groupArtUnitNumber:{group_art_unit_number_q}")
-            if legal_section_code_q:
-                q_parts.append(f"legalSectionCode:{legal_section_code_q}")
-            if action_type_category_q:
-                q_parts.append(f"actionTypeCategory:{action_type_category_q}")
-
-            if submission_date_from_q and submission_date_to_q:
-                q_parts.append(
-                    f"submissionDate:[{submission_date_from_q} TO {submission_date_to_q}]"
-                )
-            elif submission_date_from_q:
-                q_parts.append(f"submissionDate:>={submission_date_from_q}")
-            elif submission_date_to_q:
-                q_parts.append(f"submissionDate:<={submission_date_to_q}")
-
-            if q_parts:
-                final_criteria = " AND ".join(q_parts)
+            final_criteria = all_of(
+                application_number(
+                    "patentApplicationNumber", patent_application_number_q
+                ),
+                term("legacyDocumentCodeIdentifier", legacy_document_code_identifier_q),
+                term("groupArtUnitNumber", group_art_unit_number_q),
+                term("legalSectionCode", legal_section_code_q),
+                phrase("actionTypeCategory", action_type_category_q),
+                date_range(
+                    "submissionDate", submission_date_from_q, submission_date_to_q
+                ),
+            )
 
         if final_criteria is not None:
             body["criteria"] = final_criteria

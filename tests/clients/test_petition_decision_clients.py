@@ -6,6 +6,7 @@ downloads, and for FinalPetitionDecisionsClient and the fixed-filter hook
 that restricts it to final decisions.
 """
 
+import warnings
 from collections.abc import Iterator
 from typing import Any
 from unittest.mock import MagicMock, Mock, call, patch
@@ -242,6 +243,34 @@ class TestPetitionDecisionsClientSearch:
             response_class=PetitionDecisionResponse,
         )
         assert result is mock_petition_response_with_data
+
+    def test_search_with_quote_in_inventor_name(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_petition_response_with_data: PetitionDecisionResponse,
+    ) -> None:
+        """Test a double quote inside inventor_name_q is escaped."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
+
+        client.search_decisions(inventor_name_q='Smith "John', limit=25)
+
+        params = mock_get_model.call_args[1]["params"]
+        assert params["q"] == 'inventorBag:"Smith \\"John"'
+
+    def test_search_with_series_code_application_number(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_petition_response_with_data: PetitionDecisionResponse,
+    ) -> None:
+        """Test a series-code application_number_q is sent as 8 digits."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
+
+        client.search_decisions(application_number_q="17/765,301", limit=25)
+
+        params = mock_get_model.call_args[1]["params"]
+        assert params["q"] == "applicationNumberText:17765301"
 
     def test_search_with_date_range(
         self,
@@ -523,6 +552,27 @@ class TestPetitionDecisionsClientGetById:
         assert result is not None
         assert result.petition_decision_record_identifier == record_id
 
+    def test_get_decision_by_id_escapes_reserved_characters(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_petition_response_with_data: PetitionDecisionResponse,
+    ) -> None:
+        """Test '?' and '/' in a decision ID are percent-encoded in the path."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
+
+        # The fixture's decision has a different ID, so a mismatch warning fires.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", USPTODataMismatchWarning)
+            client.get_decision_by_id("abc?x/y")
+
+        mock_get_model.assert_called_once_with(
+            method="GET",
+            endpoint="api/v1/petition/decisions/abc%3Fx%2Fy",
+            params=None,
+            response_class=PetitionDecisionResponse,
+        )
+
     def test_get_decision_by_id_not_found(
         self,
         client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
@@ -652,6 +702,21 @@ class TestPetitionDecisionsClientDownload:
         call_args = mock_get_model.call_args
         params = call_args[1]["params"]
         assert "applicationNumberText:17765301" in params["q"]
+
+    def test_download_with_series_code_application_number(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+    ) -> None:
+        """Test a series-code application_number_q is sent as 8 digits."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = PetitionDecisionDownloadResponse(
+            petition_decision_data=[]
+        )
+
+        client.download_decisions(format="json", application_number_q="17/765301")
+
+        params = mock_get_model.call_args[1]["params"]
+        assert params["q"] == "applicationNumberText:17765301"
 
     def test_download_with_inventor_name(
         self,

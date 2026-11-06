@@ -5,6 +5,7 @@ This module contains tests for the BulkDataClient class, including core function
 model handling, edge cases, and response handling.
 """
 
+import warnings
 from datetime import UTC, date, datetime
 from typing import Any
 from unittest.mock import MagicMock, call, patch
@@ -19,6 +20,7 @@ from pyUSPTO.models.bulk_data import (
     FileData,
     ProductFileBag,
 )
+from pyUSPTO.warnings import USPTODataMismatchWarning
 
 # --- Fixtures ---
 
@@ -339,6 +341,58 @@ class TestBulkDataClientCore:
         )
         assert isinstance(product, BulkDataProduct)
         assert product.product_identifier == "PRODUCT1"
+
+    def test_get_product_by_id_escapes_reserved_characters(
+        self, mock_bulk_data_client: BulkDataClient, bulk_data_sample: dict[str, Any]
+    ) -> None:
+        """Test '/' and '?' in a product ID are percent-encoded in the path."""
+        mock_response = MagicMock()
+        mock_response.json.return_value = bulk_data_sample
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response
+        mock_bulk_data_client.config._session = mock_session
+
+        # The sample's product has a different ID, so a mismatch warning fires.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", USPTODataMismatchWarning)
+            mock_bulk_data_client.get_product_by_id(product_id="A/B?C")
+
+        assert mock_session.get.call_args.kwargs["url"] == (
+            f"{mock_bulk_data_client.base_url}/api/v1/datasets/products/A%2FB%3FC"
+        )
+
+    def test_download_file_escapes_file_name(
+        self, mock_bulk_data_client: BulkDataClient
+    ) -> None:
+        """Test the fallback download URL percent-encodes the file name."""
+        file_data = FileData(
+            file_name="test file#1.zip",
+            file_size=1024,
+            product_identifier="PRODUCT1",
+            file_data_from_date=date(2023, 1, 1),
+            file_data_to_date=date(2023, 12, 31),
+            file_type_text="ZIP",
+            file_release_date=datetime(2024, 1, 1, tzinfo=UTC),
+        )
+
+        with patch.object(
+            mock_bulk_data_client,
+            "_download_file",
+            return_value="./downloads/test file#1.zip",
+        ) as mock_download:
+            mock_bulk_data_client.download_file(
+                file_data=file_data, destination="./downloads"
+            )
+
+            mock_download.assert_called_once_with(
+                url=(
+                    f"{mock_bulk_data_client.base_url}/api/v1/datasets/products/"
+                    "files/PRODUCT1/test%20file%231.zip"
+                ),
+                destination="./downloads",
+                file_name="test file#1.zip",
+                overwrite=False,
+            )
 
     def test_download_file(self, mock_bulk_data_client: BulkDataClient) -> None:
         """Test download_file method."""

@@ -32,6 +32,7 @@ try:
 except USPTOApiAuthError as e:
     print(f"Authentication failed: {e}")
     print("Check your API key and try again.")
+    print("A 'Missing Authentication Token' message can also mean a bad URL path.")
 
 print("-" * 40)
 print("Example 2: Not found errors")
@@ -95,7 +96,7 @@ try:
 except USPTOApiRateLimitError:
     print("Rate limited - wait and retry")
 except USPTOApiAuthError:
-    print("Authentication failed - check API key")
+    print("Authentication failed - check API key or URL path")
 except USPTOTimeout:
     print("Request timed out - try again")
 except USPTOConnectionError:

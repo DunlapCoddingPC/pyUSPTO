@@ -185,6 +185,21 @@ class TestOACitationsClientSearch:
             call_kwargs["json_data"]["criteria"] == "patentApplicationNumber:17519936"
         )
 
+    def test_patent_application_number_q_series_code(
+        self,
+        client_with_mocked_request: tuple[OACitationsClient, MagicMock],
+        mock_response_with_data: OACitationsResponse,
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_response_with_data
+
+        client.search(patent_application_number_q="17/519,936")
+
+        call_kwargs = mock_get_model.call_args.kwargs
+        assert (
+            call_kwargs["json_data"]["criteria"] == "patentApplicationNumber:17519936"
+        )
+
     def test_legal_section_code_q(
         self,
         client_with_mocked_request: tuple[OACitationsClient, MagicMock],
@@ -210,6 +225,23 @@ class TestOACitationsClientSearch:
 
         call_kwargs = mock_get_model.call_args.kwargs
         assert call_kwargs["json_data"]["criteria"] == "actionTypeCategory:rejected"
+
+    def test_action_type_category_q_multiword(
+        self,
+        client_with_mocked_request: tuple[OACitationsClient, MagicMock],
+        mock_response_with_data: OACitationsResponse,
+    ) -> None:
+        """Test a multi-word action_type_category_q is quoted."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_response_with_data
+
+        client.search(action_type_category_q="Non-Final Rejection")
+
+        call_kwargs = mock_get_model.call_args.kwargs
+        assert (
+            call_kwargs["json_data"]["criteria"]
+            == 'actionTypeCategory:"Non-Final Rejection"'
+        )
 
     def test_tech_center_q(
         self,

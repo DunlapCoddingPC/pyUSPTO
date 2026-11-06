@@ -179,6 +179,35 @@ class TestOAActionsClientSearch:
             call_kwargs["json_data"]["criteria"] == "patentApplicationNumber:14485382"
         )
 
+    def test_group_art_unit_number_q_empty_string(
+        self,
+        client_with_mocked_request: tuple[OAActionsClient, MagicMock],
+        mock_response_with_data: OAActionsResponse,
+    ) -> None:
+        """Test an empty group_art_unit_number_q adds no clause."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_response_with_data
+
+        client.search(group_art_unit_number_q="", tech_center_q="1700")
+
+        call_kwargs = mock_get_model.call_args.kwargs
+        assert call_kwargs["json_data"]["criteria"] == "techCenter:1700"
+
+    def test_patent_application_number_q_series_code(
+        self,
+        client_with_mocked_request: tuple[OAActionsClient, MagicMock],
+        mock_response_with_data: OAActionsResponse,
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_response_with_data
+
+        client.search(patent_application_number_q="14/485,382")
+
+        call_kwargs = mock_get_model.call_args.kwargs
+        assert (
+            call_kwargs["json_data"]["criteria"] == "patentApplicationNumber:14485382"
+        )
+
     def test_legacy_document_code_identifier_q(
         self,
         client_with_mocked_request: tuple[OAActionsClient, MagicMock],
@@ -245,6 +274,23 @@ class TestOAActionsClientSearch:
 
         call_kwargs = mock_get_model.call_args.kwargs
         assert call_kwargs["json_data"]["criteria"] == "applicationTypeCategory:REGULAR"
+
+    def test_application_type_category_q_multiword(
+        self,
+        client_with_mocked_request: tuple[OAActionsClient, MagicMock],
+        mock_response_with_data: OAActionsResponse,
+    ) -> None:
+        """Test a multi-word application_type_category_q is quoted."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_response_with_data
+
+        client.search(application_type_category_q="National Stage")
+
+        call_kwargs = mock_get_model.call_args.kwargs
+        assert (
+            call_kwargs["json_data"]["criteria"]
+            == 'applicationTypeCategory:"National Stage"'
+        )
 
     def test_submission_date_range(
         self,

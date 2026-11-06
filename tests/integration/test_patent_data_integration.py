@@ -136,6 +136,89 @@ class TestPatentDataIntegration:
         assert isinstance(patent_wrapper.application_meta_data, ApplicationMetaData)
         assert patent_wrapper.application_meta_data.invention_title is not None
 
+    def test_get_application_by_number_series_code_input(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test a series-code application number (NN/NNN,NNN) resolves live."""
+        patent_wrapper = patent_data_client.get_application_by_number("14/412,875")
+
+        assert patent_wrapper.application_number_text == "14412875"
+
+    def test_search_applications_series_code_application_number_q(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test application_number_q with a series code (NN/NNNNNN) matches live."""
+        response = patent_data_client.search_applications(
+            application_number_q="14/412875", limit=1
+        )
+
+        assert response.count == 1
+        assert [
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ] == ["14412875"]
+
+    def test_search_applications_or_expression_application_number_q(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test application_number_q applies the field to every term of an OR."""
+        response = patent_data_client.search_applications(
+            application_number_q="14412875 OR 10000000", limit=10
+        )
+
+        assert response.count == 1
+        assert [
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ] == ["14412875"]
+
+    def test_search_applications_inventor_name_with_quote(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test a double quote inside inventor_name_q is escaped live."""
+        response = patent_data_client.search_applications(
+            inventor_name_q='Smith "John',
+            filing_date_from_q="2000-01-01",
+            filing_date_to_q="2020-12-31",
+            limit=10,
+        )
+
+        assert response.count == 1
+        assert [
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ] == ["09890205"]
+
+    def test_search_applications_patent_number_or_expression(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test patent_number_q applies the field to every term of an OR live."""
+        response = patent_data_client.search_applications(
+            patent_number_q="10000000 OR 10000001", limit=10
+        )
+
+        assert response.count == 2
+        assert sorted(
+            w.application_meta_data.patent_number
+            for w in response.patent_file_wrapper_data_bag
+        ) == ["10000000", "10000001"]
+
+    def test_search_applications_pct_application_number_q(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test application_number_q with a PCT number (PCT/CCYYYY/NNNNNN) matches live."""
+        response = patent_data_client.search_applications(
+            application_number_q="PCT/US2025/047756", limit=1
+        )
+
+        assert response.count == 1
+        assert [
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ] == ["PCTUS2025047756"]
+
     def test_to_dict_matches_raw_api_response(self, api_key: str | None) -> None:
         """Test that to_dict() output matches the original API response stored in raw_data.
 
