@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The lint job (ruff, mypy) and the docs workflow run on Python 3.15 (was 3.14).
 - Development dependency updates: certifi 2026.10.23, coverage 7.17.0, pluggy 1.7.0, pytest 9.2.0, pytest-mock 3.17.0, ruff 0.17.3, sphinx 9.2.0, sphinx-autodoc-typehints 3.17.4, sphinxcontrib-jsmath 2.0.0.
 
-## [0.6.0]
+## [0.6.0] - 2026-10-27
 
 ### Added
 
