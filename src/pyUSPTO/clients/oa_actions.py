@@ -10,6 +10,13 @@ from collections.abc import Iterator
 from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
+from pyUSPTO.clients.query import (
+    all_of,
+    application_number,
+    date_range,
+    phrase,
+    term,
+)
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.oa_actions import (
     OAActionsFieldsResponse,
@@ -77,6 +84,11 @@ class OAActionsClient(BaseUSPTOClient[OAActionsResponse]):
         office action documents. You can provide either a direct post_body,
         a criteria string, or use convenience parameters.
 
+        Text filters (categories, identifiers) are quoted when they contain
+        spaces or special characters, with inner quotes escaped. Code filters
+        (document codes, tech centers, art units) that contain spaces are
+        wrapped in parentheses, so the field applies to every term.
+
         Args:
             criteria: Direct Solr query string (e.g., ``"patentApplicationNumber:14485382"``).
             sort: Sort order for results (e.g., ``"submissionDate desc"``).
@@ -134,36 +146,19 @@ class OAActionsClient(BaseUSPTOClient[OAActionsResponse]):
         # Build criteria from convenience parameters
         final_criteria = criteria
         if final_criteria is None:
-            q_parts = []
-            if patent_application_number_q:
-                q_parts.append(
-                    "patentApplicationNumber:"
-                    f"{self._application_number_query(patent_application_number_q)}"
-                )
-            if legacy_document_code_identifier_q:
-                q_parts.append(
-                    f"legacyDocumentCodeIdentifier:{legacy_document_code_identifier_q}"
-                )
-            if group_art_unit_number_q is not None:
-                q_parts.append(f"groupArtUnitNumber:{group_art_unit_number_q}")
-            if tech_center_q:
-                q_parts.append(f"techCenter:{tech_center_q}")
-            if access_level_category_q:
-                q_parts.append(f"accessLevelCategory:{access_level_category_q}")
-            if application_type_category_q:
-                q_parts.append(f"applicationTypeCategory:{application_type_category_q}")
-
-            if submission_date_from_q and submission_date_to_q:
-                q_parts.append(
-                    f"submissionDate:[{submission_date_from_q} TO {submission_date_to_q}]"
-                )
-            elif submission_date_from_q:
-                q_parts.append(f"submissionDate:>={submission_date_from_q}")
-            elif submission_date_to_q:
-                q_parts.append(f"submissionDate:<={submission_date_to_q}")
-
-            if q_parts:
-                final_criteria = " AND ".join(q_parts)
+            final_criteria = all_of(
+                application_number(
+                    "patentApplicationNumber", patent_application_number_q
+                ),
+                term("legacyDocumentCodeIdentifier", legacy_document_code_identifier_q),
+                term("groupArtUnitNumber", group_art_unit_number_q),
+                term("techCenter", tech_center_q),
+                phrase("accessLevelCategory", access_level_category_q),
+                phrase("applicationTypeCategory", application_type_category_q),
+                date_range(
+                    "submissionDate", submission_date_from_q, submission_date_to_q
+                ),
+            )
 
         if final_criteria is not None:
             body["criteria"] = final_criteria
