@@ -244,6 +244,20 @@ class TestPetitionDecisionsClientSearch:
         )
         assert result is mock_petition_response_with_data
 
+    def test_search_with_quote_in_inventor_name(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_petition_response_with_data: PetitionDecisionResponse,
+    ) -> None:
+        """Test a double quote inside inventor_name_q is escaped."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
+
+        client.search_decisions(inventor_name_q='Smith "John', limit=25)
+
+        params = mock_get_model.call_args[1]["params"]
+        assert params["q"] == 'inventorBag:"Smith \\"John"'
+
     def test_search_with_series_code_application_number(
         self,
         client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],

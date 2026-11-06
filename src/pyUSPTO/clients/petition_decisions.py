@@ -12,6 +12,13 @@ from typing import Any, ClassVar
 import requests
 
 from pyUSPTO.clients.base import BaseUSPTOClient
+from pyUSPTO.clients.query import (
+    all_of,
+    application_number,
+    date_range,
+    phrase,
+    term,
+)
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.petition_decisions import (
     DocumentDownloadOption,
@@ -142,6 +149,38 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         caller_filters = [] if existing is None else existing
         return {**post_body, "filters": [*caller_filters, *fixed]}
 
+    def _decisions_query(
+        self,
+        *,
+        application_number_q: str | None,
+        patent_number_q: str | None,
+        inventor_name_q: str | None,
+        applicant_name_q: str | None,
+        decision_date_from_q: str | None,
+        decision_date_to_q: str | None,
+        invention_title_q: str | None = None,
+        decided_petition_type_code_q: str | None = None,
+        technology_center_q: str | None = None,
+        final_deciding_office_name_q: str | None = None,
+        petition_mail_date_from_q: str | None = None,
+        petition_mail_date_to_q: str | None = None,
+    ) -> str | None:
+        """Build the ``q`` value for the petition decision convenience filters."""
+        return all_of(
+            application_number("applicationNumberText", application_number_q),
+            term("patentNumber", patent_number_q),
+            phrase("inventorBag", inventor_name_q),
+            phrase("firstApplicantName", applicant_name_q),
+            phrase("inventionTitle", invention_title_q),
+            term("decidedPetitionTypeCode", decided_petition_type_code_q),
+            term("technologyCenter", technology_center_q),
+            phrase("finalDecidingOfficeName", final_deciding_office_name_q),
+            date_range("decisionDate", decision_date_from_q, decision_date_to_q),
+            date_range(
+                "petitionMailDate", petition_mail_date_from_q, petition_mail_date_to_q
+            ),
+        )
+
     def search_decisions(
         self,
         query: str | None = None,
@@ -174,6 +213,11 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         request if post_body is specified. When using GET, you can provide either a
         direct query string or use convenience parameters that will be automatically
         combined into a query.
+
+        Text filters (names, titles, office names) are quoted when they contain
+        spaces or special characters, with inner quotes escaped. Code filters
+        (patent number, type code, technology center) that contain spaces are
+        wrapped in parentheses, so the field applies to every term.
 
         Args:
             query: Direct query string in USPTO search syntax.
@@ -240,73 +284,21 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             params: dict[str, Any] = {}
             final_q = query
 
-            # Build query from convenience parameters
             if final_q is None:
-                q_parts = []
-                if application_number_q:
-                    q_parts.append(
-                        "applicationNumberText:"
-                        f"{self._application_number_query(application_number_q)}"
-                    )
-                if patent_number_q:
-                    q_parts.append(f"patentNumber:{patent_number_q}")
-                if inventor_name_q:
-                    v = (
-                        f'"{inventor_name_q}"'
-                        if " " in inventor_name_q
-                        else inventor_name_q
-                    )
-                    q_parts.append(f"inventorBag:{v}")
-                if applicant_name_q:
-                    v = (
-                        f'"{applicant_name_q}"'
-                        if " " in applicant_name_q
-                        else applicant_name_q
-                    )
-                    q_parts.append(f"firstApplicantName:{v}")
-                if invention_title_q:
-                    v = (
-                        f'"{invention_title_q}"'
-                        if " " in invention_title_q
-                        else invention_title_q
-                    )
-                    q_parts.append(f"inventionTitle:{v}")
-                if decided_petition_type_code_q:
-                    q_parts.append(
-                        f"decidedPetitionTypeCode:{decided_petition_type_code_q}"
-                    )
-                if technology_center_q:
-                    q_parts.append(f"technologyCenter:{technology_center_q}")
-                if final_deciding_office_name_q:
-                    v = (
-                        f'"{final_deciding_office_name_q}"'
-                        if " " in final_deciding_office_name_q
-                        else final_deciding_office_name_q
-                    )
-                    q_parts.append(f"finalDecidingOfficeName:{v}")
-
-                # Handle decision date range
-                if decision_date_from_q and decision_date_to_q:
-                    q_parts.append(
-                        f"decisionDate:[{decision_date_from_q} TO {decision_date_to_q}]"
-                    )
-                elif decision_date_from_q:
-                    q_parts.append(f"decisionDate:>={decision_date_from_q}")
-                elif decision_date_to_q:
-                    q_parts.append(f"decisionDate:<={decision_date_to_q}")
-
-                # Handle petition mail date range
-                if petition_mail_date_from_q and petition_mail_date_to_q:
-                    q_parts.append(
-                        f"petitionMailDate:[{petition_mail_date_from_q} TO {petition_mail_date_to_q}]"
-                    )
-                elif petition_mail_date_from_q:
-                    q_parts.append(f"petitionMailDate:>={petition_mail_date_from_q}")
-                elif petition_mail_date_to_q:
-                    q_parts.append(f"petitionMailDate:<={petition_mail_date_to_q}")
-
-                if q_parts:
-                    final_q = " AND ".join(q_parts)
+                final_q = self._decisions_query(
+                    application_number_q=application_number_q,
+                    patent_number_q=patent_number_q,
+                    inventor_name_q=inventor_name_q,
+                    applicant_name_q=applicant_name_q,
+                    decision_date_from_q=decision_date_from_q,
+                    decision_date_to_q=decision_date_to_q,
+                    invention_title_q=invention_title_q,
+                    decided_petition_type_code_q=decided_petition_type_code_q,
+                    technology_center_q=technology_center_q,
+                    final_deciding_office_name_q=final_deciding_office_name_q,
+                    petition_mail_date_from_q=petition_mail_date_from_q,
+                    petition_mail_date_to_q=petition_mail_date_to_q,
+                )
 
             # Add parameters
             if final_q is not None:
@@ -405,6 +397,11 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         This endpoint is designed for bulk downloads of petition decisions data.
         It supports JSON and CSV formats.
 
+        Text filters (names, titles, office names) are quoted when they contain
+        spaces or special characters, with inner quotes escaped. Code filters
+        (patent number, type code, technology center) that contain spaces are
+        wrapped in parentheses, so the field applies to every term.
+
         Args:
             format: Download format, either "json" or "csv". Defaults to "json".
             query: Direct query string in USPTO search syntax.
@@ -467,43 +464,15 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         params: dict[str, Any] = {"format": format}
         final_q = query
 
-        # Build query from convenience parameters
         if final_q is None:
-            q_parts = []
-            if application_number_q:
-                q_parts.append(
-                    "applicationNumberText:"
-                    f"{self._application_number_query(application_number_q)}"
-                )
-            if patent_number_q:
-                q_parts.append(f"patentNumber:{patent_number_q}")
-            if inventor_name_q:
-                v = (
-                    f'"{inventor_name_q}"'
-                    if " " in inventor_name_q
-                    else inventor_name_q
-                )
-                q_parts.append(f"inventorBag:{v}")
-            if applicant_name_q:
-                v = (
-                    f'"{applicant_name_q}"'
-                    if " " in applicant_name_q
-                    else applicant_name_q
-                )
-                q_parts.append(f"firstApplicantName:{v}")
-
-            # Handle decision date range
-            if decision_date_from_q and decision_date_to_q:
-                q_parts.append(
-                    f"decisionDate:[{decision_date_from_q} TO {decision_date_to_q}]"
-                )
-            elif decision_date_from_q:
-                q_parts.append(f"decisionDate:>={decision_date_from_q}")
-            elif decision_date_to_q:
-                q_parts.append(f"decisionDate:<={decision_date_to_q}")
-
-            if q_parts:
-                final_q = " AND ".join(q_parts)
+            final_q = self._decisions_query(
+                application_number_q=application_number_q,
+                patent_number_q=patent_number_q,
+                inventor_name_q=inventor_name_q,
+                applicant_name_q=applicant_name_q,
+                decision_date_from_q=decision_date_from_q,
+                decision_date_to_q=decision_date_to_q,
+            )
 
         # Add parameters
         if final_q is not None:
