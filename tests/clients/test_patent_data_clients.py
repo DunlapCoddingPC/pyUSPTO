@@ -413,6 +413,14 @@ class TestPatentApplicationSearch:
             ),
             ({"patent_number_q": "PN123"}, "applicationMetaData.patentNumber:PN123"),
             (
+                {"patent_number_q": "10000000 OR 10000001"},
+                "applicationMetaData.patentNumber:(10000000 OR 10000001)",
+            ),
+            (
+                {"inventor_name_q": 'Smith "John'},
+                'applicationMetaData.inventorBag.inventorNameText:"Smith \\"John"',
+            ),
+            (
                 {"inventor_name_q": "Doe J"},
                 'applicationMetaData.inventorBag.inventorNameText:"Doe J"',
             ),
@@ -2583,6 +2591,14 @@ class TestPatentApplicationDataRetrieval:
                 "applicationNumberText:PCTUS2024012345",
             ),
             ({"patent_number_q": "PN123"}, "applicationMetaData.patentNumber:PN123"),
+            (
+                {"patent_number_q": "10000000 OR 10000001"},
+                "applicationMetaData.patentNumber:(10000000 OR 10000001)",
+            ),
+            (
+                {"inventor_name_q": 'Smith "John'},
+                'applicationMetaData.inventorBag.inventorNameText:"Smith \\"John"',
+            ),
             (
                 {"inventor_name_q": "Doe J"},
                 'applicationMetaData.inventorBag.inventorNameText:"Doe J"',
