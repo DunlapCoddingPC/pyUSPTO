@@ -8,6 +8,13 @@ from collections.abc import Iterator
 from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
+from pyUSPTO.clients.query import (
+    all_of,
+    application_number,
+    date_range,
+    phrase,
+    term,
+)
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.ptab import (
     AppealDocumentData,
@@ -88,6 +95,11 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
         direct query string or use convenience parameters that will be automatically
         combined into a query.
 
+        Text filters (names, decision type) are quoted when they contain spaces
+        or special characters, with inner quotes escaped. Code filters (appeal
+        number, technology center) that contain spaces are wrapped in
+        parentheses, so the field applies to every term.
+
         Args:
             query: Direct query string in USPTO search syntax.
             sort: Sort order for results.
@@ -152,45 +164,26 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
 
             # Build query from convenience parameters
             if final_q is None:
-                q_parts = []
-                if appeal_number_q:
-                    q_parts.append(f"appealNumber:{appeal_number_q}")
-                if application_number_text_q:
-                    q_parts.append(
-                        "appellantData.applicationNumberText:"
-                        f"{self._application_number_query(application_number_text_q)}"
-                    )
-                if appellant_name_q:
-                    q_parts.append(
-                        f"appellantData.realPartyInInterestName:{appellant_name_q}"
-                    )
-                if requestor_name_q:
-                    q_parts.append(f"appellantData.counselName:{requestor_name_q}")
-                if decision_type_category_q:
-                    q_parts.append(
-                        f"decisionData.decisionTypeCategory:{decision_type_category_q}"
-                    )
-                if technology_center_number_q:
-                    q_parts.append(
-                        f"appellantData.technologyCenterNumber:{technology_center_number_q}"
-                    )
-
-                # Handle decision date range
-                if decision_date_from_q and decision_date_to_q:
-                    q_parts.append(
-                        f"decisionData.decisionIssueDate:[{decision_date_from_q} TO {decision_date_to_q}]"
-                    )
-                elif decision_date_from_q:
-                    q_parts.append(
-                        f"decisionData.decisionIssueDate:>={decision_date_from_q}"
-                    )
-                elif decision_date_to_q:
-                    q_parts.append(
-                        f"decisionData.decisionIssueDate:<={decision_date_to_q}"
-                    )
-
-                if q_parts:
-                    final_q = " AND ".join(q_parts)
+                final_q = all_of(
+                    term("appealNumber", appeal_number_q),
+                    application_number(
+                        "appellantData.applicationNumberText", application_number_text_q
+                    ),
+                    phrase("appellantData.realPartyInInterestName", appellant_name_q),
+                    phrase("appellantData.counselName", requestor_name_q),
+                    phrase(
+                        "decisionData.decisionTypeCategory", decision_type_category_q
+                    ),
+                    term(
+                        "appellantData.technologyCenterNumber",
+                        technology_center_number_q,
+                    ),
+                    date_range(
+                        "decisionData.decisionIssueDate",
+                        decision_date_from_q,
+                        decision_date_to_q,
+                    ),
+                )
 
             # Add parameters
             if final_q is not None:

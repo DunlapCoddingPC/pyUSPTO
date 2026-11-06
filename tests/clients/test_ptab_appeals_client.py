@@ -238,8 +238,8 @@ class TestPTABAppealsClientSearchDecisions:
         params = call_args[1]["params"]
         assert "appealNumber:2023-001234" in params["q"]
         assert "appellantData.applicationNumberText:15123456" in params["q"]
-        assert "appellantData.realPartyInInterestName:Test Appellant" in params["q"]
-        assert "appellantData.counselName:Test Requestor" in params["q"]
+        assert 'appellantData.realPartyInInterestName:"Test Appellant"' in params["q"]
+        assert 'appellantData.counselName:"Test Requestor"' in params["q"]
         assert "decisionTypeCategory:Affirmed" in params["q"]
         assert "technologyCenterNumber:3600" in params["q"]
 

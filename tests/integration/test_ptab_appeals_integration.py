@@ -118,6 +118,22 @@ class TestPTABAppealsIntegration:
                 f"PTAB Appeals API error during search_decisions with convenience params: {e}"
             )
 
+    def test_search_decisions_multiword_appellant_name(
+        self, ptab_appeals_client: PTABAppealsClient
+    ) -> None:
+        """Test a multi-word appellant_name_q is searched as one phrase live."""
+        response = ptab_appeals_client.search_decisions(
+            appellant_name_q="Block, Inc.",
+            decision_date_from_q="2025-01-01",
+            decision_date_to_q="2025-12-31",
+            limit=10,
+        )
+
+        assert response.count == 1
+        assert [d.appeal_number for d in response.patent_appeal_data_bag] == [
+            "2025003211"
+        ]
+
     def test_search_decisions_with_series_code_application_number(
         self, ptab_appeals_client: PTABAppealsClient
     ) -> None:
