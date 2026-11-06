@@ -8,6 +8,14 @@ from collections.abc import Iterator
 from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
+from pyUSPTO.clients.query import (
+    all_of,
+    application_number,
+    date_range,
+    either,
+    phrase,
+    term,
+)
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.ptab import (
     InterferenceDocumentData,
@@ -90,6 +98,12 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
         direct query string or use convenience parameters that will be automatically
         combined into a query.
 
+        Text filters (party names, categories) are quoted when they contain
+        spaces or special characters, with inner quotes escaped. A party-name
+        filter searches several name fields inside one parenthesized OR group.
+        The interference number filter, if it contains spaces, is wrapped in
+        parentheses, so the field applies to every term.
+
         Args:
             query: Direct query string in USPTO search syntax.
             sort: Sort order for results.
@@ -158,57 +172,55 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
 
             # Build query from convenience parameters
             if final_q is None:
-                q_parts = []
-                if interference_number_q:
-                    q_parts.append(f"interferenceNumber:{interference_number_q}")
-                if senior_party_application_number_q:
-                    q_parts.append(
-                        "seniorPartyData.applicationNumberText:"
-                        f"{self._application_number_query(senior_party_application_number_q)}"
-                    )
-                if junior_party_application_number_q:
-                    q_parts.append(
-                        "juniorPartyData.applicationNumberText:"
-                        f"{self._application_number_query(junior_party_application_number_q)}"
-                    )
-                if senior_party_name_q:
-                    q_parts.append(
-                        f'seniorPartyData.patentOwnerName:"{senior_party_name_q}" OR seniorPartyData.inventorName:"{senior_party_name_q}" OR seniorPartyData.realPartyInInterestName:"{senior_party_name_q}"'
-                    )
-                if junior_party_name_q:
-                    q_parts.append(
-                        f'juniorPartyData.patentOwnerName:"{junior_party_name_q}" OR juniorPartyData.inventorName:"{junior_party_name_q}" OR juniorPartyData.realPartyInInterestName:"{junior_party_name_q}"'
-                    )
-                if real_party_in_interest_q:
-                    q_parts.append(
-                        f'seniorPartyData.realPartyInInterestName:"{real_party_in_interest_q}" OR juniorPartyData.realPartyInInterestName:"{real_party_in_interest_q}"'
-                    )
-
-                if interference_outcome_category_q:
-                    q_parts.append(
-                        f'documentData.interferenceOutcomeCategory:"{interference_outcome_category_q}"'
-                    )
-                if decision_type_category_q:
-                    q_parts.append(
-                        f'documentData.decisionTypeCategory:"{decision_type_category_q}"'
-                    )
-
-                # Handle decision date range
-                if decision_date_from_q and decision_date_to_q:
-                    q_parts.append(
-                        f"documentData.decisionIssueDate:[{decision_date_from_q} TO {decision_date_to_q}]"
-                    )
-                elif decision_date_from_q:
-                    q_parts.append(
-                        f"documentData.decisionIssueDate:>={decision_date_from_q}"
-                    )
-                elif decision_date_to_q:
-                    q_parts.append(
-                        f"documentData.decisionIssueDate:<={decision_date_to_q}"
-                    )
-
-                if q_parts:
-                    final_q = " AND ".join(q_parts)
+                final_q = all_of(
+                    term("interferenceNumber", interference_number_q),
+                    application_number(
+                        "seniorPartyData.applicationNumberText",
+                        senior_party_application_number_q,
+                    ),
+                    application_number(
+                        "juniorPartyData.applicationNumberText",
+                        junior_party_application_number_q,
+                    ),
+                    either(
+                        phrase("seniorPartyData.patentOwnerName", senior_party_name_q),
+                        phrase("seniorPartyData.inventorName", senior_party_name_q),
+                        phrase(
+                            "seniorPartyData.realPartyInInterestName",
+                            senior_party_name_q,
+                        ),
+                    ),
+                    either(
+                        phrase("juniorPartyData.patentOwnerName", junior_party_name_q),
+                        phrase("juniorPartyData.inventorName", junior_party_name_q),
+                        phrase(
+                            "juniorPartyData.realPartyInInterestName",
+                            junior_party_name_q,
+                        ),
+                    ),
+                    either(
+                        phrase(
+                            "seniorPartyData.realPartyInInterestName",
+                            real_party_in_interest_q,
+                        ),
+                        phrase(
+                            "juniorPartyData.realPartyInInterestName",
+                            real_party_in_interest_q,
+                        ),
+                    ),
+                    phrase(
+                        "documentData.interferenceOutcomeCategory",
+                        interference_outcome_category_q,
+                    ),
+                    phrase(
+                        "documentData.decisionTypeCategory", decision_type_category_q
+                    ),
+                    date_range(
+                        "documentData.decisionIssueDate",
+                        decision_date_from_q,
+                        decision_date_to_q,
+                    ),
+                )
 
             # Add parameters
             if final_q is not None:

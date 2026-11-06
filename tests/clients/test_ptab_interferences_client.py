@@ -217,7 +217,7 @@ class TestPTABInterferencesClientSearchDecisions:
         assert (
             'documentData.interferenceOutcomeCategory:"Final Decision"' in params["q"]
         )
-        assert 'documentData.decisionTypeCategory:"Decision"' in params["q"]
+        assert "documentData.decisionTypeCategory:Decision" in params["q"]
         assert (
             "documentData.decisionIssueDate:[2023-01-01 TO 2023-12-31]" in params["q"]
         )
@@ -306,6 +306,12 @@ class TestPTABInterferencesClientSearchDecisions:
         assert "juniorPartyData.applicationNumberText:13987654" in params["q"]
         assert 'seniorPartyData.patentOwnerName:"Senior Party Inc."' in params["q"]
         assert 'juniorPartyData.patentOwnerName:"Junior Party LLC"' in params["q"]
+        assert (
+            '(seniorPartyData.patentOwnerName:"Senior Party Inc."'
+            ' OR seniorPartyData.inventorName:"Senior Party Inc."'
+            ' OR seniorPartyData.realPartyInInterestName:"Senior Party Inc.")'
+            in params["q"]
+        )
         assert (
             'documentData.interferenceOutcomeCategory:"Priority to Senior Party"'
             in params["q"]
