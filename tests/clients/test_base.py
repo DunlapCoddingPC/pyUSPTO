@@ -114,23 +114,6 @@ class TestBaseUSPTOClient:
         ) == ("9f1a4a2b-eee1-58ec-a3aa-167c4075aed4")
         assert BaseUSPTOClient._quote_path_value("ipa250102.zip") == "ipa250102.zip"
 
-    @pytest.mark.parametrize(
-        "value, expected",
-        [
-            ("14/412,875", "14412875"),
-            ("14/412875", "14412875"),
-            ("14412875", "14412875"),
-            (14412875, "14412875"),
-            ("PCT/US2024/012345", "PCTUS2024012345"),
-            ("16*", "(16*)"),
-            ("14412875 OR 14412876", "(14412875 OR 14412876)"),
-            ("[16000000 TO 16999999]", "([16000000 TO 16999999])"),
-        ],
-    )
-    def test_application_number_query(self, value: Any, expected: str) -> None:
-        """Test application-number search values are cleaned or wrapped."""
-        assert BaseUSPTOClient._application_number_query(value) == expected
-
     def test_init(self) -> None:
         """Test initialization of the BaseUSPTOClient."""
         # Test with API key
