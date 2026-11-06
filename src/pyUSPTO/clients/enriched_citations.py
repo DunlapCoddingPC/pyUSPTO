@@ -9,6 +9,14 @@ from collections.abc import Iterator
 from typing import Any
 
 from pyUSPTO.clients.base import BaseUSPTOClient
+from pyUSPTO.clients.query import (
+    all_of,
+    application_number,
+    boolean,
+    date_range,
+    phrase,
+    term,
+)
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.enriched_citations import (
     EnrichedCitation,
@@ -84,6 +92,11 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
         You can provide either a direct post_body, a query string, or use convenience
         parameters that will be automatically combined into a query.
 
+        Text filters (categories, identifiers) are quoted when they contain
+        spaces or special characters, with inner quotes escaped. Code filters
+        (document codes, tech centers, art units) that contain spaces are
+        wrapped in parentheses, so the field applies to every term.
+
         Args:
             query: Direct query string in USPTO search syntax.
             sort: Sort order for results.
@@ -143,44 +156,22 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
         # Build query from convenience parameters
         final_q = query
         if final_q is None:
-            q_parts = []
-            if patent_application_number_q:
-                q_parts.append(
-                    "patentApplicationNumber:"
-                    f"{self._application_number_query(patent_application_number_q)}"
-                )
-            if cited_document_identifier_q:
-                v = (
-                    f'"{cited_document_identifier_q}"'
-                    if " " in cited_document_identifier_q
-                    else cited_document_identifier_q
-                )
-                q_parts.append(f"citedDocumentIdentifier:{v}")
-            if office_action_category_q:
-                q_parts.append(f"officeActionCategory:{office_action_category_q}")
-            if citation_category_code_q:
-                q_parts.append(f"citationCategoryCode:{citation_category_code_q}")
-            if tech_center_q:
-                q_parts.append(f"techCenter:{tech_center_q}")
-            if group_art_unit_number_q:
-                q_parts.append(f"groupArtUnitNumber:{group_art_unit_number_q}")
-            if examiner_cited_q is not None:
-                q_parts.append(
-                    f"examinerCitedReferenceIndicator:{str(examiner_cited_q).lower()}"
-                )
-
-            # Handle office action date range
-            if office_action_date_from_q and office_action_date_to_q:
-                q_parts.append(
-                    f"officeActionDate:[{office_action_date_from_q} TO {office_action_date_to_q}]"
-                )
-            elif office_action_date_from_q:
-                q_parts.append(f"officeActionDate:>={office_action_date_from_q}")
-            elif office_action_date_to_q:
-                q_parts.append(f"officeActionDate:<={office_action_date_to_q}")
-
-            if q_parts:
-                final_q = " AND ".join(q_parts)
+            final_q = all_of(
+                application_number(
+                    "patentApplicationNumber", patent_application_number_q
+                ),
+                phrase("citedDocumentIdentifier", cited_document_identifier_q),
+                phrase("officeActionCategory", office_action_category_q),
+                term("citationCategoryCode", citation_category_code_q),
+                term("techCenter", tech_center_q),
+                term("groupArtUnitNumber", group_art_unit_number_q),
+                boolean("examinerCitedReferenceIndicator", examiner_cited_q),
+                date_range(
+                    "officeActionDate",
+                    office_action_date_from_q,
+                    office_action_date_to_q,
+                ),
+            )
 
         if final_q is not None:
             body["criteria"] = final_q
