@@ -623,8 +623,8 @@ class TestBulkDataClientEdgeCases:
                 extract=False,
             )
 
-            # Verify custom filename is used
-            expected_url = f"{mock_bulk_data_client.base_url}/api/v1/datasets/products/files/PRODUCT1/custom.zip"
+            # The URL requests the real file; the custom name is only the local save name
+            expected_url = f"{mock_bulk_data_client.base_url}/api/v1/datasets/products/files/PRODUCT1/original.zip"
             mock_download.assert_called_once_with(
                 url=expected_url,
                 destination=destination,
