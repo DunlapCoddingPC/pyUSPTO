@@ -149,7 +149,9 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         Args:
             file_data: FileData object containing download info and product_identifier.
             destination: Directory to save/extract to. Defaults to current directory.
-            file_name: Override filename. Defaults to file_data.file_name.
+            file_name: Name to save the file under locally. Defaults to
+                file_data.file_name. The download always requests
+                file_data.file_name from the server.
             overwrite: Whether to overwrite existing files. Defaults to False.
             extract: Whether to auto-extract archives. Defaults to False.
 
@@ -174,7 +176,7 @@ class BulkDataClient(BaseUSPTOClient[BulkDataResponse]):
         else:
             endpoint = self.ENDPOINTS["download_file"].format(
                 productIdentifier=self._quote_path_value(file_data.product_identifier),
-                fileName=self._quote_path_value(default_file_name),
+                fileName=self._quote_path_value(file_data.file_name),
             )
             download_url = f"{self.base_url}/{endpoint}"
 
