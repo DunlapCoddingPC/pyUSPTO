@@ -207,7 +207,8 @@ def phrase(field: str, value: object) -> str | None:
 
     A single plain word is sent as is, so wildcards such as ``Smith*`` still
     work. Any other value is quoted, with backslashes and double quotes
-    escaped.
+    escaped. A wildcard inside a quoted value is searched as plain text, so
+    ``Smith-K*`` does not expand.
     """
     if _is_absent(value):
         return None
