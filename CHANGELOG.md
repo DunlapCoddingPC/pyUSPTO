@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The office action and enriched citation category filters are code filters under the rule above: `OAActionsClient` `access_level_category_q` and `application_type_category_q`, `action_type_category_q` on `OACitationsClient` and `OARejectionsClient`, and `EnrichedCitationsClient` `office_action_category_q`. Their values are single-word codes (`PUBLIC`, `REGULAR`, `rejected`, `CTNF`), so `office_action_category_q="CTNF OR CTFR"` is sent as `officeActionCategory:(CTNF OR CTFR)`, and the `OR` now applies to the field.
 - `customer_number_q=[]` and `status_code_q=[]` raise `ValueError` instead of sending the malformed clause `field:()`. Dropping the filter instead would have run the search unfiltered.
 - `OAActionsClient` `group_art_unit_number_q=""` adds no filter. It sent `groupArtUnitNumber:`.
-- `PetitionDecisionsClient.get_decision_by_id`, `BulkDataClient.get_product_by_id`, and `BulkDataClient.download_file` (when the file has no download URI) now percent-encode the ID or file name in the URL path. Previously a `?` or `/` in the value changed the request; `get_decision_by_id("abc?x")` requested decision `abc`.
+- `PetitionDecisionsClient.get_decision_by_id`, `BulkDataClient.get_product_by_id`, and `BulkDataClient.download_file` (when the file has no download URI) now percent-encode the ID or file name in the URL path. Previously a `?` or `/` in the value changed the request; `get_decision_by_id("abc?x")` requested decision `abc`. A non-string ID, such as a `uuid.UUID`, still works as it did before.
 
 ## [0.6.1] - 2026-10-27
 
