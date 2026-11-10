@@ -198,12 +198,13 @@ class BaseUSPTOClient(Generic[T]):
         return f"{base}/{endpoint.lstrip('/')}"
 
     @staticmethod
-    def _quote_path_value(value: str) -> str:
+    def _quote_path_value(value: object) -> str:
         """Percent-encode a caller value for use as one URL path segment.
 
         Every reserved character is encoded, including ``/``, ``?``, and
         ``#``, so the value cannot add path segments, a query string, or a
-        fragment to the request.
+        fragment to the request. A non-string value, such as a ``uuid.UUID``,
+        is formatted with ``str()`` first.
 
         Args:
             value: The raw value, such as a record ID or file name.
@@ -211,7 +212,7 @@ class BaseUSPTOClient(Generic[T]):
         Returns:
             The encoded value.
         """
-        return quote(value, safe="")
+        return quote(str(value), safe="")
 
     def _execute_request(
         self,

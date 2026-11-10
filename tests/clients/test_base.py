@@ -4,6 +4,7 @@ Tests for the pyUSPTO.base module.
 This module contains tests for the BaseUSPTOClient class.
 """
 
+import uuid
 from typing import Any, cast
 from unittest.mock import MagicMock, mock_open, patch
 
@@ -113,6 +114,14 @@ class TestBaseUSPTOClient:
             "9f1a4a2b-eee1-58ec-a3aa-167c4075aed4"
         ) == ("9f1a4a2b-eee1-58ec-a3aa-167c4075aed4")
         assert BaseUSPTOClient._quote_path_value("ipa250102.zip") == "ipa250102.zip"
+
+    def test_quote_path_value_non_string(self) -> None:
+        """Test non-string IDs are formatted with str() before encoding."""
+        decision_id = uuid.UUID("9f1a4a2b-eee1-58ec-a3aa-167c4075aed4")
+        assert BaseUSPTOClient._quote_path_value(decision_id) == (
+            "9f1a4a2b-eee1-58ec-a3aa-167c4075aed4"
+        )
+        assert BaseUSPTOClient._quote_path_value(12345) == "12345"
 
     def test_init(self) -> None:
         """Test initialization of the BaseUSPTOClient."""
