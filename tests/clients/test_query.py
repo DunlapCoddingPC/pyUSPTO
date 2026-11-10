@@ -32,6 +32,7 @@ def test_term(value: Any, expected: str | None) -> None:
         ("Block, Inc.", 'f:"Block, Inc."'),
         ("H01L21/02", 'f:"H01L21/02"'),
         ("E-Link", 'f:"E-Link"'),
+        ("Smith-K*", 'f:"Smith-K*"'),
         ('Smith "John', 'f:"Smith \\"John"'),
         ("a\\b", 'f:"a\\\\b"'),
         ('"John Smith"', 'f:"\\"John Smith\\""'),
