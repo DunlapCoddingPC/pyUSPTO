@@ -92,10 +92,11 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
         You can provide either a direct post_body, a query string, or use convenience
         parameters that will be automatically combined into a query.
 
-        Text filters (categories, identifiers) are quoted when they contain
-        spaces or special characters, with inner quotes escaped. Code filters
-        (citation category codes, tech centers, art units) that contain spaces are
-        wrapped in parentheses, so the field applies to every term.
+        ``cited_document_identifier_q`` is quoted when it contains spaces or
+        special characters, with inner quotes escaped. The code filters
+        (office action and citation category codes, tech centers, art units)
+        wrap a value that contains spaces, such as ``"CTNF OR CTFR"``, in
+        parentheses, so the field applies to every term.
 
         Args:
             query: Direct query string in USPTO search syntax.
@@ -161,7 +162,7 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
                     "patentApplicationNumber", patent_application_number_q
                 ),
                 phrase("citedDocumentIdentifier", cited_document_identifier_q),
-                phrase("officeActionCategory", office_action_category_q),
+                term("officeActionCategory", office_action_category_q),
                 term("citationCategoryCode", citation_category_code_q),
                 term("techCenter", tech_center_q),
                 term("groupArtUnitNumber", group_art_unit_number_q),

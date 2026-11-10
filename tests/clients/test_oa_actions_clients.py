@@ -275,21 +275,38 @@ class TestOAActionsClientSearch:
         call_kwargs = mock_get_model.call_args.kwargs
         assert call_kwargs["json_data"]["criteria"] == "applicationTypeCategory:REGULAR"
 
-    def test_application_type_category_q_multiword(
+    def test_application_type_category_q_or_expression(
         self,
         client_with_mocked_request: tuple[OAActionsClient, MagicMock],
         mock_response_with_data: OAActionsResponse,
     ) -> None:
-        """Test a multi-word application_type_category_q is quoted."""
+        """Test an OR expression in application_type_category_q is wrapped."""
         client, mock_get_model = client_with_mocked_request
         mock_get_model.return_value = mock_response_with_data
 
-        client.search(application_type_category_q="National Stage")
+        client.search(application_type_category_q="REGULAR OR Y")
 
         call_kwargs = mock_get_model.call_args.kwargs
         assert (
             call_kwargs["json_data"]["criteria"]
-            == 'applicationTypeCategory:"National Stage"'
+            == "applicationTypeCategory:(REGULAR OR Y)"
+        )
+
+    def test_access_level_category_q_or_expression(
+        self,
+        client_with_mocked_request: tuple[OAActionsClient, MagicMock],
+        mock_response_with_data: OAActionsResponse,
+    ) -> None:
+        """Test an OR expression in access_level_category_q is wrapped."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_response_with_data
+
+        client.search(access_level_category_q="PUBLIC OR INTERNAL")
+
+        call_kwargs = mock_get_model.call_args.kwargs
+        assert (
+            call_kwargs["json_data"]["criteria"]
+            == "accessLevelCategory:(PUBLIC OR INTERNAL)"
         )
 
     def test_submission_date_range(

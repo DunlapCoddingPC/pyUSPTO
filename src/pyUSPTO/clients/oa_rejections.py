@@ -14,7 +14,6 @@ from pyUSPTO.clients.query import (
     all_of,
     application_number,
     date_range,
-    phrase,
     term,
 )
 from pyUSPTO.config import USPTOConfig
@@ -83,10 +82,10 @@ class OARejectionsClient(BaseUSPTOClient[OARejectionsResponse]):
         office action rejection records. You can provide either a direct
         post_body, a criteria string, or use convenience parameters.
 
-        Text filters (categories, identifiers) are quoted when they contain
-        spaces or special characters, with inner quotes escaped. Code filters
-        (document codes, tech centers, art units) that contain spaces are
-        wrapped in parentheses, so the field applies to every term.
+        Every convenience filter is a code filter (document codes, categories,
+        tech centers, art units). A value that contains spaces, such as
+        ``"rejected OR objected"``, is wrapped in parentheses, so the field
+        applies to every term.
 
         Args:
             criteria: Direct Solr query string (e.g., ``"patentApplicationNumber:12190351"``).
@@ -151,7 +150,7 @@ class OARejectionsClient(BaseUSPTOClient[OARejectionsResponse]):
                 term("legacyDocumentCodeIdentifier", legacy_document_code_identifier_q),
                 term("groupArtUnitNumber", group_art_unit_number_q),
                 term("legalSectionCode", legal_section_code_q),
-                phrase("actionTypeCategory", action_type_category_q),
+                term("actionTypeCategory", action_type_category_q),
                 date_range(
                     "submissionDate", submission_date_from_q, submission_date_to_q
                 ),
