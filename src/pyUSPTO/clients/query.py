@@ -1,7 +1,8 @@
 """query - Shared builders for Lucene query clauses.
 
 Each builder returns one ``field:value`` clause, or ``None`` when the filter is
-absent (``None``, ``""``, or ``[]``), and formats its value with ``str()``.
+absent (``None`` or ``""``), and formats its value with ``str()``. An empty
+list raises ``ValueError``, so a mistaken ``[]`` never runs an unfiltered search.
 Text values (``phrase``) are quoted when they contain whitespace or a Lucene
 special character, with backslashes and double quotes escaped inside the
 quotes. Code values (``term``) are sent as is, inside parentheses when they
@@ -19,7 +20,7 @@ _PUBLICATION_NUMBER_RE = re.compile(
 
 def _is_absent(value: object) -> bool:
     """Return True for a filter value that should add no clause."""
-    return value is None or value == "" or value == []
+    return value is None or value == ""
 
 
 def _has_whitespace(value: str) -> bool:
@@ -229,10 +230,18 @@ def contains(field: str, value: object, *, quoted: bool = False) -> str | None:
 
 
 def any_of(field: str, value: object) -> str | None:
-    """Build ``field:(a OR b)`` for a list, or a ``term`` for one value."""
+    """Build ``field:(a OR b)`` for a list, or a ``term`` for one value.
+
+    Raises:
+        ValueError: If the value is an empty list.
+    """
     if _is_absent(value):
         return None
     if isinstance(value, list):
+        if not value:
+            raise ValueError(
+                f"{field} filter got an empty list; pass None to skip the filter."
+            )
         return f"{field}:({' OR '.join(str(v) for v in value)})"
     return term(field, value)
 

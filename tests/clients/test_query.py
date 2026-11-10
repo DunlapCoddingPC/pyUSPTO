@@ -58,13 +58,18 @@ def test_contains() -> None:
         ([1, "2"], "f:(1 OR 2)"),
         (150, "f:150"),
         ("150 OR 161", "f:(150 OR 161)"),
-        ([], None),
         (None, None),
     ],
 )
 def test_any_of(value: Any, expected: str | None) -> None:
     """Test lists become an OR group and single values a term."""
     assert query.any_of("f", value) == expected
+
+
+def test_any_of_empty_list() -> None:
+    """Test an empty list raises instead of silently dropping the filter."""
+    with pytest.raises(ValueError, match="empty list"):
+        query.any_of("f", [])
 
 
 @pytest.mark.parametrize(

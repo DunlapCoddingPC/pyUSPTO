@@ -281,7 +281,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         Can perform a GET request based on OpenAPI query parameters or a POST request if post_body is specified.
 
         ``customer_number_q`` and ``status_code_q`` accept a single value or a list;
-        a list builds a Lucene ``field:(a OR b)`` clause. ``status_date_from_q`` /
+        a list builds a Lucene ``field:(a OR b)`` clause, and an empty list raises
+        ``ValueError``. ``status_date_from_q`` /
         ``status_date_to_q`` follow the same date-range pattern as
         ``filing_date_from_q`` / ``filing_date_to_q``.
 

@@ -308,6 +308,20 @@ class TestPatentDataClientInit:
 class TestPatentApplicationSearch:
     """Tests for patent application search functionalities using the new search_applications method."""
 
+    @pytest.mark.parametrize("param", ["customer_number_q", "status_code_q"])
+    def test_search_applications_empty_list_raises(
+        self,
+        param: str,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """Test an empty list filter raises instead of searching unfiltered."""
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError, match="empty list"):
+            client.search_applications(**{param: []})
+
+        mock_get_model.assert_not_called()
+
     def test_search_applications_get_direct_query(
         self,
         client_with_mocked_request: tuple[PatentDataClient, MagicMock],
