@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `customer_number_q=[]` and `status_code_q=[]` raise `ValueError` instead of sending the malformed clause `field:()`. Dropping the filter instead would have run the search unfiltered.
 - `OAActionsClient` `group_art_unit_number_q=""` adds no filter. It sent `groupArtUnitNumber:`.
 - `PetitionDecisionsClient.get_decision_by_id`, `BulkDataClient.get_product_by_id`, and `BulkDataClient.download_file` (when the file has no download URI) now percent-encode the ID or file name in the URL path. Previously a `?` or `/` in the value changed the request; `get_decision_by_id("abc?x")` requested decision `abc`. A non-string ID, such as a `uuid.UUID`, still works as it did before.
+- `PTABTrialsClient.search_decisions(document_type_description_q=...)` escapes double quotes and backslashes in the value. A `"` in the value closed the quoted search early and broke the query.
 - `BulkDataClient.download_file(file_name=...)` uses `file_name` only as the local save name. When the file had no download URI, it also requested `file_name` from the server instead of the real file, so `download_file(file_data, file_name="custom.zip")` asked for `.../custom.zip`.
 
 ## [0.6.1] - 2026-10-27

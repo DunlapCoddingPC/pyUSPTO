@@ -52,6 +52,14 @@ def test_contains() -> None:
     assert query.contains("f", None) is None
 
 
+def test_contains_quoted_escapes() -> None:
+    """Test a quoted contains clause escapes backslashes and double quotes."""
+    assert query.contains("f", 'Final "Written', quoted=True) == (
+        'f:"*Final \\"Written*"'
+    )
+    assert query.contains("f", "a\\b", quoted=True) == 'f:"*a\\\\b*"'
+
+
 @pytest.mark.parametrize(
     "value, expected",
     [
