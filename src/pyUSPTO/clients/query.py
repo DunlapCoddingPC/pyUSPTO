@@ -221,11 +221,15 @@ def phrase(field: str, value: object) -> str | None:
 
 
 def contains(field: str, value: object, *, quoted: bool = False) -> str | None:
-    """Build a clause that matches the value anywhere in the field."""
+    """Build a clause that matches the value anywhere in the field.
+
+    With ``quoted``, backslashes and double quotes in the value are escaped.
+    """
     if _is_absent(value):
         return None
     if quoted:
-        return f'{field}:"*{value}*"'
+        escaped = str(value).replace("\\", "\\\\").replace('"', '\\"')
+        return f'{field}:"*{escaped}*"'
     return f"{field}:*{value}*"
 
 
