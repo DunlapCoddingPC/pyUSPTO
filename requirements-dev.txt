@@ -96,7 +96,7 @@ sphinx==9.2.0
     #   sphinx-copybutton
     #   sphinx-rtd-theme
     #   sphinxcontrib-jquery
-sphinx-autodoc-typehints==3.17.4
+sphinx-autodoc-typehints==3.17.5
     # via pyUSPTO (pyproject.toml)
 sphinx-copybutton==0.5.2
     # via pyUSPTO (pyproject.toml)
