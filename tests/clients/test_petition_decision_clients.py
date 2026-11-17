@@ -244,6 +244,46 @@ class TestPetitionDecisionsClientSearch:
         )
         assert result is mock_petition_response_with_data
 
+    def test_search_with_uppercase_and_title(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_petition_response_with_data: PetitionDecisionResponse,
+    ) -> None:
+        """Test a title containing AND stays one literal phrase."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
+
+        client.search_decisions(invention_title_q="SYSTEM AND METHOD FOR MIXING")
+
+        params = mock_get_model.call_args[1]["params"]
+        assert params["q"] == 'inventionTitle:"SYSTEM AND METHOD FOR MIXING"'
+
+    def test_search_expression_string_raises(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+    ) -> None:
+        """Test a search expression in a code filter raises."""
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError, match="query"):
+            client.search_decisions(decided_petition_type_code_q="A OR C")
+
+        mock_get_model.assert_not_called()
+
+    def test_search_with_type_code_list(
+        self,
+        client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],
+        mock_petition_response_with_data: PetitionDecisionResponse,
+    ) -> None:
+        """Test a list of type codes builds an OR group."""
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_petition_response_with_data
+
+        client.search_decisions(decided_petition_type_code_q=["A", "C"])
+
+        params = mock_get_model.call_args[1]["params"]
+        assert params["q"] == "decidedPetitionTypeCode:(A OR C)"
+
     def test_search_with_quote_in_inventor_name(
         self,
         client_with_mocked_request: tuple[PetitionDecisionsClient, MagicMock],

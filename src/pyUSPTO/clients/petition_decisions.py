@@ -15,9 +15,10 @@ from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.clients.query import (
     all_of,
     application_number,
+    code,
     date_range,
-    phrase,
-    term,
+    patent_number,
+    text,
 )
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.petition_decisions import (
@@ -152,29 +153,29 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
     def _decisions_query(
         self,
         *,
-        application_number_q: str | None,
-        patent_number_q: str | None,
-        inventor_name_q: str | None,
-        applicant_name_q: str | None,
+        application_number_q: str | list[str] | None,
+        patent_number_q: str | list[str] | None,
+        inventor_name_q: str | list[str] | None,
+        applicant_name_q: str | list[str] | None,
         decision_date_from_q: str | None,
         decision_date_to_q: str | None,
-        invention_title_q: str | None = None,
-        decided_petition_type_code_q: str | None = None,
-        technology_center_q: str | None = None,
-        final_deciding_office_name_q: str | None = None,
+        invention_title_q: str | list[str] | None = None,
+        decided_petition_type_code_q: str | list[str] | None = None,
+        technology_center_q: str | list[str] | None = None,
+        final_deciding_office_name_q: str | list[str] | None = None,
         petition_mail_date_from_q: str | None = None,
         petition_mail_date_to_q: str | None = None,
     ) -> str | None:
         """Build the ``q`` value for the petition decision convenience filters."""
         return all_of(
             application_number("applicationNumberText", application_number_q),
-            term("patentNumber", patent_number_q),
-            phrase("inventorBag", inventor_name_q),
-            phrase("firstApplicantName", applicant_name_q),
-            phrase("inventionTitle", invention_title_q),
-            term("decidedPetitionTypeCode", decided_petition_type_code_q),
-            term("technologyCenter", technology_center_q),
-            phrase("finalDecidingOfficeName", final_deciding_office_name_q),
+            patent_number("patentNumber", patent_number_q),
+            text("inventorBag", inventor_name_q),
+            text("firstApplicantName", applicant_name_q),
+            text("inventionTitle", invention_title_q),
+            code("decidedPetitionTypeCode", decided_petition_type_code_q),
+            code("technologyCenter", technology_center_q),
+            text("finalDecidingOfficeName", final_deciding_office_name_q),
             date_range("decisionDate", decision_date_from_q, decision_date_to_q),
             date_range(
                 "petitionMailDate", petition_mail_date_from_q, petition_mail_date_to_q
@@ -193,18 +194,18 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         range_filters: str | None = None,
         post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        application_number_q: str | None = None,
-        patent_number_q: str | None = None,
-        inventor_name_q: str | None = None,
-        applicant_name_q: str | None = None,
-        invention_title_q: str | None = None,
-        decided_petition_type_code_q: str | None = None,
+        application_number_q: str | list[str] | None = None,
+        patent_number_q: str | list[str] | None = None,
+        inventor_name_q: str | list[str] | None = None,
+        applicant_name_q: str | list[str] | None = None,
+        invention_title_q: str | list[str] | None = None,
+        decided_petition_type_code_q: str | list[str] | None = None,
         decision_date_from_q: str | None = None,
         decision_date_to_q: str | None = None,
         petition_mail_date_from_q: str | None = None,
         petition_mail_date_to_q: str | None = None,
-        technology_center_q: str | None = None,
-        final_deciding_office_name_q: str | None = None,
+        technology_center_q: str | list[str] | None = None,
+        final_deciding_office_name_q: str | list[str] | None = None,
         additional_query_params: dict[str, Any] | None = None,
     ) -> PetitionDecisionResponse:
         """Return petition decisions matching the given criteria.
@@ -214,10 +215,11 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         direct query string or use convenience parameters that will be automatically
         combined into a query.
 
-        Text filters (names, titles, office names) are quoted when they contain
-        spaces or special characters, with inner quotes escaped. Code filters
-        (patent number, type code, technology center) that contain spaces are
-        wrapped in parentheses, so the field applies to every term.
+        Each convenience filter takes one value or a list of values, and a
+        record matches if it matches any of them. Values are matched
+        literally. A single word containing ``*`` or ``?`` is a wildcard
+        pattern. Put other search syntax (``OR``, ``AND``, ranges) in
+        ``query``.
 
         Args:
             query: Direct query string in USPTO search syntax.
@@ -233,8 +235,7 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
             range_filters: Range filter configuration string.
             post_body: Optional POST body for complex queries.
             application_number_q: Filter by application number.
-                Any common form matches (``17/765,301``, ``17765301``). Write
-                each number in an ``OR`` or range expression as 8 digits.
+                Any common form matches (``17/765,301``, ``17765301``).
             patent_number_q: Filter by patent number.
             inventor_name_q: Filter by inventor name.
             applicant_name_q: Filter by applicant name.
@@ -380,10 +381,10 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         filters: str | None = None,
         range_filters: str | None = None,
         # Convenience query parameters
-        application_number_q: str | None = None,
-        patent_number_q: str | None = None,
-        inventor_name_q: str | None = None,
-        applicant_name_q: str | None = None,
+        application_number_q: str | list[str] | None = None,
+        patent_number_q: str | list[str] | None = None,
+        inventor_name_q: str | list[str] | None = None,
+        applicant_name_q: str | list[str] | None = None,
         decision_date_from_q: str | None = None,
         decision_date_to_q: str | None = None,
         additional_query_params: dict[str, Any] | None = None,
@@ -397,10 +398,11 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
         This endpoint is designed for bulk downloads of petition decisions data.
         It supports JSON and CSV formats.
 
-        Text filters (names, titles, office names) are quoted when they contain
-        spaces or special characters, with inner quotes escaped. Code filters
-        (patent number, type code, technology center) that contain spaces are
-        wrapped in parentheses, so the field applies to every term.
+        Each convenience filter takes one value or a list of values, and a
+        record matches if it matches any of them. Values are matched
+        literally. A single word containing ``*`` or ``?`` is a wildcard
+        pattern. Put other search syntax (``OR``, ``AND``, ranges) in
+        ``query``.
 
         Args:
             format: Download format, either "json" or "csv". Defaults to "json".
@@ -414,8 +416,7 @@ class PetitionDecisionsClient(BaseUSPTOClient[PetitionDecisionResponse]):
                 A value containing a space only works in post_body filters.
             range_filters: Range filter configuration string.
             application_number_q: Filter by application number.
-                Any common form matches (``17/765,301``, ``17765301``). Write
-                each number in an ``OR`` or range expression as 8 digits.
+                Any common form matches (``17/765,301``, ``17765301``).
             patent_number_q: Filter by patent number.
             inventor_name_q: Filter by inventor name.
             applicant_name_q: Filter by applicant name.
