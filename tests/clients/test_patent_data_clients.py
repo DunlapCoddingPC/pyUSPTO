@@ -2232,6 +2232,18 @@ class TestGetPCT:
         result = client.get_pct("WO9999999999")
         assert result is None
 
+    def test_get_pct_unreadable_number_raises(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """Test get_pct raises for a value that is not a PCT number."""
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError, match="WO"):
+            client.get_pct("not-a-pct-number")
+
+        mock_get_model.assert_not_called()
+
 
 class TestDownloadArchive:
     """Tests for downloading archive files."""

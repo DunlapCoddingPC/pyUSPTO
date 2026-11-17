@@ -300,16 +300,19 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         1. ``application_number_q``: ``14/412,875``, ``14/412875``, and
            ``14412875`` all search for ``14412875``, and ``PCT/US2025/047756``
            searches for ``PCTUS2025047756``.
-        2. ``patent_number_q``: a ``US`` prefix, commas, and a kind code are
-           dropped, so ``US 10,000,000 B2`` searches for ``10000000``.
+        2. ``patent_number_q``: a ``US`` prefix, whitespace, commas, hyphens,
+           and a kind code are dropped, so ``US 10,000,000 B2`` searches for
+           ``10000000``.
         3. ``earliestPublicationNumber_q``: reduced to its digits and searched
            with wildcards (``*20210138233*``), so bare digits, ``US`` prefixes,
            kind codes, and separators all match the stored
            ``USyyyyNNNNNNNAn`` form.
         4. ``pctPublicationNumber_q``: separators and the kind code are
-           dropped, so ``WO 2026/044302 A1`` searches for ``WO2026044302``.
+           dropped, so ``WO 2026/044302 A1`` searches for ``WO2026044302``,
+           and a pre-2004 form such as ``WO 03/106655`` searches for
+           ``WO2003106655``.
         5. ``classification_q``: a full CPC symbol (``H01L21/02``), a main
-           group (``H01L21``, matching its subgroups), or a subclass
+           group (``H01L21`` or ``H01L21*``, matching its subgroups), or a subclass
            (``H01L``) is converted to the stored fixed-width form
            (``H01L  21/02``).
         """
@@ -1169,7 +1172,10 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         Returns:
             Optional[PatentFileWrapper]: The matching patent file wrapper,
-                or None if not found.
+                or None if a well-formed number matches nothing.
+
+        Raises:
+            ValueError: If the value cannot be read as a patent number.
         """
         return self._resolve_by_search(patent_number_q=patent_number)
 
@@ -1187,7 +1193,10 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         Returns:
             Optional[PatentFileWrapper]: The matching patent file wrapper,
-                or None if not found.
+                or None if a well-formed number matches nothing.
+
+        Raises:
+            ValueError: If the value cannot be read as a publication number.
         """
         return self._resolve_by_search(earliestPublicationNumber_q=publication_number)
 
@@ -1209,7 +1218,10 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         Returns:
             Optional[PatentFileWrapper]: The matching patent file wrapper,
-                or None if not found.
+                or None if a well-formed number matches nothing.
+
+        Raises:
+            ValueError: If the value cannot be read as a PCT number.
         """
         if pct_number.strip().upper().startswith("PCT"):
             return self.get_application_by_number(application_number=pct_number)
@@ -1242,12 +1254,16 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             PCT_app_number (Optional[str], optional): PCT application number.
                 Checked fourth (direct lookup, treated as USPTO app#).
             PCT_pub_number (Optional[str], optional): PCT publication number
-                (e.g., "2023012345"). Checked fifth (uses search).
+                (e.g., "WO2023012345"). Checked fifth (uses search).
 
         Returns:
             Optional[PatentFileWrapper]: A `PatentFileWrapper` object with
                 comprehensive data if found using one of the identifiers,
                 otherwise None.
+
+        Raises:
+            ValueError: If an identifier cannot be read as that kind of
+                number, such as a patent_number that is not a patent number.
         """
         wrapper = None
         if application_number:
@@ -1307,6 +1323,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         Raises:
             FileExistsError: If the output path already exists and overwrite=False.
+            ValueError: If an identifier cannot be read as that kind of number.
         """
         wrapper = self.get_IFW_metadata(
             application_number=application_number,

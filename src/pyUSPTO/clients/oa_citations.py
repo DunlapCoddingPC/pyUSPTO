@@ -91,7 +91,9 @@ class OACitationsClient(BaseUSPTOClient[OACitationsResponse]):
         record matches if it matches any of them. Values are matched
         literally. A single word containing ``*`` or ``?`` is a wildcard
         pattern. Put other search syntax (``OR``, ``AND``, ranges) in
-        ``criteria``.
+        ``criteria``. A code or identifier filter
+        raises ``ValueError`` for a value it cannot read, before any request is
+        sent.
 
         Args:
             criteria: Direct Solr query string (e.g., ``"patentApplicationNumber:16845502"``).

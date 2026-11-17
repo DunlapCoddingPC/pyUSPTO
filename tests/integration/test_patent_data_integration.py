@@ -246,6 +246,32 @@ class TestPatentDataIntegration:
             w.application_number_text for w in response.patent_file_wrapper_data_bag
         ] == ["14412875"]
 
+    def test_search_applications_classification_main_group_wildcard(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test a wildcard right after a CPC main group matches its subgroups live."""
+        response = patent_data_client.search_applications(
+            application_number_q="14412875", classification_q="A61N2*", limit=5
+        )
+
+        assert [
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ] == ["14412875"]
+
+    def test_search_applications_pct_publication_two_digit_year(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test a pre-2004 two-digit-year PCT publication number matches live."""
+        response = patent_data_client.search_applications(
+            pctPublicationNumber_q="WO 03/106655", limit=5
+        )
+
+        assert [
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ] == ["PCTUS2003019197"]
+
     def test_search_applications_classification_four_digit_group(
         self,
         patent_data_client: PatentDataClient,

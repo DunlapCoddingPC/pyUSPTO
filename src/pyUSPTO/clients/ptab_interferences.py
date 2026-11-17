@@ -102,7 +102,9 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
         record matches if it matches any of them. Values are matched
         literally. A single word containing ``*`` or ``?`` is a wildcard
         pattern. Put other search syntax (``OR``, ``AND``, ranges) in
-        ``query``.
+        ``query``. A code or identifier filter
+        raises ``ValueError`` for a value it cannot read, before any request is
+        sent.
 
         A party-name filter searches the patent owner, inventor, and real
         party in interest name fields, and matches if any of them matches.

@@ -17,18 +17,31 @@ wildcard pattern in every builder.
 import re
 from typing import NoReturn
 
-_PHRASE_SPECIAL = frozenset('+-&|!(){}[]^"~:\\/')
+_PHRASE_SPECIAL = frozenset('+-&|!(){}[]^"~:\\/<>=')
+# Lucene reads these words as operators when they stand alone.
+_OPERATOR_WORDS = frozenset({"AND", "OR", "NOT", "TO"})
 
 _PUBLICATION_NUMBER_RE = re.compile(
     r"^(?:US)?[\s/\-,]*(\d{4})[\s/\-,]*(\d{7})[\s/\-,]*(?:[A-Z]\d)?$"
 )
-_CODE_RE = re.compile(r"^[A-Za-z0-9._*?-]+$")
+_CODE_RE = re.compile(r"^[A-Za-z0-9*?][A-Za-z0-9._*?-]*$")
 _WILDCARD_RE = re.compile(r"^[A-Za-z0-9*?]+$")
 _PATENT_NUMBER_RE = re.compile(r"^(?:US)?(D|RE|PP|H|T)?(\d{1,8})(?:[A-Z]\d?)?$")
-_PCT_PUBLICATION_RE = re.compile(r"^(WO\d{10})(?:A\d)?$")
+# Current form WO + 4-digit year + 6-digit serial; before 2004, WO + 2-digit
+# year + 5- or 6-digit serial (WO 03/106655). The API stores the current form.
+_PCT_PUBLICATION_RE = re.compile(
+    r"^WO(?:(\d{4})(\d{6})|(\d{2})(\d{5,6}))(?:[A-Z]\d?)?$"
+)
 _CPC_SYMBOL_RE = re.compile(r"^([A-HY]\d{2}[A-Z])\s*(\d{1,4})\s*/\s*(\d{1,6})$")
 _CPC_GROUP_RE = re.compile(r"^([A-HY]\d{2}[A-Z])\s*(\d{1,4})$")
+_CPC_GROUP_WILDCARD_RE = re.compile(r"^([A-HY]\d{2}[A-Z])\s*(\d{1,4})\*$")
 _CPC_SUBCLASS_RE = re.compile(r"^[A-HY]\d{2}[A-Z]$")
+
+_RAW_QUERY_HINT = (
+    "In a search filter, pass a list for several values, or put other search "
+    "syntax in the raw query string (`query`, or `criteria` on "
+    "OAActionsClient, OACitationsClient, and OARejectionsClient)."
+)
 # A main-group prefix is sent unquoted, so its padding spaces and the slash
 # are backslash-escaped: ``A61N\ \ \ 2\/*``.
 _ESCAPED_SPACE = "\\ "
@@ -37,7 +50,7 @@ _ESCAPED_SLASH_WILDCARD = "\\/*"
 
 def _is_absent(value: object) -> bool:
     """Return True for a filter value that should add no clause."""
-    return value is None or value == ""
+    return value is None or (isinstance(value, str) and value.strip() == "")
 
 
 def _has_whitespace(value: str) -> bool:
@@ -164,12 +177,22 @@ def sanitize_application_number(input_number: str) -> str:
 def _values(field: str, value: object) -> list[str]:
     """Return a filter value as a list of strings, applying the list rules.
 
-    A ``list`` or ``tuple`` is several values; anything else is one value.
+    A ``list`` or ``tuple`` is several values; a string or number is one value.
 
     Raises:
         ValueError: If the list is empty or holds an empty item.
+        TypeError: If the value is another collection, such as a set or a
+            generator, whose order or contents would be sent as its repr.
     """
-    items = list(value) if isinstance(value, (list, tuple)) else [value]
+    if isinstance(value, (list, tuple)):
+        items = list(value)
+    elif hasattr(value, "__iter__") and not isinstance(value, (str, bytes)):
+        raise TypeError(
+            f"{field} filter takes one value or a list of values, not a "
+            f"{type(value).__name__}."
+        )
+    else:
+        items = [value]
     if not items:
         raise ValueError(
             f"{field} filter got an empty list; pass None to skip the filter."
@@ -187,12 +210,19 @@ def _group(field: str, parts: list[str]) -> str:
     return f"{field}:({' OR '.join(parts)})"
 
 
-def _reject(field: str, value: str) -> NoReturn:
-    """Raise the shared error for a value a filter cannot read."""
+def _reject(field: str, value: str, expected: str, detail: str = "") -> NoReturn:
+    """Raise the shared error for a value a filter cannot read.
+
+    Args:
+        field: The API field the value was for.
+        value: The value as the caller gave it.
+        expected: The forms the builder accepts, as a noun phrase.
+        detail: An optional, more specific reason, such as a sanitizer message.
+    """
+    reason = f" ({detail})" if detail else ""
     raise ValueError(
-        f"{field} filter cannot read {value!r} as one value. Pass a list for "
-        "several values, or put search syntax in query (criteria on the "
-        "office action and citation clients)."
+        f"{field} filter cannot read {value!r}{reason}. Expected {expected}. "
+        + _RAW_QUERY_HINT
     )
 
 
@@ -214,8 +244,13 @@ def code(field: str, value: object) -> str | None:
         return None
     parts = _values(field, value)
     for part in parts:
-        if _CODE_RE.match(part) is None:
-            _reject(field, part)
+        if _CODE_RE.match(part) is None or part in _OPERATOR_WORDS:
+            _reject(
+                field,
+                part,
+                "a single code of letters, digits, '.', '_', or '-', such as "
+                "CTNF or IPR2022-01094",
+            )
     return _group(field, parts)
 
 
@@ -224,13 +259,18 @@ def text(field: str, value: object) -> str | None:
 
     A single plain word is sent as is, so wildcards such as ``Smith*`` work.
     Any other value is quoted as a phrase, with backslashes and double quotes
-    escaped. A wildcard inside a quoted value is searched as plain text.
+    escaped. A wildcard inside a quoted value is searched as plain text. A
+    word Lucene reads as an operator (``AND``, ``OR``, ``NOT``, ``TO``) is
+    quoted, so it is searched as a word.
     """
     if _is_absent(value):
         return None
     parts = []
     for part in _values(field, value):
-        if not _has_whitespace(part) and not any(c in _PHRASE_SPECIAL for c in part):
+        plain = not _has_whitespace(part) and not any(
+            c in _PHRASE_SPECIAL for c in part
+        )
+        if plain and part not in _OPERATOR_WORDS:
             parts.append(part)
         else:
             escaped = part.replace("\\", "\\\\").replace('"', '\\"')
@@ -253,12 +293,18 @@ def application_number(field: str, value: object) -> str | None:
     parts = []
     for part in _values(field, value):
         if _is_wildcard(part):
-            parts.append(part)
+            parts.append(part.upper())
             continue
         try:
             parts.append(sanitize_application_number(part))
-        except ValueError:
-            _reject(field, part)
+        except ValueError as error:
+            _reject(
+                field,
+                part,
+                "an application number such as 14412875, 14/412,875, or "
+                "PCT/US2024/012345, or a wildcard pattern such as 16*",
+                str(error),
+            )
     return _group(field, parts)
 
 
@@ -278,11 +324,16 @@ def publication_number(field: str, value: object) -> str | None:
     parts = []
     for part in _values(field, value):
         if _is_wildcard(part):
-            parts.append(part)
+            parts.append(part.upper())
             continue
         match = _PUBLICATION_NUMBER_RE.match(part.strip().upper())
         if match is None:
-            _reject(field, part)
+            _reject(
+                field,
+                part,
+                "a US publication number such as 20210138233 or "
+                "US 2021/0138233 A1, or a wildcard pattern such as US2021*",
+            )
         parts.append(f"*{match.group(1)}{match.group(2)}*")
     return _group(field, parts)
 
@@ -291,8 +342,8 @@ def patent_number(field: str, value: object) -> str | None:
     """Build a clause for a patent-number field.
 
     The APIs store bare numbers (``10000000``, ``D1154285``, ``RE51038``).
-    Each value loses a ``US`` prefix, commas, spaces, and a kind code, so
-    ``US 10,000,000 B2`` searches for ``10000000``.
+    Each value loses a ``US`` prefix, whitespace, commas, hyphens, and a kind
+    code, so ``US 10,000,000 B2`` searches for ``10000000``.
 
     Raises:
         ValueError: If a value is not one patent number or a single-word
@@ -302,13 +353,18 @@ def patent_number(field: str, value: object) -> str | None:
         return None
     parts = []
     for part in _values(field, value):
-        if _is_wildcard(part):
-            parts.append(part)
+        normalized = re.sub(r"[\s,\-]", "", part.upper())
+        if _is_wildcard(normalized):
+            parts.append(re.sub(r"^US(?=[0-9DRPHT*?])", "", normalized))
             continue
-        normalized = part.upper().replace(" ", "").replace(",", "")
         match = _PATENT_NUMBER_RE.match(normalized)
         if match is None:
-            _reject(field, part)
+            _reject(
+                field,
+                part,
+                "a patent number such as 10000000, D1154285, RE51038, or "
+                "US 10,000,000 B2, or a wildcard pattern such as 1000000*",
+            )
         parts.append(f"{match.group(1) or ''}{match.group(2)}")
     return _group(field, parts)
 
@@ -316,8 +372,10 @@ def patent_number(field: str, value: object) -> str | None:
 def pct_publication_number(field: str, value: object) -> str | None:
     """Build a clause for a PCT publication-number field.
 
-    The API stores ``WO`` plus 10 digits (``WO2026044302``). Each value loses
-    spaces, slashes, and an ``A1``-style kind code.
+    The API stores ``WO`` plus a 4-digit year and a 6-digit serial
+    (``WO2026044302``). Each value loses whitespace, slashes, hyphens, and a
+    kind code, and a pre-2004 two-digit-year form (``WO 03/106655``) becomes
+    the current form (``WO2003106655``).
 
     Raises:
         ValueError: If a value is not one PCT publication number or a
@@ -327,14 +385,25 @@ def pct_publication_number(field: str, value: object) -> str | None:
         return None
     parts = []
     for part in _values(field, value):
-        if _is_wildcard(part):
-            parts.append(part)
+        normalized = re.sub(r"[\s/\-]", "", part.upper())
+        if _is_wildcard(normalized):
+            parts.append(normalized)
             continue
-        normalized = part.upper().replace(" ", "").replace("/", "")
         match = _PCT_PUBLICATION_RE.match(normalized)
         if match is None:
-            _reject(field, part)
-        parts.append(match.group(1))
+            _reject(
+                field,
+                part,
+                "a PCT publication number such as WO2026044302, "
+                "WO 2026/044302 A1, or WO 03/106655, or a wildcard pattern "
+                "such as WO2026*",
+            )
+        year, serial, short_year, short_serial = match.groups()
+        if year is None:
+            # Same window as PCT application numbers: YY >= 78 is 19YY.
+            year = ("19" if int(short_year) >= 78 else "20") + short_year
+            serial = short_serial.zfill(6)
+        parts.append(f"WO{year}{serial}")
     return _group(field, parts)
 
 
@@ -344,8 +413,8 @@ def cpc_classification(field: str, value: object) -> str | None:
     The API stores CPC symbols in a fixed-width form: the 4-character
     subclass, the main group right-aligned in 4 characters, ``/``, and the
     subgroup (``H01L  21/02``). Each value may be a full symbol
-    (``H01L21/02``), a main group (``H01L21``, matching its subgroups), or a
-    subclass (``H01L``, matching everything in it).
+    (``H01L21/02``), a main group (``H01L21`` or ``H01L21*``, matching its
+    subgroups), or a subclass (``H01L``, matching everything in it).
 
     Raises:
         ValueError: If a value is not one of those forms or a single-word
@@ -356,24 +425,32 @@ def cpc_classification(field: str, value: object) -> str | None:
     parts = []
     for part in _values(field, value):
         normalized = part.strip().upper()
-        if _is_wildcard(normalized):
-            parts.append(normalized)
-            continue
         symbol = _CPC_SYMBOL_RE.match(normalized)
         if symbol is not None:
             subclass, main, subgroup = symbol.groups()
-            parts.append(f'"{subclass}{main:>4}/{subgroup}"')
+            parts.append(f'"{subclass}{str(int(main)):>4}/{subgroup}"')
             continue
-        group = _CPC_GROUP_RE.match(normalized)
+        group = _CPC_GROUP_RE.match(normalized) or _CPC_GROUP_WILDCARD_RE.match(
+            normalized
+        )
         if group is not None:
             subclass, main = group.groups()
+            main = str(int(main))
             padding = _ESCAPED_SPACE * (4 - len(main))
             parts.append(subclass + padding + main + _ESCAPED_SLASH_WILDCARD)
             continue
         if _CPC_SUBCLASS_RE.match(normalized) is not None:
             parts.append(f"{normalized}*")
             continue
-        _reject(field, part)
+        if _is_wildcard(normalized):
+            parts.append(normalized)
+            continue
+        _reject(
+            field,
+            part,
+            "a CPC symbol such as H01L21/02, a main group such as H01L21, a "
+            "subclass such as H01L, or a wildcard pattern such as H01*",
+        )
     return _group(field, parts)
 
 

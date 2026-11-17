@@ -225,6 +225,91 @@ def test_pct_publication_number_rejects() -> None:
         query.pct_publication_number("f", "PCTUS202501234567")
 
 
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("H01L21*", "f:H01L\\ \\ 21\\/*"),
+        ("h01l 21*", "f:H01L\\ \\ 21\\/*"),
+        ("B62B2205*", "f:B62B2205\\/*"),
+        ("A61N0002/02", 'f:"A61N   2/02"'),
+    ],
+)
+def test_cpc_classification_review_forms(value: str, expected: str) -> None:
+    """Test a main-group wildcard is padded and leading zeros are dropped."""
+    assert query.cpc_classification("f", value) == expected
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("WO 03/106655", "f:WO2003106655"),
+        ("WO03/12345", "f:WO2003012345"),
+        ("WO 99/12345", "f:WO1999012345"),
+        ("WO2026044302B1", "f:WO2026044302"),
+        ("WO-2026-044302-A1", "f:WO2026044302"),
+        ("WO\t2026/044302", "f:WO2026044302"),
+        ("wo2026*", "f:WO2026*"),
+    ],
+)
+def test_pct_publication_number_review_forms(value: str, expected: str) -> None:
+    """Test older two-digit-year forms, any kind code, and loose separators."""
+    assert query.pct_publication_number("f", value) == expected
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("US-10000000-B2", "f:10000000"),
+        ("US 10,000,000", "f:10000000"),
+        ("US1000000*", "f:1000000*"),
+        ("d115*", "f:D115*"),
+    ],
+)
+def test_patent_number_review_forms(value: str, expected: str) -> None:
+    """Test hyphens and any whitespace are dropped, and wildcards normalized."""
+    assert query.patent_number("f", value) == expected
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("OR", 'f:"OR"'),
+        ("NOT", 'f:"NOT"'),
+        (">=5", 'f:">=5"'),
+        ("  ", None),
+    ],
+)
+def test_text_review_forms(value: str, expected: str | None) -> None:
+    """Test operator words and comparison signs are quoted, and blanks absent."""
+    assert query.text("f", value) == expected
+
+
+def test_code_review_forms() -> None:
+    """Test operator words and a leading sign are rejected, and _ accepted."""
+    assert query.code("f", "A_B") == "f:A_B"
+    for value in ("OR", "-CTNF"):
+        with pytest.raises(ValueError, match="query"):
+            query.code("f", value)
+
+
+@pytest.mark.parametrize("value", [{"a"}, frozenset({"a"}), (v for v in ["a"])])
+def test_unordered_collection_raises(value: Any) -> None:
+    """Test a set or generator raises instead of being sent as its repr."""
+    with pytest.raises(TypeError, match="list"):
+        query.text("f", value)
+
+
+def test_reject_message_names_expected_form() -> None:
+    """Test the error names the expected form and the right raw-query parameter."""
+    with pytest.raises(ValueError) as app:
+        query.application_number("f", "1441287")
+    assert "Expected 8 digits" in str(app.value)
+    with pytest.raises(ValueError) as pat:
+        query.patent_number("f", "not-a-patent")
+    assert "10000000" in str(pat.value)
+    assert "OARejectionsClient" in str(pat.value)
+
+
 def test_either() -> None:
     """Test either joins clauses with OR inside parentheses."""
     assert query.either("a:1", "b:2", None) == "(a:1 OR b:2)"
