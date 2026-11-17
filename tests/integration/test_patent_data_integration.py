@@ -190,13 +190,13 @@ class TestPatentDataIntegration:
             w.application_number_text for w in response.patent_file_wrapper_data_bag
         ] == ["09890205"]
 
-    def test_search_applications_patent_number_or_expression(
+    def test_search_applications_patent_number_list(
         self,
         patent_data_client: PatentDataClient,
     ) -> None:
-        """Test patent_number_q applies the field to every term of an OR live."""
+        """Test a list of patent numbers matches any of them live."""
         response = patent_data_client.search_applications(
-            patent_number_q="10000000 OR 10000001", limit=10
+            patent_number_q=["10000000", "10000001"], limit=10
         )
 
         assert response.count == 2
@@ -204,6 +204,85 @@ class TestPatentDataIntegration:
             w.application_meta_data.patent_number
             for w in response.patent_file_wrapper_data_bag
         ) == ["10000000", "10000001"]
+
+    def test_search_applications_patent_number_with_prefix_and_kind(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test a patent number with a US prefix, commas, and kind code matches live."""
+        response = patent_data_client.search_applications(
+            patent_number_q="US 10,000,000 B2", limit=5
+        )
+
+        assert [
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ] == ["14643719"]
+
+    def test_search_applications_pct_publication_with_kind_code(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test a PCT publication number with a kind code matches live."""
+        response = patent_data_client.search_applications(
+            pctPublicationNumber_q="WO2026044302A1", limit=5
+        )
+
+        assert [
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ] == ["PCTUS2025047756"]
+
+    @pytest.mark.parametrize("cpc", ["A61N2/02", "A61N 2/02", "A61N2", "A61N"])
+    def test_search_applications_classification_forms(
+        self,
+        patent_data_client: PatentDataClient,
+        cpc: str,
+    ) -> None:
+        """Test a CPC symbol, main group, or subclass matches the stored form live."""
+        response = patent_data_client.search_applications(
+            application_number_q="14412875", classification_q=cpc, limit=5
+        )
+
+        assert [
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ] == ["14412875"]
+
+    def test_search_applications_classification_four_digit_group(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test a CPC symbol with a 4-digit main group matches live."""
+        response = patent_data_client.search_applications(
+            application_number_q="19378371", classification_q="B62B2205/02", limit=5
+        )
+
+        assert [
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ] == ["19378371"]
+
+    def test_search_applications_classification_excludes(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test a CPC symbol the application does not have excludes it live."""
+        with pytest.raises(USPTOApiNotFoundError):
+            patent_data_client.search_applications(
+                application_number_q="14412875", classification_q="B62B7/062", limit=5
+            )
+
+    def test_search_applications_value_lists(
+        self,
+        patent_data_client: PatentDataClient,
+    ) -> None:
+        """Test lists of application numbers and inventor names match live."""
+        response = patent_data_client.search_applications(
+            application_number_q=["14412875", "19378371"],
+            inventor_name_q=["Tobias Sokolowski", "Junhao KUANG"],
+            limit=5,
+        )
+
+        assert sorted(
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ) == ["14412875", "19378371"]
 
     def test_search_applications_pct_application_number_q(
         self,

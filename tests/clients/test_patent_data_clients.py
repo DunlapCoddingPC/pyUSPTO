@@ -311,6 +311,27 @@ class TestPatentApplicationSearch:
     @pytest.mark.parametrize(
         "search_q_params",
         [
+            {"patent_number_q": "10000000 OR 10000001"},
+            {"pctPublicationNumber_q": "PCTUS202501234567"},
+            {"customer_number_q": "150 OR 161"},
+        ],
+    )
+    def test_search_applications_expression_string_raises(
+        self,
+        search_q_params: dict[str, Any],
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """Test a search expression in a code or identifier filter raises."""
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError, match="query"):
+            client.search_applications(**search_q_params)
+
+        mock_get_model.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "search_q_params",
+        [
             {"application_number_q": "app123"},
             {"earliestPublicationNumber_q": "not-a-pub-number"},
         ],
@@ -436,9 +457,12 @@ class TestPatentApplicationSearch:
                 {"application_number_q": "PCT/US2024/012345"},
                 "applicationNumberText:PCTUS2024012345",
             ),
-            ({"patent_number_q": "PN123"}, "applicationMetaData.patentNumber:PN123"),
             (
-                {"patent_number_q": "10000000 OR 10000001"},
+                {"patent_number_q": "US 10,000,000 B2"},
+                "applicationMetaData.patentNumber:10000000",
+            ),
+            (
+                {"patent_number_q": ["10000000", "10000001"]},
                 "applicationMetaData.patentNumber:(10000000 OR 10000001)",
             ),
             (
@@ -459,7 +483,19 @@ class TestPatentApplicationSearch:
             ),
             (
                 {"classification_q": "H04L"},
-                "applicationMetaData.cpcClassificationBag:H04L",
+                "applicationMetaData.cpcClassificationBag:H04L*",
+            ),
+            (
+                {"classification_q": "H01L21/02"},
+                'applicationMetaData.cpcClassificationBag:"H01L  21/02"',
+            ),
+            (
+                {"application_number_q": ["14412875", "14412876"]},
+                "applicationNumberText:(14412875 OR 14412876)",
+            ),
+            (
+                {"inventor_name_q": ["Tobias Sokolowski", "Junhao KUANG"]},
+                'applicationMetaData.inventorBag.inventorNameText:("Tobias Sokolowski" OR "Junhao KUANG")',
             ),
             (
                 {"classification_q": "H10D  64/667"},
@@ -486,8 +522,8 @@ class TestPatentApplicationSearch:
                 "applicationMetaData.earliestPublicationNumber:*20210138233*",
             ),
             (
-                {"pctPublicationNumber_q": "PCTUS202501234567"},
-                "applicationMetaData.pctPublicationNumber:PCTUS202501234567",
+                {"pctPublicationNumber_q": "WO 2026/044302"},
+                "applicationMetaData.pctPublicationNumber:WO2026044302",
             ),
             (
                 {"filing_date_from_q": "2021-01-01"},
@@ -600,7 +636,7 @@ class TestPatentApplicationSearch:
 
         expected_q = (
             'applicationMetaData.inventorBag.inventorNameText:"John Smith" AND '
-            "applicationMetaData.cpcClassificationBag:G06F AND "
+            "applicationMetaData.cpcClassificationBag:G06F* AND "
             "applicationMetaData.filingDate:[2020-01-01 TO 2022-01-01]"
         )
         mock_get_model.assert_called_once_with(
@@ -1883,7 +1919,7 @@ class TestGetIFW:
             method="GET",
             endpoint="api/v1/patent/applications/search",
             params={
-                "q": f"applicationMetaData.pctPublicationNumber:{pct_pub}",
+                "q": "applicationMetaData.pctPublicationNumber:WO2024012345",
                 "limit": 1,
                 "offset": 0,
             },
@@ -1912,8 +1948,19 @@ class TestGetIFW:
             count=0, patent_file_wrapper_data_bag=[]
         )
 
-        result = client.get_IFW_metadata(patent_number="nonexistent")
+        result = client.get_IFW_metadata(patent_number="99999999")
         assert result is None
+
+    def test_get_ifw_unreadable_patent_number_raises(
+        self, client_with_mocked_request: tuple[PatentDataClient, MagicMock]
+    ) -> None:
+        """Test get_IFW raises for a value that is not a patent number."""
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError, match="query"):
+            client.get_IFW_metadata(patent_number="nonexistent")
+
+        mock_get_model.assert_not_called()
 
     def test_get_ifw_prioritizes_first_parameter(
         self,
@@ -1994,8 +2041,20 @@ class TestGetPatent:
             count=0, patent_file_wrapper_data_bag=[]
         )
 
-        result = client.get_patent("nonexistent")
+        result = client.get_patent("99999999")
         assert result is None
+
+    def test_get_patent_unreadable_number_raises(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """Test get_patent raises for a value that is not a patent number."""
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError, match="query"):
+            client.get_patent("nonexistent")
+
+        mock_get_model.assert_not_called()
 
 
 class TestGetPublication:
@@ -2148,7 +2207,7 @@ class TestGetPCT:
             method="GET",
             endpoint="api/v1/patent/applications/search",
             params={
-                "q": f"applicationMetaData.pctPublicationNumber:{pct_pub}",
+                "q": "applicationMetaData.pctPublicationNumber:WO2024012345",
                 "limit": 1,
                 "offset": 0,
             },
@@ -2614,9 +2673,12 @@ class TestPatentApplicationDataRetrieval:
                 {"application_number_q": "PCT/US2024/012345"},
                 "applicationNumberText:PCTUS2024012345",
             ),
-            ({"patent_number_q": "PN123"}, "applicationMetaData.patentNumber:PN123"),
             (
-                {"patent_number_q": "10000000 OR 10000001"},
+                {"patent_number_q": "US 10,000,000 B2"},
+                "applicationMetaData.patentNumber:10000000",
+            ),
+            (
+                {"patent_number_q": ["10000000", "10000001"]},
                 "applicationMetaData.patentNumber:(10000000 OR 10000001)",
             ),
             (
@@ -2637,7 +2699,19 @@ class TestPatentApplicationDataRetrieval:
             ),
             (
                 {"classification_q": "H04L"},
-                "applicationMetaData.cpcClassificationBag:H04L",
+                "applicationMetaData.cpcClassificationBag:H04L*",
+            ),
+            (
+                {"classification_q": "H01L21/02"},
+                'applicationMetaData.cpcClassificationBag:"H01L  21/02"',
+            ),
+            (
+                {"application_number_q": ["14412875", "14412876"]},
+                "applicationNumberText:(14412875 OR 14412876)",
+            ),
+            (
+                {"inventor_name_q": ["Tobias Sokolowski", "Junhao KUANG"]},
+                'applicationMetaData.inventorBag.inventorNameText:("Tobias Sokolowski" OR "Junhao KUANG")',
             ),
             (
                 {"classification_q": "H10D  64/667"},

@@ -9,7 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking:** Convenience filters take one value or a list of values, and a string is always one literal value. A record matches if it matches any value in the list. `patent_number_q="10000000 OR 10000001"` becomes `patent_number_q=["10000000", "10000001"]`. Put other search syntax (`OR`, `AND`, ranges) in `query`. A single word containing `*` or `?` is still a wildcard pattern. Applies to `PatentDataClient`.
+- **Breaking:** Code and identifier filters raise `ValueError` for a value that is not one code or identifier, such as `patent_number_q="10000000 OR 10000001"` or `customer_number_q="150 OR 161"`. In 0.6.2 these were sent inside parentheses. Applies to `PatentDataClient`.
+- **Breaking:** `get_patent`, `get_pct`, and `get_IFW_metadata(patent_number=..., PCT_pub_number=...)` raise `ValueError` for a number they cannot read, instead of returning `None`.
 - **Breaking:** The application-number filters (`application_number_q` and the other clients' application-number filters) and `earliestPublicationNumber_q` raise `ValueError` for a value that is not one application or publication number, or a single-word wildcard pattern such as `16*`. In 0.6.2, an `OR` or range expression was sent inside parentheses; pass a list instead, or put the expression in `query`. `get_publication` and `get_IFW_metadata(publication_number=...)` raise the same error for a value that is not a publication number, instead of returning `None`.
+
+### Fixed
+
+- `classification_q` matches CPC symbols. The API stores them in a fixed-width form (`H01L  21/02`), so `H01L21/02`, `H01L 21/02`, and a bare subclass such as `H01L` matched nothing. A full symbol, a main group (`H01L21`, matching its subgroups), or a subclass (`H01L`) now works, and so does a list.
+- `patent_number_q` accepts a `US` prefix, commas, and a kind code (`US 10,000,000 B2`). The API stores bare numbers (`10000000`, `D1154285`, `RE51038`), so those forms matched nothing. This also fixes `get_patent` and `get_IFW_metadata(patent_number=...)`.
+- `pctPublicationNumber_q` accepts a kind code and separators (`WO 2026/044302 A1`). `WO2026044302A1` matched nothing, including in `get_pct`, whose own docstring example uses that form.
 
 ## [0.6.2] - 2026-11-11
 

@@ -17,13 +17,15 @@ import requests
 from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.clients.query import (
     all_of,
-    any_of,
     application_number,
+    code,
+    cpc_classification,
     date_range,
-    phrase,
+    patent_number,
+    pct_publication_number,
     publication_number,
     sanitize_application_number,
-    term,
+    text,
 )
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.exceptions import FormatNotAvailableError, USPTOApiNotFoundError
@@ -202,11 +204,11 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
     def _search_query(
         self,
         *,
-        application_number_q: str | None,
-        patent_number_q: str | None,
-        inventor_name_q: str | None,
-        applicant_name_q: str | None,
-        assignee_name_q: str | None,
+        application_number_q: str | list[str] | None,
+        patent_number_q: str | list[str] | None,
+        inventor_name_q: str | list[str] | None,
+        applicant_name_q: str | list[str] | None,
+        assignee_name_q: str | list[str] | None,
         customer_number_q: int | str | list[int | str] | None,
         status_code_q: int | str | list[int | str] | None,
         filing_date_from_q: str | None,
@@ -215,25 +217,29 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         grant_date_to_q: str | None,
         status_date_from_q: str | None,
         status_date_to_q: str | None,
-        classification_q: str | None,
-        earliestPublicationNumber_q: str | None = None,
-        pctPublicationNumber_q: str | None = None,
+        classification_q: str | list[str] | None,
+        earliestPublicationNumber_q: str | list[str] | None = None,
+        pctPublicationNumber_q: str | list[str] | None = None,
     ) -> str | None:
         """Build the ``q`` value for the application search convenience filters."""
         return all_of(
             application_number("applicationNumberText", application_number_q),
-            term("applicationMetaData.patentNumber", patent_number_q),
-            phrase("applicationMetaData.inventorBag.inventorNameText", inventor_name_q),
-            phrase("applicationMetaData.firstApplicantName", applicant_name_q),
-            phrase("assignmentBag.assigneeBag.assigneeNameText", assignee_name_q),
-            any_of("applicationMetaData.customerNumber", customer_number_q),
-            any_of("applicationMetaData.applicationStatusCode", status_code_q),
-            phrase("applicationMetaData.cpcClassificationBag", classification_q),
+            patent_number("applicationMetaData.patentNumber", patent_number_q),
+            text("applicationMetaData.inventorBag.inventorNameText", inventor_name_q),
+            text("applicationMetaData.firstApplicantName", applicant_name_q),
+            text("assignmentBag.assigneeBag.assigneeNameText", assignee_name_q),
+            code("applicationMetaData.customerNumber", customer_number_q),
+            code("applicationMetaData.applicationStatusCode", status_code_q),
+            cpc_classification(
+                "applicationMetaData.cpcClassificationBag", classification_q
+            ),
             publication_number(
                 "applicationMetaData.earliestPublicationNumber",
                 earliestPublicationNumber_q,
             ),
-            term("applicationMetaData.pctPublicationNumber", pctPublicationNumber_q),
+            pct_publication_number(
+                "applicationMetaData.pctPublicationNumber", pctPublicationNumber_q
+            ),
             date_range(
                 "applicationMetaData.filingDate", filing_date_from_q, filing_date_to_q
             ),
@@ -258,11 +264,11 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         filters: str | None = None,
         range_filters: str | None = None,
         post_body: dict[str, Any] | None = None,
-        application_number_q: str | None = None,
-        patent_number_q: str | None = None,
-        inventor_name_q: str | None = None,
-        applicant_name_q: str | None = None,
-        assignee_name_q: str | None = None,
+        application_number_q: str | list[str] | None = None,
+        patent_number_q: str | list[str] | None = None,
+        inventor_name_q: str | list[str] | None = None,
+        applicant_name_q: str | list[str] | None = None,
+        assignee_name_q: str | list[str] | None = None,
         customer_number_q: int | str | list[int | str] | None = None,
         status_code_q: int | str | list[int | str] | None = None,
         filing_date_from_q: str | None = None,
@@ -271,38 +277,41 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         grant_date_to_q: str | None = None,
         status_date_from_q: str | None = None,
         status_date_to_q: str | None = None,
-        classification_q: str | None = None,
-        earliestPublicationNumber_q: str | None = None,
-        pctPublicationNumber_q: str | None = None,
+        classification_q: str | list[str] | None = None,
+        earliestPublicationNumber_q: str | list[str] | None = None,
+        pctPublicationNumber_q: str | list[str] | None = None,
         additional_query_params: dict[str, Any] | None = None,
     ) -> PatentDataResponse:
         """Search for patent applications.
 
         Can perform a GET request based on OpenAPI query parameters or a POST request if post_body is specified.
 
-        ``customer_number_q`` and ``status_code_q`` accept a single value or a list;
-        a list builds a Lucene ``field:(a OR b)`` clause, and an empty list raises
-        ``ValueError``. ``status_date_from_q`` /
+        Each convenience filter takes one value or a list of values, and a
+        record matches if it matches any of them. Values are matched
+        literally. A single word containing ``*`` or ``?`` is a wildcard
+        pattern. Put other search syntax (``OR``, ``AND``, ranges) in ``query``.
+        An empty list raises ``ValueError``. ``status_date_from_q`` /
         ``status_date_to_q`` follow the same date-range pattern as
         ``filing_date_from_q`` / ``filing_date_to_q``.
 
-        Text filters (names, classification) are quoted when they contain spaces
-        or special characters, with inner quotes escaped. Code filters (such as
-        ``patent_number_q``) that contain spaces are wrapped in parentheses, so
-        the field applies to every term.
+        Identifier filters are converted to the form the API stores, and raise
+        ``ValueError`` for a value they cannot read:
 
-        ``application_number_q`` is cleaned with ``sanitize_application_number``,
-        so ``14/412,875``, ``14/412875``, and ``14412875`` all search for
-        ``14412875``, and ``PCT/US2025/047756`` searches for ``PCTUS2025047756``.
-        A value that contains ``*``, or that is not a single application number
-        (such as an ``OR`` or range expression), is sent inside parentheses, so
-        the field applies to every term. In an ``OR`` or range expression, write
-        each number as 8 digits.
-
-        ``earliestPublicationNumber_q`` is reduced to its digits and searched
-        with wildcards (``*20210138233*``), so bare digits, ``US`` prefixes,
-        kind codes, and separators all match the stored ``USyyyyNNNNNNNAn``
-        form. A value that already contains ``*`` is passed through unchanged.
+        1. ``application_number_q``: ``14/412,875``, ``14/412875``, and
+           ``14412875`` all search for ``14412875``, and ``PCT/US2025/047756``
+           searches for ``PCTUS2025047756``.
+        2. ``patent_number_q``: a ``US`` prefix, commas, and a kind code are
+           dropped, so ``US 10,000,000 B2`` searches for ``10000000``.
+        3. ``earliestPublicationNumber_q``: reduced to its digits and searched
+           with wildcards (``*20210138233*``), so bare digits, ``US`` prefixes,
+           kind codes, and separators all match the stored
+           ``USyyyyNNNNNNNAn`` form.
+        4. ``pctPublicationNumber_q``: separators and the kind code are
+           dropped, so ``WO 2026/044302 A1`` searches for ``WO2026044302``.
+        5. ``classification_q``: a full CPC symbol (``H01L21/02``), a main
+           group (``H01L21``, matching its subgroups), or a subclass
+           (``H01L``) is converted to the stored fixed-width form
+           (``H01L  21/02``).
         """
         endpoint = self.ENDPOINTS["search_applications"]
 
@@ -375,11 +384,11 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         filters_param: str | None = None,
         range_filters_param: str | None = None,
         post_body: dict[str, Any] | None = None,
-        application_number_q: str | None = None,
-        patent_number_q: str | None = None,
-        inventor_name_q: str | None = None,
-        applicant_name_q: str | None = None,
-        assignee_name_q: str | None = None,
+        application_number_q: str | list[str] | None = None,
+        patent_number_q: str | list[str] | None = None,
+        inventor_name_q: str | list[str] | None = None,
+        applicant_name_q: str | list[str] | None = None,
+        assignee_name_q: str | list[str] | None = None,
         customer_number_q: int | str | list[int | str] | None = None,
         status_code_q: int | str | list[int | str] | None = None,
         filing_date_from_q: str | None = None,
@@ -388,7 +397,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         grant_date_to_q: str | None = None,
         status_date_from_q: str | None = None,
         status_date_to_q: str | None = None,
-        classification_q: str | None = None,
+        classification_q: str | list[str] | None = None,
         additional_query_params: dict[str, Any] | None = None,
     ) -> list[ApplicationMetaData]:
         """Fetch a dataset of patent applications based on search criteria, always requesting JSON format.
