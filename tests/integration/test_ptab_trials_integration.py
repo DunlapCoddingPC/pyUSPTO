@@ -133,6 +133,53 @@ class TestPTABTrialsIntegration:
         except USPTOApiError as e:
             pytest.fail(f"PTAB Trials API error during search_proceedings POST: {e}")
 
+    def test_search_decisions_trial_number_list(
+        self, ptab_trials_client: PTABTrialsClient
+    ) -> None:
+        """Test a list of trial numbers matches any of them live."""
+        response = ptab_trials_client.search_decisions(
+            trial_number_q=["IPR2022-01094", "IPR2022-01228"], limit=50
+        )
+
+        assert response.count == 7
+        assert {d.trial_number for d in response.patent_trial_document_data_bag} == {
+            "IPR2022-01094",
+            "IPR2022-01228",
+        }
+
+    def test_search_decisions_description_phrase(
+        self, ptab_trials_client: PTABTrialsClient
+    ) -> None:
+        """Test document_type_description_q matches its words as a phrase live."""
+        response = ptab_trials_client.search_decisions(
+            trial_number_q="IPR2022-01094",
+            document_type_description_q="Final Written Decision",
+            limit=50,
+        )
+
+        assert response.count == 2
+        assert sorted(
+            d.document_data.document_type_description_text
+            for d in response.patent_trial_document_data_bag
+        ) == [
+            "Final Written Decision:  original",
+            "Final Written Decision: On remand from the CAFC",
+        ]
+
+    def test_search_decisions_patent_number_with_prefix(
+        self, ptab_trials_client: PTABTrialsClient
+    ) -> None:
+        """Test a patent number with a US prefix matches live."""
+        response = ptab_trials_client.search_decisions(
+            patent_number_q="US8620039", limit=50
+        )
+
+        assert response.count == 10
+        assert {
+            d.patent_owner_data.patent_number
+            for d in response.patent_trial_document_data_bag
+        } == {"8620039"}
+
     def test_search_decisions_with_series_code_application_number(
         self, ptab_trials_client: PTABTrialsClient
     ) -> None:

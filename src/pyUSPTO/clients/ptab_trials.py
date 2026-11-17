@@ -12,10 +12,10 @@ from pyUSPTO.clients.base import BaseUSPTOClient, M
 from pyUSPTO.clients.query import (
     all_of,
     application_number,
-    contains,
+    code,
     date_range,
-    phrase,
-    term,
+    patent_number,
+    text,
 )
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.ptab import (
@@ -153,12 +153,12 @@ class PTABTrialsClient(
         range_filters: str | None = None,
         post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        trial_number_q: str | None = None,
-        patent_owner_name_q: str | None = None,
-        petitioner_real_party_in_interest_name_q: str | None = None,
-        respondent_name_q: str | None = None,
-        trial_type_code_q: str | None = None,
-        trial_status_category_q: str | None = None,
+        trial_number_q: str | list[str] | None = None,
+        patent_owner_name_q: str | list[str] | None = None,
+        petitioner_real_party_in_interest_name_q: str | list[str] | None = None,
+        respondent_name_q: str | list[str] | None = None,
+        trial_type_code_q: str | list[str] | None = None,
+        trial_status_category_q: str | list[str] | None = None,
         petition_filing_date_from_q: str | None = None,
         petition_filing_date_to_q: str | None = None,
         additional_query_params: dict[str, Any] | None = None,
@@ -170,10 +170,11 @@ class PTABTrialsClient(
         direct query string or use convenience parameters that will be automatically
         combined into a query.
 
-        Text filters (names, categories, descriptions) are quoted when they
-        contain spaces or special characters, with inner quotes escaped. Code
-        filters (trial number, trial type, patent number) that contain spaces
-        are wrapped in parentheses, so the field applies to every term.
+        Each convenience filter takes one value or a list of values, and a
+        record matches if it matches any of them. Values are matched
+        literally. A single word containing ``*`` or ``?`` is a wildcard
+        pattern. Put other search syntax (``OR``, ``AND``, ranges) in
+        ``query``.
 
         Args:
             query: Direct query string in USPTO search syntax.
@@ -212,15 +213,15 @@ class PTABTrialsClient(
             ... )
         """
         built_query = all_of(
-            term("trialNumber", trial_number_q),
-            phrase("patentOwnerData.patentOwnerName", patent_owner_name_q),
-            phrase(
+            code("trialNumber", trial_number_q),
+            text("patentOwnerData.patentOwnerName", patent_owner_name_q),
+            text(
                 "regularPetitionerData.realPartyInInterestName",
                 petitioner_real_party_in_interest_name_q,
             ),
-            phrase("respondentData.patentOwnerName", respondent_name_q),
-            term("trialMetaData.trialTypeCode", trial_type_code_q),
-            phrase("trialMetaData.trialStatusCategory", trial_status_category_q),
+            text("respondentData.patentOwnerName", respondent_name_q),
+            code("trialMetaData.trialTypeCode", trial_type_code_q),
+            text("trialMetaData.trialStatusCategory", trial_status_category_q),
             date_range(
                 "trialMetaData.petitionFilingDate",
                 petition_filing_date_from_q,
@@ -256,16 +257,16 @@ class PTABTrialsClient(
         range_filters: str | None = None,
         post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        trial_number_q: str | None = None,
-        document_category_q: str | None = None,
-        document_type_name_q: str | None = None,
+        trial_number_q: str | list[str] | None = None,
+        document_category_q: str | list[str] | None = None,
+        document_type_name_q: str | list[str] | None = None,
         filing_date_from_q: str | None = None,
         filing_date_to_q: str | None = None,
-        petitioner_real_party_in_interest_name_q: str | None = None,
-        inventor_name_q: str | None = None,
-        real_party_in_interest_name_q: str | None = None,
-        patent_number_q: str | None = None,
-        patent_owner_name_q: str | None = None,
+        petitioner_real_party_in_interest_name_q: str | list[str] | None = None,
+        inventor_name_q: str | list[str] | None = None,
+        real_party_in_interest_name_q: str | list[str] | None = None,
+        patent_number_q: str | list[str] | None = None,
+        patent_owner_name_q: str | list[str] | None = None,
         additional_query_params: dict[str, Any] | None = None,
     ) -> PTABTrialDocumentResponse:
         """Search for PTAB trial documents.
@@ -275,10 +276,11 @@ class PTABTrialsClient(
         direct query string or use convenience parameters that will be automatically
         combined into a query.
 
-        Text filters (names, categories, descriptions) are quoted when they
-        contain spaces or special characters, with inner quotes escaped. Code
-        filters (trial number, trial type, patent number) that contain spaces
-        are wrapped in parentheses, so the field applies to every term.
+        Each convenience filter takes one value or a list of values, and a
+        record matches if it matches any of them. Values are matched
+        literally. A single word containing ``*`` or ``?`` is a wildcard
+        pattern. Put other search syntax (``OR``, ``AND``, ranges) in
+        ``query``.
 
         Args:
             query: Direct query string in USPTO search syntax.
@@ -319,20 +321,20 @@ class PTABTrialsClient(
             ... )
         """
         built_query = all_of(
-            term("trialNumber", trial_number_q),
-            phrase("documentData.documentCategory", document_category_q),
-            phrase("documentData.documentTypeDescriptionText", document_type_name_q),
-            phrase(
+            code("trialNumber", trial_number_q),
+            text("documentData.documentCategory", document_category_q),
+            text("documentData.documentTypeDescriptionText", document_type_name_q),
+            text(
                 "regularPetitionerData.realPartyInInterestName",
                 petitioner_real_party_in_interest_name_q,
             ),
-            phrase("patentOwnerData.inventorName", inventor_name_q),
-            phrase(
+            text("patentOwnerData.inventorName", inventor_name_q),
+            text(
                 "regularPetitionerData.realPartyInInterestName",
                 real_party_in_interest_name_q,
             ),
-            term("patentOwnerData.patentNumber", patent_number_q),
-            phrase("patentOwnerData.patentOwnerName", patent_owner_name_q),
+            patent_number("patentOwnerData.patentNumber", patent_number_q),
+            text("patentOwnerData.patentOwnerName", patent_owner_name_q),
             date_range(
                 "documentData.documentFilingDate", filing_date_from_q, filing_date_to_q
             ),
@@ -366,18 +368,18 @@ class PTABTrialsClient(
         range_filters: str | None = None,
         post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        trial_number_q: str | None = None,
-        decision_type_category_q: str | None = None,
-        document_type_description_q: str | None = None,
+        trial_number_q: str | list[str] | None = None,
+        decision_type_category_q: str | list[str] | None = None,
+        document_type_description_q: str | list[str] | None = None,
         decision_date_from_q: str | None = None,
         decision_date_to_q: str | None = None,
-        trial_type_code_q: str | None = None,
-        patent_number_q: str | None = None,
-        application_number_q: str | None = None,
-        patent_owner_name_q: str | None = None,
-        trial_status_category_q: str | None = None,
-        real_party_in_interest_name_q: str | None = None,
-        document_category_q: str | None = None,
+        trial_type_code_q: str | list[str] | None = None,
+        patent_number_q: str | list[str] | None = None,
+        application_number_q: str | list[str] | None = None,
+        patent_owner_name_q: str | list[str] | None = None,
+        trial_status_category_q: str | list[str] | None = None,
+        real_party_in_interest_name_q: str | list[str] | None = None,
+        document_category_q: str | list[str] | None = None,
         additional_query_params: dict[str, Any] | None = None,
     ) -> PTABTrialDocumentResponse:
         """Search for PTAB trial decisions.
@@ -387,10 +389,11 @@ class PTABTrialsClient(
         direct query string or use convenience parameters that will be automatically
         combined into a query.
 
-        Text filters (names, categories, descriptions) are quoted when they
-        contain spaces or special characters, with inner quotes escaped. Code
-        filters (trial number, trial type, patent number) that contain spaces
-        are wrapped in parentheses, so the field applies to every term.
+        Each convenience filter takes one value or a list of values, and a
+        record matches if it matches any of them. Values are matched
+        literally. A single word containing ``*`` or ``?`` is a wildcard
+        pattern. Put other search syntax (``OR``, ``AND``, ranges) in
+        ``query``.
 
         Args:
             query: Direct query string in USPTO search syntax.
@@ -406,14 +409,16 @@ class PTABTrialsClient(
             post_body: Optional POST body for complex queries.
             trial_number_q: Filter by trial number.
             decision_type_category_q: Filter by decision type category.
-            document_type_description_q: Filter by "*[description]*".
+            document_type_description_q: Filter by document type description.
+                A multi-word value matches those words in order anywhere in
+                the description, so ``"Final Written Decision"`` matches
+                ``"Final Written Decision:  original"``.
             decision_date_from_q: Filter decisions from this date (YYYY-MM-DD).
             decision_date_to_q: Filter decisions to this date (YYYY-MM-DD).
             trial_type_code_q: Filter by trial type code (e.g., "IPR", "PGR", "CBM", "DER").
             patent_number_q: Filter by patent number.
             application_number_q: Filter by application number.
-                Any common form matches (``17/765,301``, ``17765301``). Write
-                each number in an ``OR`` or range expression as 8 digits.
+                Any common form matches (``17/765,301``, ``17765301``).
             patent_owner_name_q: Filter by patent owner name.
             trial_status_category_q: Filter by trial status category.
             real_party_in_interest_name_q: Filter by real party in interest name.
@@ -435,25 +440,24 @@ class PTABTrialsClient(
             ... )
         """
         built_query = all_of(
-            term("trialNumber", trial_number_q),
-            phrase("decisionData.decisionTypeCategory", decision_type_category_q),
-            contains(
+            code("trialNumber", trial_number_q),
+            text("decisionData.decisionTypeCategory", decision_type_category_q),
+            text(
                 "documentData.documentTypeDescriptionText",
                 document_type_description_q,
-                quoted=True,
             ),
-            term("trialMetaData.trialTypeCode", trial_type_code_q),
-            term("patentOwnerData.patentNumber", patent_number_q),
+            code("trialMetaData.trialTypeCode", trial_type_code_q),
+            patent_number("patentOwnerData.patentNumber", patent_number_q),
             application_number(
                 "patentOwnerData.applicationNumberText", application_number_q
             ),
-            phrase("patentOwnerData.patentOwnerName", patent_owner_name_q),
-            phrase("trialMetaData.trialStatusCategory", trial_status_category_q),
-            phrase(
+            text("patentOwnerData.patentOwnerName", patent_owner_name_q),
+            text("trialMetaData.trialStatusCategory", trial_status_category_q),
+            text(
                 "regularPetitionerData.realPartyInInterestName",
                 real_party_in_interest_name_q,
             ),
-            phrase("documentData.documentCategory", document_category_q),
+            text("documentData.documentCategory", document_category_q),
             date_range(
                 "decisionData.decisionIssueDate",
                 decision_date_from_q,

@@ -444,7 +444,7 @@ class TestPTABTrialsClientSearchDocuments:
             'regularPetitionerData.realPartyInInterestName:"Real Party LLC"'
             in params["q"]
         )
-        assert "patentOwnerData.patentNumber:US1234567" in params["q"]
+        assert "patentOwnerData.patentNumber:1234567" in params["q"]
         assert 'patentOwnerData.patentOwnerName:"Test Owner"' in params["q"]
         assert params["limit"] == 50
 
@@ -648,7 +648,7 @@ class TestPTABTrialsClientSearchDecisions:
             'decisionData.decisionTypeCategory:"Final Written Decision"' in params["q"]
         )
         assert "trialTypeCode:IPR" in params["q"]
-        assert "patentOwnerData.patentNumber:US1234567" in params["q"]
+        assert "patentOwnerData.patentNumber:1234567" in params["q"]
         assert "patentOwnerData.applicationNumberText:15123456" in params["q"]
         assert 'patentOwnerData.patentOwnerName:"Test Owner"' in params["q"]
         assert "trialMetaData.trialStatusCategory:Instituted" in params["q"]
@@ -733,7 +733,7 @@ class TestPTABTrialsClientSearchDecisions:
         call_args = mock_session.get.call_args
         params = call_args[1]["params"]
         assert (
-            'documentData.documentTypeDescriptionText:"*Final Written Decision*"'
+            'documentData.documentTypeDescriptionText:"Final Written Decision"'
             in params["q"]
         )
 
