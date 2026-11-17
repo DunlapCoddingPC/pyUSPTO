@@ -11,9 +11,9 @@ from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.clients.query import (
     all_of,
     application_number,
+    code,
     date_range,
-    phrase,
-    term,
+    text,
 )
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.ptab import (
@@ -78,14 +78,14 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
         range_filters: str | None = None,
         post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        appeal_number_q: str | None = None,
-        application_number_text_q: str | None = None,
-        appellant_name_q: str | None = None,
-        requestor_name_q: str | None = None,
-        decision_type_category_q: str | None = None,
+        appeal_number_q: str | list[str] | None = None,
+        application_number_text_q: str | list[str] | None = None,
+        appellant_name_q: str | list[str] | None = None,
+        requestor_name_q: str | list[str] | None = None,
+        decision_type_category_q: str | list[str] | None = None,
         decision_date_from_q: str | None = None,
         decision_date_to_q: str | None = None,
-        technology_center_number_q: str | None = None,
+        technology_center_number_q: str | list[str] | None = None,
         additional_query_params: dict[str, Any] | None = None,
     ) -> PTABAppealResponse:
         """Search for PTAB appeal decisions.
@@ -95,10 +95,11 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
         direct query string or use convenience parameters that will be automatically
         combined into a query.
 
-        Text filters (names, decision type) are quoted when they contain spaces
-        or special characters, with inner quotes escaped. Code filters (appeal
-        number, technology center) that contain spaces are wrapped in
-        parentheses, so the field applies to every term.
+        Each convenience filter takes one value or a list of values, and a
+        record matches if it matches any of them. Values are matched
+        literally. A single word containing ``*`` or ``?`` is a wildcard
+        pattern. Put other search syntax (``OR``, ``AND``, ranges) in
+        ``query``.
 
         Args:
             query: Direct query string in USPTO search syntax.
@@ -114,8 +115,7 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
             post_body: Optional POST body for complex queries.
             appeal_number_q: Filter by appeal number.
             application_number_text_q: Filter by application number.
-                Any common form matches (``17/765,301``, ``17765301``). Write
-                each number in an ``OR`` or range expression as 8 digits.
+                Any common form matches (``17/765,301``, ``17765301``).
             appellant_name_q: Filter by appellant name.
             requestor_name_q: Filter by requestor name.
             decision_type_category_q: Filter by decision type category.
@@ -165,16 +165,14 @@ class PTABAppealsClient(BaseUSPTOClient[PTABAppealResponse]):
             # Build query from convenience parameters
             if final_q is None:
                 final_q = all_of(
-                    term("appealNumber", appeal_number_q),
+                    code("appealNumber", appeal_number_q),
                     application_number(
                         "appellantData.applicationNumberText", application_number_text_q
                     ),
-                    phrase("appellantData.realPartyInInterestName", appellant_name_q),
-                    phrase("appellantData.counselName", requestor_name_q),
-                    phrase(
-                        "decisionData.decisionTypeCategory", decision_type_category_q
-                    ),
-                    term(
+                    text("appellantData.realPartyInInterestName", appellant_name_q),
+                    text("appellantData.counselName", requestor_name_q),
+                    text("decisionData.decisionTypeCategory", decision_type_category_q),
+                    code(
                         "appellantData.technologyCenterNumber",
                         technology_center_number_q,
                     ),

@@ -11,10 +11,10 @@ from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.clients.query import (
     all_of,
     application_number,
+    code,
     date_range,
     either,
-    phrase,
-    term,
+    text,
 )
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.ptab import (
@@ -79,14 +79,14 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
         range_filters: str | None = None,
         post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        interference_number_q: str | None = None,
-        senior_party_application_number_q: str | None = None,
-        junior_party_application_number_q: str | None = None,
-        senior_party_name_q: str | None = None,
-        junior_party_name_q: str | None = None,
-        real_party_in_interest_q: str | None = None,
-        interference_outcome_category_q: str | None = None,
-        decision_type_category_q: str | None = None,
+        interference_number_q: str | list[str] | None = None,
+        senior_party_application_number_q: str | list[str] | None = None,
+        junior_party_application_number_q: str | list[str] | None = None,
+        senior_party_name_q: str | list[str] | None = None,
+        junior_party_name_q: str | list[str] | None = None,
+        real_party_in_interest_q: str | list[str] | None = None,
+        interference_outcome_category_q: str | list[str] | None = None,
+        decision_type_category_q: str | list[str] | None = None,
         decision_date_from_q: str | None = None,
         decision_date_to_q: str | None = None,
         additional_query_params: dict[str, Any] | None = None,
@@ -98,11 +98,14 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
         direct query string or use convenience parameters that will be automatically
         combined into a query.
 
-        Text filters (party names, categories) are quoted when they contain
-        spaces or special characters, with inner quotes escaped. A party-name
-        filter searches several name fields inside one parenthesized OR group.
-        The interference number filter, if it contains spaces, is wrapped in
-        parentheses, so the field applies to every term.
+        Each convenience filter takes one value or a list of values, and a
+        record matches if it matches any of them. Values are matched
+        literally. A single word containing ``*`` or ``?`` is a wildcard
+        pattern. Put other search syntax (``OR``, ``AND``, ranges) in
+        ``query``.
+
+        A party-name filter searches the patent owner, inventor, and real
+        party in interest name fields, and matches if any of them matches.
 
         Args:
             query: Direct query string in USPTO search syntax.
@@ -118,11 +121,9 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
             post_body: Optional POST body for complex queries.
             interference_number_q: Filter by interference number.
             senior_party_application_number_q: Filter by senior party application number.
-                Any common form matches (``17/765,301``, ``17765301``). Write
-                each number in an ``OR`` or range expression as 8 digits.
+                Any common form matches (``17/765,301``, ``17765301``).
             junior_party_application_number_q: Filter by junior party application number.
-                Any common form matches (``17/765,301``, ``17765301``). Write
-                each number in an ``OR`` or range expression as 8 digits.
+                Any common form matches (``17/765,301``, ``17765301``).
             senior_party_name_q: Filter by senior party name.
             junior_party_name_q: Filter by junior party name.
             real_party_in_interest_q: Filter by Real Party in Interest.
@@ -173,7 +174,7 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
             # Build query from convenience parameters
             if final_q is None:
                 final_q = all_of(
-                    term("interferenceNumber", interference_number_q),
+                    code("interferenceNumber", interference_number_q),
                     application_number(
                         "seniorPartyData.applicationNumberText",
                         senior_party_application_number_q,
@@ -183,38 +184,36 @@ class PTABInterferencesClient(BaseUSPTOClient[PTABInterferenceResponse]):
                         junior_party_application_number_q,
                     ),
                     either(
-                        phrase("seniorPartyData.patentOwnerName", senior_party_name_q),
-                        phrase("seniorPartyData.inventorName", senior_party_name_q),
-                        phrase(
+                        text("seniorPartyData.patentOwnerName", senior_party_name_q),
+                        text("seniorPartyData.inventorName", senior_party_name_q),
+                        text(
                             "seniorPartyData.realPartyInInterestName",
                             senior_party_name_q,
                         ),
                     ),
                     either(
-                        phrase("juniorPartyData.patentOwnerName", junior_party_name_q),
-                        phrase("juniorPartyData.inventorName", junior_party_name_q),
-                        phrase(
+                        text("juniorPartyData.patentOwnerName", junior_party_name_q),
+                        text("juniorPartyData.inventorName", junior_party_name_q),
+                        text(
                             "juniorPartyData.realPartyInInterestName",
                             junior_party_name_q,
                         ),
                     ),
                     either(
-                        phrase(
+                        text(
                             "seniorPartyData.realPartyInInterestName",
                             real_party_in_interest_q,
                         ),
-                        phrase(
+                        text(
                             "juniorPartyData.realPartyInInterestName",
                             real_party_in_interest_q,
                         ),
                     ),
-                    phrase(
+                    text(
                         "documentData.interferenceOutcomeCategory",
                         interference_outcome_category_q,
                     ),
-                    phrase(
-                        "documentData.decisionTypeCategory", decision_type_category_q
-                    ),
+                    text("documentData.decisionTypeCategory", decision_type_category_q),
                     date_range(
                         "documentData.decisionIssueDate",
                         decision_date_from_q,

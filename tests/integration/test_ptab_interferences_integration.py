@@ -112,6 +112,29 @@ class TestPTABInterferencesIntegration:
                 f"PTAB Interferences API error during search_decisions with convenience params: {e}"
             )
 
+    def test_search_decisions_senior_party_name_list(
+        self, ptab_interferences_client: PTABInterferencesClient
+    ) -> None:
+        """Test a list of senior party names matches any of them live."""
+        response = ptab_interferences_client.search_decisions(
+            senior_party_name_q=["Brian J. Druker et al", "Gordon  Freeman et al"],
+            limit=50,
+        )
+
+        assert response.count == 8
+        assert sorted(
+            d.interference_number for d in response.patent_interference_data_bag
+        ) == [
+            "105872",
+            "105885",
+            "105901",
+            "105943",
+            "105944",
+            "105992",
+            "105993",
+            "105994",
+        ]
+
     def test_search_decisions_with_series_code_application_number(
         self, ptab_interferences_client: PTABInterferencesClient
     ) -> None:

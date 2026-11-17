@@ -271,6 +271,29 @@ class TestPTABInterferencesClientSearchDecisions:
         params = call_args[1]["params"]
         assert "documentData.decisionIssueDate:<=2023-12-31" in params["q"]
 
+    def test_search_decisions_senior_party_name_list(
+        self, mock_ptab_interferences_client: PTABInterferencesClient
+    ) -> None:
+        """Test a list of senior party names builds one OR group per name field."""
+        mock_session = MagicMock()
+        mock_session.get.return_value.json.return_value = {
+            "count": 0,
+            "patentInterferenceDataBag": [],
+        }
+        mock_ptab_interferences_client.config._session = mock_session
+
+        mock_ptab_interferences_client.search_decisions(
+            senior_party_name_q=["Alpha Corp", "Beta LLC"]
+        )
+
+        params = mock_session.get.call_args[1]["params"]
+        names = '("Alpha Corp" OR "Beta LLC")'
+        assert params["q"] == (
+            f"(seniorPartyData.patentOwnerName:{names}"
+            f" OR seniorPartyData.inventorName:{names}"
+            f" OR seniorPartyData.realPartyInInterestName:{names})"
+        )
+
     def test_search_decisions_get_with_all_convenience_params(
         self,
         mock_ptab_interferences_client: PTABInterferencesClient,

@@ -108,6 +108,23 @@ class TestPTABAppealsIntegration:
                 if decision.appeal_meta_data:
                     assert isinstance(decision.appeal_meta_data, AppealMetaData)
 
+    def test_search_decisions_appellant_name_list(
+        self, ptab_appeals_client: PTABAppealsClient
+    ) -> None:
+        """Test a list of appellant names matches any of them live."""
+        response = ptab_appeals_client.search_decisions(
+            appellant_name_q=["Block, Inc.", "FINISH TIME HOLDINGS, LLC"],
+            decision_date_from_q="2025-01-01",
+            decision_date_to_q="2025-12-31",
+            limit=10,
+        )
+
+        assert response.count == 2
+        assert sorted(d.appeal_number for d in response.patent_appeal_data_bag) == [
+            "2024004122",
+            "2025003211",
+        ]
+
     def test_search_decisions_multiword_appellant_name(
         self, ptab_appeals_client: PTABAppealsClient
     ) -> None:
