@@ -13,8 +13,9 @@ from pyUSPTO.clients.base import BaseUSPTOClient
 from pyUSPTO.clients.query import (
     all_of,
     application_number,
+    code,
     date_range,
-    term,
+    text,
 )
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.oa_rejections import (
@@ -67,11 +68,11 @@ class OARejectionsClient(BaseUSPTOClient[OARejectionsResponse]):
         rows: int | None = 25,
         post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        patent_application_number_q: str | None = None,
-        legacy_document_code_identifier_q: str | None = None,
-        group_art_unit_number_q: str | None = None,
-        legal_section_code_q: str | None = None,
-        action_type_category_q: str | None = None,
+        patent_application_number_q: str | list[str] | None = None,
+        legacy_document_code_identifier_q: str | list[str] | None = None,
+        group_art_unit_number_q: str | list[str] | None = None,
+        legal_section_code_q: str | list[str] | None = None,
+        action_type_category_q: str | list[str] | None = None,
         submission_date_from_q: str | None = None,
         submission_date_to_q: str | None = None,
         additional_query_params: dict[str, Any] | None = None,
@@ -82,10 +83,11 @@ class OARejectionsClient(BaseUSPTOClient[OARejectionsResponse]):
         office action rejection records. You can provide either a direct
         post_body, a criteria string, or use convenience parameters.
 
-        Every convenience filter is a code filter (document codes, categories,
-        tech centers, art units). A value that contains spaces, such as
-        ``"rejected OR objected"``, is wrapped in parentheses, so the field
-        applies to every term.
+        Each convenience filter takes one value or a list of values, and a
+        record matches if it matches any of them. Values are matched
+        literally. A single word containing ``*`` or ``?`` is a wildcard
+        pattern. Put other search syntax (``OR``, ``AND``, ranges) in
+        ``criteria``.
 
         Args:
             criteria: Direct Solr query string (e.g., ``"patentApplicationNumber:12190351"``).
@@ -95,8 +97,7 @@ class OARejectionsClient(BaseUSPTOClient[OARejectionsResponse]):
             post_body: Optional POST body dict for complex queries. When provided,
                 all other parameters are ignored.
             patent_application_number_q: Filter by patent application number.
-                Any common form matches (``17/765,301``, ``17765301``). Write
-                each number in an ``OR`` or range expression as 8 digits.
+                Any common form matches (``17/765,301``, ``17765301``).
             legacy_document_code_identifier_q: Filter by document code (e.g., ``"CTNF"``).
             group_art_unit_number_q: Filter by group art unit number.
             legal_section_code_q: Filter by legal section code.
@@ -147,10 +148,10 @@ class OARejectionsClient(BaseUSPTOClient[OARejectionsResponse]):
                 application_number(
                     "patentApplicationNumber", patent_application_number_q
                 ),
-                term("legacyDocumentCodeIdentifier", legacy_document_code_identifier_q),
-                term("groupArtUnitNumber", group_art_unit_number_q),
-                term("legalSectionCode", legal_section_code_q),
-                term("actionTypeCategory", action_type_category_q),
+                code("legacyDocumentCodeIdentifier", legacy_document_code_identifier_q),
+                code("groupArtUnitNumber", group_art_unit_number_q),
+                text("legalSectionCode", legal_section_code_q),
+                code("actionTypeCategory", action_type_category_q),
                 date_range(
                     "submissionDate", submission_date_from_q, submission_date_to_q
                 ),

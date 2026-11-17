@@ -205,16 +205,28 @@ class TestEnrichedCitationsClientSearch:
         json_data = call_args[1]["json_data"]
         assert "patentApplicationNumber:15739603" in json_data["criteria"]
 
-    def test_search_with_office_action_category_or_expression(
+    def test_category_expression_string_raises(
+        self,
+        client_with_mocked_request: tuple[EnrichedCitationsClient, MagicMock],
+    ) -> None:
+        """Test a search expression in a category filter raises."""
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError, match="query"):
+            client.search_citations(office_action_category_q="rejected OR objected")
+
+        mock_get_model.assert_not_called()
+
+    def test_search_with_office_action_category_list(
         self,
         client_with_mocked_request: tuple[EnrichedCitationsClient, MagicMock],
         mock_enriched_response_with_data: EnrichedCitationResponse,
     ) -> None:
-        """Test an OR expression in office_action_category_q is wrapped."""
+        """Test a list of office action categories builds an OR group."""
         client, mock_get_model = client_with_mocked_request
         mock_get_model.return_value = mock_enriched_response_with_data
 
-        client.search_citations(office_action_category_q="CTNF OR CTFR")
+        client.search_citations(office_action_category_q=["CTNF", "CTFR"])
 
         json_data = mock_get_model.call_args[1]["json_data"]
         assert json_data["criteria"] == "officeActionCategory:(CTNF OR CTFR)"

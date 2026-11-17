@@ -252,16 +252,28 @@ class TestOARejectionsClientSearch:
         call_kwargs = mock_get_model.call_args.kwargs
         assert call_kwargs["json_data"]["criteria"] == "actionTypeCategory:rejected"
 
-    def test_action_type_category_q_or_expression(
+    def test_category_expression_string_raises(
+        self,
+        client_with_mocked_request: tuple[OARejectionsClient, MagicMock],
+    ) -> None:
+        """Test a search expression in a category filter raises."""
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError, match="query"):
+            client.search(action_type_category_q="rejected OR objected")
+
+        mock_get_model.assert_not_called()
+
+    def test_action_type_category_q_list(
         self,
         client_with_mocked_request: tuple[OARejectionsClient, MagicMock],
         mock_response_with_data: OARejectionsResponse,
     ) -> None:
-        """Test an OR expression in action_type_category_q is wrapped."""
+        """Test a list of action type categories builds an OR group."""
         client, mock_get_model = client_with_mocked_request
         mock_get_model.return_value = mock_response_with_data
 
-        client.search(action_type_category_q="rejected OR objected")
+        client.search(action_type_category_q=["rejected", "objected"])
 
         call_kwargs = mock_get_model.call_args.kwargs
         assert (

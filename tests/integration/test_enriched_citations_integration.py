@@ -60,13 +60,13 @@ class TestEnrichedCitationsSearch:
             "15061308"
         ] * 25
 
-    def test_search_by_office_action_category_or_expression(
+    def test_search_by_office_action_category_list(
         self, enriched_citations_client: EnrichedCitationsClient
     ) -> None:
-        """Test an OR expression in office_action_category_q matches live."""
+        """Test a list of office action categories matches any of them live."""
         response = enriched_citations_client.search_citations(
             patent_application_number_q="15061308",
-            office_action_category_q="CTNF OR CTFR",
+            office_action_category_q=["CTNF", "CTFR"],
             rows=50,
         )
 

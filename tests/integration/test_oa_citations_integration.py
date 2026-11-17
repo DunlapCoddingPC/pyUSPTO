@@ -58,6 +58,33 @@ class TestOACitationsSearch:
         for doc in response.docs:
             assert doc.patent_application_number == _KNOWN_APP_NUMBER
 
+    def test_search_by_legal_section_code_list(
+        self, oa_citations_client: OACitationsClient
+    ) -> None:
+        """Test a list of legal section codes matches any of them live."""
+        response = oa_citations_client.search(
+            patent_application_number_q="11426535",
+            legal_section_code_q=["103", "nonstatutory double patenting"],
+            rows=10,
+        )
+
+        assert response.num_found == 4
+
+    def test_search_by_legal_section_code_phrase(
+        self, oa_citations_client: OACitationsClient
+    ) -> None:
+        """Test a multi-word legal section code matches as a phrase live."""
+        response = oa_citations_client.search(
+            patent_application_number_q="11426535",
+            legal_section_code_q="nonstatutory double patenting",
+            rows=10,
+        )
+
+        assert response.num_found == 3
+        assert [doc.legal_section_code for doc in response.docs] == [
+            "nonstatutory double patenting"
+        ] * 3
+
     def test_search_by_series_code_application_number(
         self, oa_citations_client: OACitationsClient
     ) -> None:

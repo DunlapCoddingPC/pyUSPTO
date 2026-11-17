@@ -13,9 +13,9 @@ from pyUSPTO.clients.query import (
     all_of,
     application_number,
     boolean,
+    code,
     date_range,
-    phrase,
-    term,
+    text,
 )
 from pyUSPTO.config import USPTOConfig
 from pyUSPTO.models.enriched_citations import (
@@ -75,12 +75,12 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
         rows: int | None = 25,
         post_body: dict[str, Any] | None = None,
         # Convenience query parameters
-        patent_application_number_q: str | None = None,
-        cited_document_identifier_q: str | None = None,
-        office_action_category_q: str | None = None,
-        citation_category_code_q: str | None = None,
-        tech_center_q: str | None = None,
-        group_art_unit_number_q: str | None = None,
+        patent_application_number_q: str | list[str] | None = None,
+        cited_document_identifier_q: str | list[str] | None = None,
+        office_action_category_q: str | list[str] | None = None,
+        citation_category_code_q: str | list[str] | None = None,
+        tech_center_q: str | list[str] | None = None,
+        group_art_unit_number_q: str | list[str] | None = None,
         examiner_cited_q: bool | None = None,
         office_action_date_from_q: str | None = None,
         office_action_date_to_q: str | None = None,
@@ -92,11 +92,11 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
         You can provide either a direct post_body, a query string, or use convenience
         parameters that will be automatically combined into a query.
 
-        ``cited_document_identifier_q`` is quoted when it contains spaces or
-        special characters, with inner quotes escaped. The code filters
-        (office action and citation category codes, tech centers, art units)
-        wrap a value that contains spaces, such as ``"CTNF OR CTFR"``, in
-        parentheses, so the field applies to every term.
+        Each convenience filter takes one value or a list of values, and a
+        record matches if it matches any of them. Values are matched
+        literally. A single word containing ``*`` or ``?`` is a wildcard
+        pattern. Put other search syntax (``OR``, ``AND``, ranges) in
+        ``query``.
 
         Args:
             query: Direct query string in USPTO search syntax.
@@ -106,8 +106,7 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
             post_body: Optional POST body for complex queries. When provided,
                 all other parameters are ignored.
             patent_application_number_q: Filter by patent application number.
-                Any common form matches (``17/765,301``, ``17765301``). Write
-                each number in an ``OR`` or range expression as 8 digits.
+                Any common form matches (``17/765,301``, ``17765301``).
             cited_document_identifier_q: Filter by cited document identifier.
             office_action_category_q: Filter by office action category (e.g., "CTNF").
             citation_category_code_q: Filter by citation category code (e.g., "X", "Y").
@@ -161,11 +160,11 @@ class EnrichedCitationsClient(BaseUSPTOClient[EnrichedCitationResponse]):
                 application_number(
                     "patentApplicationNumber", patent_application_number_q
                 ),
-                phrase("citedDocumentIdentifier", cited_document_identifier_q),
-                term("officeActionCategory", office_action_category_q),
-                term("citationCategoryCode", citation_category_code_q),
-                term("techCenter", tech_center_q),
-                term("groupArtUnitNumber", group_art_unit_number_q),
+                text("citedDocumentIdentifier", cited_document_identifier_q),
+                code("officeActionCategory", office_action_category_q),
+                code("citationCategoryCode", citation_category_code_q),
+                code("techCenter", tech_center_q),
+                code("groupArtUnitNumber", group_art_unit_number_q),
                 boolean("examinerCitedReferenceIndicator", examiner_cited_q),
                 date_range(
                     "officeActionDate",
