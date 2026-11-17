@@ -1,12 +1,17 @@
 """query - Shared builders for Lucene query clauses.
 
 Each builder returns one ``field:value`` clause, or ``None`` when the filter is
-absent (``None`` or ``""``), and formats its value with ``str()``. An empty
-list raises ``ValueError``, so a mistaken ``[]`` never runs an unfiltered search.
-Text values (``phrase``) are quoted when they contain whitespace or a Lucene
-special character, with backslashes and double quotes escaped inside the
-quotes. Code values (``term``) are sent as is, inside parentheses when they
-contain whitespace, so the field applies to every term of an expression.
+absent (``None`` or ``""``), and formats every value with ``str()``. A filter
+takes one value or a list (or tuple) of values; several values become
+``field:(a OR b)``. An empty list, or an empty item in a list, raises
+``ValueError``, so a mistaken ``[]`` never runs an unfiltered search.
+
+Values are literal. ``text`` quotes a value that contains whitespace or a
+Lucene special character, with backslashes and double quotes escaped.
+``code`` sends a value exactly as given and rejects one that is not a single
+code. The identifier builders convert each value to the form the API stores
+and reject one they cannot read. A single word containing ``*`` or ``?`` is a
+wildcard pattern in every builder.
 """
 
 import re
@@ -154,24 +159,6 @@ def sanitize_application_number(input_number: str) -> str:
         )
 
     return cleaned
-
-
-def _application_number_value(value: object) -> str:
-    """Return the search value for an application-number field.
-
-    Values that look like an application number are sanitized, so
-    ``14/412,875`` and ``14412875`` search the same way. Values that contain a
-    wildcard, or that the sanitizer rejects (such as range or ``OR``
-    expressions), are returned inside parentheses, so the field applies to
-    every term of the expression.
-    """
-    text = str(value)
-    if "*" not in text:
-        try:
-            return sanitize_application_number(text)
-        except ValueError:
-            pass
-    return f"({text})"
 
 
 def _values(field: str, value: object) -> list[str]:
@@ -388,67 +375,6 @@ def cpc_classification(field: str, value: object) -> str | None:
             continue
         _reject(field, part)
     return _group(field, parts)
-
-
-def term(field: str, value: object) -> str | None:
-    """Build a clause for a code or number field.
-
-    A value containing whitespace is wrapped in parentheses, so the field
-    applies to every term of an expression such as ``1700 OR 2800``.
-    """
-    if _is_absent(value):
-        return None
-    text = str(value)
-    if _has_whitespace(text):
-        return f"{field}:({text})"
-    return f"{field}:{text}"
-
-
-def phrase(field: str, value: object) -> str | None:
-    """Build a clause for a text field (names, titles, categories).
-
-    A single plain word is sent as is, so wildcards such as ``Smith*`` still
-    work. Any other value is quoted, with backslashes and double quotes
-    escaped. A wildcard inside a quoted value is searched as plain text, so
-    ``Smith-K*`` does not expand.
-    """
-    if _is_absent(value):
-        return None
-    text = str(value)
-    if not _has_whitespace(text) and not any(c in _PHRASE_SPECIAL for c in text):
-        return f"{field}:{text}"
-    escaped = text.replace("\\", "\\\\").replace('"', '\\"')
-    return f'{field}:"{escaped}"'
-
-
-def contains(field: str, value: object, *, quoted: bool = False) -> str | None:
-    """Build a clause that matches the value anywhere in the field.
-
-    With ``quoted``, backslashes and double quotes in the value are escaped.
-    """
-    if _is_absent(value):
-        return None
-    if quoted:
-        escaped = str(value).replace("\\", "\\\\").replace('"', '\\"')
-        return f'{field}:"*{escaped}*"'
-    return f"{field}:*{value}*"
-
-
-def any_of(field: str, value: object) -> str | None:
-    """Build ``field:(a OR b)`` for a list, or a ``term`` for one value.
-
-    Raises:
-        ValueError: If the value is an empty list.
-    """
-    if _is_absent(value):
-        return None
-    if isinstance(value, list):
-        if not value:
-            raise ValueError(
-                f"{field} filter got an empty list; pass None to skip the filter."
-            )
-        return f"{field}:({' OR '.join(str(v) for v in value)})"
-    return term(field, value)
 
 
 def boolean(field: str, value: bool | None) -> str | None:

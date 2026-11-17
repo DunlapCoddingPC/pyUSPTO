@@ -292,9 +292,11 @@ print("-" * 40)
 print("Example 7: Search by CPC classification")
 print("-" * 40)
 
-# CPC codes containing spaces or slashes are automatically quoted for the Lucene query.
-print("Searching by CPC classification code 'H10D  64/667'...")
-cpc_response = client.search_applications(classification_q="H10D  64/667", limit=3)
+# The API stores CPC symbols in a fixed-width form ("H10D  64/667"); the library
+# converts "H10D64/667" or "H10D 64/667" to it. A main group ("H10D64") or a
+# subclass ("H10D") also works.
+print("Searching by CPC classification code 'H10D64/667'...")
+cpc_response = client.search_applications(classification_q="H10D64/667", limit=3)
 print(f"Found {cpc_response.count} applications with CPC code H10D 64/667.")
 for patent_wrapper in cpc_response.patent_file_wrapper_data_bag:
     app_meta = patent_wrapper.application_meta_data
@@ -304,6 +306,21 @@ for patent_wrapper in cpc_response.patent_file_wrapper_data_bag:
         )
         if app_meta.cpc_classification_bag:
             print(f"    CPC codes: {', '.join(app_meta.cpc_classification_bag)}")
+
+print("-" * 40)
+print("Example 7.5: Search with lists of values")
+print("-" * 40)
+
+# Each convenience filter takes one value or a list; a list matches any of its
+# values. Search syntax such as "A OR B" belongs in `query`, not in a filter.
+list_response = client.search_applications(
+    application_number_q=["14412875", "19378371"],
+    inventor_name_q=["Tobias Sokolowski", "Junhao KUANG"],
+    limit=5,
+)
+print(f"Found {list_response.count} applications.")
+for patent_wrapper in list_response.patent_file_wrapper_data_bag:
+    print(f"  - App No: {patent_wrapper.application_number_text}")
 
 print("-" * 40)
 print("Example 8: Get status codes")

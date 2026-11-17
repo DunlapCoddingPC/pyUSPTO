@@ -8,79 +8,6 @@ from pyUSPTO.clients import query
 
 
 @pytest.mark.parametrize(
-    "value, expected",
-    [
-        ("CTNF", "f:CTNF"),
-        (1700, "f:1700"),
-        ("16*", "f:16*"),
-        ("1700 OR 2800", "f:(1700 OR 2800)"),
-        (None, None),
-        ("", None),
-    ],
-)
-def test_term(value: Any, expected: str | None) -> None:
-    """Test code values are sent raw, and expressions are wrapped."""
-    assert query.term("f", value) == expected
-
-
-@pytest.mark.parametrize(
-    "value, expected",
-    [
-        ("Smith", "f:Smith"),
-        ("Smith*", "f:Smith*"),
-        ("John Smith", 'f:"John Smith"'),
-        ("Block, Inc.", 'f:"Block, Inc."'),
-        ("H01L21/02", 'f:"H01L21/02"'),
-        ("E-Link", 'f:"E-Link"'),
-        ("Smith-K*", 'f:"Smith-K*"'),
-        ('Smith "John', 'f:"Smith \\"John"'),
-        ("a\\b", 'f:"a\\\\b"'),
-        ('"John Smith"', 'f:"\\"John Smith\\""'),
-        (None, None),
-        ("", None),
-    ],
-)
-def test_phrase(value: Any, expected: str | None) -> None:
-    """Test text values are quoted when needed, with quotes escaped."""
-    assert query.phrase("f", value) == expected
-
-
-def test_contains() -> None:
-    """Test contains wraps the value in wildcards."""
-    assert query.contains("f", "103") == "f:*103*"
-    assert query.contains("f", "Final", quoted=True) == 'f:"*Final*"'
-    assert query.contains("f", None) is None
-
-
-def test_contains_quoted_escapes() -> None:
-    """Test a quoted contains clause escapes backslashes and double quotes."""
-    assert query.contains("f", 'Final "Written', quoted=True) == (
-        'f:"*Final \\"Written*"'
-    )
-    assert query.contains("f", "a\\b", quoted=True) == 'f:"*a\\\\b*"'
-
-
-@pytest.mark.parametrize(
-    "value, expected",
-    [
-        ([1, "2"], "f:(1 OR 2)"),
-        (150, "f:150"),
-        ("150 OR 161", "f:(150 OR 161)"),
-        (None, None),
-    ],
-)
-def test_any_of(value: Any, expected: str | None) -> None:
-    """Test lists become an OR group and single values a term."""
-    assert query.any_of("f", value) == expected
-
-
-def test_any_of_empty_list() -> None:
-    """Test an empty list raises instead of silently dropping the filter."""
-    with pytest.raises(ValueError, match="empty list"):
-        query.any_of("f", [])
-
-
-@pytest.mark.parametrize(
     "value, expected", [(True, "f:true"), (False, "f:false"), (None, None)]
 )
 def test_boolean(value: bool | None, expected: str | None) -> None:
@@ -150,6 +77,8 @@ def test_list_rules(value: Any) -> None:
         ("103", "f:103"),
         ("nonstatutory double patenting", 'f:"nonstatutory double patenting"'),
         ("Block, Inc.", 'f:"Block, Inc."'),
+        ("E-Link", 'f:"E-Link"'),
+        ('"John Smith"', 'f:"\\"John Smith\\""'),
         ("Smith-K*", 'f:"Smith-K*"'),
         ('Smith "John', 'f:"Smith \\"John"'),
         ("a\\b", 'f:"a\\\\b"'),
