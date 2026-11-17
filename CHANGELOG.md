@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking:** The application-number filters (`application_number_q` and the other clients' application-number filters) and `earliestPublicationNumber_q` raise `ValueError` for a value that is not one application or publication number, or a single-word wildcard pattern such as `16*`. An `OR` or range expression used to be passed through; put it in `query`. `get_publication` and `get_IFW_metadata(publication_number=...)` raise the same error for a value that is not a publication number, instead of returning `None`.
 - `sanitize_application_number` now returns series-code input as 8 digits (`18/511,739` → `18511739`). Previously it kept the slash, so `get_application_by_number` and the other per-application methods requested `.../applications/18/511739`, which the API rejects with HTTP 403. This fixes every method that takes an application number, including `get_IFW_metadata(application_number=...)` and `get_IFW(application_number=...)`.
 - A 403 response with the body `{"message":"Missing Authentication Token"}` now adds to its exception message that USPTO also returns this body when the requested URL path does not exist. It is still raised as `USPTOApiAuthError`.
 - `error_handling_example.py` notes that a "Missing Authentication Token" error can also mean a bad URL path.

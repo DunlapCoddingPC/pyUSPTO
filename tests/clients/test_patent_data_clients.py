@@ -308,6 +308,26 @@ class TestPatentDataClientInit:
 class TestPatentApplicationSearch:
     """Tests for patent application search functionalities using the new search_applications method."""
 
+    @pytest.mark.parametrize(
+        "search_q_params",
+        [
+            {"application_number_q": "app123"},
+            {"earliestPublicationNumber_q": "not-a-pub-number"},
+        ],
+    )
+    def test_search_applications_bad_identifier_raises(
+        self,
+        search_q_params: dict[str, Any],
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """Test an identifier filter the library cannot read raises."""
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError, match="query"):
+            client.search_applications(**search_q_params)
+
+        mock_get_model.assert_not_called()
+
     @pytest.mark.parametrize("param", ["customer_number_q", "status_code_q"])
     def test_search_applications_empty_list_raises(
         self,
@@ -399,7 +419,6 @@ class TestPatentApplicationSearch:
     @pytest.mark.parametrize(
         "search_q_params, expected_q_part",
         [
-            ({"application_number_q": "app123"}, "applicationNumberText:(app123)"),
             (
                 {"application_number_q": "14/412,875"},
                 "applicationNumberText:14412875",
@@ -412,15 +431,7 @@ class TestPatentApplicationSearch:
                 {"application_number_q": 14412875},
                 "applicationNumberText:14412875",
             ),
-            ({"application_number_q": "16*"}, "applicationNumberText:(16*)"),
-            (
-                {"application_number_q": "14412875 OR 14412876"},
-                "applicationNumberText:(14412875 OR 14412876)",
-            ),
-            (
-                {"application_number_q": "[16000000 TO 16999999]"},
-                "applicationNumberText:([16000000 TO 16999999])",
-            ),
+            ({"application_number_q": "16*"}, "applicationNumberText:16*"),
             (
                 {"application_number_q": "PCT/US2024/012345"},
                 "applicationNumberText:PCTUS2024012345",
@@ -473,10 +484,6 @@ class TestPatentApplicationSearch:
             (
                 {"earliestPublicationNumber_q": "2021/0138233"},
                 "applicationMetaData.earliestPublicationNumber:*20210138233*",
-            ),
-            (
-                {"earliestPublicationNumber_q": "not-a-pub-number"},
-                "applicationMetaData.earliestPublicationNumber:not-a-pub-number",
             ),
             (
                 {"pctPublicationNumber_q": "PCTUS202501234567"},
@@ -2034,8 +2041,20 @@ class TestGetPublication:
             count=0, patent_file_wrapper_data_bag=[]
         )
 
-        result = client.get_publication("nonexistent")
+        result = client.get_publication("20991234567")
         assert result is None
+
+    def test_get_publication_unreadable_number_raises(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        """Test get_publication raises for a value that is not a publication number."""
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError, match="query"):
+            client.get_publication("nonexistent")
+
+        mock_get_model.assert_not_called()
 
     def test_get_publication_api_404_returns_none(
         self,
@@ -2578,7 +2597,6 @@ class TestPatentApplicationDataRetrieval:
     @pytest.mark.parametrize(
         "search_q_params, expected_q_part",
         [
-            ({"application_number_q": "app123"}, "applicationNumberText:(app123)"),
             (
                 {"application_number_q": "14/412,875"},
                 "applicationNumberText:14412875",
@@ -2591,15 +2609,7 @@ class TestPatentApplicationDataRetrieval:
                 {"application_number_q": 14412875},
                 "applicationNumberText:14412875",
             ),
-            ({"application_number_q": "16*"}, "applicationNumberText:(16*)"),
-            (
-                {"application_number_q": "14412875 OR 14412876"},
-                "applicationNumberText:(14412875 OR 14412876)",
-            ),
-            (
-                {"application_number_q": "[16000000 TO 16999999]"},
-                "applicationNumberText:([16000000 TO 16999999])",
-            ),
+            ({"application_number_q": "16*"}, "applicationNumberText:16*"),
             (
                 {"application_number_q": "PCT/US2024/012345"},
                 "applicationNumberText:PCTUS2024012345",
