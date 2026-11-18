@@ -1163,11 +1163,14 @@ class TestHelperMethodsIntegration:
 class TestFirmPortfolioIntegration:
     """Integration tests for get_firm_portfolio and the new q-params."""
 
-    # USPTO Customer Number 30589 had 1,571 issued patents at the time of writing.
-    # The count grows monotonically (new grants only add to it; abandonments don't
-    # remove issued patents), so a lower-bound assertion is stable.
-    KNOWN_CUSTOMER_NUMBER = 30589
+    # USPTO Customer Number 18510 (the customer number on patent 10000000) had
+    # 1,519 applications on 2026-11-18. The count only grows (new filings add to
+    # it; abandoned applications stay in the dataset), so a lower-bound assertion
+    # is stable.
+    KNOWN_CUSTOMER_NUMBER = 18510
     KNOWN_CUSTOMER_NUMBER_LOWER_BOUND = 1500
+    # The customer number on patent 11000000.
+    OTHER_CUSTOMER_NUMBER = 72822
 
     def test_get_firm_portfolio_minimal_preset(
         self, patent_data_client: PatentDataClient
@@ -1194,7 +1197,8 @@ class TestFirmPortfolioIntegration:
             customer_numbers=[self.KNOWN_CUSTOMER_NUMBER], limit=1
         )
         combined = patent_data_client.get_firm_portfolio(
-            customer_numbers=[self.KNOWN_CUSTOMER_NUMBER, 174793], limit=1
+            customer_numbers=[self.KNOWN_CUSTOMER_NUMBER, self.OTHER_CUSTOMER_NUMBER],
+            limit=1,
         )
         # Combined query is always at least as broad as single-customer query.
         assert combined.count >= single.count
@@ -1219,15 +1223,17 @@ class TestFirmPortfolioIntegration:
             assert meta.application_status_date is not None
             assert meta.application_status_date >= cutoff_date
 
-    KNOWN_DOCKET = "4704.028"
-    KNOWN_DOCKET_APPLICATION = "18915708"
-    KNOWN_DOCKET_LIST = ["4704.028", "4704.029WO"]
-    KNOWN_DOCKET_LIST_APPLICATIONS = {"18915708", "PCTUS2024051265"}
-    KNOWN_DOCKET_WILDCARD = "4704.02*"
+    # The docket of patent 10000000 (application 14643719). Its space and
+    # parentheses make the client quote it.
+    KNOWN_DOCKET = "14-6582 (RAYN01-46582)"
+    KNOWN_DOCKET_APPLICATION = "14643719"
+    KNOWN_DOCKET_LIST = ["171835US01", "171835US02"]
+    KNOWN_DOCKET_LIST_APPLICATIONS = {"17822937", "19738117"}
+    KNOWN_DOCKET_WILDCARD = "171835*"
     KNOWN_DOCKET_WILDCARD_APPLICATIONS = {
-        "18915708",
-        "PCTUS2024051265",
-        "63709062",
+        "17822937",
+        "19738117",
+        "PCTUS2023067020",
     }
 
     def test_search_applications_by_docket_number(
@@ -1292,7 +1298,7 @@ class TestFirmPortfolioIntegration:
 
     @pytest.mark.parametrize(
         "customer_number, docket_number",
-        [(30589, "4704.999"), (174793, "4704.028")],
+        [(18510, "171835US99"), (72822, "171835US02")],
     )
     def test_get_firm_portfolio_docket_no_match_raises(
         self,
