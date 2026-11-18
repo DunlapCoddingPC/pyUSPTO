@@ -550,12 +550,12 @@ class TestPatentApplicationSearch:
                 "applicationMetaData.grantDate:[2022-01-01 TO 2022-12-31]",
             ),
             (
-                {"customer_number_q": 30589},
-                "applicationMetaData.customerNumber:30589",
+                {"customer_number_q": 12345},
+                "applicationMetaData.customerNumber:12345",
             ),
             (
-                {"customer_number_q": [30589, 174793]},
-                "applicationMetaData.customerNumber:(30589 OR 174793)",
+                {"customer_number_q": [12345, 67890]},
+                "applicationMetaData.customerNumber:(12345 OR 67890)",
             ),
             (
                 {"status_code_q": 71},
@@ -581,16 +581,16 @@ class TestPatentApplicationSearch:
                 "applicationMetaData.applicationStatusDate:[2025-01-01 TO 2025-12-31]",
             ),
             (
-                {"docket_number_q": "4704.028"},
-                "applicationMetaData.docketNumber:4704.028",
+                {"docket_number_q": "ABC123"},
+                "applicationMetaData.docketNumber:ABC123",
             ),
             (
-                {"docket_number_q": "4704.02*"},
-                "applicationMetaData.docketNumber:4704.02*",
+                {"docket_number_q": "ABC12*"},
+                "applicationMetaData.docketNumber:ABC12*",
             ),
             (
-                {"docket_number_q": ["4704.028", "4704.029WO"]},
-                "applicationMetaData.docketNumber:(4704.028 OR 4704.029WO)",
+                {"docket_number_q": ["ABC123", "ABC124WO"]},
+                "applicationMetaData.docketNumber:(ABC123 OR ABC124WO)",
             ),
             (
                 {"docket_number_q": "ABC 123"},
@@ -791,12 +791,12 @@ class TestSearchApplicationsDocketFilter:
         client, mock_get_model = client_with_mocked_request
         mock_get_model.return_value = mock_patent_data_response_empty
 
-        client.search_applications(customer_number_q=30589, docket_number_q="4704.028")
+        client.search_applications(customer_number_q=12345, docket_number_q="ABC123")
 
         params = mock_get_model.call_args.kwargs["params"]
         assert params["q"] == (
-            "applicationMetaData.customerNumber:30589 AND "
-            "applicationMetaData.docketNumber:4704.028"
+            "applicationMetaData.customerNumber:12345 AND "
+            "applicationMetaData.docketNumber:ABC123"
         )
 
     def test_empty_docket_list_raises(
@@ -848,7 +848,7 @@ class TestSingleIdentifier:
 
         with pytest.raises(ValueError) as exc_info:
             getattr(client, method_name)(
-                application_number="18915708", patent_number="12307527"
+                application_number="14643719", patent_number="10000000"
             )
 
         assert str(exc_info.value) == (
@@ -864,9 +864,9 @@ class TestSingleIdentifier:
 
         with pytest.raises(ValueError) as exc_info:
             client.get_IFW_metadata(
-                publication_number="20260054762",
-                patent_number="12307527",
-                application_number="18915708",
+                publication_number="20160266243",
+                patent_number="10000000",
+                application_number="14643719",
             )
 
         assert str(exc_info.value) == (
@@ -898,7 +898,7 @@ class TestSingleIdentifier:
         ]
 
         result = client.get_IFW_metadata(
-            application_number="", patent_number="12307527"
+            application_number="", patent_number="10000000"
         )
 
         assert result is not None
@@ -921,11 +921,11 @@ class TestSingleIdentifier:
         ]
 
         result = client.get_IFW_metadata(
-            application_number="  ", patent_number="12307527"
+            application_number="  ", patent_number="10000000"
         )
 
         assert mock_get_model.call_args_list[0].kwargs["params"]["q"] == (
-            "applicationMetaData.patentNumber:12307527"
+            "applicationMetaData.patentNumber:10000000"
         )
         assert result is not None
         assert (
@@ -951,7 +951,7 @@ class TestGetFirmPortfolio:
                 count=0, patent_file_wrapper_data_bag=[], request_identifier=None
             )
             patent_data_client.get_firm_portfolio(
-                customer_numbers=[30589, 174793],
+                customer_numbers=[12345, 67890],
                 status_codes=[71, 87],
                 status_date_from="2025-01-01",
                 status_date_to="2025-12-31",
@@ -964,7 +964,7 @@ class TestGetFirmPortfolio:
             )
 
         mock_search.assert_called_once_with(
-            customer_number_q=[30589, 174793],
+            customer_number_q=[12345, 67890],
             status_code_q=[71, 87],
             status_date_from_q="2025-01-01",
             status_date_to_q="2025-12-31",
@@ -986,7 +986,7 @@ class TestGetFirmPortfolio:
 
     @pytest.mark.parametrize(
         "docket_number",
-        ["4704.028", ["4704.028", "4704.029WO"]],
+        ["ABC123", ["ABC123", "ABC124WO"]],
         ids=["test_docket_number_forwarded", "test_docket_number_list_forwarded"],
     )
     def test_docket_number_forwarded(
@@ -1001,7 +1001,7 @@ class TestGetFirmPortfolio:
                 count=0, patent_file_wrapper_data_bag=[], request_identifier=None
             )
             patent_data_client.get_firm_portfolio(
-                customer_numbers=[30589], docket_number=docket_number
+                customer_numbers=[12345], docket_number=docket_number
             )
 
         _, kwargs = mock_search.call_args
@@ -1018,13 +1018,13 @@ class TestGetFirmPortfolio:
         mock_get_model.return_value = mock_patent_data_response_empty
 
         client.get_firm_portfolio(
-            customer_numbers=[30589], docket_number="4704.028", fields="minimal"
+            customer_numbers=[12345], docket_number="ABC123", fields="minimal"
         )
 
         assert mock_get_model.call_args.kwargs["params"] == {
             "q": (
-                "applicationMetaData.customerNumber:30589 AND "
-                "applicationMetaData.docketNumber:4704.028"
+                "applicationMetaData.customerNumber:12345 AND "
+                "applicationMetaData.docketNumber:ABC123"
             ),
             "fields": ",".join(FIELD_PRESETS["minimal"]),
             "offset": 0,
@@ -1038,7 +1038,7 @@ class TestGetFirmPortfolio:
         client, mock_get_model = client_with_mocked_request
 
         with pytest.raises(ValueError, match="empty list"):
-            client.get_firm_portfolio(customer_numbers=[30589], docket_number=[])
+            client.get_firm_portfolio(customer_numbers=[12345], docket_number=[])
 
         mock_get_model.assert_not_called()
 
@@ -1050,10 +1050,10 @@ class TestGetFirmPortfolio:
         client, mock_get_model = client_with_mocked_request
         mock_get_model.return_value = mock_patent_data_response_empty
 
-        client.get_firm_portfolio(customer_numbers=[30589], docket_number="")
+        client.get_firm_portfolio(customer_numbers=[12345], docket_number="")
 
         params = mock_get_model.call_args.kwargs["params"]
-        assert params["q"] == "applicationMetaData.customerNumber:30589"
+        assert params["q"] == "applicationMetaData.customerNumber:12345"
 
     def test_fields_preset_name_resolves(
         self,
@@ -1069,7 +1069,7 @@ class TestGetFirmPortfolio:
                 count=0, patent_file_wrapper_data_bag=[], request_identifier=None
             )
             patent_data_client.get_firm_portfolio(
-                customer_numbers=[30589], fields="minimal"
+                customer_numbers=[12345], fields="minimal"
             )
 
         _, kwargs = mock_search.call_args
@@ -1087,7 +1087,7 @@ class TestGetFirmPortfolio:
                 count=0, patent_file_wrapper_data_bag=[], request_identifier=None
             )
             patent_data_client.get_firm_portfolio(
-                customer_numbers=[30589],
+                customer_numbers=[12345],
                 fields=["applicationNumberText", "applicationMetaData.docketNumber"],
             )
 
@@ -1108,7 +1108,7 @@ class TestGetFirmPortfolio:
                 count=0, patent_file_wrapper_data_bag=[], request_identifier=None
             )
             patent_data_client.get_firm_portfolio(
-                customer_numbers=[30589],
+                customer_numbers=[12345],
                 fields="applicationMetaData,applicationNumberText",
             )
 
@@ -2965,12 +2965,12 @@ class TestPatentApplicationDataRetrieval:
                 "applicationMetaData.grantDate:[2022-01-01 TO 2022-12-31]",
             ),
             (
-                {"customer_number_q": 30589},
-                "applicationMetaData.customerNumber:30589",
+                {"customer_number_q": 12345},
+                "applicationMetaData.customerNumber:12345",
             ),
             (
-                {"customer_number_q": [30589, 174793]},
-                "applicationMetaData.customerNumber:(30589 OR 174793)",
+                {"customer_number_q": [12345, 67890]},
+                "applicationMetaData.customerNumber:(12345 OR 67890)",
             ),
             (
                 {"status_code_q": 71},

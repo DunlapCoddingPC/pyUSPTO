@@ -343,8 +343,19 @@ print("-" * 40)
 # horizon ("show me cases whose status changed since X").
 from collections import Counter
 
+# Read the Customer Numbers from two public patents, so the example runs
+# against live data without naming a firm.
+customer_numbers = []
+for public_patent in ("10000000", "11000000"):
+    public_wrapper = client.get_patent(public_patent)
+    if public_wrapper and public_wrapper.application_meta_data:
+        customer_number = public_wrapper.application_meta_data.customer_number
+        if customer_number is not None:
+            customer_numbers.append(customer_number)
+print(f"Customer Numbers read from patents 10000000 and 11000000: {customer_numbers}")
+
 portfolio_response = client.get_firm_portfolio(
-    customer_numbers=[30589, 174793],
+    customer_numbers=customer_numbers,
     status_date_from="2025-01-01",
     sort="applicationMetaData.applicationStatusDate desc",
     limit=25,
@@ -367,19 +378,30 @@ print("-" * 40)
 
 # docket_number_q (search_applications) and docket_number (get_firm_portfolio)
 # take one docket number or a list of docket numbers. A single word containing
-# * or ? is a wildcard pattern.
-docket_response = client.search_applications(
-    customer_number_q=30589, docket_number_q="4704.028", limit=5
+# * or ? is a wildcard pattern. This example reads two dockets from the first
+# Customer Number's portfolio, then searches for them.
+first_customer = customer_numbers[0]
+docket_page = client.get_firm_portfolio(
+    customer_numbers=[first_customer], fields="minimal", limit=2
 )
-print(f"Applications with docket 4704.028: {docket_response.count}")
-for wrapper in docket_response.patent_file_wrapper_data_bag:
-    meta = wrapper.application_meta_data
-    print(f"  {wrapper.application_number_text}: {meta.docket_number if meta else None}")
+dockets = [
+    wrapper.application_meta_data.docket_number
+    for wrapper in docket_page.patent_file_wrapper_data_bag
+    if wrapper.application_meta_data and wrapper.application_meta_data.docket_number
+]
+print(f"Dockets read from Customer Number {first_customer}: {dockets}")
 
-wildcard_response = client.get_firm_portfolio(
-    customer_numbers=[30589], docket_number="4704.02*", fields="minimal"
+docket_response = client.search_applications(
+    customer_number_q=first_customer, docket_number_q=dockets[0], limit=5
 )
-print(f"Applications with dockets matching 4704.02*: {wildcard_response.count}")
-for wrapper in wildcard_response.patent_file_wrapper_data_bag:
+print(f"Applications with docket {dockets[0]}: {docket_response.count}")
+for wrapper in docket_response.patent_file_wrapper_data_bag:
+    print(f"  {wrapper.application_number_text}")
+
+list_response = client.get_firm_portfolio(
+    customer_numbers=[first_customer], docket_number=dockets, fields="minimal"
+)
+print(f"Applications with any of {dockets}: {list_response.count}")
+for wrapper in list_response.patent_file_wrapper_data_bag:
     meta = wrapper.application_meta_data
     print(f"  {wrapper.application_number_text}: {meta.docket_number if meta else None}")

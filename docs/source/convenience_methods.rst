@@ -134,7 +134,7 @@ The result is an :class:`~pyUSPTO.models.patent_data.IFWResult` with three attri
 
 .. code-block:: python
 
-   result = client.get_IFW(application_number="14412875", destination="./downloads")
+   result = client.get_IFW(PCT_app_number="PCT/US2023/067020", destination="./downloads")
    if result:
        print(result.output_path)
        for doc in result.wrapper.document_bag or []:
@@ -150,18 +150,23 @@ Look up a firm's applications
 
 .. code-block:: python
 
-   response = client.get_firm_portfolio(customer_numbers=[30589], docket_number="4704.028")
-   print(response.count)  # 1
-   print(response.patent_file_wrapper_data_bag[0].application_number_text)  # 18915708
+   response = client.get_firm_portfolio(customer_numbers=[12345], docket_number="ABC-123")
+   for wrapper in response.patent_file_wrapper_data_bag:
+       print(wrapper.application_number_text)
 
-A single word containing ``*`` or ``?`` is a wildcard pattern. The call below returns three applications: ``18915708``, ``PCTUS2024051265``, and ``63709062``.
+``docket_number`` takes one docket number or a list of docket numbers:
 
 .. code-block:: python
 
-   response = client.get_firm_portfolio(customer_numbers=[30589], docket_number="4704.02*")
-   print(response.count)  # 3
+   response = client.get_firm_portfolio(
+       customer_numbers=[12345], docket_number=["ABC-123", "ABC-124"]
+   )
 
-``docket_number`` takes one docket number or a list of docket numbers.
+A single word containing ``*`` or ``?`` is a wildcard pattern. The call below matches every docket that starts with ``ABC12``:
+
+.. code-block:: python
+
+   response = client.get_firm_portfolio(customer_numbers=[12345], docket_number="ABC12*")
 
 A value with whitespace or one of the characters ``+ - & | ! ( ) { } [ ] ^ " ~ : \ / < > =`` is quoted and matches exactly only, and so is the bare word ``AND``, ``OR``, ``NOT``, or ``TO``.
 

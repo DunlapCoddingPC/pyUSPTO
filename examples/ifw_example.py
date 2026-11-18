@@ -72,12 +72,16 @@ try:
 except ValueError as error:
     print(error)
 
+# Examples 2 and 3 download every document in a file wrapper, so they use a
+# PCT application with a short file wrapper (17 documents).
+small_PCT_app_number = "PCT/US2023/067020"
+
 print("-" * 40)
 print("Example 2: Download IFW as ZIP archive")
 print("-" * 40)
 
 ifw_result = client.get_IFW(
-    application_number=application_number,
+    PCT_app_number=small_PCT_app_number,
     destination=DEST_PATH,
     overwrite=True,
 )
@@ -101,7 +105,7 @@ print("Example 3: Download IFW as directory")
 print("-" * 40)
 
 ifw_dir_result = client.get_IFW(
-    application_number=application_number,
+    PCT_app_number=small_PCT_app_number,
     destination=DEST_PATH,
     overwrite=True,
     as_zip=False,

@@ -320,7 +320,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
            (``H01L  21/02``).
 
         ``docket_number_q`` matches the docket number as filed. A single word
-        containing ``*`` or ``?`` is a wildcard pattern, such as ``4704.02*``.
+        containing ``*`` or ``?`` is a wildcard pattern, such as ``ABC12*``.
         A value with whitespace or one of the characters
         ``+ - & | ! ( ) { } [ ] ^ " ~ : \ / < > =`` is quoted and matches
         exactly only, so a ``*`` inside the quotes is searched as plain text.
