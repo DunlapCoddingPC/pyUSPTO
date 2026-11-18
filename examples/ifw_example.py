@@ -60,6 +60,19 @@ if pct_pub_no_ifw and pct_pub_no_ifw.application_meta_data:
     print(f"  IFW found via PCT publication number: {PCT_pub_number}")
 
 print("-" * 40)
+print("Example 1.5: Pass exactly one identifier")
+print("-" * 40)
+
+# get_IFW_metadata and get_IFW raise ValueError when more than one identifier
+# is passed. The error is raised before any request is sent.
+try:
+    client.get_IFW_metadata(
+        application_number=application_number, patent_number=patent_number
+    )
+except ValueError as error:
+    print(error)
+
+print("-" * 40)
 print("Example 2: Download IFW as ZIP archive")
 print("-" * 40)
 

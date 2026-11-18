@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `legal_section_code_q` on `OACitationsClient` and `OARejectionsClient` matches whole section codes as text. On `OACitationsClient` it no longer wraps the value in `*`, so `"103"` no longer matches records coded `1032`, `1039`, `1103`, or `102103` (48 records in the live data). Multi-word codes such as `"nonstatutory double patenting"` now match on both clients.
 - **Breaking:** `get_patent`, `get_publication`, `get_pct`, `get_IFW`, and `get_IFW_metadata(patent_number=..., publication_number=..., PCT_pub_number=...)` raise `ValueError` for a number they cannot read, instead of returning `None`. A well-formed number with no match still returns `None`.
 - `patent_data_example.py` searches CPC with `H10D64/667` instead of the padded `H10D  64/667`, and adds an example that searches with lists of values.
+- `patent_data_example.py` adds an example that filters by docket number, and `ifw_example.py` adds an example of the `ValueError` for more than one identifier.
 - `get_IFW_metadata` and `get_IFW` raise `ValueError` when more than one identifier is passed. Before, the method used only the first identifier (application number, patent number, publication number, PCT application number, PCT publication number, in that order) and ignored the rest, even when the first found nothing.
 
 ### Fixed

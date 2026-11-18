@@ -360,3 +360,26 @@ for wrapper in portfolio_response.patent_file_wrapper_data_bag:
 print("Status-code tally for the page:")
 for code, n in status_counter.most_common():
     print(f"  {code}: {n}")
+
+print("-" * 40)
+print("Example 10: Filter by docket number")
+print("-" * 40)
+
+# docket_number_q (search_applications) and docket_number (get_firm_portfolio)
+# take one docket number or a list of docket numbers. A single word containing
+# * or ? is a wildcard pattern.
+docket_response = client.search_applications(
+    customer_number_q=30589, docket_number_q="4704.028", limit=5
+)
+print(f"Applications with docket 4704.028: {docket_response.count}")
+for wrapper in docket_response.patent_file_wrapper_data_bag:
+    meta = wrapper.application_meta_data
+    print(f"  {wrapper.application_number_text}: {meta.docket_number if meta else None}")
+
+wildcard_response = client.get_firm_portfolio(
+    customer_numbers=[30589], docket_number="4704.02*", fields="minimal"
+)
+print(f"Applications with dockets matching 4704.02*: {wildcard_response.count}")
+for wrapper in wildcard_response.patent_file_wrapper_data_bag:
+    meta = wrapper.application_meta_data
+    print(f"  {wrapper.application_number_text}: {meta.docket_number if meta else None}")
