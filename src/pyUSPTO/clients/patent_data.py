@@ -1239,9 +1239,10 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         """Retrieve complete patent file wrapper data using common identifiers.
 
         This utility fetches the `PatentFileWrapper`, which contains comprehensive
-        IFW metadata, application details, and more. Provide only one
-        identifier if possible. If multiple are given, they are processed in the
-        order listed in the arguments, and the first successful match is returned.
+        IFW metadata, application details, and more. Pass exactly one
+        identifier. If more than one is passed, only the first in the order
+        listed in the arguments below is used, and the later identifiers are
+        ignored, even when the first identifier finds nothing.
 
         Args:
             application_number (Optional[str], optional): USPTO application number

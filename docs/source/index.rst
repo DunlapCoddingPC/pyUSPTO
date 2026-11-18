@@ -8,6 +8,7 @@ pyUSPTO documentation
    about
    installation
    quickstart
+   convenience_methods
    configuration
    advanced
    api/index
