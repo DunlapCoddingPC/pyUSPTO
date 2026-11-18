@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - A Convenience Methods page in the documentation, covering `get_patent`, `get_publication`, `get_pct`, `get_IFW_metadata`, and `get_IFW`.
+- `search_applications` takes `docket_number_q`, one docket number or a list. A single word with `*` or `?` is a wildcard pattern; a value with whitespace or a special character is quoted and matches exactly.
 
 ### Changed
 

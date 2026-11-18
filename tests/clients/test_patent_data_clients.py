@@ -580,6 +580,26 @@ class TestPatentApplicationSearch:
                 },
                 "applicationMetaData.applicationStatusDate:[2025-01-01 TO 2025-12-31]",
             ),
+            (
+                {"docket_number_q": "4704.028"},
+                "applicationMetaData.docketNumber:4704.028",
+            ),
+            (
+                {"docket_number_q": "4704.02*"},
+                "applicationMetaData.docketNumber:4704.02*",
+            ),
+            (
+                {"docket_number_q": ["4704.028", "4704.029WO"]},
+                "applicationMetaData.docketNumber:(4704.028 OR 4704.029WO)",
+            ),
+            (
+                {"docket_number_q": "ABC 123"},
+                'applicationMetaData.docketNumber:"ABC 123"',
+            ),
+            (
+                {"docket_number_q": "ABC-123*"},
+                'applicationMetaData.docketNumber:"ABC-123*"',
+            ),
         ],
     )
     def test_search_applications_get_various_q_convenience_filters(
@@ -758,6 +778,61 @@ class TestPatentApplicationSearch:
             params=expected_api_params,
             response_class=PatentDataResponse,
         )
+
+
+class TestSearchApplicationsDocketFilter:
+    """Tests for the docket_number_q filter on search_applications."""
+
+    def test_docket_with_customer_number_is_and_joined(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_data_response_empty: PatentDataResponse,
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_patent_data_response_empty
+
+        client.search_applications(customer_number_q=30589, docket_number_q="4704.028")
+
+        params = mock_get_model.call_args.kwargs["params"]
+        assert params["q"] == (
+            "applicationMetaData.customerNumber:30589 AND "
+            "applicationMetaData.docketNumber:4704.028"
+        )
+
+    def test_empty_docket_list_raises(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError, match="empty list"):
+            client.search_applications(docket_number_q=[])
+
+        mock_get_model.assert_not_called()
+
+    def test_empty_docket_item_raises(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError):
+            client.search_applications(docket_number_q=[""])
+
+        mock_get_model.assert_not_called()
+
+    def test_empty_docket_string_adds_no_clause(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_data_response_empty: PatentDataResponse,
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_patent_data_response_empty
+
+        client.search_applications(docket_number_q="")
+
+        params = mock_get_model.call_args.kwargs["params"]
+        assert "q" not in params
 
 
 class TestGetFirmPortfolio:

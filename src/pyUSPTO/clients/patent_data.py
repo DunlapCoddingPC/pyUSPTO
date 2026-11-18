@@ -220,6 +220,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         classification_q: str | list[str] | None,
         earliestPublicationNumber_q: str | list[str] | None = None,
         pctPublicationNumber_q: str | list[str] | None = None,
+        docket_number_q: str | list[str] | None = None,
     ) -> str | None:
         """Build the ``q`` value for the application search convenience filters."""
         return all_of(
@@ -240,6 +241,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             pct_publication_number(
                 "applicationMetaData.pctPublicationNumber", pctPublicationNumber_q
             ),
+            text("applicationMetaData.docketNumber", docket_number_q),
             date_range(
                 "applicationMetaData.filingDate", filing_date_from_q, filing_date_to_q
             ),
@@ -280,6 +282,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         classification_q: str | list[str] | None = None,
         earliestPublicationNumber_q: str | list[str] | None = None,
         pctPublicationNumber_q: str | list[str] | None = None,
+        docket_number_q: str | list[str] | None = None,
         additional_query_params: dict[str, Any] | None = None,
     ) -> PatentDataResponse:
         """Search for patent applications.
@@ -315,6 +318,14 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
            group (``H01L21`` or ``H01L21*``, matching its subgroups), or a subclass
            (``H01L``) is converted to the stored fixed-width form
            (``H01L  21/02``).
+
+        ``docket_number_q`` matches the docket number as filed. A single word
+        containing ``*`` or ``?`` is a wildcard pattern, such as ``4704.02*``.
+        A value with whitespace or one of the characters
+        ``+ - & | ! ( ) { } [ ] ^ " ~ : \\ / < > =`` is quoted and matches
+        exactly only, so a ``*`` inside the quotes is searched as plain text.
+        The bare words ``AND``, ``OR``, ``NOT``, and ``TO`` are also quoted,
+        so each is searched as a word.
         """
         endpoint = self.ENDPOINTS["search_applications"]
 
@@ -348,6 +359,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                     classification_q=classification_q,
                     earliestPublicationNumber_q=earliestPublicationNumber_q,
                     pctPublicationNumber_q=pctPublicationNumber_q,
+                    docket_number_q=docket_number_q,
                 )
 
             if final_q is not None:
