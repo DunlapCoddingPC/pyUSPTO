@@ -835,6 +835,79 @@ class TestSearchApplicationsDocketFilter:
         assert "q" not in params
 
 
+class TestSingleIdentifier:
+    """get_IFW_metadata and get_IFW take exactly one identifier."""
+
+    @pytest.mark.parametrize("method_name", ["get_IFW_metadata", "get_IFW"])
+    def test_two_identifiers_raise(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        method_name: str,
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError) as exc_info:
+            getattr(client, method_name)(
+                application_number="18915708", patent_number="12307527"
+            )
+
+        assert str(exc_info.value) == (
+            "Pass exactly one identifier; got application_number, patent_number."
+        )
+        mock_get_model.assert_not_called()
+
+    def test_three_identifiers_raise(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError) as exc_info:
+            client.get_IFW_metadata(
+                publication_number="20260054762",
+                patent_number="12307527",
+                application_number="18915708",
+            )
+
+        assert str(exc_info.value) == (
+            "Pass exactly one identifier; got application_number, "
+            "patent_number, publication_number."
+        )
+        mock_get_model.assert_not_called()
+
+    def test_no_identifier_returns_none(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+
+        assert client.get_IFW_metadata() is None
+        mock_get_model.assert_not_called()
+
+    def test_empty_string_is_not_an_identifier(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.side_effect = [
+            PatentDataResponse(
+                count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+            ),
+            DocumentBag(documents=[]),
+        ]
+
+        result = client.get_IFW_metadata(
+            application_number="", patent_number="12307527"
+        )
+
+        assert result is not None
+        assert (
+            result.application_number_text
+            == mock_patent_file_wrapper.application_number_text
+        )
+
+
 class TestGetFirmPortfolio:
     """Tests for PatentDataClient.get_firm_portfolio."""
 
@@ -2108,41 +2181,6 @@ class TestGetIFW:
             client.get_IFW_metadata(patent_number="nonexistent")
 
         mock_get_model.assert_not_called()
-
-    def test_get_ifw_prioritizes_first_parameter(
-        self,
-        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
-        mock_patent_file_wrapper: PatentFileWrapper,
-    ) -> None:
-        """Test get_IFW uses application_number when multiple parameters provided."""
-        client, mock_get_model = client_with_mocked_request
-        mock_get_model.side_effect = [
-            PatentDataResponse(
-                count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
-            ),
-            DocumentBag(documents=[]),
-        ]
-
-        app_num = "12345678"
-        # Provide multiple parameters - should use application_number
-        result = client.get_IFW_metadata(
-            application_number=app_num,
-            patent_number="10000000",
-            publication_number="US20240123456A1",
-        )
-
-        # Should call get_application_by_number first, not search
-        assert mock_get_model.call_args_list[0] == call(
-            method="GET",
-            endpoint=f"api/v1/patent/applications/{app_num}",
-            response_class=PatentDataResponse,
-        )
-        assert result is not None
-        assert (
-            result.application_number_text
-            == mock_patent_file_wrapper.application_number_text
-        )
-        assert isinstance(result.document_bag, DocumentBag)
 
 
 class TestGetPatent:

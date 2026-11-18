@@ -1260,22 +1260,20 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         This utility fetches the `PatentFileWrapper`, which contains comprehensive
         IFW metadata, application details, and more. Pass exactly one
-        identifier. If more than one is passed, only the first in the order
-        listed in the arguments below is used, and the later identifiers are
-        ignored, even when the first identifier finds nothing.
+        identifier. Passing more than one raises ValueError.
 
         Args:
             application_number (Optional[str], optional): USPTO application number
-                (e.g., "16123456"). Checked first (direct lookup).
+                (e.g., "16123456"). Uses a direct lookup.
             patent_number (Optional[str], optional): USPTO patent number
-                (e.g., "11000000"). Checked second (uses search).
+                (e.g., "11000000"). Uses search.
             publication_number (Optional[str], optional): USPTO pre-grant
                 publication number (e.g., "20230123456"). A "US" prefix, kind
-                code, and separators are optional. Checked third (uses search).
+                code, and separators are optional. Uses search.
             PCT_app_number (Optional[str], optional): PCT application number.
-                Checked fourth (direct lookup, treated as USPTO app#).
+                Uses a direct lookup, treated as a USPTO application number.
             PCT_pub_number (Optional[str], optional): PCT publication number
-                (e.g., "WO2023012345"). Checked fifth (uses search).
+                (e.g., "WO2023012345"). Uses search.
 
         Returns:
             Optional[PatentFileWrapper]: A `PatentFileWrapper` object with
@@ -1283,9 +1281,23 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 otherwise None.
 
         Raises:
-            ValueError: If an identifier cannot be read as that kind of
-                number, such as a patent_number that is not a patent number.
+            ValueError: If more than one identifier is passed, or if an
+                identifier cannot be read as that kind of number, such as a
+                patent_number that is not a patent number.
         """
+        passed = [
+            name
+            for name, value in (
+                ("application_number", application_number),
+                ("patent_number", patent_number),
+                ("publication_number", publication_number),
+                ("PCT_app_number", PCT_app_number),
+                ("PCT_pub_number", PCT_pub_number),
+            )
+            if value
+        ]
+        if len(passed) > 1:
+            raise ValueError(f"Pass exactly one identifier; got {', '.join(passed)}.")
         wrapper = None
         if application_number:
             wrapper = self.get_application_by_number(
@@ -1344,7 +1356,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
 
         Raises:
             FileExistsError: If the output path already exists and overwrite=False.
-            ValueError: If an identifier cannot be read as that kind of number.
+            ValueError: If more than one identifier is passed, or if an
+                identifier cannot be read as that kind of number.
         """
         wrapper = self.get_IFW_metadata(
             application_number=application_number,
