@@ -937,7 +937,8 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             docket_number: A docket number or a list of docket numbers, matched
                 as in ``search_applications(docket_number_q=...)``. The docket
                 filter is combined with the customer numbers, so a docket filed
-                under another customer number returns no rows.
+                under another customer number matches no application and the
+                call raises ``USPTOApiNotFoundError``.
 
         Returns:
             PatentDataResponse: The same response shape as
@@ -1285,34 +1286,32 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 identifier cannot be read as that kind of number, such as a
                 patent_number that is not a patent number.
         """
-        passed = [
-            name
-            for name, value in (
-                ("application_number", application_number),
-                ("patent_number", patent_number),
-                ("publication_number", publication_number),
-                ("PCT_app_number", PCT_app_number),
-                ("PCT_pub_number", PCT_pub_number),
-            )
-            if value
-        ]
+        # A None, empty, or whitespace-only value is not an identifier.
+        passed: list[tuple[str, str]] = []
+        for name, value in (
+            ("application_number", application_number),
+            ("patent_number", patent_number),
+            ("publication_number", publication_number),
+            ("PCT_app_number", PCT_app_number),
+            ("PCT_pub_number", PCT_pub_number),
+        ):
+            if value is not None and value.strip():
+                passed.append((name, value))
         if len(passed) > 1:
-            raise ValueError(f"Pass exactly one identifier; got {', '.join(passed)}.")
+            names = ", ".join(name for name, _ in passed)
+            raise ValueError(f"Pass exactly one identifier; got {names}.")
+        if not passed:
+            return None
+        name, value = passed[0]
         wrapper = None
-        if application_number:
-            wrapper = self.get_application_by_number(
-                application_number=application_number
-            )
-        elif patent_number:
-            wrapper = self._resolve_by_search(patent_number_q=patent_number)
-        elif publication_number:
-            wrapper = self._resolve_by_search(
-                earliestPublicationNumber_q=publication_number
-            )
-        elif PCT_app_number:
-            wrapper = self.get_application_by_number(application_number=PCT_app_number)
-        elif PCT_pub_number:
-            wrapper = self._resolve_by_search(pctPublicationNumber_q=PCT_pub_number)
+        if name in ("application_number", "PCT_app_number"):
+            wrapper = self.get_application_by_number(application_number=value)
+        elif name == "patent_number":
+            wrapper = self._resolve_by_search(patent_number_q=value)
+        elif name == "publication_number":
+            wrapper = self._resolve_by_search(earliestPublicationNumber_q=value)
+        else:
+            wrapper = self._resolve_by_search(pctPublicationNumber_q=value)
         if wrapper is None:
             return None
         doc_bag = self.get_application_documents(wrapper.application_number_text)

@@ -907,6 +907,32 @@ class TestSingleIdentifier:
             == mock_patent_file_wrapper.application_number_text
         )
 
+    def test_whitespace_only_string_is_not_an_identifier(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_file_wrapper: PatentFileWrapper,
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.side_effect = [
+            PatentDataResponse(
+                count=1, patent_file_wrapper_data_bag=[mock_patent_file_wrapper]
+            ),
+            DocumentBag(documents=[]),
+        ]
+
+        result = client.get_IFW_metadata(
+            application_number="  ", patent_number="12307527"
+        )
+
+        assert mock_get_model.call_args_list[0].kwargs["params"]["q"] == (
+            "applicationMetaData.patentNumber:12307527"
+        )
+        assert result is not None
+        assert (
+            result.application_number_text
+            == mock_patent_file_wrapper.application_number_text
+        )
+
 
 class TestGetFirmPortfolio:
     """Tests for PatentDataClient.get_firm_portfolio."""
