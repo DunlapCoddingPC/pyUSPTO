@@ -875,6 +875,7 @@ class TestGetFirmPortfolio:
             sort="applicationMetaData.applicationStatusDate desc",
             offset=10,
             limit=50,
+            docket_number_q=None,
         )
 
     def test_empty_customer_numbers_raises_value_error(
@@ -883,6 +884,77 @@ class TestGetFirmPortfolio:
     ) -> None:
         with pytest.raises(ValueError, match="non-empty"):
             patent_data_client.get_firm_portfolio(customer_numbers=[])
+
+    @pytest.mark.parametrize(
+        "docket_number",
+        ["4704.028", ["4704.028", "4704.029WO"]],
+        ids=["test_docket_number_forwarded", "test_docket_number_list_forwarded"],
+    )
+    def test_docket_number_forwarded(
+        self,
+        patent_data_client: PatentDataClient,
+        docket_number: str | list[str],
+    ) -> None:
+        with patch.object(
+            patent_data_client, "search_applications", autospec=True
+        ) as mock_search:
+            mock_search.return_value = PatentDataResponse(
+                count=0, patent_file_wrapper_data_bag=[], request_identifier=None
+            )
+            patent_data_client.get_firm_portfolio(
+                customer_numbers=[30589], docket_number=docket_number
+            )
+
+        _, kwargs = mock_search.call_args
+        assert kwargs["docket_number_q"] == docket_number
+
+    def test_docket_number_emits_and_joined_q(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_data_response_empty: PatentDataResponse,
+    ) -> None:
+        from pyUSPTO.clients.patent_data import FIELD_PRESETS
+
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_patent_data_response_empty
+
+        client.get_firm_portfolio(
+            customer_numbers=[30589], docket_number="4704.028", fields="minimal"
+        )
+
+        assert mock_get_model.call_args.kwargs["params"] == {
+            "q": (
+                "applicationMetaData.customerNumber:30589 AND "
+                "applicationMetaData.docketNumber:4704.028"
+            ),
+            "fields": ",".join(FIELD_PRESETS["minimal"]),
+            "offset": 0,
+            "limit": 25,
+        }
+
+    def test_empty_docket_list_raises(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+
+        with pytest.raises(ValueError, match="empty list"):
+            client.get_firm_portfolio(customer_numbers=[30589], docket_number=[])
+
+        mock_get_model.assert_not_called()
+
+    def test_empty_docket_string_adds_no_clause(
+        self,
+        client_with_mocked_request: tuple[PatentDataClient, MagicMock],
+        mock_patent_data_response_empty: PatentDataResponse,
+    ) -> None:
+        client, mock_get_model = client_with_mocked_request
+        mock_get_model.return_value = mock_patent_data_response_empty
+
+        client.get_firm_portfolio(customer_numbers=[30589], docket_number="")
+
+        params = mock_get_model.call_args.kwargs["params"]
+        assert params["q"] == "applicationMetaData.customerNumber:30589"
 
     def test_fields_preset_name_resolves(
         self,

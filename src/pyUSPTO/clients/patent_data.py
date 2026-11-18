@@ -891,6 +891,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         sort: str | None = None,
         offset: int | None = 0,
         limit: int | None = 25,
+        docket_number: str | list[str] | None = None,
     ) -> PatentDataResponse:
         """Search a law firm's portfolio across one or more USPTO Customer Numbers.
 
@@ -933,13 +934,19 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
                 ``"applicationMetaData.applicationStatusDate desc"``.
             offset: Pagination offset.
             limit: Page size.
+            docket_number: A docket number or a list of docket numbers, matched
+                as in ``search_applications(docket_number_q=...)``. The docket
+                filter is combined with the customer numbers, so a docket filed
+                under another customer number returns no rows.
 
         Returns:
             PatentDataResponse: The same response shape as
             :meth:`search_applications`. Pagination is the caller's responsibility.
 
         Raises:
-            ValueError: If ``customer_numbers`` is empty.
+            ValueError: If ``customer_numbers`` is empty, or if
+                ``docket_number`` is an empty list.
+            USPTOApiNotFoundError: If no application matches.
         """
         if not customer_numbers:
             raise ValueError("customer_numbers must be a non-empty list")
@@ -962,6 +969,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
             sort=sort,
             offset=offset,
             limit=limit,
+            docket_number_q=docket_number,
         )
 
     def get_status_codes(
