@@ -1218,3 +1218,92 @@ class TestFirmPortfolioIntegration:
             assert meta is not None
             assert meta.application_status_date is not None
             assert meta.application_status_date >= cutoff_date
+
+    KNOWN_DOCKET = "4704.028"
+    KNOWN_DOCKET_APPLICATION = "18915708"
+    KNOWN_DOCKET_LIST = ["4704.028", "4704.029WO"]
+    KNOWN_DOCKET_LIST_APPLICATIONS = {"18915708", "PCTUS2024051265"}
+    KNOWN_DOCKET_WILDCARD = "4704.02*"
+    KNOWN_DOCKET_WILDCARD_APPLICATIONS = {
+        "18915708",
+        "PCTUS2024051265",
+        "63709062",
+    }
+
+    def test_search_applications_by_docket_number(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """docket_number_q with a customer number returns the one application."""
+        response = patent_data_client.search_applications(
+            customer_number_q=self.KNOWN_CUSTOMER_NUMBER,
+            docket_number_q=self.KNOWN_DOCKET,
+            limit=5,
+        )
+        assert response.count == 1
+        assert len(response.patent_file_wrapper_data_bag) == 1
+        wrapper = response.patent_file_wrapper_data_bag[0]
+        assert wrapper.application_number_text == self.KNOWN_DOCKET_APPLICATION
+        assert wrapper.application_meta_data.docket_number == self.KNOWN_DOCKET
+        assert (
+            wrapper.application_meta_data.customer_number == self.KNOWN_CUSTOMER_NUMBER
+        )
+
+    def test_get_firm_portfolio_by_docket_number(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """get_firm_portfolio with docket_number returns the one application."""
+        response = patent_data_client.get_firm_portfolio(
+            customer_numbers=[self.KNOWN_CUSTOMER_NUMBER],
+            docket_number=self.KNOWN_DOCKET,
+            fields="minimal",
+        )
+        assert response.count == 1
+        assert [
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        ] == [self.KNOWN_DOCKET_APPLICATION]
+
+    def test_get_firm_portfolio_docket_list(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """A list of docket numbers matches any of them."""
+        response = patent_data_client.get_firm_portfolio(
+            customer_numbers=[self.KNOWN_CUSTOMER_NUMBER],
+            docket_number=self.KNOWN_DOCKET_LIST,
+            fields="minimal",
+        )
+        assert response.count == 2
+        assert {
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        } == self.KNOWN_DOCKET_LIST_APPLICATIONS
+
+    def test_get_firm_portfolio_docket_wildcard(
+        self, patent_data_client: PatentDataClient
+    ) -> None:
+        """A single-word wildcard docket matches every docket with the prefix."""
+        response = patent_data_client.get_firm_portfolio(
+            customer_numbers=[self.KNOWN_CUSTOMER_NUMBER],
+            docket_number=self.KNOWN_DOCKET_WILDCARD,
+            fields="minimal",
+        )
+        assert response.count == 3
+        assert {
+            w.application_number_text for w in response.patent_file_wrapper_data_bag
+        } == self.KNOWN_DOCKET_WILDCARD_APPLICATIONS
+
+    @pytest.mark.parametrize(
+        "customer_number, docket_number",
+        [(30589, "4704.999"), (174793, "4704.028")],
+    )
+    def test_get_firm_portfolio_docket_no_match_raises(
+        self,
+        patent_data_client: PatentDataClient,
+        customer_number: int,
+        docket_number: str,
+    ) -> None:
+        """No matching docket, or a docket under another customer number, is a 404."""
+        with pytest.raises(USPTOApiNotFoundError):
+            patent_data_client.get_firm_portfolio(
+                customer_numbers=[customer_number],
+                docket_number=docket_number,
+                fields="minimal",
+            )
