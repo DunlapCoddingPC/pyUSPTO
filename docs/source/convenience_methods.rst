@@ -1,7 +1,7 @@
 Convenience Methods
 ===================
 
-:class:`~pyUSPTO.clients.patent_data.PatentDataClient` has five convenience methods. Each takes a patent number, publication number, or PCT number and returns the matching application. You do not build a search query or look up the application number first.
+:class:`~pyUSPTO.clients.patent_data.PatentDataClient` has six convenience methods. Five take a patent number, publication number, or PCT number and return the matching application. ``get_firm_portfolio`` takes customer numbers and returns the applications filed under them. You do not build a search query or look up the application number first.
 
 .. code-block:: python
 
@@ -32,6 +32,9 @@ Convenience Methods
    * - :meth:`~pyUSPTO.clients.patent_data.PatentDataClient.get_IFW`
      - Same five identifiers as ``get_IFW_metadata``
      - :class:`~pyUSPTO.models.patent_data.IFWResult`, or ``None``
+   * - :meth:`~pyUSPTO.clients.patent_data.PatentDataClient.get_firm_portfolio`
+     - One or more customer numbers, with an optional docket number
+     - :class:`~pyUSPTO.models.patent_data.PatentDataResponse`
 
 Look up an application
 ----------------------
@@ -91,7 +94,7 @@ Look up an application with its documents
      - Search
      - PCT publication number
 
-Pass exactly one identifier. If more than one is passed, only the first in the order of the table above is used, and the later identifiers are ignored, even when the first identifier finds nothing.
+Pass exactly one identifier. Passing more than one raises ``ValueError``.
 
 .. code-block:: python
 
@@ -140,8 +143,31 @@ The result is an :class:`~pyUSPTO.models.patent_data.IFWResult` with three attri
 
 For a complete script, see :doc:`examples/ifw_example`.
 
+Look up a firm's applications
+-----------------------------
+
+``get_firm_portfolio`` takes a list of customer numbers and an optional ``docket_number``. The docket filter is combined with the customer numbers:
+
+.. code-block:: python
+
+   response = client.get_firm_portfolio(customer_numbers=[30589], docket_number="4704.028")
+   print(response.count)  # 1
+   print(response.patent_file_wrapper_data_bag[0].application_number_text)  # 18915708
+
+A single word containing ``*`` or ``?`` is a wildcard pattern. The call below returns three applications: ``18915708``, ``PCTUS2024051265``, and ``63709062``.
+
+.. code-block:: python
+
+   response = client.get_firm_portfolio(customer_numbers=[30589], docket_number="4704.02*")
+   print(response.count)  # 3
+
+``docket_number`` takes one docket number or a list of docket numbers.
+
+A value with whitespace or one of the characters ``+ - & | ! ( ) { } [ ] ^ " ~ : \ / < > =`` is quoted and matches exactly only, and so is the bare word ``AND``, ``OR``, ``NOT``, or ``TO``.
+
 When nothing matches
 --------------------
 
-1. Every method and keyword on this page raises ``ValueError`` for a value that cannot be read as the kind of number expected.
+1. Every method on this page raises ``ValueError`` for a value it cannot read, such as a malformed number or an empty list, and ``get_IFW_metadata`` and ``get_IFW`` raise it when more than one identifier is passed.
 2. The lookups that use a search (``get_patent``, ``get_publication``, ``get_pct`` with a publication number, and the ``patent_number``, ``publication_number``, and ``PCT_pub_number`` keywords) return ``None`` for a well-formed number that matches no application. The search endpoint answers "no matches" with HTTP 404, and these methods catch the 404.
+3. ``get_firm_portfolio`` raises ``USPTOApiNotFoundError`` when no application matches, including a docket filed under a different customer number.
