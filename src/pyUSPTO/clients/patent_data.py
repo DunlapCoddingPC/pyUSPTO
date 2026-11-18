@@ -285,7 +285,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         docket_number_q: str | list[str] | None = None,
         additional_query_params: dict[str, Any] | None = None,
     ) -> PatentDataResponse:
-        """Search for patent applications.
+        r"""Search for patent applications.
 
         Can perform a GET request based on OpenAPI query parameters or a POST request if post_body is specified.
 
@@ -322,7 +322,7 @@ class PatentDataClient(BaseUSPTOClient[PatentDataResponse]):
         ``docket_number_q`` matches the docket number as filed. A single word
         containing ``*`` or ``?`` is a wildcard pattern, such as ``4704.02*``.
         A value with whitespace or one of the characters
-        ``+ - & | ! ( ) { } [ ] ^ " ~ : \\ / < > =`` is quoted and matches
+        ``+ - & | ! ( ) { } [ ] ^ " ~ : \ / < > =`` is quoted and matches
         exactly only, so a ``*`` inside the quotes is searched as plain text.
         The bare words ``AND``, ``OR``, ``NOT``, and ``TO`` are also quoted,
         so each is searched as a word.
