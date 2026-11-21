@@ -76,7 +76,7 @@ pytest-cov==7.1.0
     # via pyUSPTO (pyproject.toml)
 pytest-mock==3.17.0
     # via pyUSPTO (pyproject.toml)
-pyyaml==6.0.3
+pyyaml==6.0.4
     # via myst-parser
 requests==2.34.2
     # via
